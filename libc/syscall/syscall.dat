@@ -14,18 +14,19 @@
 READ                    3   3
 WRITE                   4   3
 CLOSE                   6   1
-LSEEK                   19  3   * NB 2nd arg is a ptr to long not a long.
+LSEEK                   19  3   * NB 2nd arg is an IO ptr to long not a long.
 FSTAT                   28  2
 IOCTL                   54  3	. Make this and fcntl the same ?
 FCNTL                   55  3
-FCHMOD                  94  X
-FCHOWN                  95  X
+FTRUNCATE               93  3
+FCHMOD                  94  2
+FCHOWN                  95  3
 FSYNC                   118 1
-FCHDIR                  133 X
-LLSEEK                  140 X
-READV                   145 X
-WRITEV                  146 X
-FLOCK                   143 X	- Use fcntl
+FCHDIR                  133 1
+LLSEEK                  140 3	* 2nd arg is ptr to two longs
+READV                   145 3
+WRITEV                  146 3
+FLOCK                   143 2	- Use fcntl
 DUP                     41  1   - Using nasty fcntl function
 
 # 
@@ -67,52 +68,46 @@ MKDIR                   39  2
 RMDIR                   40  1
 PIPE                    42  1
 TIMES                   43  1
-PROF                    44  X
 SETGID                  46  1
 GETGID                  47  1   * This gets both gid and egid
 SIGNAL                  48  2   * Have put the despatch table in user space.
-ACCT                    51  1
-PHYS                    52  X
-LOCK                    53  X
-MPX                     56  X
+ACCT                    51  1	-
 SETPGID                 57  2
 ULIMIT                  58  2
 UMASK                   60  1
 CHROOT                  61  1
 USTAT                   62  2
-GETPGRP                 65  X
+GETPGRP                 65  0	- use getpgid(0)
 SETSID                  66  X
 SIGACTION               67  X
 SGETMASK                68  X
 SSETMASK                69  X
-SETREUID                70  X
-SETREGID                71  X
+SETREUID                70  2
+SETREGID                71  2
 SIGSUSPEND              72  X
 SIGPENDING              73  X
 SETHOSTNAME             74  2
-SETRLIMIT               75  X
-GETRLIMIT               76  X
-REBOOT                  76  3   . The magic number is 0xfee1,0xdead,...
-GETRUSAGE               77  X
+SETRLIMIT               75  2
+GETRLIMIT               76  2
+GETRUSAGE               77  2
 GETGROUPS               80  2
 SETGROUPS               81  2
 SYMLINK                 83  2
 LSTAT                   84  2
 READLINK                85  3
 SWAPON                  87  X
-REBOOT                  88  X
+REBOOT                  88  3   . The magic number is 0xfee1,0xdead,...
 MUNMAP                  91  X
-TRUNCATE                92  X
-FTRUNCATE               93  X
-GETPRIORITY             96  X
-SETPRIORITY             97  X
+TRUNCATE                92  3
+GETPRIORITY             96  2
+SETPRIORITY             97  3
 PROFIL                  98  X
-STATFS                  99  X
-FSTATFS                 100 X
+STATFS                  99  2
+FSTATFS                 100 2
 SOCKETCALL              102 X
 SYSLOG                  103 X
-SETITIMER               104 X
-GETITIMER               105 X
+SETITIMER               104 3
+GETITIMER               105 2
 UNAME                   109 1
 VHANGUP                 111 0
 SWAPOFF                 115 X
@@ -127,8 +122,8 @@ QUOTACTL                131 X
 GETPGID                 132 1
 SYSFS                   135 X
 PERSONALITY             136 X
-SETFSUID                138 X
-SETFSGID                139 X
+SETFSUID                138 1
+SETFSGID                139 1
 GETDENTS                141 X
 SELECT                  142 5	*
 MSYNC                   144 X

@@ -29,7 +29,8 @@ To compile the various tools as Linux-8086 binaries cd into the relevent
 directory and do a "make clean ; make" from there, note you'll have to
 do "ld" before "as". Currently bcc won't work this way.
 
-I _strongly_ suggest you install the kernel patch in the elksemu directory
-in your Linux-i386 kernel, it makes things _far_ easier.
+I _strongly_ suggest you install the kernel patch or load the module in
+the elksemu directory in your Linux-i386 kernel, it makes things _much_
+easier.
 
 -Rob.

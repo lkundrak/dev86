@@ -4,6 +4,7 @@
  */
 
 #include <sys/types.h>
+#include <errno.h>
 #include <time.h>
 
 /* MSDOS has it's own versions */
@@ -124,7 +125,6 @@ int fd;
 off_t posn;
 int where;
 {
-   off_t __lseek();
    if( __lseek(fd, &posn, where) < 0 ) return -1;
    else return posn;
 }
@@ -277,6 +277,43 @@ int * status;
 int opts;
 {
    return wait4(pid, status, opts, (void*)0);
+}
+#endif
+
+/********************** Function killpg ************************************/
+
+#ifdef L_killpg
+int
+killpg(pid, sig)
+int pid;
+int sig;
+{
+   if(pid == 0)
+       pid = getpgrp();
+   if(pid > 1)
+       return kill(-pid, sig);
+   errno = EINVAL;
+   return -1;
+}
+#endif
+
+/********************** Function getpgrp ************************************/
+
+#ifdef L_getpgrp
+int
+getpgrp()
+{
+   return getpgid(0);
+}
+#endif
+
+/********************** Function setpgrp ************************************/
+
+#ifdef L_setpgrp
+int
+setpgrp()
+{
+   return setpgid(0,0);
 }
 #endif
 

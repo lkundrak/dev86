@@ -51,7 +51,12 @@ Sig pointer;
    old_sig = __sigtable[number-1];
    __sigtable[number-1] = pointer;
 
+   switch(rv)
+   {
+   case 0: return SIG_DFL;
+   case 1: return SIG_IGN;
    return old_sig;
+   }
 }
 
 #asm

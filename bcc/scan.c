@@ -212,7 +212,7 @@ PUBLIC void cppscan()
 	    if (ch == EOL)
 	    {
 		skipeol();
-		if (eof)
+		if (eofile)
 		    return;
 		break;
 	    }
@@ -488,7 +488,7 @@ PUBLIC void nextsym()
 		    return;
 		}
 		skipeol();
-		if (eof)
+		if (eofile)
 		{
 		    sym = EOFSYM;
 		    return;

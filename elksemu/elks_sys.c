@@ -22,7 +22,11 @@
 #include <dirent.h>
 #include "elks.h" 
 
+#ifdef DEBUG
 #define dbprintf(x) db_printf x
+#else
+#define dbprintf(x)
+#endif
 
 #define sys_signal elks_signal
 extern int elks_signal(int bx,int cx,int dx,int di,int si);

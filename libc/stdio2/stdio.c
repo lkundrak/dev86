@@ -715,6 +715,34 @@ int size;
 }
 #endif
 
+#ifdef L_setvbuf
+int setvbuf(fp, buf, mode, size)
+FILE * fp;
+char * buf;
+int mode;
+size_t size;
+{
+   fflush(fp);
+   if( fp->mode & __MODE_FREEBUF ) free(fp->bufstart);
+   fp->mode &= ~(__MODE_FREEBUF|__MODE_BUF);
+   fp->bufstart = fp->unbuf;
+   fp->bufend = fp->unbuf + sizeof(fp->unbuf);
+   fp->mode |= _IONBF;
+
+   if( mode == _IOFBF || mode == _IOLBF )
+   {
+      if( size <= 0  ) size = BUFSIZ;
+      if( buf == 0 ) buf = malloc(size);
+      if( buf == 0 ) return EOF;
+
+      fp->bufstart = buf;
+      fp->bufend = buf+size;
+      fp->mode |= mode;
+   }
+   fp->bufpos = fp->bufread = fp->bufwrite = fp->bufstart;
+}
+#endif
+
 #ifdef L_ungetc
 int
 ungetc(c, fp)

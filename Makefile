@@ -4,9 +4,10 @@ export TOPDIR := $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
 include Make.defs
 
 PARTS=    ld as unproto bcc
-TESTDIRS= tests dis88
-DISTFILES=Makefile Make.defs README README.ash Libc_version
-DISTDIRS= elksemu $(TESTDIRS)
+TESTDIRS= tests
+EXTRAS=   libbsd dis88
+DISTFILES=Makefile Make.defs README Changes README.ash Libc_version make_bcc.bat
+DISTDIRS= elksemu $(TESTDIRS) $(EXTRAS)
 
 default: dummy
 	@echo You have to do make install as root
@@ -20,6 +21,8 @@ default: dummy
 	@echo 'su -c "make install-emu"'
 	@echo 'make tests'
 	@echo
+	@echo
+	@echo 'Use "make extras" or "make install-extras" for other pieces'
 
 dummy:
 	@if [ -f .runme ] ; then sh .runme ; rm .runme ; fi
@@ -29,6 +32,8 @@ install: install-bcc install-lib install-emu tests
 bcc: dummy
 	@for i in $(PARTS) ; do make -C $$i || exit 1; done
 
+realclean: clean
+
 clean: clean_rest
 	make -C libc realclean
 
@@ -37,14 +42,14 @@ clean_rest: dummy
 	@for i in $(DISTDIRS) ; do make -C $$i clean || exit 1; done
 
 tests: dummy
-	@test -f $(BINDIR)/bcc -a -f $(LIBDIR)/ld86 || \
+	@test -f $(BINDIR)/bcc || \
 	( echo 'Must do "make install-bcc" first' && exit 1 )
 	@test -f $(LIBDIR)/i86/crt0.o || \
 	( echo 'Must do "make install-lib" first' && exit 1 )
 	@for i in $(TESTDIRS) ; do make -C $$i || exit 1; done
 
 library: dummy
-	@test -f $(BINDIR)/bcc -a -f $(LIBDIR)/ld86 || \
+	@test -f $(BINDIR)/bcc || \
 	( echo 'Must do "make install-bcc" first' && exit 1 )
 	make -C libc
 
@@ -53,16 +58,19 @@ elksemu: dummy
 	( echo 'Must do "make library" first' && exit 1 )
 	make -C elksemu
 
+extras: dummy
+	@for i in $(EXTRAS) ; do make -C $$i || exit 1; done
+	
 install-bcc: dummy
 	@for i in $(PARTS) ; do make -C $$i install || exit 1; done
 
 install-lib: dummy
-	@test -f $(BINDIR)/bcc -a -f $(LIBDIR)/ld86 || \
+	@test -f $(BINDIR)/bcc || \
 	( echo 'Must do "make install-bcc" first' && exit 1 )
 	make -C libc install
 
 install-lib2: dummy
-	@test -f $(BINDIR)/bcc -a -f $(LIBDIR)/ld86 || \
+	@test -f $(BINDIR)/bcc || \
 	( echo 'Must do "make install-bcc" first' && exit 1 )
 	make -s -C libc clean
 	make -s -C libc PLATFORM=i86-FAST install
@@ -75,6 +83,9 @@ install-emu: dummy
 	( echo 'Must do "make library" first' && exit 1 )
 	make -C elksemu install
 
+install-extras: dummy
+	@for i in $(EXTRAS) ; do make -C $$i install || exit 1; done
+	
 distribution: clean_rest
 	make -C libc dist_ver
 	tar  cf /tmp/Development.tar $(DISTFILES) $(PARTS) $(DISTDIRS)

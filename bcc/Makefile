@@ -11,6 +11,8 @@ else
 CC=bcc
 CFLAGS=-Mf
 LDFLAGS=-s -M
+BINDIR=/usr/bin
+LIBDIR=/usr/lib/bcc
 endif
 
 OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \
@@ -42,3 +44,7 @@ bcc-cc1: $(OBJS)
 
 clean:
 	rm -f bcc bcc-cc1 bcc09 ccc bcc.o $(OBJS)
+
+
+$(OBJS): align.h byteord.h condcode.h const.h gencode.h input.h label.h os.h \
+   output.h parse.h proto.h reg.h sc.h scan.h sizes.h table.h type.h types.h

@@ -27,7 +27,7 @@
 #define MARKER ((unsigned) 0x18C396A5L)	/* lint everywhere it is used */
 #define MAXEXPR 500
 #define MAXLOCAL 100
-#define NKEYWORDS 34
+#define NKEYWORDS 35
 #define NSCALTYPES 12
 #define STACKSPACE 256		/* punt for normal recursions - switch extra */
 
@@ -92,6 +92,7 @@ PRIVATE struct keywordstruct keywords[NKEYWORDS] =
 
     { "typedef", TYPEDEFDECL, },
 
+    { "asm", ASMSYM, },
     { "break", BREAKSYM, },
     { "case", CASESYM, },
     { "continue", CONTSYM, },

@@ -9,7 +9,7 @@ SRC=crt0.c
 OBJ=crt0.o
 
 TARGETS=$(OBJ) $(LIBC)
-TXT=Makefile Make.defs README TODO KERNEL COPYING Changes Contributors MAGIC \
+TXT=Makefile Make.defs README TODO KERNEL COPYING Contributors MAGIC \
     New_subdir Pre_main Config_sh
 
 all: .config.lst $(TARGETS)

@@ -2,7 +2,6 @@
  * This does a determination of the cpu type that is actually being used.
  * It can determine the CPU on anything upto and including a 386 accuratly
  * whatever mode the CPU is in (This is 16 bit code)
- * An MSDOS compiled version is available.
  *
  * For Post 386 interpretation the argument must be set to 1, if this is done
  * an attempt to determine the CPU type will be made using MSDOS calls and
@@ -10,27 +9,30 @@
  *
  * If STANDALONE is defined this will decode and print the output from cputype
  *
- * $ cputype           # Call cputype(0) and interpret
- * $ cputype +         # Call cputype(1) get a SIGILL (or perhaps interpret)
+ * $ cputype	       # Call cputype(0) and interpret
+ * $ cputype +	       # Call cputype(1) get a SIGILL (or perhaps interpret)
  *
  * NOTE: This code is COPYRIGHT and not under the GNU Lib copyright, this
- *       may be distributed freely as source or as a standalone binary
- *       compiled from this unmodified source.
+ *	 may be distributed freely as source or as a standalone binary
+ *	 compiled from this unmodified source.
  *
- *       You may use the cputype() function in your own personal code.
- *       You may distribute a binary version of code containing the
- *       cputype() function if either you distribute this source with
- *       the binary version or distribute a clear reference to a freely
- *       available copy of this source code and the source code to the
- *       rest of your package with the binary version of the package.
+ *	 You may use the cputype() function in your own personal code.
+ *	 You may distribute a binary version of code containing the
+ *	 cputype() function if either you distribute this source with
+ *	 the binary version or distribute a clear reference to a freely
+ *	 available copy of this source code and the source code to the
+ *	 rest of your package with the binary version of the package.
  *
- *  (C) Copyright R de Bath 1989-1995
+ *  (C) Copyright R de Bath 1989-1996
  */
 
 #ifdef STANDALONE
+#define cputype cpu
 
 #include <stdio.h>
+#ifndef __MSDOS__
 #include <signal.h>
+#endif
 
 char * name_808x[] = {
 "8088", "8086", "80C88", "80C86", "NEC V20", "NEC V30", "808x Clone"
@@ -100,8 +102,13 @@ int argc; char **argv;
 #ifdef __AS386_16__
 #asm
 	.text
+#ifdef STANDALONE
+export _cpu
+_cpu:
+#else
 export _cputype
 _cputype:
+#endif
 	; First save everything ...
 	push bp
 	mov  bp,sp
@@ -121,7 +128,7 @@ _cputype:
 	mov ax, cs
 	mov es, ax
 	mov ds, ax
-	mov bx, #0       ; Init to 8086
+	mov bx, #0	 ; Init to 8086
 
 	; First easy check is it a 286 or better ...
 	push sp
@@ -133,7 +140,7 @@ _cputype:
 	; Come here when we`re done  (286+)
 cpu_prot:
 	; .286P
-	smsw ax         ; Fetch 5 LSB of MSW (PE,MP,EP,...)
+	smsw ax		; Fetch 5 LSB of MSW (PE,MP,EP,...)
 	and  al,#31
 	mov  bl,al
 
@@ -149,11 +156,11 @@ cpu_prot:
 	or bh,#$80
 
 	; Another check for FPU *BUT* I think this only get`s 287+
-;       finit
-;       fstsw ax
-;       or al,al
-;       jnz cpuend
-;       or bh,#$80
+;	finit
+;	fstsw ax
+;	or al,al
+;	jnz cpuend
+;	or bh,#$80
 
 	; .8086
 cpuend:
@@ -167,29 +174,31 @@ cpuend:
 	pop bp
 	ret
 
-ge286:  ; .286P
+ge286:	; .286P
 	; Does the caller want the exact CPU
 	cmp cx,#0
 	jne try_486
 	
 ; Simple test for a 286 ...
 
-	mov bh,#2        ; Major CPU type >= 80286
+	mov bh,#2	 ; Major CPU type >= 80286
 	; What`s the contents of the GDT pointer
 	sub sp,#6
 	mov bp,sp
 	sgdt [bp]
 	add sp,#4
-	pop ax          ; 286 == FFFF, 386+ anything else
-	inc ax
+	pop ax		; For 286, ah can only be 0xFF
+	inc ah
 	jz cpu_prot
-	mov bh,#$13     ; Major CPU type >= 80386
+	mov bh,#$13	; Major CPU type >= 80386
 
-;	smsw ax
-;	ror ax,#1
-;	jnc try_486       ; If in real mode and running MSDOS
+#ifdef __MSDOS__
+	smsw ax		; If we`re in MSDOS and running in real mode
+	ror ax,#1	; we can do the int 6 detection.
+	jnc try_486
+#endif
 
-	jmp cpu_prot      ; Assume 486 test will NOT work in prot mode
+	jmp cpu_prot	; Assume 486 test will NOT work in prot mode
 
 	; This is an alternate way of finding a 386 ...
 	; But it *can* be hidden by V86 mode.
@@ -201,14 +210,12 @@ ge286:  ; .286P
 ;	pop ax
 ;	popf
 ;	and ax,#$7000
-;	jz cpu_prot		; It`s id`ed as a 286 we already know
-				; different but it`s probably a bad idea
-				; to try for a 486.
+;	jz is_a_286
 
 try_486:
 	; This trys to trap undefined instructions
 	; it may not work if the CPU is in protected mode
-	; Note: This does actually re-test 286 v 386 
+	; Note: This code works for anything 286+
 	cli
 	push bp
 	mov bp, sp
@@ -219,18 +226,23 @@ try_486:
 	mov ax,#$2506
 	lea dx, [int6]
 	int #$21
-	mov bh,#2               ; 286
+	mov bh,#2		; 286
 
 	; .486
 test386:
-	mov ebx,#$00040300      ; 386 or 486
+	mov ebx,#$00040300	; 386 or 486
 test486:
-	bswap ebx               ; Byte twiddle now 486
+	bswap ebx		; Byte twiddle now 486
 
 	mov ax,#1
 do_cpuid:
 	db $0F			; CPUID instruction
 	db $A2
+
+	mov ax,#1		; And again cause of Nasty EMM386s
+	db $0F			; CPUID instruction
+	db $A2
+
 	and ah,#15		; Select family number
 	mov bh,ah		; put it where we want it
 
@@ -258,14 +270,14 @@ pre286:
 	; Try for an NEC V20/30
 	mov ax, #$0208
 	db $D5
-	db  16          ; Only the 8088 actually checks the arg to AAD
-	cmp al, #$28    ; as intel ran out of microcode space
+	db  16		; Only the 8088 actually checks the arg to AAD
+	cmp al, #$28	; as intel ran out of microcode space
 	jz cmos
-	mov bx,#4       ; NEC V20
+	mov bx,#4	; NEC V20
 	jmp test8
 
 	; The CMOS 8088/6 had the bug with rep lods repaired.
-cmos:   push si
+cmos:	push si
 	sti
 	mov cx, #$FFFF
 	rep
@@ -273,11 +285,11 @@ cmos:   push si
 	pop si
 	or cx,cx
 	jne test8
-	mov bx,#2        ; Intel 80C88
+	mov bx,#2	 ; Intel 80C88
 
 	; This tests the prefetch of the CPU, 8 bit ones have 4 bytes
 	; 16 bit cpus have a queue of 6 bytes.
-test8:  push di
+test8:	push di
 	push bx
 	mov dx,#0
 	mov bx,#4
@@ -293,9 +305,9 @@ retest: lea di,[_nop]
 	nop
 	nop
 	nop
-_inc:   inc dx
+_inc:	inc dx
 	nop
-_nop:   nop
+_nop:	nop
 	sti
 	mov byte ptr [_inc], #$42
 	dec bx
@@ -304,7 +316,7 @@ _nop:   nop
 	cmp dx,#0
 	jz done8
 	inc bx
-done8:  pop di
+done8:	pop di
 	cld
 
 	br cpuend
@@ -314,28 +326,29 @@ done8:  pop di
 int6:
 	mov sp, bp
 	jmp fail386
-;;
-	push bp
-	mov bp, sp
-	push ax
-	mov ax,cs
-	cmp 4[bp],ax
-	pop ax
-	jnz pass
-	cmp bh,#2
-	je move23
-	cmp bh,#3
-	je move34
-       	add [bp+2], #(fail386 - do_cpuid)
-	jmp return
-move34:	add [bp+2], #(fail386 - test486)
-	jmp return
-move23: add [bp+2], #(fail386 - test386)
-return: pop bp
-	iret
 
-pass:   pop bp
-	jmp [vector]
+; This was the old way, didn't always work tho.
+;	push bp
+;	mov bp, sp
+;	push ax
+;	mov ax,cs
+;	cmp 4[bp],ax
+;	pop ax
+;	jnz pass
+;	cmp bh,#2
+;	je move23
+;	cmp bh,#3
+;	je move34
+;	add [bp+2], #(fail386 - do_cpuid)
+;	jmp return
+;move34:	add [bp+2], #(fail386 - test486)
+;	jmp return
+;move23:	add [bp+2], #(fail386 - test386)
+;return:	pop bp
+;	iret
+;
+;pass:	pop bp
+;	jmp [vector]
 
 vector: dd 0
 

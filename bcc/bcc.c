@@ -6,8 +6,10 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef MSDOS
 #include <sys/wait.h>
 #include <unistd.h>
+#endif
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,26 +27,45 @@
 #define P(x)	()
 #endif
 
-#define AS	"as86"
+#ifdef MSDOS
+#define LOCALPREFIX	"/linux86"
+#define EXESUF          ".exe"
+#define	R_OK	4		/* Test for read permission.  */
+#define	W_OK	2		/* Test for write permission.  */
+#define	X_OK	1		/* Test for execute permission.  */
+#define	F_OK	0		/* Test for existence.  */
+#else
+#define EXESUF
+#endif
+
+#define AS	"as86" EXESUF
 #define BAS86
 #define BCC86
-#define CC1	"bcc-cc1"
+#define CC1	"bcc-cc1" EXESUF
 #define CC1_MINUS_O_BROKEN	FALSE
-#define CPP	"bcc-cc1"	/* normally a link to /usr/bin/bcc-cc1 */
+#define CPP	"bcc-cc1" EXESUF	/* normally a link to /usr/bin/bcc-cc1 */
 #define CPPFLAGS	"-E"
 #define CRT0	"crt0.o"
 #define GCC	"gcc"
-#define LD	"ld86"
+#define LD	"ld86" EXESUF
 #ifndef NO_ANSI_SUPPORT
-#define UNPROTO "unproto"
+#define UNPROTO "unproto" EXESUF
 #endif
+#ifdef MSDOS
+#define STANDARD_CRT0_0_PREFIX	LOCALPREFIX "/lib/"
+#define STANDARD_EXEC_PREFIX	LOCALPREFIX "/lib/"
+#define STANDARD_EXEC_PREFIX_2	            "/bin/"
+#define DEFAULT_INCLUDE    "-I" LOCALPREFIX "/libc/include"
+#define DEFAULT_LIBDIR0    "-L" LOCALPREFIX "/lib/"
+#else
 #define STANDARD_CRT0_0_PREFIX	LOCALPREFIX "/lib/bcc/i86/"
 #define STANDARD_CRT0_3_PREFIX	LOCALPREFIX "/lib/bcc/i386/"
 #define STANDARD_EXEC_PREFIX	LOCALPREFIX "/lib/bcc/"
-#define STANDARD_EXEC_PREFIX_2	LOCALPREFIX "/bin/"
+#define STANDARD_EXEC_PREFIX_2	            "/usr/bin/"
 #define DEFAULT_INCLUDE    "-I" LOCALPREFIX "/include"
 #define DEFAULT_LIBDIR0    "-L" LOCALPREFIX "/lib/bcc/i86/"
 #define DEFAULT_LIBDIR3    "-L" LOCALPREFIX "/lib/bcc/i386/"
+#endif
 
 #ifdef CCC
 #undef BCC86
@@ -430,9 +451,11 @@ char **argv;
     if( add_default_lib )
     {
 #ifdef BCC86
+#ifdef DEFAULT_LIBDIR3
         if( bits32 )
 	    addarg(&ldargs, DEFAULT_LIBDIR3);
         else
+#endif
 #endif
 	    addarg(&ldargs, DEFAULT_LIBDIR0);
     }
@@ -442,7 +465,9 @@ char **argv;
     ccargs.prog = fixpath(ccargs.prog, &exec_prefix, X_OK);
     asargs.prog = fixpath(asargs.prog, &exec_prefix, X_OK);
     ldargs.prog = fixpath(ldargs.prog, &exec_prefix, X_OK);
+#ifdef BAS86
     ldrargs.prog = fixpath(ldrargs.prog, &exec_prefix, X_OK);
+#endif
 #ifndef NO_ANSI_SUPPORT
     unprotoargs.prog=fixpath(unprotoargs.prog, &exec_prefix, X_OK);
 #endif
@@ -452,12 +477,14 @@ char **argv;
     if (prep_only && !prep_line_numbers)
 	addarg(&cppargs, "-P");
 #ifdef BCC86
+#ifdef STANDARD_CRT0_3_PREFIX
     if (bits32)
     {
 	bits_arg = "-3";
 	crt0 = fixpath(CRT0, &crt0_3_prefix, R_OK);
     }
     else
+#endif
     {
 	bits_arg = "-0";
 	crt0 = fixpath(CRT0, &crt0_0_prefix, R_OK);
@@ -854,6 +881,9 @@ struct arg_s *argp;
 	}
 	writen();
     }
+#ifdef MSDOS
+    status = spawnv(0, argp->prog, argp->argv+arg0);
+#else
     switch (fork())
     {
     case -1:
@@ -866,23 +896,24 @@ struct arg_s *argp;
 	fatal(" failed");
     default:
 	wait(&status);
-	for (i = tmpargs.argc - 1; i >= START_ARGS; --i)
-	    if (in_name == tmpargs.argv[i])
-	    {
-		my_unlink(in_name);
-		--tmpargs.argc;
-		memmove(tmpargs.argv + i, tmpargs.argv + i + 1,
-			(tmpargs.argc - i) * sizeof tmpargs.argv[0]);
-		tmpargs.argv[tmpargs.argc] = NUL_PTR;
-		break;
-	    }
-	if (status != 0)
-	{
-	    killtemps();
-	    runerror = TRUE;
-	}
-	return status;
     }
+#endif
+    for (i = tmpargs.argc - 1; i >= START_ARGS; --i)
+	if (in_name == tmpargs.argv[i])
+	{
+	    my_unlink(in_name);
+	    --tmpargs.argc;
+	    memmove(tmpargs.argv + i, tmpargs.argv + i + 1,
+		    (tmpargs.argc - i) * sizeof tmpargs.argv[0]);
+	    tmpargs.argv[tmpargs.argc] = NUL_PTR;
+	    break;
+	}
+    if (status != 0)
+    {
+	killtemps();
+	runerror = TRUE;
+    }
+    return status;
 }
 
 PRIVATE void set_trap()
@@ -896,7 +927,7 @@ PRIVATE void set_trap()
 #endif
 
 #else
-    /* This is being too trap happy! */
+    /* This is being too trap happy IMO - Rdb */
 #ifndef _NSIG
 #define _NSIG	NSIG
 #endif

@@ -47,26 +47,6 @@
 	  (fnameptr)[1] == DIRCHAR)
 #endif
 
-#ifdef SOS_MSDOS
-# define COEOL 10
-# undef DEFAULT_INCLUDE_DIR
-# define DEFAULT_INCLUDE_DIR "\\usr\\include"
-# undef DIRCHAR
-# define DIRCHAR '\\'
-# undef DIRSTRING
-# define DIRSTRING "\\"
-# undef EOL
-# define EOL 13
-/*
-  Problems with newline on MSDOS (as usual).
-  Defining EOL as 10 (LF) handles LF-terminated lines as well as
-  CRLF-terminated lines, but escaped CRLF's do not work. The compiler
-  should handle the escapes better.  (Perhaps it does now.)
-  Defining EOL as 13 (CR) handles CRLF-terminated lines but fails on
-  LF-terminated lines.
-*/
-#endif
-
 #ifdef TOS_EDOS
 # undef EOLTO
 # define EOLTO 13

@@ -27,7 +27,7 @@ EXTERN bool_t asmmode;		/* nonzero when processing assembler code */
 				/* depends on zero init */
 EXTERN char ch;			/* current char */
 EXTERN bool_t cppmode;		/* nonzero if acting as cpp not as compiler */
-EXTERN bool_t eof;		/* nonzero after end of main file reached */
+EXTERN bool_t eofile;		/* nonzero after end of main file reached */
 				/* depends on zero init */
 EXTERN struct fcbstruct input;	/* current input file control block */
 				/* input.lineptr is not kept up to date */

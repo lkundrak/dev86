@@ -24,6 +24,9 @@
   * verify that the stdarg.h file has been set up correctly.
   */
 
+#ifndef __STDARG_H
+#define __STDARG_H
+
 #ifdef sparc
 #  define _VA_ALIST_		"__builtin_va_alist"
    typedef char *va_list;
@@ -36,3 +39,5 @@
 #  define va_arg(ap, type)	((type *) (ap += sizeof(type)))[-1]
 #  define va_end(ap)
 #endif
+
+#endif /* __STDARG_H */

@@ -1,0 +1,64 @@
+# Copyright (C) 1995,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
+# This file is part of the Linux-8086 C library and is distributed
+# under the GNU Library General Public License.
+
+# Set PLATFORM to i386-Linux to build for Linux/386 and to i86-ELKS to
+# build for ELKS.  This doesn't quite work yet, though, because of some of
+# the platform and/or compiler-specific code flying around here.
+# Eventually, compiler-specificity won't be an issue, and we can put
+# platform-specific code in i86/ and i386/.   -Nat
+
+# Define enviroment var for others.
+ifeq ($(PLATFORM),)
+PLATFORM=i86-ELKS
+#PLATFORM=i86-DOS
+#PLATFORM=i386-Linux
+endif
+
+VERMAJOR=0
+VERMINOR=0
+VERPATCH=4
+VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
+
+LIBDEFS=-D__LIBBSD__
+LIBBSD=libbsd.a
+
+ifneq ($(PLATFORM),i386-Linux)
+
+# Normal standard 8086 code
+ifeq ($(PLATFORM),i86-ELKS)
+ARCH=-0
+
+# 8086 elks code With "Caller saves" and "First arg in AX"
+# ARCH=-0 -C-c -C-f
+endif
+
+# MSDOS COM file (msdos libs don't support "First arg in AX")
+ifeq ($(PLATFORM),i86-DOS)
+ARCH=-0 -d -D__MSDOS__
+LIBC=libdos.a
+endif
+
+# BCC 386.
+ifeq ($(PLATFORM),i386-BCC)
+ARCH=-3
+endif
+
+CC=bcc $(ARCH)
+CCFLAGS=-O -I -I$(TOP)/libc/include
+LKFLAGS=-L -L$(TOP)/ -s
+
+else # ifeq ($(PLATFORM),i386-Linux)
+
+CC=gcc $(ARCH)
+# ARCH=-b i486-linuxaout
+LKFLAGS=-static -N
+CCFLAGS=-O6 -fomit-frame-pointer -I- -I$(TOP)/include -I. -fno-builtin
+WALL=	-ansi -pedantic -Wwrite-strings -Wpointer-arith -Wcast-qual \
+	-Wcast-align -Wtraditional -Wstrict-prototypes -Wmissing-prototypes \
+	-Wnested-externs -Winline -Wshadow
+
+endif # ifeq ($(PLATFORM),i386-Linux)
+
+CFLAGS=$(CCFLAGS) $(LIBDEFS)
+LDFLAGS=$(LKFLAGS)

@@ -15,4 +15,9 @@ transfer:
 	-@rm -f ../include/linuxmt
 	ln -s ../kinclude/linuxmt ../include
 
+# This is for use once linuxmt's syscall interface really gets working.
+real_transfer:
+	-@rm -f ../include/linuxmt
+	cd ../include ; ln -s ../../linuxmt/include/linuxmt .
+
 clean:

@@ -25,6 +25,10 @@ unsigned strlen P((const char *s));
 #include <string.h>
 #endif
 
+#ifdef MSDOS
+#include <sys/types.h>
+#include <fcntl.h>
+#else
 #ifdef POSIX_HEADERS_MISSING
 int close P((int fd));
 int creat P((const char *path, int mode));
@@ -33,6 +37,7 @@ int write P((int fd, const void *buf, unsigned nbytes));
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+#endif
 #endif
 
 PUBLIC char hexdigit[] = "0123456789ABCDEF";	/* XXX - ld uses lower case */

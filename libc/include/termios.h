@@ -5,8 +5,8 @@
 #include <sys/types.h>
 #include <linuxmt/termios.h>
 
-extern int cfgetispeed __P ((struct termios *__termios_p));
-extern int cfgetospeed __P ((struct termios *__termios_p));
+extern speed_t cfgetispeed __P ((struct termios *__termios_p));
+extern speed_t cfgetospeed __P ((struct termios *__termios_p));
 extern int cfsetispeed __P ((struct termios *__termios_p, speed_t __speed));
 extern int cfsetospeed __P ((struct termios *__termios_p, speed_t __speed));
 

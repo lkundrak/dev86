@@ -8,10 +8,12 @@ include $(TOP)/Make.defs
 ASRC=msdos.c
 AOBJ= dos_start.o __mkargv.o dos__fconv.o dos_read.o dos_write.o	\
       dos_open.o dos_close.o dos_unlink.o dos_lseek.o			\
-      dos_segalloc.o dos_setvect.o dos_getvect.o dos_isatty.o
+      dos_segalloc.o dos_segfree.o dos_setvect.o dos_getvect.o		\
+      dos_isatty.o dos_getmod.o dos_stat.o
 
 BSRC=i86.c
-BOBJ= __set_es.o __peek_es.o __poke_es.o __deek_es.o __strchr_es.o
+BOBJ= __seg_regs.o __peek_es.o __poke_es.o __deek_es.o __doke_es.o	\
+      __strchr_es.o
 
 ifeq ($(PLATFORM),i86-DOS)
 OBJ=$(AOBJ) $(BOBJ)

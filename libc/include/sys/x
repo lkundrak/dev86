@@ -1,0 +1,3 @@
+#define S_IREAD		S_IRUSR /* read permission, owner */
+#define S_IWRITE	S_IWUSR /* write permission, owner */
+#define S_IEXEC		S_IXUSR /* execute/search permission, owner */

@@ -1,0 +1,15 @@
+HJ,
+
+This is the source of the current "libbsd.a" as I have it
+next to the libc 4.3.2.  You can safely ignore the blahblah
+in the other README- throw it away after you added this stuff
+to the rest of libc...
+
+I think the best way to add this to the standard set of C
+libraries is to keep it in the form of a single non-sharable
+library (/usr/lib/libbsd.a) that only gets linked if the user
+asks for it by typing "-lbsd".  I don't know if this is pos-
+sible, but I don't think it should be added to the "shared"
+image, because it might cause other problems in that case...
+
+Fred.

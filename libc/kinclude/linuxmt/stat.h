@@ -1,5 +1,5 @@
-#ifndef _LINUX_STAT_H
-#define _LINUX_STAT_H
+#ifndef __LINUXMT_STAT_H
+#define __LINUXMT_STAT_H
 
 #ifdef __KERNEL__
 

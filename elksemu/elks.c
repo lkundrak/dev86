@@ -21,8 +21,11 @@
 volatile struct vm86_struct elks_cpu;
 unsigned char *elks_base;	/* Paragraph aligned */
 
+#ifdef DEBUG
 #define dbprintf(x) db_printf x
-/**/
+#else
+#define dbprintf(x) 
+#endif
 
 static void elks_init()
 {
@@ -195,12 +198,36 @@ void build_stack(char ** argv, char ** envp)
 void main(int argc, char *argv[], char *envp[])
 {
 	int fd;
-	dbprintf(("ELKSEMU 0.01 Alpha\n"));
-	if(argc==1)
+	struct stat st;
+	int ruid, euid, rgid, egid;
+
+	if(argc<=1)
 	{
 		fprintf(stderr,"elksemu cmd args.....\n");
 		exit(1);
 	}
+	/* This uses the _real_ user ID If the file is exec only that's */
+	/* ok cause the suid root will override.  */
+
+	if( access(argv[1], X_OK) < 0
+	  || stat(argv[1], &st) < 0
+	  || (fd=open(argv[1], O_RDONLY)) < 0)
+	{
+		perror(argv[1]);
+		exit(1);
+	}
+
+	/* Check the suid bits ... */
+	ruid = getuid(); rgid = getgid();
+	euid = ruid; egid = rgid;
+	if( st.st_mode & S_ISUID ) euid = st.st_uid;
+	if( st.st_mode & S_ISGID ) egid = st.st_gid;
+
+	/* Set the _real_ permissions, or revoke superuser priviliages */
+	setregid(rgid, egid);
+	setreuid(ruid, euid);
+
+	dbprintf(("ELKSEMU 0.0.6 Alpha\n"));
 	elks_init();
 
 	/* The Linux vm will deal with not allocating the unused pages */
@@ -219,12 +246,6 @@ void main(int argc, char *argv[], char *envp[])
 		fprintf(stderr, "Elks memory is at an illegal address\n");
 		exit(255);
 	}
-	fd=open(argv[1], O_RDONLY);
-	if(fd==-1)
-	{
-		perror(argv[1]);
-		exit(1);
-	}
 	
 	if(load_elks(fd) < 0)
 	{
@@ -240,6 +261,7 @@ void main(int argc, char *argv[], char *envp[])
 		run_elks();
 }
 
+#ifdef DEBUG
 void db_printf(const char * fmt, ...)
 {
 static FILE * db_fd = 0;
@@ -256,3 +278,4 @@ static FILE * db_fd = 0;
   rv = vfprintf(db_fd,fmt,ptr);
   va_end(ptr);
 }
+#endif

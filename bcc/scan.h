@@ -7,7 +7,7 @@
 
 /* scanner codes */
 
-enum
+enum scan_states
 {
 /* The first group of entries consists of all the values that occur in the
    switch for cppscan().
@@ -148,6 +148,7 @@ enum
     STATICDECL,
     TYPEDEFDECL,
 
+    ASMSYM,
     BREAKSYM,
     CASESYM,
     CONTSYM,

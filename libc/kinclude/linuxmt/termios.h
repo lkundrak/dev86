@@ -1,5 +1,5 @@
-#ifndef _LINUXMT_TERMIOS_H
-#define _LINUXMT_TERMIOS_H
+#ifndef __LINUXMT_TERMIOS_H
+#define __LINUXMT_TERMIOS_H
 #include <linuxmt/types.h>
 
 /* This is just a magic number to make these relatively unique ('T') */
@@ -255,4 +255,6 @@ struct termios {
 #define N_MOUSE		2
 #define N_PPP		3
 
-#endif /* _LINUXMT_TERMIOS_H */
+#define _POSIX_VDISABLE	'\0'
+
+#endif /* __LINUXMT_TERMIOS_H */

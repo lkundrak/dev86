@@ -89,30 +89,30 @@ more:
     }
     ch = *++lineptr;
 more1:
-    if (!eof && lineptr >= input.limit)
+    if (!eofile && lineptr >= input.limit)
 	skipeol();
     if (ch == EOL)
     {
 	--nbackslash;
-	if (eof)
+	if (eofile)
 	    eofin("backslash-newline");
 	else
 	{
 	    skipeol();
-	    if (ch == EOL && !eof && lineptr >= input.limit)
+	    if (ch == EOL && !eofile && lineptr >= input.limit)
 		skipeol();
 #ifdef COEOL /* XXX - this should go through specialchar() */
 	    if (ch == COEOL)
 	    {
 		ch = *++lineptr;
-		if (ch == EOL && !eof && lineptr >= input.limit)
+		if (ch == EOL && !eofile && lineptr >= input.limit)
 		    skipeol();
 	    }
 #endif
 	}
 	if (ch == '\\')
 	    goto more;
-	if (nbackslash != 0 && ch == EOL && !eof)
+	if (nbackslash != 0 && ch == EOL && !eofile)
 	    goto more1;
 	if (nbackslash != 0)
 	{
@@ -124,7 +124,7 @@ more1:
     }
     if (ch == '\\')
 	goto more;
-    if (ch == EOL && !eof)
+    if (ch == EOL && !eofile)
 	goto more1;
     ch = *--lineptr = '\\';	/* pushback */
     if (--nbackslash != 0)
@@ -165,7 +165,7 @@ PUBLIC void errorloc()
 	return;
     outstr(infbuf->fname);
     outbyte(':');
-    if (eof)
+    if (eofile)
 	outstr("eof");
     else
     {
@@ -604,7 +604,7 @@ PUBLIC void skipeol()
 #endif
     int nread;
 
-    if (eof)
+    if (eofile)
 	return;
     if (lineptr < input.limit)
     {
@@ -672,7 +672,7 @@ case0:
     {
 	if (inclevel == 0)
 	{
-	    eof = TRUE;
+	    eofile = TRUE;
 	    checknotinif();
 	}
 	else
@@ -705,7 +705,7 @@ more:
     if (ch == '\\')
 	backslash();
 #endif
-    if (!eof && lineptr >= input.limit)
+    if (!eofile && lineptr >= input.limit)
     {
 	skipeol();
 #ifdef ARBITRARY_BACKSLASH_NEWLINES
@@ -726,7 +726,7 @@ more:
 	    }
 	    if (*(lineptr + 1) == EOL)
 	    {
-		if (eof)
+		if (eofile)
 		    eofin("backslash-newline");
 		else
 		{
@@ -746,7 +746,7 @@ more:
 #endif
     }
 #ifdef COEOL
-    if (ch == EOL && !eof)
+    if (ch == EOL && !eofile)
     {
 	if (*(lineptr + 1) == EOL && lineptr + 1 >= input.limit)
 	{

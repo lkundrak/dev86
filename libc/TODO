@@ -17,21 +17,14 @@ hsearch  &co		-
 tsearch  &co		-
 locale processing       - multi national, unicode (string stuff has a couple
                                 of stubs)
-login                   - getpass and friends - Some, rest soon.
 rpc                     - 
-syslog   &co            - make stubs to splatter to console.
 time calcs              - mktime gmtime localtime etc, Nat
 timezone                - Probably V simplistic, List of UTC's
                                 offsets & STDvDST
 i386 support		- For both GCC and BCC-386.
 
-Stdio                   - Joel is on this. (stdio1) (RDB stdio2)
-getgrent &co            - Nat -Done
-getpwent &co            - Nat -Done
-utmp/wtmp		- Nat -Done
-setjmp                  - Done, Rob
 shadow password         - Do we need ? Do we want :-) [No! Ick! ;) -Nat]
-termcap                 - and curses; what does ncurses need ?  (150kb!!)
+curses                  - What does ncurses need ?  (150kb!!)
 crypt			- TEA version, first cut.
 signal stuff            - Got a basic 'signal' appears to work correctly.
 getenv/setenv		- Done

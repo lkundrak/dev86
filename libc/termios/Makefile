@@ -8,7 +8,7 @@ include $(TOP)/Make.defs
 TSRC=termios.c
 TOBJ=tcsetattr.o tcgetattr.o tcdrain.o tcflow.o tcflush.o tcsendbreak.o	\
      tcsetpgrp.o tcgetpgrp.o isatty.o	\
-     cfgetospeed.o cfgetispeed.o cfsetospeed.o cfsetispeed.o
+     cfgetospeed.o cfgetispeed.o cfsetospeed.o cfsetispeed.o cfmakeraw.o
 
 OBJ=$(TOBJ) ttyname.o
 

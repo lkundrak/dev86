@@ -421,6 +421,25 @@ ok:
 }
 #endif
 
+#ifdef L_dos_segfree
+unsigned int
+__segfree(segno)
+unsigned int segno;
+{
+#asm
+  push	es
+  mov	bx,sp
+  mov	es,[bx+4]
+  mov	ah,#$49
+  int	$21
+  jc	err
+  mov	ax,#0
+err:
+  pop	es
+#endasm
+}
+#endif
+
 #ifdef L_dos_setvect
 void
 __setvect(i,j)
@@ -459,6 +478,62 @@ int vecno;
   mov	dx,es
   mov	ax,bx
   pop	es
+#endasm
+}
+#endif
+
+#ifdef L_dos_getmod
+int
+__dos_getmod(fname)
+{
+#asm
+#if __FIRST_ARG_IN_AX__
+  mov	dx,ax
+#else
+  mov	bx,sp
+  mov	dx,[bx+2]
+#endif
+  mov	ax,#$4300
+  int	#$21
+  jnc	statok
+  mov	cx,#-1
+statok:
+  mov	ax,cx
+#endasm
+}
+#endif
+
+#ifdef L_dos_stat
+int
+__dos_stat(fname, dtaptr)
+{
+#asm
+  mov	bx,sp
+#if __FIRST_ARG_IN_AX__
+  mov	cx,ax
+  mov	dx,[bx+2]
+#else
+  mov	dx,[bx+4]
+#endif
+  mov	ah,#$1A		; Set DTA to requested
+  int	#$21
+#if __FIRST_ARG_IN_AX__
+  mov	ax,cx
+#else
+  mov	dx,[bx+2]
+#endif
+  mov	ax,#$4300	; Locate the file
+  int	#$21
+  jc	nonesuch
+  mov	ax,#$4e00	; Get all the available information.
+  int	#$21
+  jc	nonesuch
+  xor	ax,ax
+  ret
+nonesuch:
+  mov	ax,#2
+  mov	_errno,ax
+  mov	ax,#-1
 #endasm
 }
 #endif

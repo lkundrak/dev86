@@ -9,7 +9,15 @@
 
 #ifdef __AS386_16__
 
-#ifdef L___set_es
+#ifdef L___seg_regs
+unsigned int
+__get_cs()
+{
+#asm
+   mov	ax,cs
+#endasm
+}
+
 unsigned int
 __get_ds()
 {
@@ -96,6 +104,28 @@ unsigned int off;
 #endif
   seg	es
   mov	ax,[bx]
+#endasm
+}
+#endif
+
+#ifdef L___doke_es
+int
+__doke_es(off, value)
+unsigned int off;
+int value;
+{
+#asm
+#if __FIRST_ARG_IN_AX__
+  mov	bx,sp
+  mov	bx,[bx+2]
+  xchg	ax,bx
+#else
+  mov	bx,sp
+  mov	ax,[bx+4]
+  mov	bx,[bx+2]
+#endif
+  seg	es
+  mov	[bx],ax
 #endasm
 }
 #endif

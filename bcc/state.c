@@ -73,6 +73,7 @@ FORWARD void doswitch P((void));
 FORWARD void dowhile P((void));
 FORWARD void jumptocases P((void));
 FORWARD void statement P((void));
+FORWARD void doasm P((void));
 
 /* --- utility routines --- */
 
@@ -229,6 +230,22 @@ PUBLIC void compound()		/* have just seen "{" */
     reguse = regmark;
     locptr = locmark;
     rbrace();
+}
+
+PRIVATE void doasm()
+{
+    lparen();
+    if (sym!=STRINGCONST)
+    	error("string const expected");
+    else {
+	nextsym();
+	constant.value.s[charptr-constant.value.s]='\0';
+	outnstr("!BCC_ASM");
+	outnstr(constant.value.s);
+	outnstr("!BCC_ENDASM");
+	rparen();
+	semicolon();
+    }
 }
 
 PRIVATE void dobreak()
@@ -747,10 +764,14 @@ more:
     case SEMICOLON:
 	nextsym();
 	return;
+    case ASMSYM:
+	nextsym();
+	doasm();
+	break;
     case IDENT:
     case TYPEDEFNAME:
 	blanks();		/* cannot afford nextsym() */
-	while (ch == EOL && !eof)
+	while (ch == EOL && !eofile)
 	{
 	    /* this now fails only on #controls and macros giving ':' */
 	    skipeol();

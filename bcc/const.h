@@ -28,6 +28,10 @@
 /*#define SOS_MSDOS*/		/* source O/S is MSDOS */
 /*#define TOS_EDOS*/		/* target O/S is EDOS */
 
+#ifdef MSDOS
+#define SOS_MSDOS
+#endif
+
 /* switches for source machine dependencies */
 
 #ifndef SOS_EDOS

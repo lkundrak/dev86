@@ -1,10 +1,3 @@
-
-This is the README for libc-8086-0.0.4.tar.gz
-Robert de Bath,  21/Mar/96, rdebath@cix.compulink.co.uk
-
-The lib is now positivly plump, there's a new standard IO package, passwd,
-group, utmp, crypt and lots of other pieces.
-
 The lib can be compiled five different ways for Linux-8086 standard,
 Linux-8086 with 'First arg in AX', MS-DOS, BCC-386 or for GNU-386. At
 the moment the 386 versions are missing some _very_ important bits.
@@ -16,13 +9,13 @@ an so on.
 SYSTEM CALLS
 The system call table (syscalls/syscall.dat) is constantly changing, using
 skewed versions is _very_ likely to give you segfaults and strange behaviour.
-For this lib you should use the same version of elksemu (0.0.4).
+For this lib you should use the same version of elksemu.
 The system call table will only be frozen when the linux-86 kernel is
 running and reasonably stable.
 
 THE COMPILER
 You should use the versions of bcc, unproto, as86, ld86 and elksemu that
-are in version 0.0.4 combined development environment. Some other
+are in this version of the combined development environment. Some other
 versions will work but often they'll just appear to work or not work at
 all. The standard bcc-cc1 won't pickup the right header files, the
 standard ld86 won't generate COM files and looks in the wrong place for
@@ -59,8 +52,7 @@ Directory structure:
 
       Make config will look in all subdirectories for a file 'Config'
       any it finds will be displayed and can be used to switch a directory
-      on or off by renaming Makefile<->makefile.
-      (This seemed like a good idea, I'm not so sure now ...)
+      on or off.
 
       The exit(rv) function is already defined. It will call the contents
       of the function pointer (*__cleanup)() before it calls _exit();
