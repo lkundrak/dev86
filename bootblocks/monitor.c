@@ -27,7 +27,7 @@ static char minibuf[2] = " ";
    struct t_cmd_list * cptr;
 
 #ifdef __STANDALONE__
-   printf("\r");
+   printf("\r\n");
 #endif
 
    init_prog();
@@ -151,23 +151,12 @@ void init_prog()
    cpu_check();
    mem_check();
 
+#ifndef NOMONITOR
    printf("Processor: %s", x86_name);
    if(x86_fpu) printf(" with FPU");
    if(x86_emu) printf(" in protected mode");
-   if(x86 > 1)
-   {
-      printf(", A20 gate ");
-      if( a20_closed() )
-      {
-         open_a20();
-         if( a20_closed() )
-	    printf("won't open!!");
-         else
-	    printf("is now open");
-      }
-      else printf("is already open.");
-   }
    printf("\n");
+#endif
 
    printf("There is %u bytes available", offt-sbrk(0));
    printf(", %dk of boot memory", boot_mem_top/64);

@@ -1,12 +1,13 @@
 
+#ifdef DEBUG
 #include <stdio.h>
+#endif
+
 #include <ctype.h>
 #include <malloc.h>
 #include <errno.h>
 #include "io.h"
 #include "rawio.h"
-
-#define DONT_BUFFER_FAT
 
 #define DOS_SECT(P)        get_uint(P,0x0B)
 #define DOS_CLUST(P)       get_byte(P,0x0D)
@@ -22,6 +23,7 @@
 #define DOS4_MAXSECT(P)    get_long(P,0x20)
 #define DOS4_PHY_DRIVE(P)  get_byte(P,0x24)
 #define DOS4_SERIAL(P)     get_long(P,0x27)
+#define DOS4_FATTYPE(P)    get_uint(P,0x39)
 
 /* These assume alignment is not a problem */
 #define get_byte(P,Off)	   *((unsigned char*)((char*)(P)+(Off)))
@@ -33,15 +35,11 @@ static int dir_nentry, dir_sect;
 static int dos_clust0, dos_spc, dos_fatpos;
 static int last_serial = 0;
 
-#ifdef BUFFER_FAT
-static char * fat_buf = 0;
-#endif
-
 struct filestatus {
    char fname[12];
    unsigned short first_cluster;
    unsigned short cur_cluster;
-   unsigned short sector_no;
+   unsigned short sector_no;		/* Max filesize = 32M */
    long file_length;
 };
 
@@ -61,11 +59,10 @@ int mode;
    char conv_name[12];
    char *d, *s;
    int i;
-   int dodir = 0;
    struct filestatus* cur_file;
    
 #ifdef DEBUG
-   printf("fsdos_open_file(%x, %s, %d, %d, %d)\n",
+   fprintf(stderr, "fsdos_open_file(%x, %s, %d, %d, %d)\n",
            iob, fname, flags, mode, sizeof(iob));
 #endif
    iob->block_read = fsdos_read_block;
@@ -74,9 +71,6 @@ int mode;
    /* Get the superblock */
    if( read_bootblock() < 0 ) return -1;
 
-   if(strcmp(fname, ".") == 0)
-      dodir = 1;
-   else
    {
       /* Convert the name to MSDOS directory format */
       strcpy(conv_name, "        ");
@@ -97,38 +91,7 @@ int mode;
       }
    }
 #ifdef DEBUG
-   printf("fsdos_open_file: converted filename=<%s>\n", conv_name);
-#endif
-
-#ifdef BUFFER_FAT
-   rawio_read_sector(0, sect);
-
-   if( !dodir )
-   {
-      /* Read in and buffer the FAT */
-      if( fat_buf ) free(fat_buf);
-      fat_buf = malloc(DOS_FATLEN(sect) * 512);
-      if( fat_buf == 0 )
-      {
-          errno = ENOMEM;
-          return -1;
-      }
-      else
-      {
-	 int fatsec = DOS_RESV(sect);
-	 int nsec = DOS_FATLEN(sect);
-
-	 for(i=0; i<nsec; i++)
-	 {
-	    if (rawio_read_sector(fatsec+i, sect) == 0)
-            {
-               errno = EIO;
-               return -1;
-            }
-	    memcpy(fat_buf+i*512, sect, 512);
-	 }
-      }
-   }
+   fprintf(stderr, "fsdos_open_file: converted filename=<%s>\n", conv_name);
 #endif
 
    /* Scan the root directory for the file */
@@ -141,37 +104,7 @@ int mode;
          return -1;
       }
       d = s + (i%16)*32;
-      if( dodir )
-      {
-         char dtime[20];
-	 char lbuf[90];
-	 *lbuf = 0;
-
-	 sprintf(dtime, " %02d/%02d/%04d %02d:%02d",
-	           (get_uint(d,24)&0x1F),
-	           ((get_uint(d,24)>>5)&0xF),
-	           ((get_uint(d,24)>>9)&0x7F)+1980,
-	           ((get_uint(d,22)>>11)&0x1F),
-	           ((get_uint(d,22)>>5)&0x3F)
-	        );
-	 if( *d > ' ' && *d <= '~' ) switch(d[11]&0x18)
-	 {
-	 case 0:
-            printf("%-8.8s %-3.3s %10ld%s\n", d, d+8, get_long(d,28), dtime);
-	    break;
-	 case 0x10:
-            printf("%-8.8s %-3.3s <DIR>     %s\n", d, d+8, dtime);
-	    break;
-	 case 8:
-            if( (d[11] & 7) == 0 )
-	       printf("%-11.11s  <LBL>     %s\n", d, dtime);
-	    break;
-	 }
-#if 0
-	 if( more_strn(lbuf, sizeof(lbuf)) < 0 ) break;
-#endif
-      }
-      else if( memcmp(d, conv_name, 11) == 0 && (d[11]&0x18) == 0 )
+      if( memcmp(d, conv_name, 11) == 0 && (d[11]&0x18) == 0 )
       { /* Name matches and is normal file */
 
 #ifdef DEBUG
@@ -233,11 +166,6 @@ ioblock* iob;
    free(cur_file);
    iob->context = NULL;
 
-#ifdef BUFFER_FAT
-   if( fat_buf ) free(fat_buf);
-   fat_buf = 0;
-#endif
-
    rawio_reset_disk();
    return 0;
 }
@@ -278,7 +206,9 @@ long block;     /* ignored for now */
 #endif
    if (iob == NULL || iob->context == NULL)
    {
+#ifdef DEBUG
        fprintf(stderr, "rb: no context\n");
+#endif
        errno = EBADF;
        return -1;
    }
@@ -345,9 +275,6 @@ long block;     /* ignored for now */
 	 unsigned int val, val2;
 
 	 val = cur_file->cur_cluster + (cur_file->cur_cluster>>1);
-#ifdef BUFFER_FAT
-	 val2 = get_uint(fat_buf, val);
-#else
          if (rawio_read_sector(dos_fatpos+(val/512), sect) <= 0) return -1;
 	 if( val%512 == 511 )
 	 {
@@ -357,7 +284,6 @@ long block;     /* ignored for now */
 	 }
 	 else
 	    val2 = get_uint(sect, (val%512));
-#endif
 
 	 if( odd ) val2>>=4;
 
@@ -380,7 +306,7 @@ static int read_bootblock()
    int rv, media_byte = 0;
 
 #ifdef DEBUG
-   printf("fs_dos:read_bootblock:\n");
+   fprintf(stderr, "fs_dos:read_bootblock:\n");
 #endif
    if (rawio_read_sector(1, sect) <= 0) return -1;
    media_byte = *(unsigned char*)sect;
@@ -412,7 +338,7 @@ static int read_bootblock()
    }
 
 #ifdef DEBUG
-   printf("read_bootblock: heads(%d), spt(%d), dir_sect(%d)\n",
+   fprintf(stderr, "read_bootblock: heads(%d), spt(%d), dir_sect(%d)\n",
            rawio_disk_heads,
            rawio_disk_spt,
            dir_sect);

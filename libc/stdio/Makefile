@@ -7,9 +7,9 @@ CFLAGS=$(CCFLAGS) $(LIBDEFS) -DFLOATS
 endif
 
 ASRC=stdio.c
-AOBJ=_stdio_init.o fputc.o fgetc.o fflush.o fgets.o gets.o fputs.o	\
-     puts.o fread.o fwrite.o fopen.o fclose.o fseek.o rewind.o ftell.o	\
-     setbuffer.o setvbuf.o ungetc.o
+AOBJ=_stdio_init.o fputc.o fgetc.o fflush.o fgets.o gets.o fputs.o 	\
+     puts.o fread.o fwrite.o fopen.o fdopen.o freopen.o __fopen.o 	\
+     fclose.o fseek.o rewind.o ftell.o setbuffer.o setvbuf.o ungetc.o
 
 PSRC=printf.c
 POBJ=printf.o sprintf.o fprintf.o vprintf.o vsprintf.o vfprintf.o

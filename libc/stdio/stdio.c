@@ -582,9 +582,39 @@ FILE * fp;
 #endif
 
 #ifdef L_fopen
+FILE *
+fopen(file, mode)
+char * file;
+char * mode;
+{
+   return __fopen(file, -1, (FILE*)0, mode);
+}
+#endif
+
+#ifdef L_freopen
+FILE *
+freopen(file, mode, fp)
+char * file;
+char * mode;
+FILE * fp;
+{
+   return __fopen(file, -1, fp, mode);
+}
+#endif
+
+#ifdef L_fdopen
+FILE *
+fdopen(file, mode)
+int file;
+char * mode;
+{
+   return __fopen((char*)0, file, (FILE*)0, mode);
+}
+#endif
+
+#ifdef L___fopen
 /*
- * This Fopen is all three of fopen, fdopen and freopen. The macros in
- * stdio.h show the other names.
+ * This is the common code for all three of fopen, fdopen and freopen.
  */
 FILE *
 __fopen(fname, fd, fp, mode)

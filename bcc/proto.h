@@ -362,6 +362,6 @@ struct typestruct *pointype P((struct typestruct *type));
 struct typestruct *prefix P((constr_pt constructor, uoffset_T size,
 			     struct typestruct *type));
 struct typestruct *promote P((struct typestruct *type));
+struct typestruct *tosigned P((struct typestruct *type));
 struct typestruct *tounsigned P((struct typestruct *type));
 void typeinit P((void));
-

@@ -169,6 +169,12 @@ load_track:
   jnz	inc_trk
 
 all_loaded:
+  ! Now it's loaded turn off the floppy motor.
+  mov dx,#0x3f2
+  xor al, al
+  outb
+
+  ! And start up the program.
 
   xor	dx,dx		! DX=0 => floppy drive
   push	dx		! CX=0 => partition offset = 0

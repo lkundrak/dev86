@@ -157,6 +157,25 @@ struct typestruct *type;
     return type;
 }
 
+PUBLIC struct typestruct *tosigned(type)
+struct typestruct *type;
+{
+    switch (type->scalar & ~(UNSIGNED | DLONG))
+    {
+    case CHAR:
+	return sctype;
+    case SHORT:
+	return stype;
+    case INT:
+	return itype;
+    case LONG:
+	return ltype;
+    default:
+	error("signed only applies to integral types");
+	return type;
+    }
+}
+
 PUBLIC struct typestruct *tounsigned(type)
 struct typestruct *type;
 {

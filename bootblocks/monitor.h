@@ -19,9 +19,6 @@ extern union REGS __argr;
 
 #ifdef TARFLOPPY
 #define SINGLEFS
-#define NOMONITOR
-#define NOCOMMAND
-#define MINI_BUF
 
 #define open_file   tar_open_file
 #define rewind_file tar_rewind_file
@@ -32,9 +29,6 @@ extern union REGS __argr;
 
 #ifdef MINFLOPPY
 #define SINGLEFS
-#define NOMONITOR
-#define NOCOMMAND
-#define MINI_BUF
 
 #define open_file   min_open_file
 #define rewind_file min_rewind_file
@@ -45,16 +39,17 @@ extern union REGS __argr;
 
 #ifdef DOSFLOPPY
 #define SINGLEFS
-#define NOMONITOR
-#define NOCOMMAND
-#define MINI_BUF
-#define MAXTRK 24
 
 #define open_file   dos_open_file
 #define rewind_file dos_rewind_file
 #define close_file  dos_close_file
 #define file_length dos_file_length
 #define read_block  dos_read_block
+#endif
+
+#ifdef SINGLEFS
+/* #define NOCOMMAND */
+#define NOMONITOR
 #endif
 
 #ifdef __STANDALONE__

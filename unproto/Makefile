@@ -38,7 +38,7 @@ SKIP	=
 # 7. Specify a string constant with exactly three octal digits. If you
 # change this definition, you will have to update the example.out file.
 #
-BELL	= -DBELL=\"007\"
+# BELL	= -DBELL=\"007\"
 
 # Some C compilers have problems with "void".  The nature of the problems
 # depends on the age of the compiler.

@@ -10,7 +10,7 @@ ESRC=atexit.c
 EOBJ=on_exit.o atexit.o __do_exit.o
 
 GOBJ=atoi.o atol.o ltoa.o ltostr.o \
-     ctype.o qsort.o bsearch.o rand.o lsearch.o getopt.o \
+     ctype.o ctypefn.o qsort.o bsearch.o rand.o lsearch.o getopt.o \
      itoa.o cputype.o strtol.o crypt.o
 
 UOBJ=getenv.o putenv.o popen.o system.o setenv.o getcwd.o tmpnam.o

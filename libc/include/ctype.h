@@ -15,8 +15,9 @@ extern	unsigned char	__ctype[];
 #define	__CT_p	0x20		/* punctuation */
 #define	__CT_x	0x40		/* hexadecimal */
 
-#define	toupper(c)	(islower(c) ? (c)^0x20 : (c))
-#define	tolower(c)	(isupper(c) ? (c)^0x20 : (c))
+/* Define these as simple old style ascii versions */
+#define	toupper(c)	(((c)>='a'&&(c)<='z') ? (c)^0x20 : (c))
+#define	tolower(c)	(((c)>='A'&&(c)<='Z') ? (c)^0x20 : (c))
 #define	_toupper(c)	((c)^0x20)
 #define	_tolower(c)	((c)^0x20)
 #define	toascii(c)	((c)&0x7F)

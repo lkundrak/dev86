@@ -136,6 +136,7 @@ enum scan_states
 
     ENUMDECL,
     NULLDECL,
+    SIGNDECL,
     STRUCTDECL,
     TYPEDECL,
     TYPEDEFNAME,

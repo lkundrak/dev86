@@ -71,7 +71,7 @@ preprocessor define
 produce preprocessor output to standard out.
 .TP
 .B -G
-produce GCC objects (only useful for i386 code)
+produce GCC objects (Same as -Mg)
 .TP
 .B -Ixyz
 include search 'xyz' path
@@ -115,6 +115,11 @@ switches to i386-Linux code generator and library.
 This configuration accepts the
 .B -z
 flag to generate QMAGIC a.out files instead of the normal OMAGIC.
+.TP
+.B -Mg
+switches to i386-Linux code generator and generates OMAGIC object files
+that can be linked with some versions of gcc; unfortunatly the most recent
+versions use 'collect2' to link and this crashes.
 .TP
 .B -N
 makes the linker produce a native a.out file (Linux OMAGIC) if combined

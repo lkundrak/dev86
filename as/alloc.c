@@ -20,12 +20,13 @@ init_heap()
 {
 #ifdef USE_FIXED_HEAP
 #ifndef USERMEM
-#define USERMEM (unsigned) 0xAC00U
+#define USERMEM 0xAC00U
 #endif
 
 #ifdef __AS386_16__
+    int stk;
     heapptr = sbrk(0);
-    heapend = ((char*)&argc) - STAKSIZ - 16;
+    heapend = ((char*)&stk) - STAKSIZ - 16;
     brk(heapend);
     if(sbrk(0) != heapend)
        as_abort(NOMEMEORY);
@@ -68,8 +69,7 @@ unsigned int size;
 #else
     rv = malloc(size);
 #endif
-
-    if (rv == 0) as_abort(NOMEMEORY);
+    if (rv == 0 && size) as_abort(NOMEMEORY);
     return rv;
 }
 
@@ -85,7 +85,7 @@ unsigned int size;
 
     if ((char*)oldptr+size < heapend)
     {
-        heapptr = oldptr + size;
+        heapptr = (char*)oldptr + size;
         rv = oldptr;
     }
     else

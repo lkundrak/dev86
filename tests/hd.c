@@ -1,7 +1,27 @@
+/*
+ * This is a Xenix style hex dump command.
+ *
+ * The 'reverse hex dump' option is an addition that allows a simple 
+ * method of editing binary files.
+ *
+ * The overkill Linux 'hexdump' command can be configured to generate
+ * the same format as this command by this shell macro:
+ *
+ * hd() { hexdump -e '"%06.6_ax:" 8/1 " %02x" " " 8/1 " %02x" "  " ' \
+ *                -e '16/1 "%_p" "\n"' \
+ *                "$@"
+ *      }
+ *
+ */
 
 #include <stdio.h>
 #include <ctype.h>
 #include <errno.h>
+#ifndef MSDOS
+#ifndef __BCC__
+#include <locale.h>
+#endif
+#endif
 
 int   lastnum[16] = {-1};
 long  lastaddr = -1;
@@ -9,7 +29,7 @@ long  offset = 0;
 
 FILE *fd;
 
-FILE * ofd = stdout;
+FILE * ofd;
 char * outfile = 0;
 int reverse = 0;
 
@@ -20,6 +40,14 @@ char **argv;
    int   done = 0;
    int   ar;
    int   aflag = 1;
+
+#ifndef MSDOS
+#ifndef __BCC__
+   setlocale(LC_CTYPE, "");
+#endif
+#endif
+
+   ofd = stdout;
 
    for (ar = 1; ar < argc; ar++)
       if (aflag && argv[ar][0] == '-')
@@ -119,7 +147,7 @@ do_fd()
 	    break;
 
 	 num[j] = ch;
-	 if (isascii(ch) && isprint(ch))
+	 if (isprint(ch))
 	    buf[j] = ch;
 	 else
 	    buf[j] = '.';
@@ -195,8 +223,12 @@ do_rev_fd()
       ptr = str;
 
       if( *ptr == '*' ) zap_last = 0;
-      if( !isxdigit(*ptr) ) continue;
-      addr = strtol(ptr, &ptr, 16);
+      if( *ptr != ':' ) {
+	 if( !isxdigit(*ptr) ) continue;
+	 addr = strtol(ptr, &ptr, 16);
+      }
+      else 
+	 addr = nxtaddr;
       if( *ptr == ':' ) ptr++;
 
       if (nxtaddr == 0)

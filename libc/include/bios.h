@@ -22,6 +22,7 @@ int          __peek_es __P((unsigned int off));
 int          __deek_es __P((unsigned int off));
 
 #define movedata __movedata
+long _bios_get_dpt(drive);
 
 #ifdef __LIBC__
 

@@ -412,12 +412,13 @@ ts_s_newtypelist += sizeof *newtypelist;
 PRIVATE bool_pt declspec()
 {
     unsigned nsc;
+    unsigned nsigned;
     unsigned ntype;
     unsigned nunsigned;
 
     gvarsc = NULLDECL;
     gvartype = itype;
-    nunsigned = ntype = nsc = 0;
+    nsigned = nunsigned = ntype = nsc = 0;
     while (TRUE)
     {
 	switch (sym)
@@ -484,6 +485,10 @@ PRIVATE bool_pt declspec()
 	    gvartype = gsymptr->type;
 	    nextsym();
 	    break;
+        case SIGNDECL:
+            ++nsigned;
+            nextsym();
+            break;
 	case UNSIGNDECL:
 	    ++nunsigned;
 	    nextsym();
@@ -493,6 +498,17 @@ PRIVATE bool_pt declspec()
 	}
     }
 break2:
+    if (nsigned > 0)
+    {
+	if (ntype == 0)
+	{
+	    gvartype = itype;
+	    ntype = 1;
+	}
+	gvartype = tosigned(gvartype);
+	if (nsigned > 1 || nunsigned > 0)
+	    ntype = 2;
+    }
     if (nunsigned > 0)
     {
 	if (ntype == 0)
@@ -501,7 +517,7 @@ break2:
 	    ntype = 1;
 	}
 	gvartype = tounsigned(gvartype);
-	if (nunsigned > 1)
+	if (nunsigned > 1 || nsigned > 0)
 	    ntype = 2;
     }
     if (nsc > 0)

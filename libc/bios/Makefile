@@ -14,7 +14,11 @@ BOBJ=bios_putch.o bios_getch.o bios_getche.o bios_cputs.o bios_kbhit.o \
 CSRC=bios_min.c
 COBJ=bios_putc.o bios_getc.o
 
-OBJ=$(AOBJ) $(BOBJ) $(COBJ) time.o fileops.o fs_dos.o rawio.o vt52.o ansi.o
+DSRC=bios_disk.c
+DOBJ=bios_disk_read.o bios_disk_write.o bios_disk_reset.o bios_get_dpt.o
+
+OBJ=$(AOBJ) $(BOBJ) $(COBJ) $(DOBJ) \
+    time.o fileops.o fs_dos.o rawio.o vt52.o ansi.o
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
@@ -30,6 +34,10 @@ $(LIBC)($(BOBJ)): $(BSRC)
 	$(AR) $(ARFLAGS) $@ $*.o
 
 $(LIBC)($(COBJ)): $(CSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+
+$(LIBC)($(DOBJ)): $(DSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
 else

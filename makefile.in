@@ -32,15 +32,15 @@ AR=ar86
 #ifdef __GNUC__
 # unproto is yukky, I've included '-w' in the local makefile.
 
-WALL  =-Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
+WALL  =-Wall -Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
        -Wcast-qual -Wcast-align -Wconversion -Waggregate-return \
        -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls \
        -Wnested-externs -Winline 
 
-WALL  =-Wstrict-prototypes
+WALL  =-Wall -Wstrict-prototypes
 
-CC	=gcc
-CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O2 -g
+CC	=%CC%
+CFLAGS	=$(GCCFLAG) $(WALL) -O2 -g
 #endif
 
 #ifndef GNUMAKE

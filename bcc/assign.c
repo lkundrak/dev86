@@ -316,7 +316,7 @@ struct symstruct *target;
 	    extend(target);
 	    load(target, DREG);
 	    target->storage = targreg = getindexreg();
-	    if (oldscalar & (UNSIGNED | CHAR) ||
+	    if (oldscalar & UNSIGNED ||
 		target->type->constructor & (ARRAY | FUNCTION | POINTER))
 		uitol(targreg);
 	    else

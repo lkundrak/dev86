@@ -404,7 +404,7 @@ static int elks_getgid(int bx,int cx,int dx,int di,int si)
  * 
  * For now we run elksemu ourselves and do token attempts at binary checking.
  *
- * Of course with the Patch in the Linux kernel we could just run the exe.
+ * Of course if the kernel misc module is confiured we could just run the exe.
  */
 #define sys_execve elks_execve
 static int elks_execve(int bx,int cx,int dx,int di,int si)

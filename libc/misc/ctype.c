@@ -9,9 +9,6 @@
 
 #include <ctype.h>
 
-#undef	toupper
-#undef	tolower
-
 unsigned char __ctype[257] =
 {
    0,							/* -1 */
@@ -56,14 +53,3 @@ unsigned char __ctype[257] =
    __CT_p, __CT_p, __CT_p, __CT_c				/* 0x7C..0x7F */
 };
 
-int toupper(c)
-int c;
-{
-   return(islower(c) ? (c ^ 0x20) : (c));
-}
-
-int tolower(c)
-int c;
-{
-   return(isupper(c) ? (c ^ 0x20) : (c));
-}

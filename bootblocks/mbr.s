@@ -394,7 +394,8 @@ diskman_magic:
   org ORGADDR+0x180
 .asciz "ELKS MBR       "
 .asciz "Robert de Bath,"
-.asciz "Copyright  1996-2000."
+.asciz "Copyright      "
+.asciz "1996-2002.  "
   org partition_start-1
   .byte 0xFF
  endif

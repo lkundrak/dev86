@@ -9,6 +9,7 @@
 #include "msdos.v"
 #include "msdos16.v"
 #include "skip.v"
+#include "killhd.v"
 #include "tarboot.v"
 #include "minix.v"
 #include "minixhd.v"
@@ -58,6 +59,9 @@ struct bblist {
 { "hdmin","Minix Hard disk FS booter",    
            minixhd_data, minixhd_size, 
 	   2, minixhd_bootfile-minixhd_start,		FS_ZERO},
+{ "killhd", "Deletes MBR from hard disk when booted",  
+           killhd_data, killhd_size,  
+	   0, 0,					FS_ADOS},
 #ifdef mbr_Banner
 { "mbr",  "Master boot record for HD (with optional message)",             
            mbr_data,mbr_size, 

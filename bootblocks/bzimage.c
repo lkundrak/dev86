@@ -106,10 +106,6 @@ char * command_line;
    }
    if( main_mem_top < 3072 )
       printf("RTFM warning: Linux needs at least 4MB of memory.\n");
-
-   len = (len+1023)/1024+1;		/* Where to load the RD image (Mb) */
-   if (len<6) len=6;			/* Default to 6Mb mark */
-   initrd_start = len * 4096;		/* 256 bytes pages. */
 #endif
 
    low_sects    = buffer[497] + 1; /* setup sects + boot sector */
@@ -214,6 +210,7 @@ char * command_line;
    if( check_crc() < 0 && !keep_going() ) return -1;
 #endif
 
+#ifndef NOMONITOR
    if( x86 < 3 || x86_emu )
    {
       if( x86 < 3 )
@@ -222,25 +219,13 @@ char * command_line;
 	 printf("RTFM error: Linux-i386 cannot be run in an emulator.\n");
       if( !keep_going() ) return -1;
    }
+#endif
 
    printf("linux ");
    if( linux_command_line )
       printf("%s", linux_command_line);
    printf("\n");
    fflush(stdout);
-
-   if( a20_closed() ) open_a20();
-   if( a20_closed() )
-   {
-      printf("Normal routine for opening A20 Gate failed, Trying PS/2 Bios\n");
-      bios_open_a20();
-   }
-   if( a20_closed() )
-   {
-      printf("All routines for opening A20 Gate failed, if I can't open it\n");
-      printf("then Linux probably can't either!\n");
-      if( !keep_going() ) return -1;
-   }
 
    __set_es(0x9000);
 
@@ -690,8 +675,6 @@ unsigned int k_top;
 
    rd_start = address - rd_len*4;
    rd_start &= -16;	/* Page boundry */
-   if (initrd_start && initrd_start<rd_start)
-      rd_start = initrd_start;
    address = rd_start;
 
    printf("Loading %s at 0x%x00\n", fname, rd_start);

@@ -143,6 +143,7 @@ void newfilename P((struct file_list * file, int last_stage, int new_extn, int u
 void run_unlink P((void));
 void append_file P((char * filename, int ftype));
 void append_option P((char * option, int otype));
+void prepend_option P((char * option, int otype));
 char * expand_tilde P((char * str));
 void * xalloc P((int size));
 void Usage P((void));
@@ -182,8 +183,7 @@ char * exec_prefixs[] = {
 #endif
    "~/lib/",
    "~/bin/",
-   "/usr/bin/",
-   0
+   0		/* Last chance is contents of $PATH */
 };
 
 char * libc = "-lc";
@@ -397,6 +397,7 @@ struct file_list * file;
       command_reset();
       newfilename(file, !do_link, 'o', 1);
       command_opt("-r");
+      command_opt("-N");
       run_command(file);
    }
 }
@@ -654,7 +655,7 @@ char ** argv;
 	    do_unproto = 1;
 	    opt_e = 1;
 	    /* NOTE I'm setting this to zero, this isn't a _real_ STDC */
-	    append_option("-D__STDC__=0", 'p');
+	    prepend_option("-D__STDC__=0", 'p');
 	 }
 	 else 
 	    Usage();
@@ -750,7 +751,7 @@ char ** argv;
          do_optim=1;
 	 break;
 
-      case 'G': opt_M = 'G'; break;
+      case 'G': opt_M = 'g'; break;
 
       case 'v': opt_v++; break;
       case 'V': opt_V++; break;
@@ -762,8 +763,8 @@ char ** argv;
 
       case 'W': opt_W++; break;
 
-      case '0': opt_arch=0; opt_M='x'; break;
-      case '3': opt_arch=1; opt_M='x'; break;
+      case '0': opt_arch=0; break;
+      case '3': opt_arch=1; break;
          
       case 'w': /*IGNORED*/ break;
       case 'g': /*IGNORED*/ break;
@@ -809,55 +810,57 @@ char ** argv;
    if (opt_M==0) opt_M = (opt_arch==1 ?'l':'n');
    switch(opt_M)
    {
-   case 'n': 
-      append_option("-D__ELKS__", 'p');
-      append_option("-D__unix__", 'p');
+   case 'n': 		/* Normal Elks */
+      prepend_option("-D__unix__", 'p');
+      prepend_option("-D__ELKS__", 'p');
       libc="-lc";
       break;
-   case 'f': 
-      append_option("-D__ELKS__", 'p');
-      append_option("-D__unix__", 'p');
+   case 'f': 		/* Fast Call Elks */
+      prepend_option("-D__unix__", 'p');
+      prepend_option("-D__ELKS__", 'p');
       append_option("-c", 'p');
       append_option("-f", 'p');
       libc="-lc_f";
       break;
-   case 'c': 
-      append_option("-D__ELKS__", 'p');
-      append_option("-D__unix__", 'p');
+   case 'c': 		/* Caller saves Elks */
+      prepend_option("-D__unix__", 'p');
+      prepend_option("-D__ELKS__", 'p');
       append_option("-c", 'p');
       libc="-lc";
       break;
-   case 's': 
-      append_option("-D__STANDALONE__", 'p');
+   case 's': 		/* Standalone 8086 */
+      prepend_option("-D__STANDALONE__", 'p');
       libc="-lc_s";
       break;
-   case 'd': 
-      append_option("-D__MSDOS__", 'p');
+   case 'd': 		/* DOS COM file */
+      prepend_option("-D__MSDOS__", 'p');
       libc="-ldos";
       append_option("-d", 'l');
       append_option("-T100", 'l');
       break;
-   case 'l': 
+   case 'l': 		/* 386 Linux a.out */
       opt_arch=1;
-      append_option("-D__linux__", 'p');
-      append_option("-D__unix__", 'p');
+      prepend_option("-D__unix__", 'p');
+      prepend_option("-D__linux__", 'p');
       libc="-lc";
       append_option("-N", 'l');
       break;
-   case 'G':
+   case 'g':		/* 386 Linux object using gcc as linker */
       opt_arch = 2;
+      prepend_option("-D__unix__", 'p');
+      prepend_option("-D__linux__", 'p');
       break;
-   case '8':
+   case '8':		/* Use 'c386' program as compiler */
       opt_arch = 3;
       opt_e = 1;
       break;
-   case '9':
+   case '9':		/* 6809 compiler */
       opt_arch = 4;
       default_libdir0 = "-L~/lib/bcc/m09/";
       optim_rules     = "-d~/lib/bcc/m09";
       add_prefix("~/lib/bcc/m09/");
       break;
-   case '0':
+   case '0':		/* Plain old Unix V7 style */
       opt_arch = 5;
       opt_e = 1;
       opt_I = 1;
@@ -952,6 +955,20 @@ int otype;
    }
 }
 
+void 
+prepend_option (option, otype)
+char * option;
+int otype;
+{
+   struct opt_list * newopt = xalloc(sizeof(struct opt_list));
+
+   newopt->opt = copystr(option);
+   newopt->opttype = otype;
+
+   newopt->next = options;
+   options = newopt;
+}
+
 char * expand_tilde(str)
 char * str;
 {
@@ -1039,11 +1056,13 @@ void reset_localprefix()
 	 strcpy(temp, s);
 	 strcat(temp, "/");
 	 strcat(temp, progname);
+#ifndef __BCC__
          if( realpath(temp, buf) != 0 )
 	 {
 	    free(temp);
 	    temp = copystr(buf);
          }
+#endif
 	 if( access(temp, X_OK) == 0 ) break;
 	 d++;
       }
@@ -1119,7 +1138,10 @@ static char ** minienviron[] = {
 #ifdef __BCC__
       execve(command.fullpath, command.arglist, minienviron);
 #else
-      execv(command.fullpath, command.arglist);
+      if (command.fullpath[0] =='/')
+	 execv(command.fullpath, command.arglist);
+      else
+	 execvp(command.fullpath, command.arglist);
 #endif
       fprintf(stderr, "Unable to execute %s.\n", command.fullpath);
       exit(1);

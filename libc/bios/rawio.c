@@ -2,7 +2,10 @@
  * rawio.c - plagiarised from ../../bootblocks/trk_buf.c 
  */
 
+#ifdef DEBUG
 #include <stdio.h>
+#endif
+
 #include <bios.h>
 #include <ctype.h>
 #include <malloc.h>
@@ -124,18 +127,24 @@ char* buffer;
       data_buf1 = malloc(512);
    if( data_buf1 == 0 )
    {
+#ifdef DEBUG
       fprintf(stderr, "Cannot allocate memory for disk read!!!\n");
+#endif
       return 0;
    }
 
+#ifdef DEBUG
    fprintf(stderr, "WARNING: Single sector read\n");
+#endif
 
    do
    {
      rv = rawio_phy_read(rawio_disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
      tries--;
+#ifdef DEBUG
      if( rv ) fprintf(stderr, "Error in phy_read(%d,%d,%d,%d,%d,%d);\n",
 		      rawio_disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
+#endif
    }
    while(rv && tries > 0);
 
@@ -239,8 +248,10 @@ int phy_c, phy_h, phy_s;
      rv = rawio_phy_read(rawio_disk_drive, phy_c, phy_h, phy_s/data_len+1, data_len,
                    data_buf1);
      tries--;
+#ifdef DEBUG
      if( rv ) fprintf(stderr, "Error in phy_read(%d,%d,%d,%d,%d,%d);\n",
 	     rawio_disk_drive, phy_c, phy_h, phy_s/data_len+1, data_len, data_buf1);
+#endif
    }
    while(rv && tries > 0);
 

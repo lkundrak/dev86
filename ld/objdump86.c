@@ -318,7 +318,7 @@ read_sectheader()
 
    cpos = ftell(ifd);
    fseek(ifd, filepos+str_off, 0);
-   fread(symtab, 1, (int)str_len, ifd);
+   fread(symtab, 1, (unsigned int)str_len, ifd);
    fseek(ifd, cpos, 0);
 
    if( !display_mode )

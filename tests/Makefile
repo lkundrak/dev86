@@ -6,10 +6,10 @@ BCC=bcc
 CC=$(BCC)
 CFLAGS=-O
 
-SRC=env.c ft.c hd.c size.c sync.c compr.c ucomp.c ouch.c lines.c \
+SRC=env.c ft.c hd.c sync.c compr.c ucomp.c ouch.c lines.c \
     wc.c line2.c rand.c grab.c
 OBJ=
-EXE=env ft hd size sync compr ucomp ouch lines wc line2 rand grab
+EXE=env ft hd sync compr ucomp ouch lines wc line2 rand grab
 
 LINK_FILES=cat chgrp chmod chown cp install ln mkdir mkfifo mknod mv rm
 

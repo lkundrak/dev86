@@ -220,6 +220,9 @@ char  **argv;
     cpp_pid = pipe_stdin_through_cpp(argv);
 #endif
 #ifdef REOPEN
+#ifdef PIPE_THROUGH_CPP
+#error Defines REOPEN and PIPE_THROUGH_CPP are incompatible.
+#endif
     if ( argc > 1 ) {
        if( freopen(argv[1], "r", stdin) == 0 ) {
            fprintf(stderr, "Cannot open '%s'\n", argv[1]);

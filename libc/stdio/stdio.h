@@ -111,11 +111,14 @@ extern int fputc __P((int, FILE*));
 extern int fclose __P((FILE*));
 extern int fflush __P((FILE*));
 extern char *fgets __P((char*, size_t, FILE*));
-extern FILE *__fopen __P((char*, int, FILE*, char*));
 
-#define fopen(__file, __mode)         __fopen((__file), -1, (FILE*)0, (__mode))
-#define freopen(__file, __mode, __fp) __fopen((__file), -1, (__fp), (__mode))
-#define fdopen(__file, __mode)  __fopen((char*)0, (__file), (FILE*)0, (__mode))
+extern FILE *fopen __P((char*, char*));
+extern FILE *fdopen __P((int, char*));
+extern FILE *freopen  __P((char*, char*, FILE*));
+
+#ifdef __LIBC__
+extern FILE *__fopen __P((char*, int, FILE*, char*));
+#endif
 
 extern int fputs __P((char*, FILE*));
 extern int puts __P((char*));

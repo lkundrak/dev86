@@ -1,0 +1,112 @@
+diff -u5 -r bcc~/declare.c bcc/declare.c
+--- bcc~/declare.c	Fri Dec 17 17:51:13 1999
++++ bcc/declare.c	Thu Jun  6 13:27:00 2002
+@@ -410,16 +410,17 @@
+ }
+ 
+ PRIVATE bool_pt declspec()
+ {
+     unsigned nsc;
++    unsigned nsigned;
+     unsigned ntype;
+     unsigned nunsigned;
+ 
+     gvarsc = NULLDECL;
+     gvartype = itype;
+-    nunsigned = ntype = nsc = 0;
++    nsigned = nunsigned = ntype = nsc = 0;
+     while (TRUE)
+     {
+ 	switch (sym)
+ 	{
+ 	case AUTODECL:
+diff -u5 -r bcc~/proto.h bcc/proto.h
+--- bcc~/proto.h	Sun Jan 11 12:18:36 1998
++++ bcc/proto.h	Thu Jun  6 00:46:24 2002
+@@ -360,8 +360,8 @@
+ void outntypechar P((struct typestruct *type));
+ struct typestruct *pointype P((struct typestruct *type));
+ struct typestruct *prefix P((constr_pt constructor, uoffset_T size,
+ 			     struct typestruct *type));
+ struct typestruct *promote P((struct typestruct *type));
++struct typestruct *tosigned P((struct typestruct *type));
+ struct typestruct *tounsigned P((struct typestruct *type));
+ void typeinit P((void));
+-
+diff -u5 -r bcc~/scan.h bcc/scan.h
+--- bcc~/scan.h	Sat Jul 24 14:27:42 1999
++++ bcc/scan.h	Thu Jun  6 00:32:20 2002
+@@ -134,10 +134,11 @@
+ 
+ #define LASTOP PTRSUBOP
+ 
+     ENUMDECL,
+     NULLDECL,
++    SIGNDECL,
+     STRUCTDECL,
+     TYPEDECL,
+     TYPEDEFNAME,
+     UNIONDECL,
+     UNSIGNDECL,
+diff -u5 -r bcc~/table.c bcc/table.c
+--- bcc~/table.c	Sun Sep 28 09:57:30 1997
++++ bcc/table.c	Thu Jun  6 00:29:36 2002
+@@ -28,11 +28,11 @@
+ #define MAXEXPR 125
+ #else
+ #define MAXEXPR 500
+ #endif
+ #define MAXLOCAL 100
+-#define NKEYWORDS 35
++#define NKEYWORDS 36
+ #ifdef NOFLOAT
+ #define NSCALTYPES 10
+ #else
+ #define NSCALTYPES 12
+ #endif
+@@ -88,11 +88,12 @@
+ PRIVATE struct keywordstruct keywords[NKEYWORDS] =
+ {
+     { "enum", ENUMDECL, },
+     { "struct", STRUCTDECL, },
+     { "union", UNIONDECL, },
+     { "unsigned", UNSIGNDECL, },
++    { "signed", SIGNDECL, },
+ 
+     { "auto", AUTODECL, },
+     { "extern", EXTERNDECL, },
+     { "register", REGDECL, },
+     { "static", STATICDECL, },
+diff -u5 -r bcc~/type.c bcc/type.c
+--- bcc~/type.c	Sun Jan 11 12:18:37 1998
++++ bcc/type.c	Thu Jun  6 00:49:06 2002
+@@ -155,10 +155,29 @@
+     if (type->constructor & FUNCTION)
+ 	return pointype(type);
+     return type;
+ }
+ 
++PUBLIC struct typestruct *tosigned(type)
++struct typestruct *type;
++{
++    switch (type->scalar & ~(UNSIGNED | DLONG))
++    {
++    case CHAR:
++	return sctype;
++    case SHORT:
++	return stype;
++    case INT:
++	return itype;
++    case LONG:
++	return ltype;
++    default:
++	error("signed only applies to integral types");
++	return type;
++    }
++}
++
+ PUBLIC struct typestruct *tounsigned(type)
+ struct typestruct *type;
+ {
+     switch (type->scalar & ~(UNSIGNED | DLONG))
+     {

@@ -183,7 +183,7 @@ static char *readline(FILE *fp)
  * has been found in the first column of the input line. All lines with the
  * 'comment' character in the first position will be skipped.
  */
-static struct line_s *readlist(FILE *fp, char quit, char comment)
+static struct line_s *readlist(FILE *fp, int quit, int comment)
 {
   struct line_s *lp;
   struct line_s *first_line = NULL;
@@ -293,7 +293,7 @@ static void clearpattern(void)
 /*
  * Read input file
  */
-static void readinfile(char *filename, char comment)
+static void readinfile(char *filename, int comment)
 {
   FILE *fp;
 

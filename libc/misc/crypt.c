@@ -6,7 +6,7 @@
 /*
  * I've:
  *   Compared the TEA implementation to a reference source - OK
- *   Noted the cycles count at 64 is twice the suggested value.
+ *   Reduced the cycles count from 64 to 32 (the suggested value)
  *   Changed the types of 'n' and 'i' for better code with bcc.
  *   Removed a possible overrun of rkey by looping the values, it's now
  *   possible to _choose_ every bit of the 128bit PW with a 32 character word.
@@ -26,7 +26,7 @@ crypt(const char * key, const char * salt)
      k is the key, v is the data to be encrypted. */
 
   unsigned long v[2], sum=0, delta=0x9e3779b9, k[4];
-  int n=64, i, j;
+  int n=32, i, j;
   static char rkey[16];
 
   /* Our constant string will be a string of zeros .. */

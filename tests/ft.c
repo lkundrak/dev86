@@ -42,7 +42,7 @@
 #define PR(x) ()
 #endif
 
-void main PR((int argc, char ** argv));
+int main PR((int argc, char ** argv));
 int select_command PR((char * argv));
 void do_prep PR((void));
 void do_post PR((void));
@@ -156,7 +156,7 @@ struct stat access_stat;
 
 int done_something = 0;
 
-void
+int
 main(argc, argv)
 int argc; char ** argv;
 {
@@ -261,7 +261,7 @@ int argc; char ** argv;
       else
          Usage();
    }
-   exit(0);
+   return 0;
 }
 
 int select_command(argv)
