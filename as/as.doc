@@ -31,7 +31,7 @@ cc1 output and Minix's make does the wrong thing with .s files left around.
 However, all assembler code not written by compilers should assemble with
 them turned off.
 
-The -b flag now produces a 'raw' binary file with no header, if there's no
+The -b flag produces a 'raw' binary file with no header, if there's no
 -s flag the file starts at location 0. The -s generates an ASCII symbol
 table, if a binary file doesn't start at location zero the first two items
 are the start and end addresses of the binary file.

@@ -480,15 +480,15 @@ char * iname;
    return strdup(buffer);
 }
 
-build_linuxarg(image, cmd)
-char *image, *cmd;
+build_linuxarg(image, inp)
+char *image, *inp;
 {
 static char * auto_str  = "auto";
 static char * image_str = "BOOT_IMAGE=";
    int len = 0;
    char * ptr, *s, *d;
-   char * free_cmd = 0;
-   char * free_inp = 0, * inp = 0;
+   char * free_cmd = 0, * cmd = 0;
+   char * free_inp = 0;
 
    image_name = strdup(image);
 
@@ -498,12 +498,7 @@ static char * image_str = "BOOT_IMAGE=";
    if( cmd == 0 )
       cmd = free_cmd = read_cmdfile(image);
 
-   if( cmd == 0 )
-   {
-      if( auto_flag ) return 0;
-      printf("No such command file\n");
-      return -1;
-   }
+   if( cmd == 0 && auto_flag ) return 0;
 
    if( auto_flag )
    {
@@ -515,6 +510,8 @@ static char * image_str = "BOOT_IMAGE=";
       }
       free(ptr);
    }
+   else if( inp == 0 )
+      inp = free_inp = input_cmd(image);
 
    if( auto_flag ) len += strlen(auto_str) + 1;
    if( image ) len += strlen(image_str) + strlen(image) + 1;
@@ -645,8 +642,8 @@ unsigned int k_top;
       char buf[2];
       fname++;
       close_file();
-      printf("Insert root floppy and press return:"); fflush(stdout);
-      read(0, buf, 2);
+      printf("Insert root disk and press return:"); fflush(stdout);
+      if( read(0, buf, 2) <=0 ) return -1;
    }
 
    if( open_file(fname) < 0 )

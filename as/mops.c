@@ -853,8 +853,9 @@ register struct ea_s *eap;
 		}
 	    }
 	}
-	if (!(symptr->type & (LABIT | MACBIT | MNREGBIT | VARBIT)))
-	    symptr->data |= FORBIT;	/* show seen in advance */
+	if( last_pass == 1 )
+	    if (!(symptr->type & (LABIT | MACBIT | MNREGBIT | VARBIT)))
+	        symptr->data |= FORBIT;	/* show seen in advance */
     }
     if ((eap->base = regchk()) != NOREG)
     {
@@ -1216,7 +1217,7 @@ PUBLIC void mcall()
 	    if (lastexp.data & IMPBIT)
 	    {
 		error(NONIMPREQ);
-		lastexp.data = FORBIT | UNDBIT;
+	        lastexp.data = FORBIT | UNDBIT;
     	    }
     	    mshort2();
 	}
@@ -2905,8 +2906,10 @@ PRIVATE reg_pt regchk()
 		return regno;
 	    }
 	}
-	else if (!(symptr->type & (LABIT | MACBIT | VARBIT)))
-	    symptr->data |= FORBIT;	/* show seen in advance */
+	else
+	    if( last_pass == 1 )
+	        if (!(symptr->type & (LABIT | MACBIT | VARBIT)))
+	            symptr->data |= FORBIT;	/* show seen in advance */
     }
     return NOREG;
 }

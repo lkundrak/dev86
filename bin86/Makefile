@@ -9,8 +9,8 @@ LIBDIR=$(PREFIX)/lib
 MANDIR=$(PREFIX)/man/man1
 SUF=86
 
-INSTALL_OPT=-m 755 -s
-MAN_OPTS   =-m 644
+INSTALL_OPTS=-m 755 -s
+MAN_OPTS    =-m 644
 
 MFLAGS= "LIBS=$(LIBS)" \
 	"CFLAGS=$(CFLAGS)" \
@@ -20,8 +20,8 @@ MFLAGS= "LIBS=$(LIBS)" \
 	"CC=$(CC)"
 
 all:
-	for d in $(DIRS); do \
-	  (cd $$d; $(MAKE) $(MFLAGS) $@;); \
+	set -e ; for d in $(DIRS); do \
+	  (cd $$d && $(MAKE) $(MFLAGS) $@;); \
 	 done
 
 install: all
@@ -30,19 +30,20 @@ install: all
 	install $(INSTALL_OPTS) ld/ld86       $(BINDIR)/ld$(SUF)
 	install $(INSTALL_OPTS) ld/objdump86  $(BINDIR)/objdump$(SUF)
 	install $(MAN_OPTS)     man/*.1       $(MANDIR)
-	ln -s                   objdump$(SUF) $(BINDIR)/nm$(SUF)
-	ln -s                   objdump$(SUF) $(BINDIR)/size$(SUF)
+	ln -sf                  objdump$(SUF) $(BINDIR)/nm$(SUF)
+	ln -sf                  objdump$(SUF) $(BINDIR)/size$(SUF)
+	ln -sf                  as86.1        $(MANDIR)/as86_encap.1
 
 depend clean clobber:
-	for d in $(DIRS); do \
-	  (cd $$d; $(MAKE) $(MFLAGS) $@;); \
+	set -e ; for d in $(DIRS); do \
+	  (cd $$d && $(MAKE) $(MFLAGS) $@;); \
 	done
 
 ungrab: ../as/as.c
 	rm -rf as ld man
 grab:
 	cp -a ../as ../ld .
-	rm -f ld/ar.h ; cp -p ../libc/include/ar.h ld/ar.h
+	rm -f ld/ar.h && cp -p ../libc/include/ar.h ld/ar.h
 	mkdir man
 	cp -p ../man/ld86.1 man
 	cp -p ../man/as86.1 man

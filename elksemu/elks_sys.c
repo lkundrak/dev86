@@ -21,6 +21,7 @@
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <dirent.h>
+#include <sys/time.h>
 #include "elks.h" 
 
 #ifdef DEBUG

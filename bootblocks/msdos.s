@@ -18,6 +18,12 @@
 ! 3) The value of the hidden sectors field must be zero
 !
 ! All these are true for mtools created floppies on normal PC drives.
+!
+! In addition this now has a compile time option for 16 bit FAT floppies
+! TODO: Hard partition (dos_hidden != 0)
+!       Zip disks (floppy with dos_hidden != 0)
+!       Auto detect disk type
+!
 !---------------------------------------------------------------------------
 ORGADDR=$0500
 
@@ -29,12 +35,7 @@ export fatbits
 fatbits=12		! Set to 12 or 16 (16 for LS-120 disks)
 
 export heads
-
-if fatbits =12
-heads=2			! This can be 0,1 or 2. 0 is dynamic.
-else
 heads=0			! This can be 0,1 or 2. 0 is dynamic.
-endif
 
 !---------------------------------------------------------------------------
 ! Absolute position macro, fails if code before it is too big.
@@ -90,7 +91,6 @@ cont:
   xor	dh,dh
   mul	dx
   add	ax,[dos_resv]
-  ! Assume: dos_hidden == 0
   mov	di,ax
   ! DI is sector number of first root dir sector.
 
@@ -160,10 +160,12 @@ linsect:
 linsect1:
   xor	dx,dx
 linsect2:
+  ! Add partition offset in.
  if fatbits =16
-  add	ax,[dos_hidden]
-  adc	dx,[dos_hidden+2]
+  add   ax,[dos_hidden]
+  adc   dx,[dos_hidden+2]
  endif
+
   div	[dos_spt]
   inc	dx
   mov	cl,dl		! Sector num

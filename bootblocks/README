@@ -120,7 +120,8 @@ Contents
 
    None of the boot blocks can _directly_ boot a Linux-i386 kernel the
    program 'monitor.out' must loaded by the boot sector and this can
-   load a zimage or bzimage from an MSDOS, Minix or Tar floppy.
+   load a zimage or bzimage from an MSDOS, Minix or Tar floppy. It can
+   also load the image from a minix hard disk filesystem.
 
    This example is for and MSDOS floppy, Tar is very similar except that
    'monitor.out' must be the first file in the tar and can have any name.

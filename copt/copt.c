@@ -872,5 +872,7 @@ void main(int argc, char **argv)
 	clearpattern();
   }
   writeoutf(outfile, headstr);
+
+  exit(0);
 }
 

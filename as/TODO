@@ -1,4 +1,3 @@
-
 Update 6809/const.h.
 
 Produce bsd symbol tables.
@@ -9,3 +8,6 @@ Decide how to choose between 8-bit and 32-bit branches. 16-bit branches in
 32-bit mode are unusable because top 16 bits of PC are messed up.
 
 Buffer for printing of listing.
+
+Need to make assembler remember the code it generated in the penultimate
+pass and regenerate code of exactly the same length in the last pass.

@@ -11,6 +11,7 @@
 #include "sc.h"
 #include "table.h"
 #include "type.h"
+#include "scan.h"
 
 #ifdef I8088
 # define ADJUSTLONGRETURN

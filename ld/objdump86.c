@@ -8,13 +8,21 @@
  *  size86:    Summary sizes of the data in a binary file.
  *  nm86:      The symbol table of the binary file.
  *
- * None of these programs have any options, neither can they currently deal
- * with archive files. This may be a minor problem with nm86.
+ * None of these programs have any options.
+ * This may be a minor problem with nm86.
+ *
+ * Copyright (c) 1999 by Greg Haerr <greg@censoft.com>
+ * Added archive file reading capabilties
  */
 
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
+#ifdef __STDC__
+#include <stdlib.h>
+#endif
+#include "ar.h"
+#include "obj.h"
 
 FILE * ifd;
 char * ifname;
@@ -30,6 +38,8 @@ long get_sized _((int sz));
 unsigned int get_word _((void));
 int main _((int argc, char**argv));
 void do_file _((char * fname));
+long read_arheader _((char *archentry));
+void do_module _((char * fname, char *archive));
 int error _((char * str));
 int read_objheader _((void));
 int read_sectheader _((void));
@@ -45,6 +55,7 @@ int  sections;
 long segsizes[16];
 long textoff, textlen;
 long str_off, str_len;
+long filepos;
 
 char ** symnames;
 char *  symtab;
@@ -100,19 +111,82 @@ void
 do_file(fname)
 char * fname;
 {
-   int  modno, i, ch;
-
-   size_text = size_data = size_bss = 0;
-   byte_order = 0;
-
-   if( !display_mode )
-      printf("OBJECTFILE '%s'\n", fname);
+   unsigned int magic;
+   long 	filelength;
+   char 	archentry[sizeof(struct ar_hdr)]; /* sizeof ar_hdr.ar_name*/
+   char 	filemagic[SARMAG];
 
    ifname = fname;
    if( (ifd=fopen(fname, "rb")) == 0 )
    {
       error("Cannot open file");
       return;
+   }
+   filepos = 0L;
+
+   /* check if file is an archive*/
+   if(fread(filemagic, sizeof(filemagic), 1, ifd) == 1
+     && strncmp(filemagic, ARMAG, sizeof filemagic) == 0)
+   {
+      filepos = SARMAG;
+      while((filelength = read_arheader(archentry)) > 0) 
+      {
+	 filepos += sizeof(struct ar_hdr);
+	 magic = get_word();
+	 if(magic == 0x86A3)
+	 {	/* OMAGIC*/
+	    fseek(ifd, filepos, 0);
+	    do_module(archentry, fname);
+	 }
+	 else if(magic == 0x3C21 )	/* "!<" */
+	       filelength = SARMAG;
+	 filepos += ld_roundup(filelength, 2, long);
+	 fseek(ifd, filepos, 0);
+      }
+   }
+   else
+   {
+      fseek(ifd, 0L, 0);
+      do_module(fname, NULL);
+   }
+   fclose(ifd);
+}
+
+/* read archive header and return length */
+long
+read_arheader(archentry)
+char *archentry;
+{
+   char *	  endptr;
+   struct ar_hdr  arheader;
+
+   if(fread((char *)&arheader, sizeof(arheader), 1, ifd) != 1)
+      return 0;
+   strncpy(archentry, arheader.ar_name, sizeof(arheader.ar_name));
+   archentry[sizeof(arheader.ar_name)] = 0;
+   endptr = archentry + sizeof(arheader.ar_name);
+   do
+   {
+      *endptr-- = 0;
+   } while(endptr > archentry && (*endptr == ' ' || *endptr == '/'));
+   return strtoul(arheader.ar_size, (char **)NULL, 0);
+}
+
+void
+do_module(fname, archive)
+char * fname;
+char * archive;
+{
+   int  modno, i, ch;
+
+   size_text = size_data = size_bss = 0;
+   byte_order = 0;
+
+   if( !display_mode )
+   {
+      if(archive)
+	 printf("ARCHIVEFILE '%s'\n", archive);
+      printf("OBJECTFILE '%s'\n", fname);
    }
 
    switch( read_objheader() )
@@ -125,10 +199,12 @@ char * fname;
             printf("OBJECTSECTION %d\n", modno);
 	 if( read_sectheader() < 0 ) break;
 
+	 /* segments 0, 4-E are text, 1-3 are data*/
 	 for(i=0; i<16; i++)
 	 {
-	    if( i<3 ) size_text += segsizes[i];
-	    else      size_data += segsizes[i];
+	    if(i < 1 || i > 4)
+		 size_text += segsizes[i];
+	    else size_data += segsizes[i];
 	 }
 
 	 if( read_syms() < 0 ) break;
@@ -136,18 +212,22 @@ char * fname;
          if( display_mode == 0 )
             printf("text\tdata\tbss\tdec\thex\tfilename\n");
          if( display_mode != 2 )
-            printf("%ld\t%ld\t%ld\t%ld\t%lx\t%s\n",
+	 {
+            printf("%ld\t%ld\t%ld\t%ld\t%lx\t",
                size_text, size_data, size_bss,
                size_text+ size_data+ size_bss,
-               size_text+ size_data+ size_bss,
-	       ifname);
+               size_text+ size_data+ size_bss);
+
+	    if(archive) printf("%s(%s)\n", archive, fname);
+	    else        printf("%s\n", fname);
+	 }
 
 	 if( sections == 1 && display_mode != 0 )
 	    break;
 
 	 read_databytes();
       }
-      if( !display_mode )
+      if( !archive && !display_mode )
       {
          i=0;
          while( (ch=getc(ifd)) != EOF )
@@ -175,7 +255,6 @@ char * fname;
       }
       break;
    }
-   fclose(ifd);
 
    if( symtab ) free(symtab);
    if( symnames ) free(symnames);
@@ -238,7 +317,7 @@ read_sectheader()
    if( symtab == 0 ) return error("Out of memory");
 
    cpos = ftell(ifd);
-   fseek(ifd, str_off, 0);
+   fseek(ifd, filepos+str_off, 0);
    fread(symtab, 1, (int)str_len, ifd);
    fseek(ifd, cpos, 0);
 
@@ -357,7 +436,7 @@ static char * relstr[] = {"ERR", "DB", "DW", "DD"};
    int ch, i;
    int curseg = 0;
    int relsize = 0;
-   fseek(ifd, textoff, 0);
+   fseek(ifd, filepos+textoff, 0);
 
    printf("\nBYTECODE\n");
    for(;;)

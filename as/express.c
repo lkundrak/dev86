@@ -42,7 +42,10 @@ error_pt errnum;
 
 PRIVATE void expundefined()
 {
-    lastexp.data = FORBIT | UNDBIT;
+    if( last_pass == 1 )
+       lastexp.data = FORBIT | UNDBIT;
+    else
+       lastexp.data = UNDBIT;
 }
 
 PUBLIC void nonimpexpres()
@@ -278,13 +281,18 @@ PUBLIC void factor()
 	    {
 		if (!(symptr->type & (LABIT | VARBIT)))
 		{
-		    symptr->data |= FORBIT;
+                    if( last_pass == 1 )
+		        symptr->data |= FORBIT;
 		    lastexp.sym = symptr;
 		}
 		if (pass != last_pass)
 		{
-		    lastexp.data = symptr->data &
-			(FORBIT | RELBIT | UNDBIT | SEGM);
+                    if( last_pass == 1 )
+		        lastexp.data = symptr->data &
+			    (FORBIT | RELBIT | UNDBIT | SEGM);
+		    else
+		        lastexp.data = symptr->data &
+			    (RELBIT | UNDBIT | SEGM);
 				/* possible flags for pass 1 */
 		    lastexp.offset = symptr->value_reg_or_op.value;
 		}

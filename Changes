@@ -1,5 +1,9 @@
 For version 0.15.0.
 
+> Added support for archives to nm86/objdump86 and size86.
+
+> ar86 added. Used for Linux because RedHat is broken.
+
 > Bugfixes on utmpent and friends.
 
 > A bit more in the manpages on how to use the assembler etc.

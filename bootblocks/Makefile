@@ -17,9 +17,7 @@ default: makeboot makeboot.com monitor.out minix_elks.bin
 all: default tgz bin  minix_elks.bin
 
 CSRC=minix.c
-SSRC=sysboot.s \
-     tarboot.s skip.s com_bcc.s tich.s \
-     bootlist.s mbr.s msdos.s noboot.s
+SSRC=sysboot.s tarboot.s skip.s com_bcc.s tich.s mbr.s msdos.s noboot.s
 
 encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v msdos16.v
 bin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin msdos16.bin

@@ -76,7 +76,8 @@ start with 32-bit code segment, don't warn for any instructions. (not even
 .B -a
 enable partial compatibility with Minix asld. This swaps the interpretation
 of round brackets and square brackets as well as making alterations to the
-code generation for 16bit jumps and calls.
+code generation and syntax for 16bit jumps and calls. ("jmp @(bx)" is then
+a valid instruction)
 .TP
 .B -g
 only put global symbols in object or symbol file

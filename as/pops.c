@@ -145,7 +145,10 @@ PRIVATE void docomm()
 	    labptr->type |= COMMBIT;
 	    if (lcommflag)
 		labptr->type |= REDBIT;	/* kludge - COMMBIT | REDBIT => SA */
-	    labptr->data = (lcdata & SEGM) | (FORBIT | IMPBIT | RELBIT);
+	    if( last_pass == 1 )
+	       labptr->data = (lcdata & SEGM) | (FORBIT | IMPBIT | RELBIT);
+	    else
+	       labptr->data = (lcdata & SEGM) | (IMPBIT | RELBIT);
 	    showlabel();
 	}
     }
@@ -531,8 +534,10 @@ PUBLIC void pcomm1()
 	/* Like import. */
 	if (label->type & (EXPBIT | LABIT))
 	    error(ALREADY);
-	else
+	else if( last_pass == 1 )
 	    label->data = lcdata | (FORBIT | IMPBIT | RELBIT);
+	else
+	    label->data = lcdata | (IMPBIT | RELBIT);
 	getsym();
 	getcomma();
 	if (label->type & (EXPBIT | LABIT))
@@ -819,9 +824,11 @@ PUBLIC void pimport()
 	    if (symptr->type & (COMMBIT | EXPBIT | LABIT))
 		/* IMPORT is null if label (to be) declared */
 		error(ALREADY);
-	    else
+	    else if( last_pass == 1 )
 		/* get current segment from lcdata, no need to mask rest */
 		symptr->data = lcdata | (FORBIT | IMPBIT | RELBIT);
+	    else
+		symptr->data = lcdata | (IMPBIT | RELBIT);
 	}
 	getsym();
 	if (sym != COMMA)

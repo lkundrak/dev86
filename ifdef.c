@@ -429,6 +429,9 @@ manifest_constant()
 /* Linux/unix */
 #ifdef __linux__
    save_name("__linux__", 'D');
+#ifdef __i386__
+   save_name("XX__linux_i386__", 'D');
+#endif
 #endif
 #ifdef __unix__
    save_name("__unix__", 'D');

@@ -47,16 +47,14 @@ static char minibuf[2] = " ";
    }
 #endif
 
-   if( (__argr.x.dx & 0xFF) == 0 )
+   disk_drive = __argr.h.dl;
 #endif
-   {
 #ifdef NOCOMMAND
-      cmd_type("help.txt");
+   cmd_type("help.txt");
 #else
-      display_help(0);
+   display_help(0);
 #endif
-      cmd_bzimage((void*)0);
-   }
+   cmd_bzimage((void*)0);
 
 #ifdef NOCOMMAND
    printf("Unable to boot, sorry\nreboot:");

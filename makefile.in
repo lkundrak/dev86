@@ -21,6 +21,13 @@ MAKEARG	=CC='$(CC)' CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' PREFIX=$(PREFIX) \
 MAKEC=$(MAKE) -C
 MAKEX=
 
+# This is only allowed on Linux because make needs to know how to look
+# inside an archive to get the last modified times of the component .o
+# files. This should be fine for Linux, but it won't be for AIX.
+#ifdef __linux__
+AR=ar86
+#endif
+
 #ifdef __GNUC__
 # unproto is yukky, I've included '-w' in the local makefile.
 
@@ -69,10 +76,10 @@ INEXE=-o root -g root -m 755 -s
 INSCR=-o root -g root -m 755
 
 #ifdef GNUMAKE
-all: check_config bcc unproto copt as86 ld86 objdump86 \
+all: check_config bcc unproto copt as86 ar86 ld86 objdump86 \
      library lib-bsd alt-libs elksemu
 #else
-all: check_config bcc unproto copt as86 ld86 objdump86
+all: check_config bcc unproto copt as86 ar86 ld86 objdump86
 	@echo
 	@echo 'NOTE: To build the libraries you need GNU-Make.'
 	@echo '      They are available precompiled in the Dev86clb-X.X.X.zip file.'
@@ -85,7 +92,7 @@ install-all: install install-other
 
 ##############################################################################
 
-LIBARGS= CC=ncc CCFLAGS= ARFLAGS=$(ARFLAGS)
+LIBARGS= CC=ncc CCFLAGS= AR=$(AR) ARFLAGS=$(ARFLAGS)
 
 # Season in the top makefile
 ELKSSRC= %ELKSSRC%
@@ -105,7 +112,7 @@ DISTPRE= $(DIST)$(LIBPRE)
 # Others to install
 OTHERS=  tests dis88 doselks bootblocks
 
-CLEANLIST= bcc as ld unproto copt libc elksemu libbsd $(OTHERS)
+CLEANLIST= bcc as ar ld unproto copt libc elksemu libbsd $(OTHERS)
 
 ##############################################################################
 
@@ -141,6 +148,10 @@ as86: bindir
 	cp -p as/as86 bin/as86
 	cp -p as/as86_encap bin/as86_encap
 
+ar86: bindir
+	$(MAKEC) ar $(MAKEARG) all
+	cp -p ar/ar86 bin/ar86
+
 ld86: bindir
 	$(MAKEC) ld $(MAKEARG) ld86
 	cp -p ld/ld86 bin/ld86
@@ -155,7 +166,7 @@ objdump86: bindir
 
 elksemu: bindir
 #ifndef __AS386_16__
-#ifdef __i386__
+#ifdef __linux_i386__
 	$(MAKEC) elksemu \
 	CC='$(CC)' PREFIX=$(PREFIX) LIBPRE='$(LIBPRE)' LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' \
 	elksemu
@@ -165,11 +176,12 @@ elksemu: bindir
 	cp -p elksemu/elksemu bin/elksemu
 #endif
 
-install-ln: bcc unproto copt as86 ld86 elksemu
+install-ln: bcc unproto copt as86 ar86 ld86 elksemu
 	install -d $(DISTBIN)
 	ln -fs `pwd`/bin/ncc		$(DISTBIN)/bcc
 	ln -fs `pwd`/bin/as86_encap	$(DISTBIN)/as86_encap
 	ln -fs `pwd`/bin/as86 		$(DISTBIN)/as86
+	ln -fs `pwd`/bin/ar86 		$(DISTBIN)/ar86
 	ln -fs `pwd`/bin/ld86 		$(DISTBIN)/ld86
 #ifndef __AS386_16__
 	ln -fs `pwd`/bin/elksemu 	$(DIST)/lib/elksemu
@@ -177,11 +189,12 @@ install-ln: bcc unproto copt as86 ld86 elksemu
 	-install -d $(DIST)/usr/lib
 	-install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
 
-install-bcc: bcc unproto copt as86 ld86 objdump86
+install-bcc: bcc unproto copt as86 ar86 ld86 objdump86
 	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
 	install $(INEXE) bin/Bcc 	$(DISTBIN)/bcc
 	install $(INSCR) bin/as86_encap	$(DISTBIN)/as86_encap
 	install $(INEXE) bin/as86 	$(DISTBIN)/as86
+	install $(INEXE) bin/ar86 	$(DISTBIN)/ar86
 	install $(INEXE) bin/ld86 	$(DISTBIN)/ld86
 	install $(INEXE) bin/objdump86 	$(DISTBIN)/objdump86
 	install $(INEXE) bin/objdump86 	$(DISTBIN)/nm86
