@@ -23,8 +23,7 @@ all: make.fil
 $(TARGETS): make.fil
 	PATH="`pwd`/bin:$$PATH" $(MAKE) -f make.fil TOPDIR=`pwd` $@
 
-$(TARGETS): phony
-phony:
+$(TARGETS):
 
 ld: ld86
 as: as86
@@ -54,7 +53,7 @@ ifdef: ifdef.o
 ifdef.o: ifdef.c
 	$(CC) $(CFLAGS) $(IFDEFFLAGS) -c ifdef.c
 
-Uninstall: phony
+Uninstall:
 	@# CHECK FROM HERE
 	@make -n Uninstall
 	@echo 'Are you really sure... have you checked this... ^C to interrupt'

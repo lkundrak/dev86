@@ -4,7 +4,7 @@ HOSTCCFLAGS=-O
 BCC=bcc
 
 CC=$(BCC)
-CFLAGS=-ansi -Ms -Oi -O -s $(MONDEFS)
+CFLAGS=-ansi -Ms -Oi -O -s
 # CFLAGS=-ansi -Ms
 ASFLAGS=-0 -w
 MINIXDEFS=-DDOTS
@@ -37,14 +37,26 @@ EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s \
 install:
 
 monitor.out: $(MOBJ)
-	$(CC) $(CFLAGS) -H0x10000 $(MOBJ) -o monitor.out -M > monitor.sym
+	$(CC) $(CFLAGS) $(MONDEFS) -H0x10000 $(MOBJ) -o monitor.out -M > monitor.sym
 
 $(MOBJ): $(MINC) version.h
 fs_min.o: minix.h
 
+bootfile.sys: $(MSRC) $(MINC)
+	@rm -f $(MOBJ)
+	make 'CFLAGS=$(CFLAGS) -DDOSFLOPPY -i-' monitor.out
+	mv monitor.out bootfile.sys
+	@rm -f $(MOBJ)
+
+boottar.sys: $(MSRC) $(MINC) tarboot.bin
+	@rm -f $(MOBJ)
+	make 'CFLAGS=$(CFLAGS) -DTARFLOPPY -i-' monitor.out
+	mv monitor.out boottar.sys
+	@rm -f $(MOBJ)
+
 monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=-ansi -H0x8000 $(MONDEFS)' monitor.out
+	make 'CFLAGS=-ansi -H0x8000' monitor.out
 	mv monitor.out monitor
 	@rm -f $(MOBJ)
 

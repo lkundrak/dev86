@@ -169,7 +169,7 @@ error_pt errnum;
 
 PUBLIC void listline()
 {
-    if (!listpre)
+    if (!listpre && lineptr != 0)
     {
 	if (errcount || (list.current && (!macflag || mcount != 0)) ||
 	    (macflag && maclist.current) || list_force )

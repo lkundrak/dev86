@@ -3,6 +3,7 @@
  * friends use.
  */
 
+#define __MINI_MALLOC__
 #include "monitor.h"
 
 int auto_flag = 1;
@@ -105,6 +106,10 @@ char * command_line;
    }
    if( main_mem_top < 3072 )
       printf("RTFM warning: Linux needs at least 4MB of memory.\n");
+
+   len = (len+1023)/1024+1;		/* Where to load the RD image (Mb) */
+   if (len<6) len=6;			/* Default to 6Mb mark */
+   initrd_start = len * 4096;		/* 256 bytes pages. */
 #endif
 
    low_sects    = buffer[497] + 1; /* setup sects + boot sector */
@@ -551,6 +556,15 @@ static char * image_str = "BOOT_IMAGE=";
          if( strncasecmp(s+4, "ask", 3) == 0 )
 	    vga_mode = -3;
 	 else
+         if( strncasecmp(s+4, "ext", 3) == 0 )
+	    vga_mode = -2;
+	 else
+         if( strncasecmp(s+4, "nor", 3) == 0 )
+	    vga_mode = -1;
+	 else
+         if( strncasecmp(s+4, "cur", 3) == 0 )
+	    vga_mode = 0x0f04;
+	 else
 	 {
 	    s+=4; getnum(&s, &vga_mode);
 	 }
@@ -662,6 +676,8 @@ unsigned int k_top;
 
    rd_start = address - rd_len*4;
    rd_start &= -16;	/* Page boundry */
+   if (initrd_start && initrd_start<rd_start)
+      rd_start = initrd_start;
    address = rd_start;
 
    printf("Loading %s at 0x%x00\n", fname, rd_start);

@@ -1,8 +1,8 @@
 
 #include "monitor.h"
 
-#ifdef MINI_BUF
-#define BUFFER_FAT
+#ifdef BUFFER_FAT
+#define read_fat_sector read_sector
 #endif
 
 #define DOS_SECT(P)        get_uint(P,0x0B)
@@ -33,6 +33,12 @@ static int dir_nentry, dir_sect;
 static Tsect dos_clust0, dos_spc;
 static int dos_fatpos, dos_fatlen, dos_fattype;
 static int last_serial = 0;
+
+#ifndef BUFFER_FAT
+static char * read_fat_sector();
+static int sector_no = 0;
+static char sector_buf[512];
+#endif
 
 #ifdef BUFFER_FAT
 static char * fat_buf = 0;
@@ -281,12 +287,12 @@ char * buffer;
 	    else
 #endif
 	    {
-	       ptr = read_sector(dos_fatpos+(val/512));
+	       ptr = read_fat_sector(dos_fatpos+(val/512));
 	       if( ptr == 0 ) return -1;
 	       if( val%512 == 511 )
 	       {
 		  val2 = (ptr[511]&0xFF);
-		  ptr = read_sector(dos_fatpos+(val/512)+1);
+		  ptr = read_fat_sector(dos_fatpos+(val/512)+1);
 		  if( ptr == 0 ) return -1;
 		  val2 |= (ptr[0]<<8);
 	       }
@@ -302,7 +308,7 @@ char * buffer;
 	 }
 	 else
 	 {
-	    ptr = read_sector(dos_fatpos+(cur_file.cur_cluster/256));
+	    ptr = read_fat_sector(dos_fatpos+(cur_file.cur_cluster/256));
 	    if( ptr == 0 ) return -1;
 	    cur_file.cur_cluster = get_uint(ptr, (cur_file.cur_cluster%256*2));
 	 }
@@ -318,6 +324,10 @@ static int read_bootblock()
 {
    char * sptr;
    int rv, media_byte = 0;
+
+#ifndef BUFFER_FAT
+   sector_no = 0;
+#endif
 
    sptr = read_sector(1);
    if( sptr == 0 ) return -1;
@@ -360,3 +370,23 @@ static int read_bootblock()
 
    return 0;
 }
+
+#ifndef BUFFER_FAT
+static char *
+read_fat_sector(sector)
+int sector;
+{
+   char * p;
+   if( sector == sector_no ) return sector_buf;
+   p = read_sector(sector);
+   if(p)
+   {
+      memcpy(sector_buf, p, 512);
+      sector_no = sector;
+      return sector_buf;
+   }
+   else
+      return 0;
+}
+#endif
+

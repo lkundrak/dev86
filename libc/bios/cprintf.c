@@ -55,8 +55,9 @@ cprintf(char * fmt, va_list ap)
 
 	 switch(c)
 	 {
-	    case 'x': base=16;   if(0) {
-	    case 'o': base= 8; } if(0) {
+	    case 'x': base=16; type|=4;   if(0) {
+	    case 'o': base= 8; type|=4; } if(0) {
+	    case 'u': base=10; type|=4; } if(0) {
 	    case 'd': base=10; }
 	       val=0;
 	       switch(type)
@@ -64,6 +65,9 @@ cprintf(char * fmt, va_list ap)
 		  case 0: val=va_arg(ap, short); break; 
 		  case 1: val=va_arg(ap, int);   break;
 		  case 2: val=va_arg(ap, long);  break;
+		  case 4: val=va_arg(ap, unsigned short); break; 
+		  case 5: val=va_arg(ap, unsigned int);   break;
+		  case 6: val=va_arg(ap, unsigned long);  break;
 	       }
 	       cp = __numout(val,base);
 	       if(0) {

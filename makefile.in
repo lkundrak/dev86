@@ -126,8 +126,6 @@ bindir: $(MAKEX)
 	@ln -s ../kinclude/arch    include/arch    2>/dev/null || true
 #endif
 
-phony:
-
 bcc: bindir
 	$(MAKEC) bcc $(MAKEARG) BCCARCH='$(BCCARCH)' bcc ncc bcc-cc1
 	cp -p bcc/bcc bin/Bcc
@@ -319,14 +317,14 @@ makec:
 
 ##############################################################################
 
-install-other: phony
+install-other:
 	@for i in $(OTHERS) ; do \
 		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) install || exit 1 ; \
 	done
 
 other: $(OTHERS)
 
-$(OTHERS): phony
+$(OTHERS):
 	$(MAKEC) $@ BCC=ncc
 
 clean:

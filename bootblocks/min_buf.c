@@ -14,7 +14,7 @@ int bad_track  = -1;
 
 static int  track_no = -1;
 static int  buf_len = 0;
-static char buffer[MAXTRK*512];
+static char buffer[MAXTRK*512];	/* WARNING: This must be DMAable */
 
 void reset_disk()
 {
