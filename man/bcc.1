@@ -162,16 +162,17 @@ as -Ofile)
 produce object file
 .TP
 .B -f
-error (float emulation not supported)
+turn on floating point support, no effect with i386, changes libc library
+with 8086 code.
 .TP
 .B -g
-produce debugging info (does nothing)
+produce debugging info (ignored.)
 .TP
 .B -o
 output file name follows (assembler, object or executable) (as usual)
 .TP
 .B -p
-error (profiling not supported)
+produce profiling info (ignored.)
 .TP
 .B -t1
 pass to the assembler to renumber the text segment for multi-segment programs.

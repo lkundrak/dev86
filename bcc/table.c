@@ -574,7 +574,7 @@ char *message;
 {
     error2error("compiler out of memory", message);
 
-#if defined(DEBUG) && 0
+#ifdef __AS386_16__
     {
 	unsigned size;
 	char *ptr;

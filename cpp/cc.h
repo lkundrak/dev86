@@ -110,5 +110,6 @@ struct define_item
    char * name;
    int arg_count;	/* -1 = none; >=0 = brackets with N args */
    int in_use;		/* Skip this one for looking up #defines */
+   int varargs;		/* No warning if unexpected arguments. */
    char value[1];	/* [arg,]*value */
 };

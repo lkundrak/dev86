@@ -18,10 +18,7 @@
 #include "input.h"
 
 #define INBUFSIZE 2048
-
-#ifndef BUILTIN_CPP
 #define NO_EOFHACK
-#endif
 
 struct fbufstruct		/* file buffer structure */
 {
@@ -34,6 +31,7 @@ struct fbufstruct		/* file buffer structure */
     char fbuf[INBUFSIZE + 1];	/* buffer to read into */
 };
 
+#ifdef BUILTIN_CPP
 struct inclist			/* list of include file directories */
 {
     char *incdirname;
@@ -55,7 +53,6 @@ PRIVATE struct inclist inclast =
 #endif
     NULL,
 };
-#ifdef BUILTIN_CPP
 PRIVATE fastin_t inclevel;	/* nest level of include files */
 				/* depends on zero init */
 #endif
@@ -67,12 +64,12 @@ PRIVATE bool_t suppress_line_numbers;
 #ifdef ARBITRARY_BACKSLASH_NEWLINES
 FORWARD void backslash P((void));
 #endif
-FORWARD void definefile P((char *fname));
-FORWARD void inputinit P((char *fname, fd_t fd));
-FORWARD void usage P((void));
 #ifdef BUILTIN_CPP
+FORWARD void definefile P((char *fname));
 FORWARD void leaveinclude P((void));
 #endif
+FORWARD void inputinit P((char *fname, fd_t fd));
+FORWARD void usage P((void));
 
 #ifdef ARBITRARY_BACKSLASH_NEWLINES
 PRIVATE void backslash()
@@ -234,15 +231,10 @@ PUBLIC void include()
 
     while (blanksident())
     {
-#ifdef BUILTIN_CPP
 	if ((gsymptr = findlorg(gsname)) == NULL ||
 	    gsymptr->flags != DEFINITION)
 	    break;
 	entermac();
-#else
-	if ((gsymptr = findlorg(gsname)) == NULL )
-	    break;
-#endif
     }
     if ((terminator = ch) == '<')
 	terminator = '>';
@@ -404,15 +396,13 @@ ts_s_inputbuf_tot += sizeof *inputbuf;
 #endif
     *(input.limit = newinputbuf->fbuf) = EOL;
 
-#ifdef BUILTIN_CPP
-    /* dummy line so #include processing can start with skipline() */
+    /* dummy line so processing can start with skipline() */
     ch = *(lineptr = newinputbuf->fbuf - 1) = EOL;
-#endif
 }
 
 PUBLIC void linecontol()
 {
-static char linename[32];
+   char linename[256];
    char * ptr;
    int i=0;
 
@@ -435,8 +425,10 @@ ts_s_pathname_tot -= strlen(inputbuf->fname) + 1;
 #endif
 	ourfree(inputbuf->fname);
 }
-    inputbuf->fname_malloced = FALSE;
-    inputbuf->fname = linename;
+    inputbuf->fname_malloced = TRUE;
+    ptr = ourmalloc(strlen(linename)+1);
+    strcpy(ptr, linename);
+    inputbuf->fname = ptr;
 
     ptr=lineptr;
 #ifdef BUILTIN_CPP
@@ -472,10 +464,8 @@ ts_s_inputbuf_tot -= sizeof *inputbuf;
 #endif
     inputbuf = input.includer;
     input = inputbuf->fcb;
-#ifdef BUILTIN_CPP
     undefinestring(filemacro);
     definefile(inputbuf->fname);
-#endif
     ch = *(lineptr = input.lineptr);
     skipline();
     if (orig_cppmode && !suppress_line_numbers)
@@ -493,8 +483,10 @@ char *argv[];
     int argn;
     fd_t fd;
     char *fname;
+#ifdef BUILTIN_CPP
     struct inclist *incnew;
     struct inclist *incptr;
+#endif
     bool_t flag[128];
 
 #if 0
@@ -506,7 +498,9 @@ char *argv[];
     flag['3'] = sizeof (int) >= 4;
 #endif
     fname = "stdin";
+#ifdef BUILTIN_CPP
     (incptr = &incfirst)->incnext = &inclast;
+#endif
     initout();
     for (argn = 1; argn < argc; ++argn)
     {
@@ -529,7 +523,7 @@ char *argv[];
 	    case '3':		/* generate 32-bit code */
 #endif
 	    case 'c':		/* caller saves */
-#ifdef DEBUG
+#ifdef DBNODE
 	    case 'd':		/* print debugging information in asm output */
 #endif
 #ifdef BUILTIN_CPP
@@ -607,8 +601,8 @@ ts_s_includelist += sizeof *incnew;
 	callersaves = TRUE;
 	definestring("__CALLER_SAVES__");
     }
-#ifdef DEBUG
-    debugon = flag['d'];
+#ifdef DBNODE
+    dbnodeon = flag['d'];
 #endif
     orig_cppmode = cppmode = flag['E'];
     if (flag['f'])
@@ -652,8 +646,8 @@ ts_s_includelist += sizeof *incnew;
     if (flag['3']) i386_32 = TRUE;
 #endif
     if (flag['c']) callersaves = TRUE;
-#ifdef DEBUG
-    debugon = flag['d'];
+#ifdef DBNODE
+    dbnodeon = flag['d'];
 #endif
     if (flag['f']) arg1inreg = TRUE;
     arg1op = arg1inreg ? ROOTLISTOP : LISTOP;
@@ -668,8 +662,8 @@ ts_s_includelist += sizeof *incnew;
 
 #endif
     ctext = flag['t'];
-#ifdef DEBUG
-    if (ctext) debugon = 1;
+#ifdef DBNODE
+    if (ctext) dbnodeon = 1;
 #endif
     watchlc = flag['w'];
     setoutbufs();
@@ -688,6 +682,7 @@ PUBLIC void skipeol()
     static bool_t skip_printing_nl;
 #endif
     int nread;
+    debug(7, "skipeol %s:%d", inputbuf->fname, input.linenumber);
 
     if (eofile)
 	return;
@@ -767,6 +762,7 @@ case0:
 #endif
         nread = read(input.fd, lineptr = inputbuf->fbuf, INBUFSIZE);
 #ifndef NO_EOFHACK
+#ifdef BUILTIN_CPP
         if( nread == 0 && inclevel > 0 )
 	{
 	   close(input.fd);
@@ -774,6 +770,7 @@ case0:
 	   memcpy(inputbuf->fbuf, "\n", 1);
 	   nread = 1;
 	}
+#endif
     }
 #endif
 #endif
@@ -882,13 +879,22 @@ more:
 PRIVATE void usage()
 {
     fatalerror(
-#ifdef MC6809
-"usage: cc1 [-cdfptw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]");
+#ifdef BUILTIN_CPP
+#  ifdef MC6809
+"usage: cc1 [-cdfptw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]"
+#  else 
+#    ifdef I80386
+"usage: cc1 [-03cdfltw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]"
+#    else 
+"usage: cc1 [-cdfltw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]"
+#    endif
+#  endif
 #else 
-#ifdef I80386
-"usage: cc1 [-03cdfltw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]");
-#else 
-"usage: cc1 [-cdfltw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]");
+#  ifdef I80386
+"usage: cc1 [-03cdfltw[-]] [-o outfile] [infile]"
+#  else 
+"usage: cc1 [-cdfltw[-]] [-o outfile] [infile]"
+#  endif
 #endif
-#endif
+   );
 }

@@ -441,7 +441,11 @@ manifest_constant()
 #ifdef __linux__
    save_name("__linux__", 'D');
 #ifdef __i386__
-   save_name("__linux_i386__", 'D');
+   save_name("__elksemu_works__", 'D');
+#endif
+/* Is this true ? */
+#ifdef __x86_64__
+   save_name("__elksemu_works__", 'D');
 #endif
 #endif
 #ifdef __unix__

@@ -12,7 +12,7 @@ AOBJ=_stdio_init.o fputc.o fgetc.o fflush.o fgets.o gets.o fputs.o 	\
      fclose.o fseek.o rewind.o ftell.o setbuffer.o setvbuf.o ungetc.o
 
 PSRC=printf.c
-POBJ=printf.o sprintf.o fprintf.o vprintf.o vsprintf.o vfprintf.o
+POBJ=printf.o sprintf.o fprintf.o vprintf.o vsprintf.o vfprintf.o fp_print.o
 
 SSRC=scanf.c
 SOBJ=scanf.o sscanf.o fscanf.o vscanf.o vsscanf.o vfscanf.o

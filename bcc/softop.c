@@ -222,9 +222,11 @@ struct symstruct *target;
 	   if (uflag)
 	       call("idiv_");
 	   else {
+#ifdef I80386
 	        if (i386_32)
 	            outnop1str("cdq");
 		else
+#endif
 	            outnop1str("cwd");
 		outop2str("idiv\t");
 		outregname(INDREG0);

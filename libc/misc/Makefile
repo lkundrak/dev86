@@ -27,7 +27,7 @@ endif
 
 # No ELKS strtod() until BCC does 16 bit FP...
 ifneq ($(LIB_CPU),i86)
-OBJ+=strtod.o
+OBJ+=strtod.o atof.o
 endif
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)

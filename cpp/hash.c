@@ -2,6 +2,7 @@
 #include <stdio.h>
 #ifdef __STDC__
 #include <stdlib.h>
+#include <string.h>
 #else
 #include <malloc.h>
 #endif

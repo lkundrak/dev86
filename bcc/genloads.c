@@ -1010,6 +1010,7 @@ store_pt reg;
 	break;
     case LOCAL:
 	outstr(localregstr);
+	regfuse |= LOCAL;
 	break;
 #ifdef STACKREG
     case STACKREG:

@@ -237,7 +237,7 @@ offset_T lastargsp;
 	if (sp != lastargsp - target->type->typesize)
 	{
 	    bugerror("botched push of arg");
-#ifdef DEBUG
+#ifdef DBNODE
 	    outstr("arg type is ");
 	    dbtype(target->type);
 	    outnl();

@@ -315,6 +315,7 @@ more:
     while (symofchar[c] <= MAXIDSYM && --length != 0);
     ch = c;
     *idptr = 0;
+    debug(7, "Got ident %s", gsname);
     lineptr = reglineptr;
     if (symofchar[c] == SPECIALCHAR)
     {
@@ -471,6 +472,7 @@ PUBLIC void nextsym()
 	if (SYMOFCHAR(ch = *(lineptr = reglineptr + 1)) == SPECIALCHAR
 	    && sym != SPECIALCHAR)
 	    specialchar();
+	debug(7, "In nextsym, got %d \"%C\"", sym, lastch);
 	switch (sym)
 	{
 	case CHARCONST:

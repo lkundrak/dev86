@@ -102,7 +102,7 @@ struct opt_list {
 } * options;
 
 int opt_v, opt_V, opt_e, opt_x, opt_I, opt_L, opt_W, opt_i,
-    opt_O, opt_M;
+    opt_O, opt_M, opt_f;
 
 #ifdef DEFARCH
 int opt_arch = (DEFARCH != 0);
@@ -951,6 +951,7 @@ char ** argv;
       case 'I': opt_I++; break;
       case 'L': opt_L++; break;
       case 'i': opt_i++; break;
+      case 'f': opt_f++; break;
 
       case 'W': opt_W++; break;
 
@@ -959,7 +960,6 @@ char ** argv;
          
       case 'w': /*IGNORED*/ break;
       case 'g': /*IGNORED*/ break;
-      case 'f': /*IGNORED*/ break;
       case 'p': /*IGNORED*/ break;
 
       default: 
@@ -1080,6 +1080,14 @@ char ** argv;
       append_option("-O", 'a');
    }
 
+   if (opt_arch == 0) {
+      if (opt_f) {
+	 /* append_option("--enable-floats", 'c'); */
+	 libc = catstr(libc, "+f");
+      } else
+	 append_option("-D__HAS_NO_FLOATS__", 'p');
+   }
+
    if (opt_arch == 1) libdir_suffix = "/i386";
    if (opt_arch == 4) libdir_suffix = "/m09";
 
@@ -1099,7 +1107,7 @@ char * path1, * path2, * path3;
 {
    char * newstr;
    int l;
-   newstr = xalloc(strlen(path1)+strlen(path1)+strlen(path3)
+   newstr = xalloc(strlen(path1)+strlen(path2)+strlen(path3)
 	  + strlen(prefix_path)+2);
 
    strcpy(newstr, prefix_path);
@@ -1232,8 +1240,13 @@ int size;
 void Usage()
 {
 #ifdef VERSION
+#ifdef __AS386_16__
+   if (opt_v)
+      fprintf(stderr, "%s: version %s (16bit)\n", progname, VERSION);
+#else
    if (opt_v)
       fprintf(stderr, "%s: version %s\n", progname, VERSION);
+#endif
 #endif
    fprintf(stderr,
 	 "Usage: %s [-ansi] [-options] [-o output] file [files].\n", progname);

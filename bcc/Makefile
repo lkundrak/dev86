@@ -13,10 +13,10 @@ BCCDEFS	=-DLOCALPREFIX=$(PREFIX) -DBINDIR=$(BINDIR) -DDEFARCH=0
 
 BCFLAGS=$(ANSI) $(CFLAGS) $(LDFLAGS)
 
-OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \
+OBJS = bcc-cc1.o codefrag.o dbnode.o declare.o express.o exptree.o floatop.o \
 	function.o gencode.o genloads.o glogcode.o hardop.o input.o label.o \
 	loadexp.o longop.o output.o preproc.o preserve.o scan.o softop.o \
-	state.o table.o type.o assign.o	hashcmd.o
+	state.o table.o type.o assign.o hashcmd.o debug.o dbprintf.o
 
 all:	bcc-cc1 bcc 
 
@@ -40,6 +40,12 @@ ccc: bcc.c
 
 bcc-cc1: $(OBJS)
 	$(CC) $(BCCARCH) $(LDFLAGS) $(OBJS) -o bcc-cc1
+
+debug.o: debug.c debug.h
+	$(CC) $(ANSI) $(BCCARCH) $(CFLAGS) -c debug.c
+
+dbprintf.o: dbprintf.c
+	$(CC) $(ANSI) $(BCCARCH) $(CFLAGS) -c dbprintf.c
 
 clean realclean:
 	rm -f bcc bcc-cc1 ncc bcc09 ccc bcc.o $(OBJS)

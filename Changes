@@ -1,6 +1,14 @@
 For version 0.16.*.
 
-> Starting to remove builtin cpp from bcc-cc1, beware.
+> Sorry forgot to flip this back: perror and strerror are back to using
+  the /lib/liberror.txt file for all 8086 Elks modes. Only i386 has the
+  file linked. Elksemu now traps accesses to this file and substitutes
+  a fake.
+
+> Added vararg macros to new preprocessor.
+
+> Builtin CPP removed for __BCC__ compile, bcc-cc1 fit in 16bit but
+  crashes. Thirty two bit works fine, gcc or bcc. (almost any 32bit.)
 
 > Added __BCC_VERSION__ macro, defined by bcc.c contains hex version no.
 
@@ -16,13 +24,13 @@ For version 0.16.*.
   Native paths. As86_encap moved to LIBDIR.
 
 > I've altered 'perror' and 'strerror' to be normal when compiled for
-  everything except libc_f.a. Only that library it look for the
-  liberror.txt file and it now looks in "/lib/liberror.txt".
+  everything except libc_f.a. Only with that library will it look for the
+  liberror.txt file and it now looks in "/lib/liberror.txt" only.
   This means there's no need to install it anywhere except ELKS itself.
 
 > Change -Mg option to use uclibc as glibc2 seems to have stopped working.
 
-> ar.c switch to usnig strerror.
+> ar.c switch to using strerror.
 
 > Move elksemu, it's used like a shared library but is best treated like 
   an emulator so it's now installed in DISTBIN. Also on Linux-386 it's

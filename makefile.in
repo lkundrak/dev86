@@ -26,8 +26,9 @@ MAKEX=
 # inside an archive to get the last modified times of the component .o
 # files. This should be fine for Linux, but it won't be for AIX etc.
 # Unfortunatly it's even _required_ for linux because some versions
-# of Redhat have a broken standard ar command.
-#ifdef __linux_i386__
+# have a broken standard ar command. Ie they barf if given something 
+# they think is not an a.out.
+#ifdef __linux__
 AR=ar86
 #endif
 
@@ -59,12 +60,12 @@ CFLAGS=-O -m -w -DPOSIX_HEADERS_MISSING -DVERY_SMALL_MEMORY
 #ifdef __BCC__
 ANSI    =-ansi
 #ifdef __AS386_32__
-CFLAGS	=-3
-LDFLAGS	=-3 -s -N
+CFLAGS	=-Ml
+LDFLAGS	=-Ml -s
 #else
-CFLAGS	=-0
-LDFLAGS	=-0 -s -H10000
-BCCARCH =-Mf -O
+CFLAGS	=-O
+LDFLAGS	=-s -H10000
+BCCARCH =
 #endif
 #endif
 
@@ -87,7 +88,7 @@ EXE=
 #endif
 
 #ifdef GNUMAKE
-all: check_config bcc cpp unproto copt as86 ar86 ld86 objdump86 \
+all: check_config bcc86 cpp unproto copt as86 ar86 ld86 objdump86 \
      library lib-bsd alt-libs elksemu
 
 install: check_config install-bcc install-man \
@@ -96,7 +97,7 @@ install: check_config install-bcc install-man \
 install-all: install install-other
 
 #else
-all: check_config bcc cpp unproto copt as86 ar86 ld86 objdump86
+all: check_config bcc86 cpp unproto copt as86 ar86 ld86 objdump86
 	@echo
 	@echo 'NOTE: To build the libraries you need GNU-Make.'
 	@echo '      They are available precompiled in the Dev86clb-X.X.X.zip file.'
@@ -148,7 +149,7 @@ bindir: $(MAKEX)
 	@ln -s ../kinclude/arch    include/arch    2>/dev/null || true
 #endif
 
-bcc: bindir
+bcc86: bindir
 	echo '#define VERSION "'"$(VERSION)"'"' > bcc/version.h
 	VER=$(VERSION) ; \
 	echo "#define VER_MAJ $${VER%%.*}" >> bcc/version.h ; \
@@ -172,6 +173,9 @@ copt:  bindir
 	$(MAKEC) copt $(MAKEARG) copt
 	cp -p copt/copt$(EXE) lib/copt$(EXE)
 	cp -p copt/rules.* lib/.
+	cp -p copt/rules.start lib/i386/.
+	cp -p copt/rules.386 lib/i386/.
+	cp -p copt/rules.end lib/i386/.
 
 as86: bindir
 	echo '#define VERSION "'"$(VERSION)"'"' > as/version.h
@@ -197,7 +201,7 @@ objdump86: bindir
 	cp -p ld/objdump86$(EXE) bin/objdump86$(EXE)
 
 #ifndef __AS386_16__
-#ifdef __linux_i386__
+#ifdef __elksemu_works__
 elksemu: bindir
 	$(MAKEC) elksemu elksemu
 	cp -p elksemu/elksemu bin/elksemu
@@ -208,7 +212,7 @@ elksemu: bindir
 #endif
 #endif
 
-install-bcc: bcc cpp unproto copt as86 ar86 ld86 objdump86
+install-bcc: bcc86 cpp unproto copt as86 ar86 ld86 objdump86
 	install -d $(DISTBIN) $(DISTLIB)
 	install $(INEXE) bin/Bcc$(EXE) 		$(DISTBIN)/bcc$(EXE)
 	install $(INEXE) bin/as86$(EXE) 	$(DISTASLD)/as86$(EXE)
@@ -223,10 +227,12 @@ install-bcc: bcc cpp unproto copt as86 ar86 ld86 objdump86
 	install $(INEXE) lib/unproto$(EXE) 	$(DISTLIB)/unproto$(EXE)
 	install $(INEXE) lib/copt$(EXE) 	$(DISTLIB)/copt$(EXE)
 	install $(INDAT) lib/rules.* 		$(DISTLIB)
+	install -d $(DISTLIB)/i386
+	install $(INDAT) lib/i386/rules.* 	$(DISTLIB)/i386
 
 # NB: This doesn't install as a suid root, that's ok though.
 install-emu: elksemu
-#ifdef __linux_i386__
+#ifdef __elksemu_works__
 	install -d $(DISTBIN)
 	install $(INEXE) bin/elksemu 	$(DISTBIN)/elksemu
 #endif

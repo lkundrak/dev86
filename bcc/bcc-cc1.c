@@ -8,6 +8,7 @@ PUBLIC int main(argc, argv)
 int argc;
 char **argv;
 {
+    debug(1, "Start");
     growheap(0);		/* init order is important */
     syminit();
     etreeinit();

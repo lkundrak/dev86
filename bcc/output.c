@@ -32,7 +32,7 @@ PRIVATE fastin_t outstage;	/* depends on zero init */
 FORWARD void errorsummary P((void));
 FORWARD void errsum1 P((void));
 #ifdef MC6809
-#ifdef DEBUG
+#ifdef DBNODE
 FORWARD void outvaldigs P((uvalue_t num));
 #endif
 #endif
@@ -116,6 +116,7 @@ char *message2;
 	output = old_output;
 	outstage = old_outstage;
     }
+    outstr("fail");
     comment();
     errorloc();
     outstr(warning);
@@ -734,7 +735,7 @@ unsigned num;
 }
 
 #ifdef MC6809
-#ifdef DEBUG
+#ifdef DBNODE
 
 /* print unsigned value, hex format (like outhex except value_t is larger) */
 
@@ -778,7 +779,7 @@ register value_t num;
     outuvalue((uoffset_T) num);
 }
 
-#endif /* DEBUG */
+#endif /* DBNODE */
 #endif /* MC6809 */
 
 /* push decimal digits of an unsigned onto a stack of chars */

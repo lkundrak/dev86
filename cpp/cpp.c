@@ -111,7 +111,7 @@ static void do_proc_tail P((void));
 static int  get_if_expression P((void));
 static int_type get_expression P((int));
 static int_type get_exp_value P((void));
-static void gen_substrings P((char *, char *, int));
+static void gen_substrings P((char *, char *, int, int));
 static char * insert_substrings P((char *, struct arg_store *, int));
 
 int
@@ -329,7 +329,7 @@ break_break:
 	    }
 
 	    /* We have arguments to process so lets do so. */
-	    gen_substrings(ptr->name, ptr->value, ptr->arg_count);
+	    gen_substrings(ptr->name, ptr->value, ptr->arg_count, ptr->varargs);
 
 	    /* Don't mark macros with arguments as in use, it's very 
 	     * difficult to say what the correct result would be so
@@ -822,6 +822,11 @@ do_proc_define()
 		  cc++;
 		  ptr->arg_count++;
 		  ch=gettok_nosub();
+		  if( ch == TK_ELLIPSIS ) {
+		     ptr->varargs = 1;
+		     ch=gettok_nosub();
+		     if (ch == ',') ch = '*'; /* Force error if not ')' */
+		  }
 		  if( ch == ')' ) break;
 		  if( ch == ',' ) continue;
 	       }
@@ -1247,10 +1252,11 @@ get_exp_value()
 }
 
 void
-gen_substrings(macname, data_str, arg_count)
+gen_substrings(macname, data_str, arg_count, is_vararg)
 char * macname;
 char * data_str;
 int arg_count;
+int is_vararg;
 {
    char * mac_text = 0;
    struct arg_store *arg_list;
@@ -1289,7 +1295,9 @@ int arg_count;
 	 if ( ch == '(' ) paren_count++;
 	 if ( ch == '"' || ch == '\'' ) { in_quote = 1; quote_char = ch; }
 	 if (paren_count == 0 && ch == ',' ) {
-	    commas_found++; continue;
+	    commas_found++; 
+	    if (commas_found < arg_count)
+	       continue;
 	 }
 	 if ( ch == ')' ) {
 	    if (paren_count == 0) break;
@@ -1297,9 +1305,13 @@ int arg_count;
 	 }
       }
       args_found = 1;
-      /* Too many args; ignore rest */
-      if (commas_found >= arg_count ) continue;
-      ac = commas_found;
+      /* Too many args, deal with, or ignore, the rest. */
+      if (commas_found >= arg_count) {
+	 if(arg_count == 0) continue;
+	 ac = arg_count-1;
+      } else
+	 ac = commas_found;
+
       if (arg_list[ac].value == 0) {
 	 cc = len = 0;
 	 arg_list[ac].in_define = def_count;
@@ -1322,8 +1334,10 @@ int arg_count;
 
    if (commas_found || args_found) args_found = commas_found+1;
 
-   if( arg_count != args_found )
-      cerror("Incorrect number of macro arguments");
+   if( arg_count == 0 && args_found != 0 )
+      cerror("Arguments given to macro without them.");
+   else if( !is_vararg && arg_count != args_found )
+      cwarn("Incorrect number of macro arguments");
 
    mac_text = insert_substrings(data_str, arg_list, arg_count);
 

@@ -50,7 +50,7 @@ PRIVATE struct get_s hid_getstak[MAXGET];	/* GET stack */
 PRIVATE struct get_s *getstak;	/* ptr */
 
 #if BIGBUFFER == 1
-PRIVATE char *mem_start, *mem_end;
+PRIVATE char *mem_start = 0, *mem_end;
 #endif
 
 PRIVATE char hid_linebuf[LINLEN];	/* line buffer */
@@ -109,6 +109,9 @@ char *name;
 #if BIGBUFFER == 1
     if( mem_start == 0 )
     {
+	size_t memsize = 0;
+	int cc;
+
 	if(fd)
 	{
 	   struct stat st;
@@ -120,36 +123,34 @@ char *name;
 	      goto cant_do_this;
  	   }
 	}
-	if( filelength > 0 )
-	{
-	   if( (mem_start = malloc(filelength+2)) == 0 )
+
+	if (filelength > 0) {
+	   if( (mem_start = malloc(filelength+4)) == 0 )
 	   {
 	      mem_end = mem_start = "\n\n";
 	      goto cant_do_this;
- 	   }
+	   }
+	   memsize = filelength;
+
 	   filelength = read(fd, mem_start, filelength);
-	}
-	else
-	{
-	   size_t memsize = 0;
-	   int cc;
+	} else
 	   filelength = 0;
 
-	   for(;;)
-	   {
-	       if( filelength >= memsize )
-	       {
-		   if (memsize > 16000)
-		       mem_start = asrealloc(mem_start, (memsize+=16384)+4);
-		   else
-		       mem_start = asrealloc(mem_start, (memsize+=memsize+32)+4);
-	       }
-	       cc = read(fd, mem_start+filelength,
-	                     (size_t)(memsize-filelength));
-	       if( cc <= 0 ) break;
-	       filelength+=cc;
-	   }
+	for(;;)
+	{
+	    if( filelength >= memsize )
+	    {
+		if (memsize > 16000)
+		    mem_start = asrealloc(mem_start, (memsize+=16384)+4);
+		else
+		    mem_start = asrealloc(mem_start, (memsize+=memsize+32)+4);
+	    }
+	    cc = read(fd, mem_start+filelength,
+			  (size_t)(memsize-filelength));
+	    if( cc <= 0 ) break;
+	    filelength+=cc;
 	}
+
 	*(mem_end=mem_start+filelength) = '\n';
 	mem_end[1] = '\0';
 

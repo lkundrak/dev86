@@ -223,8 +223,8 @@ struct nodestruct *exp;
     if ((right = exp->right) == NULL)
     {
 	makeleaf(left);
-#ifdef DEBUG
-	debug(exp);
+#ifdef DBNODE
+	dbnode(exp);
 #endif
 	return;
     }
@@ -265,8 +265,8 @@ struct nodestruct *exp;
 	    exp->left.nodeptr = right;
 	    right = exp->right = left;
 	    left = exp->left.nodeptr;
-#ifdef DEBUG
-	    debugswap();
+#ifdef DBNODE
+	    dbnodeswap();
 #endif
 	}
 	makeleaf(right);
@@ -346,8 +346,8 @@ struct nodestruct *exp;
 	    indirec(source);
     }
     reguse = regmark;
-#ifdef DEBUG
-    debug(exp);
+#ifdef DBNODE
+    dbnode(exp);
 #endif
     if (commutop
 	&& ((target->storage == CONSTANT
@@ -358,8 +358,8 @@ struct nodestruct *exp;
     {
 	exp->left.nodeptr = right;
 	exp->right = left;
-#ifdef DEBUG
-	debugswap();
+#ifdef DBNODE
+	dbnodeswap();
 #endif
     }
 }
@@ -720,7 +720,7 @@ register struct nodestruct *exp;
     {
 	{
 	    bugerror("botched nodetype calculation");
-#ifdef DEBUG
+#ifdef DBNODE
 	    comment();
 	    outstr("runtime type is ");
 	    dbtype(target->type);

@@ -10,7 +10,9 @@
 
 /* This is not a typedef so `const __ptr_t' does the right thing.  */
 #define __ptr_t void *
+#ifndef __HAS_NO_FLOATS__
 typedef long double __long_double_t;
+#endif
 
 #else
 

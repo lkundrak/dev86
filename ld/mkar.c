@@ -14,8 +14,13 @@
 
 static struct ar_hdr arbuf;
 
+#ifdef __STDC__
 void
 ld86r(int argc, char ** argv)
+#else
+ld86r(argc, argv)
+   int argc; char ** argv;
+#endif
 {
 char buf[128];
    FILE * fd, * ifd;

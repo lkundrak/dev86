@@ -102,11 +102,11 @@ void uitol P((store_pt reg));
 void restoreopreg P((void));
 void saveopreg P((void));
 
-/* debug.c */
+/* dbnode.c */
 void dbitem P((struct symstruct *item));
 void dbtype P((struct typestruct *type));
-void debug P((struct nodestruct *exp));
-void debugswap P((void));
+void dbnode P((struct nodestruct *exp));
+void dbnodeswap P((void));
 
 /* declare.c */
 void colon P((void));

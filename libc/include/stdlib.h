@@ -24,10 +24,10 @@ extern unsigned long strtoul __P ((const char * nptr,
 				   char ** endptr, int base));
 #ifndef __HAS_NO_FLOATS__
 extern double strtod __P ((const char * nptr, char ** endptr));
+extern double atof __P ((__const char *__nptr));
 #endif
 
 extern long int atol __P ((__const char *__nptr));
-extern double atof __P ((__const char *__nptr));
 extern int atoi __P ((__const char *__nptr));
 
 /* Returned by `div'.  */

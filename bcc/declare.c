@@ -699,11 +699,12 @@ PRIVATE void declfunc()
     lbrace();
     compound();
 #ifdef I8088
-    if (regfuse & callee1mask) {
+    if (regfuse & (callee1mask | INDREG0)) {
         outstr("! Register");
-        if (regfuse & INDREG0 & callee1mask) outstr(" BX");
+        if (regfuse & INDREG0              ) outstr(" BX");
         if (regfuse & INDREG1 & callee1mask) outstr(" SI");
 	if (regfuse & INDREG2 & callee1mask) outstr(" DI");
+	if (regfuse & LOCAL & callee1mask) outstr(" BP");
 	outstr(" used in function ");
 	outnstr(funcname);
 	if (optimise && !callersaves) {

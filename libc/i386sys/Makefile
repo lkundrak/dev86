@@ -12,7 +12,7 @@ DSRC=dirent.c
 DOBJ=opendir.o closedir.o readdir.o
 
 ifeq ($(LIB_CPU)-$(LIB_OS),i386-ELKS)
-OBJ=$(LOBJ3) $(LOBJ) $(EOBJ) $(DOBJ)
+OBJ=$(LOBJ3) $(LOBJ) $(EOBJ) $(DOBJ) setjmp3.o
 SYSCALLS=syscalls
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)

@@ -2,10 +2,10 @@
 # This file is part of the Linux-8086 Development environment and is
 # distributed under the GNU General Public License.
 
-VERSION=0.16.16
+VERSION=0.16.17
 
 TARGETS=install clean other \
-    bcc unproto copt as86 ld86 elksemu \
+    bcc86 unproto copt as86 ld86 elksemu \
     install-all install-bcc install-emu install-lib \
     install-lib2 install-ln install-man install-other \
     all-libs alt-libs library lib-386 lib-bsd lib-dos lib-fast lib-stand \
@@ -59,10 +59,10 @@ make.fil: ifdef makefile.in
 	@rm -f tmp.mak tmp.sed
 
 ifdef: ifdef.o
-	$(CC) $(LDFLAGS) -o ifdef ifdef.o
+	$(CC) $(IFDEFARCH) $(LDFLAGS) -o ifdef ifdef.o
 
 ifdef.o: ifdef.c
-	$(CC) $(CFLAGS) $(IFDEFFLAGS) -c ifdef.c
+	$(CC) $(IFDEFARCH) $(CFLAGS) $(IFDEFFLAGS) -c ifdef.c
 
 uninstall:
 	@echo 'Sorry, no go; it was just wrong.'

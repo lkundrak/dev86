@@ -22,6 +22,7 @@
 #include <malloc.h>
 #endif
 #include <string.h>
+#include "const.h"
 #include "ar.h"
 #include "obj.h"
 
@@ -78,6 +79,8 @@ int display_mode = 0;
 int multiple_files = 0;
 int byte_order = 0;
 
+int opt_o;
+
 long size_text, size_data, size_bss;
 long tot_size_text=0, tot_size_data=0, tot_size_bss=0;
 
@@ -104,6 +107,7 @@ char ** argv;
       {
       case 's': display_mode = 1; break;
       case 'n': display_mode = 2; break;
+      case 'o': opt_o++; break;
       }
       else
 	 multiple_files++;
@@ -382,9 +386,6 @@ read_syms()
    symtab = calloc(num_syms, sizeof(*symtab));
    if( symtab == 0 ) return error("Out of memory");
 
-   if(display_mode == 2 && multiple_files)
-     printf("\n%s:\n", ifname);
-
    for(i=0; i<num_syms; i++)
    {
       unsigned int symtype;
@@ -411,7 +412,7 @@ disp_syms()
 {
    int i;
 
-   if(display_mode == 2 && multiple_files)
+   if(display_mode == 2 && multiple_files && !opt_o)
      printf("\n%s:\n", ifname);
 
    for(i=0; i<num_syms; i++)
@@ -444,6 +445,8 @@ disp_syms()
       }
       if( display_mode == 2 )
       {
+	 if (opt_o)
+	    printf("%s: ", ifname);
 	 if( symtype == 0x004f || symtype == 0x0040 )
             printf("         ");
 	 else
@@ -788,7 +791,7 @@ nm_aout()
 
    if( bytes_left == 0 )
       printf("No symbols in '%s'\n", ifname);
-   else if(multiple_files)
+   else if(multiple_files && !opt_o)
      printf("\n%s:\n", ifname);
 
    while(bytes_left > 16)
@@ -807,6 +810,8 @@ nm_aout()
       }
 
       if( pending_nl ) putchar('\n');
+      if (opt_o)
+         printf("%s: ", ifname);
       if( n_sclass == 0x10 )
          printf("         ");
       else

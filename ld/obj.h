@@ -4,10 +4,6 @@
 
 #define OBJ_H
 
-#ifdef I80386
-# define LONG_OFFSETS		/* others can use this, but wasteful */
-#endif
-
 #ifndef OMAGIC
 # ifdef I80386
 #  define OMAGIC 0x86A3

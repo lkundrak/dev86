@@ -553,3 +553,10 @@ mov	%1,si
 mov	%2,di
 !BCC_EOS
 
+###
+mov	ax,%1
+mov	%[ax|bx|cx|dx]2,ax
+mov	ax,%3
+=
+mov	%2,%1
+mov	ax,%3

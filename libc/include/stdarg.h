@@ -26,6 +26,7 @@
 
 #ifndef __STDARG_H
 #define __STDARG_H
+#include <features.h>
 
 #ifdef sparc
 #  define _VA_ALIST_		"__builtin_va_alist"

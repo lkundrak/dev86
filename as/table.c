@@ -22,7 +22,7 @@ EXTERN char regs[];
 EXTERN char typesizes[];
 #endif
 
-#ifdef DEBUG
+#ifdef DEBUG_HASH
 unsigned nhash;
 unsigned nlookup;
 unsigned nsym;
@@ -100,7 +100,7 @@ PUBLIC struct sym_s *lookup()
     register struct sym_s *symptr;
     register unsigned hashval;
     register unsigned length;
-#ifdef DEBUG
+#ifdef DEBUG_HASH
     int tries;
 
     ++nlookup;
@@ -139,14 +139,14 @@ PUBLIC struct sym_s *lookup()
     {
 	do
 	{
-#ifdef DEBUG
+#ifdef DEBUG_HASH
 	    if (tries != 0)
 		--nx[tries];
 	    ++tries;
 	    if (tries < sizeof nx / sizeof nx[0])
 		++nx[tries];
 	    if (tries >= 5)
-		printchain(hashptr - spt)
+		printchain(hashptr - spt);
 #endif
 	    if ((unsigned char) length != symptr->length)
 		continue;
@@ -168,7 +168,7 @@ PUBLIC struct sym_s *lookup()
     }
     if (!ifflag)
 	return NUL_PTR;
-#ifdef DEBUG
+#ifdef DEBUG_HASH
     ++nsym;
     if (hashptr >= spt && hashptr < spt + SPTSIZ)
 	++nhash;
@@ -183,7 +183,7 @@ PUBLIC struct sym_s *lookup()
     return symptr;
 }
 
-#ifdef DEBUG
+#ifdef DEBUG_HASH
 
 static void printchain(hashval)
 unsigned hashval;
@@ -200,7 +200,7 @@ unsigned hashval;
 
 PUBLIC void statistics()
 {
-#ifdef DEBUG
+#ifdef DEBUG_HASH
     int i;
     int weight;
 
@@ -214,6 +214,6 @@ PUBLIC void statistics()
 	weight += nx[i] * i;
     }
     printf("\n");
-    printf("weight = %d%d\n", w);
+    printf("weight = %d%d\n", weight);
 #endif
 }

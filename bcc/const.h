@@ -8,6 +8,8 @@
 #include <malloc.h>
 #endif
 
+#include "debug.h"
+
 /* switches for code generation */
 
 #if !defined(I8088) && !defined(MC6809)
@@ -23,9 +25,12 @@
 
 #ifndef VERY_SMALL_MEMORY
 #define SELFTYPECHECK		/* check calculated type = runtime type */
-#define DEBUG			/* generate compiler-debugging code */
+#define DBNODE			/* generate compiler node debugging code */
 #define OPTIMISE		/* include optimisation code */
-#define BUILTIN_CPP
+#endif
+
+#ifndef __BCC__
+#define BUILTIN_CPP		/* Remove the built in C preprocessor */
 #endif
 
 #ifdef I8088
@@ -34,20 +39,21 @@
 				 * since assembler has only 1 data seg */
 # define DYNAMIC_LONG_ORDER 1	/* long word order spec. at compile time */
 
-#ifdef VERY_SMALL_MEMORY
-
+#ifdef __HAS_NO_FLOATS__
 /* Humm, now this is nasty :-) */
 #define float	no_hope
 #define double	no_hope
 #define atof	atol
 #define NOFLOAT
 typedef long no_hope;
+#endif
 
-#else
+#ifndef VERY_SMALL_MEMORY
 #ifndef NO_I80386
 # define I80386			/* Little BCC doesn't need 386 */
 #endif
 #endif
+
 #endif
 
 #ifdef MC6809
@@ -85,3 +91,6 @@ typedef long no_hope;
 #define FORWARD static
 #define PRIVATE static
 #define PUBLIC
+
+/* #define C_CODE	* Don't use assembler outstr() function. */
+

@@ -4,14 +4,16 @@
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-ifeq ($(PLATFORM),i86-FAST)
-OBJ=error.o sys_errlist.o perror.o sys_siglist.o __assert.o
-else
 ifeq ($(LIB_OS),ELKS)
+
+ifneq ($(LIB_CPU),i86)
 OBJ=error2.o perror.o sys_siglist.o __assert.o
 else
-OBJ=__assert.o
+OBJ=error.o sys_errlist.o perror.o sys_siglist.o __assert.o
 endif
+
+else
+OBJ=__assert.o
 endif
 
 all: $(LIBC)($(OBJ))

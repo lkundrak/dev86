@@ -14,8 +14,8 @@ EXTERN uoffset_T arg1size;	/* size of 1st arg to function */
 				/* zero after allocation of 1st arg */
 EXTERN store_pt callee1mask;	/* calleemask with doubleregs masked if nec */
 EXTERN uoffset_T dataoffset;	/* amount of initialized data so far */
-#ifdef DEBUG
-EXTERN bool_t debugon;		/* nonzero to print debugging messages */
+#ifdef DBNODE
+EXTERN bool_t dbnodeon;		/* nonzero to print debugging messages */
 				/* depends on zero init */
 #endif
 #ifdef FRAMEPOINTER
