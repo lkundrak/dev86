@@ -54,8 +54,8 @@ Contents
    as my testing has gone this is only significant on 8086 machines, all
    others (286 8Mhz +) are fast enough to keep up at a 1-1 interleve.
 
-   But beware some older versions of superformat defeat this because
-   they do not correctly calculate intersector gaps.
+   But some older versions of superformat defeat this because they do
+   not correctly calculate intersector gaps.
 
 1.3 ) Minixfs boot block
 
@@ -146,8 +146,7 @@ Contents
    at the prompt '>' where 'linux' is the name of the bzImage file.
 
    Escape or ^C will interrupt the boot and drop you to the '>' prompt.
-   Esacpe or ^C at the '>' prompt will reboot
-      (This may be a little too sensitive :-)
+   ^C at the '>' prompt will reboot
 
    A file called 'help.txt' will be displayed upto the first line that starts
    with a '%', chunks after that (seperated by '%'s) will be displayed when

@@ -17,7 +17,9 @@
 #include <stdio.h>
 #ifdef __STDC__
 #include <stdlib.h>
+#ifndef MSDOS
 #include <unistd.h>
+#endif
 #endif
 #include <string.h>
 #include <memory.h>
@@ -1106,6 +1108,11 @@ static char ** minienviron[] = {
    case -1:
       fatal("Forking failure");
    case 0:
+      (void) signal(SIGQUIT, SIG_DFL);
+      (void) signal(SIGINT,  SIG_DFL);
+      (void) signal(SIGTERM, SIG_DFL);
+      (void) signal(SIGCHLD, SIG_DFL);
+
 #ifdef __BCC__
       execve(command.fullpath, command.arglist, minienviron);
 #else
@@ -1117,7 +1124,8 @@ static char ** minienviron[] = {
       wait(&status);
       if (status&0xFF)
       {
-	 fprintf(stderr, "%s: killed by signal %d\n", command.fullpath, (status&0xFF));
+	 fprintf(stderr, "%s: killed by signal %d\n", 
+	                 command.fullpath, (status&0xFF));
       }
    }
 
@@ -1126,7 +1134,7 @@ static char ** minienviron[] = {
    (void) signal(SIGTERM, otsig);
    (void) signal(SIGCHLD, ocsig);
 #endif
-   if (status)
+   if (status && file)
       file->filetype = '~';
 }
 

@@ -1,3 +1,8 @@
+/* Copyright (C) 1999-2002 Robert de Bath <rdebath@cix.co.uk>
+ * This file is part of the Linux-8086 C library and is distributed
+ * under the GNU Library General Public License.
+ */
+
 #include <stdarg.h>
 #include <conio.h>
 

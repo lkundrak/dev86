@@ -3,11 +3,11 @@
 
 #ifdef __ELKS__
 
-bios_khit() {
+kbhit() {
    return 0;
 }
 
-bios_getc() {
+getch() {
    return 0;
 }
 
@@ -59,6 +59,15 @@ extern int disk_spt;
 
    if( rv < 0 ) return -1;
    return 0;
+}
+
+phy_reset()
+{
+}
+
+motor_running()
+{
+   return 1;
 }
 
 putsect(buffer, address)

@@ -19,7 +19,8 @@ all: bootbin bootsys default tgz
 bootsys: bootfile.sys boottar.sys bootminix.sys
 
 CSRC=minix.c
-SSRC=sysboot.s tarboot.s skip.s com_bcc.s tich.s mbr.s msdos.s noboot.s
+SSRC=sysboot.s tarboot.s skip.s com_bcc.s tich.s mbr.s msdos.s noboot.s \
+     boot_fpy.s
 
 encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v msdos16.v
 bootbin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin msdos16.bin minix_elks.bin
@@ -46,7 +47,7 @@ fs_min.o: minix.h
 
 bootfile.sys: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DDOSFLOPPY -i' monitor.out
+	make 'CFLAGS=$(CFLAGS) -DDOSFLOPPY -i -d' monitor.out
 	mv monitor.out bootfile.sys
 	@rm -f $(MOBJ)
 

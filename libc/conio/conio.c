@@ -58,13 +58,6 @@ putch()
   mov   bx,sp
   mov   ax,[bx+2]
 #endif
-  cmp	al,#$0A
-  jne	not_nl
-  mov	ax,#$0E0D
-  mov   bx,#7
-  int   $10
-  mov	al,#$0A
-not_nl:
   mov   ah,#$0E
   mov   bx,#7
   int   $10

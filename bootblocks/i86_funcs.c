@@ -109,6 +109,8 @@ void cpu_check()
 
 #ifdef __STANDALONE__
    x86_test = x86_emu;
+   if (__argr.x.cflag)
+      x86_test = 1;
 #else
    x86_test = 1;
 #endif

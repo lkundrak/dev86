@@ -25,12 +25,11 @@ gtermcap	GNU termcap
 i386fp		BCC's floating point routines for 386 code.
 include		Some include files, some new others Glib or Glib hacked.
 kinclude	Kernel include files, here for now.
-malloc1		Robert's malloc routines
-malloc2		Joel's malloc routines
+malloc		Malloc routines
 misc		Various larger functions
 msdos		This is the syscall directory for msdos.
 regexp		Standard regular expression parser
-stdio2		Robert's standard I/O
+stdio		Robert's standard I/O
 string		The functions for string.h
 syscall		All the system call functions, and some tied lib ones.
 termios		Termimal mode control.

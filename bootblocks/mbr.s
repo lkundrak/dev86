@@ -327,9 +327,9 @@ more_boot:
   jz	load_done
   mov	bx,ax		! word 1 address
   lodsw
-  mov	cx,ax		! word 2 CX, head/sector
+  mov	cx,ax		! word 2 CX, cylinder/sector
   lodsw
-  mov	dx,ax		! word 3 DX, drive, cylinder
+  mov	dx,ax		! word 3 DX, drive, head
   lodsw			! word 4 AX, $02, sector count
   int	$13
   jnc	more_boot	! This doesn't retry, with a HD it shouldn't be bad.
@@ -353,19 +353,16 @@ pre_boot_table:
   ! .word <execute address>
   ! Then repeat ..
   ! .word <BX>, <CX>, <DX>, <AX>
+  ! Or.
+  ! .word <Load Address>
+  ! .byte <sector> + (<cyl> & $300)>>2), <cyl> & $FF, <Drive>, <Head>, <cnt>, 2
   ! Finally
   ! .word 0
 
   ! Example: Load rest of H0,C0 into mem at $7C00 (8k).
-  ! .word $7C00, $7C00,$0002,$8000,$0210, $0000
-
-  ! Example: Use single LBA call
-  ! .word <execute address>
-  ! .word 0,0,$8000,$4200, $0010
-  ! .word <number of blocks>
-  ! .long <transfer buffer>
-  ! .long <start block number>
-  ! .long <start block number high 4 bytes>
+  ! .word $7C00
+  ! .word $7C00,$0002,$8000,$0210
+  ! .word $0000
  endif
 
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

@@ -168,7 +168,7 @@ char * buffer;
 	    {
 	       printf("Please insert next disk and press return:");
 	       fflush(stdout);
-	       while( (k=(bios_getc() & 0x7F)) != '\r' && k != '\n')
+	       while( (k=(getch() & 0x7F)) != '\r' && k != '\n')
 	          if( k == 27 || k == 3 )
 		  {
 		     printf("... Aborting\n");

@@ -155,6 +155,7 @@ cmd_regs()
    printf(": AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x",
 	  __argr.x.ax, __argr.x.bx, __argr.x.cx, __argr.x.dx,
 	  __argr.x.si, __argr.x.di);
+   printf(" CF=%x", __argr.x.cflag);
    printf(" CS=%04x DS=%04x ES=%04x\n", __get_cs(), __get_ds(), __get_es());
 #else
    printf("Only in standalone\n");

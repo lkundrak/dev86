@@ -7,7 +7,6 @@
 #define VT52_CON	/* IMO the best, no clear to EOS/EOL tho */
 #define XANSI_CON	/* Largest but still not complete */
 #define XDUMB_CON	/* Can't do much */
-#define XSPEC_CON	/* Incomplete, best for slow links */
 
 #if !__FIRST_ARG_IN_AX__
 #ifdef __AS386_16__
@@ -27,7 +26,7 @@ static int con_colour = 0;
 static unsigned char con_row, con_col;
 
 #ifdef VT52_CON
-bios_putc(c)
+putch(c)
 int c;
 {
 static int ctrl = 0;
@@ -85,7 +84,9 @@ static int ctrl = 0;
 	 asm_putc(c);
 	 break;
       case CTRL('I'):
-	 asm_putc(' ');	/* Only some BIOS's have this, so play safe */
+	 asm_gpos();
+	 con_col = ((con_col+8)& -8);
+	 asm_cpos(con_row, con_col);
 	 break;
       case CTRL('L'):
 	 asm_cpos(0,0);
@@ -110,7 +111,7 @@ static int ansi_argc = 0;
 static int ansi_argv[MAX_ARGS];
 static void do_ansi();
 
-bios_putc(c)
+putch(c)
 int c;
 {
    if( con_mode==0 ) asm_coninit();
@@ -122,6 +123,11 @@ int c;
       default:
          asm_colour(last_attr);
 	 asm_putc(c);
+	 break;
+      case CTRL('I'):
+	 asm_gpos();
+	 con_col = ((con_col+8)& -8);
+	 asm_cpos(con_row, con_col);
 	 break;
       case CTRL('L'):
 	 asm_cpos(0,0);
@@ -233,68 +239,12 @@ int ctrl, argc, *argv;
 }
 #endif
 
-#ifdef SPEC_CON
-static char vidbuf[3];
-static int  vidcnt=0;
-
-bios_putc(c)
-int c;
-{
-   if( con_mode==0 ) asm_coninit();
-   if( vidcnt == 0 )
-   {
-      if( c & 0xE0 )
-         { asm_colour(last_attr) ; asm_putc(c); }
-      else switch(c)
-      {
-      default:
-	 asm_putc(c);
-	 break;
-      case CTRL('L'):
-	 asm_cpos(0,0);
-	 asm_cls();
-	 break;
-      case CTRL('P'):
-      case CTRL(']'):
-	 vidbuf[vidcnt++] = c;
-	 break;
-      }
-   }
-   else
-   {
-      vidbuf[vidcnt++] = c;
-      if( vidcnt < 3 &&
-         (vidbuf[0] != CTRL(']') || vidbuf[1] < '`' || vidbuf[1] > 'p'))
-         return;
-
-      if( vidbuf[0] == CTRL('P') )
-      {
-         if( vidbuf[1] >= 32 && vidbuf[1] <= 56 
-          && vidbuf[2] >= 32 && vidbuf[2] <= 111 )
-            asm_cpos((vidbuf[1]-32), (vidbuf[2]-32));
-      }
-      else
-      {
-         if( vidbuf[1] >= '`' )
-            last_attr = ( (vidbuf[1]&0xF) | (last_attr&0xF0));
-         else
-            last_attr = ( (vidbuf[2]&0xF) | ((vidbuf[1]&0xF)<<4));
-
-         if( !con_colour )
-	    last_attr = (last_attr&0x88) + ((last_attr&7)?0x07:0x70);
-      }
-      vidcnt=0;
-   }
-}
-#endif
-
 #ifdef DUMB_CON
-bios_putc(c)
+putch(c)
 int c;
 {
    if( con_mode==0 ) asm_coninit();
-   if( c & 0xE0 ) asm_putc(c);
-   else switch(c)
+   switch(c)
    {
    default:
       asm_putc(c);
@@ -327,6 +277,13 @@ static asm_putc(c)
   mov	bx,sp
   mov	ax,[bx+2]
 #endif
+  cmp	al,#$0A
+  jne	not_nl
+  mov	ax,#$0E0D
+  mov	bx,#7
+  int	$10
+  mov	al,#$0A
+not_nl:
   mov	ah,#$0E
   mov	bx,#7
   int	$10
@@ -404,6 +361,25 @@ static asm_gpos()
 
 /****************************************************************************/
 
+#ifdef L_bios_getce
+getche()
+{
+   static char linebuf[80];
+   static int nextc = 0, endc=0;
+   int rv;
+
+   if (nextc >= endc)
+   {
+      endc = bios_readline(linebuf, sizeof(linebuf));
+      nextc= 0;
+   }
+   if (endc <= nextc) return 3;
+   rv = linebuf[endc++];
+   if (endc == nextc) return '\r';
+   return rv;
+}
+#endif
+
 #ifdef L_bios_rdline
 bios_rdline(buf, len)
 char * buf;
@@ -415,13 +391,13 @@ int len;
    if( len < 0 ) { errno = EINVAL; return -1; }
    if( len == 0 )
    {
-      if( bios_khit() == 0 ) return 0;
+      if( kbhit() == 0 ) return 0;
       errno = EINTR;
       return -1;
    }
    if( len == 1 )
    {
-      buf[0]=((ch=bios_getc())&0xFF?ch&0xFF:((ch>>8)&0xFF|0x80));
+      buf[0]=((ch=getch())&0xFF?ch&0xFF:((ch>>8)&0xFF|0x80));
       return 1;
    }
 
@@ -429,32 +405,31 @@ int len;
    {
       if(ch != '\003')
       {
-         ch = bios_getc();
+         ch = getch();
 	 if( pos == 0 && (ch&0xFF) == 0 )
 	 {
 	    buf[0] = ((ch>>8)|0x80);
 	    return 1;
 	 }
 	 ch &= 0x7F;
-	 if( ch == '\033' ) ch=3;	/* ESC= Interrupt too */
       }
       if( ch == '\r' )
       {
-         bios_putc('\r'); bios_putc('\n');
+         putch('\n');
          buf[pos++] = '\n';
 	 return pos;
       }
       if( ch >= ' ' && ch != 0x7F && pos < len-1)
-         bios_putc(buf[pos++] = ch);
+         putch(buf[pos++] = ch);
       else if( (ch == '\003' || ch == '\b') && pos > 0 )
       {
-         bios_putc('\b'); bios_putc(' '); bios_putc('\b');
+         putch('\b'); putch(' '); putch('\b');
 	 pos--;
       }
       else if( ch == '\003' )
          return 0;
       else
-         bios_putc('\007');
+         putch('\007');
    }
 }
 #endif
@@ -462,7 +437,7 @@ int len;
 /****************************************************************************/
 
 #ifdef L_bios_getc
-bios_getc()
+getch()
 {
 #asm
   xor	ax,ax
@@ -474,7 +449,7 @@ bios_getc()
 /****************************************************************************/
 
 #ifdef L_bios_khit
-bios_khit()
+kbhit()
 {
 #asm
   mov	ah,#1

@@ -146,6 +146,7 @@ bool_pt argxsym;
     curseg = 0;			/* text seg, s.b. variable */
     symres("__etext");
     symres("__segoff");
+    symres("__heap_top");
 
     /* calculate segment and common sizes (sum over loaded modules) */
     /* use zero init of segsz[] */
@@ -314,6 +315,11 @@ bool_pt argxsym;
         if( endoffset > 65536L )
             fatalerror("data segment too large for 16bit");
     }
+
+    if( heap_top_value < 0x100 || endoffset > heap_top_value-0x100)
+       heap_top_value = endoffset + 0x8000;
+    if( heap_top_value > 0x10000 && !bits32 ) heap_top_value = 0x10000;
+    setsym("__heap_top", (bin_off_t)heap_top_value);
 
     openout(outfilename);
     writeheader();
@@ -614,9 +620,6 @@ PRIVATE void writeheader()
     if (uzp)
 	offtocn((char *) &header.a_entry, page_size(),
 		sizeof header.a_entry);
-    if( heap_top_value < 0x100 || endoffset > heap_top_value-0x100)
-       heap_top_value = endoffset + 0x8000;
-    if( heap_top_value > 0x10000 && !bits32 ) heap_top_value = 0x10000;
 
     offtocn((char *) &header.a_total, (bin_off_t) heap_top_value,
 	    sizeof header.a_total);

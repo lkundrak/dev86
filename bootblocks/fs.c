@@ -13,6 +13,9 @@ char * fname;
 #endif
    if( fs_type ) close_file();
 
+   /* If we can't read the boot sector there is a _real_ problem */
+   if (read_sector(0) == 0) return -1;
+
    if( tar_open_file(fname) >= 0 ) { fs_type = 1; return 0; }
    if( min_open_file(fname) >= 0 ) { fs_type = 2; return 0; }
    if( dos_open_file(fname) >= 0 ) { fs_type = 3; return 0; }

@@ -32,7 +32,7 @@ tests: dummy
 	make -C tests
 
 $(LIBBSD): $(OBJS)
-	$(AR) rcs $(LIBBSD) $(OBJS)
+	$(AR) rc $(LIBBSD) $(OBJS)
 
 realclean: clean
 clean: dummy

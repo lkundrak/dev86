@@ -113,6 +113,7 @@ char * command_line;
 #endif
 
    low_sects    = buffer[497] + 1; /* setup sects + boot sector */
+   if (low_sects == 1) low_sects = 5;
    image_length = (file_length()+511)/512 - low_sects;
    address = 0x900;
 
@@ -154,11 +155,11 @@ char * command_line;
       printf("%dk to go \r", (int)(len/1024)); fflush(stdout);
 
 #ifndef NOCOMMAND
-      v = (bios_khit()&0x7F);
+      v = (kbhit()&0x7F);
       if( v == 3 || v == 27 )
       {
 	 printf("User interrupt!\n");
-         bios_getc();
+         getch();
 	 return -1;
       }
 #endif
@@ -332,36 +333,42 @@ register char * image_buf;
 {
    is_zimage = 0;
 
-   /* Boot sector magic number */
+   /* Boot sector magic numbers */
    if( *(unsigned short*)(image_buf+510) != 0xAA55 ||
-
-   /* Setup start */
-       memcmp(image_buf+0x202, "HdrS", 4) != 0 ||
-
-   /* Setup version */
-       *(unsigned short*)(image_buf+0x206) < 0x200 )
+      memcmp(image_buf, "\270\300\007\216") != 0 )
    {
       printf("File %s is not a linux Image file\n", fname);
       return -1;
    }
 
-   /* Code 32 start address for zImage */
-   if( *(unsigned long*)(image_buf+0x214) == 0x1000 )
+   /* Setup start */
+   if ( memcmp(image_buf+0x202, "HdrS", 4) == 0 &&
+   /* Setup version */
+       *(unsigned short*)(image_buf+0x206) >= 0x200 )
    {
-      printf("File %s is a zImage file\n", fname);
-      is_zimage = 1;
-      return 0;
+      /* Code 32 start address for zImage */
+      if( *(unsigned long*)(image_buf+0x214) == 0x1000 )
+      {
+	 printf("File %s is a zImage file\n", fname);
+	 is_zimage = 1;
+	 return 0;
+      }
+      else
+      /* Code 32 start address bzImage */
+      if( *(unsigned long*)(image_buf+0x214) == 0x100000 )
+      {
+	 printf("File %s is a bzImage file\n", fname);
+	 return 0;
+      }
    }
-   else
-   /* Code 32 start address bzImage */
-   if( *(unsigned long*)(image_buf+0x214) != 0x100000 )
-   {
-      printf("File %s is a strange Image file\n", fname);
-      return -1;
-   }
-   printf("File %s is a bzImage file\n", fname);
 
+   is_zimage = 1;
+   printf("File %s is an old Image file\n", fname);
+#if ZIMAGE_LOAD_SEG == 0x10000
    return 0;
+#else
+   return -1;
+#endif
 }
 
 #ifndef __ELKS__
@@ -516,7 +523,14 @@ static char * image_str = "BOOT_IMAGE=";
       free(ptr);
    }
    else if( inp == 0 )
+   {
       inp = free_inp = input_cmd(image);
+      if( inp == 0 ) 
+      {
+	 printf("\nAborted\n");
+	 return -1;
+      }
+   }
 
    if( auto_flag ) len += strlen(auto_str) + 1;
    if( image ) len += strlen(image_str) + strlen(image) + 1;
@@ -685,11 +699,11 @@ unsigned int k_top;
    for( ; rd_len>0 ; rd_len--)
    {
 #ifndef NOCOMMAND
-      int v = (bios_khit()&0x7F);
+      int v = (kbhit()&0x7F);
       if( v == 3 || v == 27 )
       {
 	 printf("User interrupt!\n");
-         bios_getc();
+         getch();
 	 return -1;
       }
 #endif
@@ -727,6 +741,7 @@ check_crc()
 
    __movedata(address*16, 0, __get_ds(), buffer, 512);
    low_sects = buffer[497] + 1; /* setup sects + boot sector */
+   if (low_sects == 1) low_sects = 5;
 
    for(len=image_size; len>0; len-=512)
    {

@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <utime.h>
+#include <sys/time.h>
 #endif
 #include <fcntl.h>
 #include <time.h>
@@ -234,7 +235,7 @@ void print_contents ();
 void write_symdef_member ();
 void read_old_symdefs ();
 void two_operations ();
-void usage (), fatal (), error (), error_with_file ();
+void usage (), fatal (), error (), error3(), error_with_file ();
 void perror_with_name (), pfatal_with_name ();
 void write_archive ();
 void touch_symdef_member ();
@@ -245,14 +246,17 @@ char *basename ();
 void print_modes ();
 char *make_tempname ();
 void copy_out_member ();
+#define const
 #else
 /* Grrr. */
-extern void error ();
-extern void fatal ();
-extern void extract_members ();
+extern void error (char * s1, char * s2);
+extern void error3 (char * s1, char * s2, char * s3);
 
+extern void fatal (char * s1, char * s2);
+extern void extract_members (void (*function) (struct member_desc member, FILE *istream));
+extern void scan (void (*function) (struct member_desc member, FILE *istream), int crflag);
 extern char *basename (char *path);
-extern char *concat (char *s1, char *s2, char *s3);
+extern char *concat (const char *s1, const char *s2, const char *s3);
 extern char *make_tempname (char *name);
 extern char *xmalloc (unsigned int size);
 extern char *xrealloc (char *ptr, unsigned int size);
@@ -266,7 +270,7 @@ extern struct mapelt *find_mapelt_noerror (struct mapelt *map, register char *na
 extern struct mapelt *last_mapelt (struct mapelt *map);
 extern struct mapelt *make_map (int nonexistent_ok);
 extern struct mapelt *prev_mapelt (struct mapelt *map, struct mapelt *elt);
-extern void add_to_map (struct member_desc member);
+extern void add_to_map (struct member_desc member, FILE * istream);
 extern void close_archive (void);
 extern void copy_out_member (struct mapelt *mapelt, int archive_indesc, int outdesc, char *outname);
 extern void delete_from_map (char *name, struct mapelt *map);
@@ -277,11 +281,11 @@ extern void header_from_map (struct ar_hdr *header, struct mapelt *mapelt);
 extern void lock_for_update (void);
 extern void make_new_symdefs (struct mapelt *mapelt, int archive_indesc);
 extern void move_members (void);
-extern void mywrite (int desc, char *buf, int bytes, char *file);
+extern void mywrite (int desc, void *buf, int bytes, char *file);
 extern void perror_with_name (char *name);
 extern void pfatal_with_name (char *name);
 extern void print_contents (struct member_desc member, FILE *istream);
-extern void print_descr (struct member_desc member);
+extern void print_descr (struct member_desc member, FILE * instream);
 extern void print_modes (int modes);
 extern void quick_append (void);
 extern void read_old_symdefs (struct mapelt *map, int archive_indesc);
@@ -298,13 +302,14 @@ extern void write_symdef_member (struct mapelt *mapelt, struct mapelt *map, int 
    FILE is the name of the file (for error messages).  */
 
 void
-mywrite (desc, buf, bytes, file)
+mywrite (desc, pbuf, bytes, file)
      int desc;
-     char *buf;
+     void *pbuf;
      int bytes;
      char *file;
 {
   register int val;
+  register char * buf = pbuf;
 
   while (bytes > 0)
     {
@@ -349,7 +354,7 @@ main (argc, argv)
 
     if (*p == '-')
       p++;
-   while (c = *p++)
+   while ((c = *p++))
       {
 	switch (c)
 	  {
@@ -445,10 +450,12 @@ main (argc, argv)
   i = 2;
 
   if (postype != POS_DEFAULT)
+  {
     if (i < argc)
       posname = argv[i++];
     else
       usage ("no position operand", 0);
+  }
 
   if (i >= argc)
     usage ("no archive specified", 0);
@@ -500,7 +507,7 @@ main (argc, argv)
 	break;
 
     default:
-	usage ("invalid operation %d", operation);
+	usage ("invalid operation %d", (void*)operation);
     }
 
   exit (0);
@@ -514,7 +521,11 @@ two_operations ()
 
 void
 scan (function, crflag)
+#ifdef __STDC__
+     void (*function) (struct member_desc member, FILE *istream);
+#else
      void (*function) ();
+#endif
      int crflag;
 {
   FILE *arcstream = fopen (archive, "r");
@@ -597,8 +608,9 @@ scan (function, crflag)
 }
 
 void
-print_descr (member)
+print_descr (member, instream)
      struct member_desc member;
+     FILE * instream;
 {
   char *timestring;
   if (!verbose)
@@ -673,7 +685,7 @@ extract_member (member, istream)
 
   if (preserve_dates)
     {
-#if defined(USG) || defined(linux) || defined(__BCC__)
+#if defined(USG) || defined(__BCC__)
       long tv[2];
       tv[0] = member.date;
       tv[1] = member.date;
@@ -735,8 +747,9 @@ make_map (nonexistent_ok)
 }
 
 void
-add_to_map (member)
+add_to_map (member, istream)
      struct member_desc member;
+     FILE * istream;
 {
   struct mapelt *mapelt = (struct mapelt *) xmalloc (sizeof (struct mapelt));
   mapelt->info = member;
@@ -1075,7 +1088,7 @@ header_from_map (header, mapelt)
 	  header->ar_name[sizeof (header->ar_name) - 2] = 'o';
 	}
       header->ar_name[sizeof (header->ar_name) - 1] = '\0';
-      error ("member name `%s' truncated to `%s'",
+      error3 ("member name `%s' truncated to `%s'",
 	     mapelt->info.name, header->ar_name);
     }
 #if defined(USG) || defined(HAVE_TRAILING_SLASH_IN_NAME)
@@ -1275,7 +1288,7 @@ move_members ()
 {
   struct mapelt *map = make_map (0);
   char **p;
-  struct mapelt *after_mapelt;
+  struct mapelt *after_mapelt = 0;
   struct mapelt mapstart;
   struct mapelt *change_map;
 
@@ -1337,7 +1350,7 @@ replace_members ()
 {
   struct mapelt *map = make_map (1);
   struct mapelt mapstart;
-  struct mapelt *after_mapelt;
+  struct mapelt *after_mapelt = 0;
   struct mapelt *change_map;
   char **p;
   int changed;
@@ -1469,7 +1482,11 @@ insert_in_map (name, map, after)
 
 void
 extract_members (function)
+#ifdef __STDC__
+     void (*function) (struct member_desc member, FILE *istream);
+#else
      void (*function) ();
+#endif
 {
   struct mapelt *map;
   FILE *arcstream;
@@ -1954,7 +1971,7 @@ update_symdefs (map, archive_indesc)
     }
   else if (pos > old_strings_size)
     fatal ("Old archive's string size was %u too small.",
-	   pos - old_strings_size);
+	   (void*)(pos - old_strings_size));
 
   for (tail = map; tail != 0; tail = tail->next)
     if (tail->info.symdefs)
@@ -2000,11 +2017,20 @@ fatal (s1, s2)
 /* Print error message.  `s1' is printf control string, the rest are args.  */
 
 void
-error (s1, s2, s3, s4, s5)
-     char *s1, *s2, *s3, *s4, *s5;
+error (s1, s2)
+     char *s1, *s2;
 {
   fprintf (stderr, "%s: ", program_name);
-  fprintf (stderr, s1, s2, s3, s4, s5);
+  fprintf (stderr, s1, s2);
+  fprintf (stderr, "\n");
+}
+
+void
+error3 (s1, s2, s3)
+     char *s1, *s2, *s3;
+{
+  fprintf (stderr, "%s: ", program_name);
+  fprintf (stderr, s1, s2, s3);
   fprintf (stderr, "\n");
 }
 
@@ -2053,7 +2079,7 @@ pfatal_with_name (name)
 
 char *
 concat (s1, s2, s3)
-     char *s1, *s2, *s3;
+     const char *s1, *s2, *s3;
 {
   int len1 = strlen (s1), len2 = strlen (s2), len3 = strlen (s3);
   char *result = (char *) xmalloc (len1 + len2 + len3 + 1);
@@ -2089,7 +2115,7 @@ xrealloc (ptr, size)
 {
   char *result = realloc (ptr, size);
   if (result == 0)
-    fatal ("virtual memory exhausted");
+    fatal ("virtual memory exhausted", 0);
   return result;
 }
 

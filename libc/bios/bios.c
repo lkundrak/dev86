@@ -3,6 +3,8 @@
  * under the GNU Library General Public License.
  */
 
+#undef AOUT_STANDALONE
+
 #if !__FIRST_ARG_IN_AX__
 #ifdef __AS386_16__
 #ifdef __STANDALONE__
@@ -22,7 +24,7 @@ void (*__cleanup)() = 0;
   .data
 export ___argr
 ___argr:
-  .word 0,0,0,0,0,0,0	! A struct REGS
+  .word 0,0,0,0,0,0,0,0	! A struct REGS: ax, bx, cx, dx, si, di, cflag, flags
 defarg:
   .word boot_str, 0
 boot_str:
@@ -34,20 +36,49 @@ loop_save:
 export ___cstartup	! Crt0 startup
 ___cstartup:
   cli
+#ifndef AOUT_STANDALONE
+  seg	cs
+  cmp	word ptr [0],#$20CD     ! "int 20h" at psp:  CS:0000
+  jne	not_dos
+
+  ! DOS - only AX has a defined value.
+  ! All the segment registers are pointing at the PSP
+  ! SP points to the top of the segment so is probably useable.
+
+  push	ax			! Save AX
+  mov	ax,cs
+  add	ax,#$10			! bump CS by 0x10 
+  push	ax
+  mov	ax,#is_dos		! resume address
+  push	ax
+  retf				! continue at next instruction
+dos_flag:
+  .word	0			! Set to 1 if DOS
+is_dos:
+  seg	cs
+  inc	dos_flag
+  pop	ax			! restore saved AX
+
+not_dos:
   mov	sp,cs
   add   sp,#__segoff
   mov	ds,sp
   mov	ss,sp
+  mov	bp,#__heap_top
+  mov	sp,#___argr+14
+  seg	cs
+  push	[dos_flag]		! Set the carry flag if we're under DOS.
+#else
+  mov	bp,sp
   mov	sp,#___argr+12
+#endif
   push	di
   push	si
   push	dx
   push	cx
   push	bx
   push	ax
-  xor	bp,bp
   mov	sp,bp
-  push	bp
   sti
 
 zap_bss:		! Clear the BSS
@@ -61,6 +92,7 @@ zap_bss:		! Clear the BSS
   rep
    stosb
 
+  !mov	bp,ax		! Top frame pointer, only needed if we get a debugger
   push	[_environ]
   mov	ax,#defarg	! Don`t define __mkargv, standalone programs don`t
   push	ax		! get any arguments.
@@ -107,12 +139,19 @@ no_clean:
 
 export __exit
 __exit:
+#ifndef AOUT_STANDALONE
+  seg	cs
+  cmp	[dos_flag],#0	! Should we do a DOS exit
+  je	do_reboot
+  int   #$20
+do_reboot:
+#endif
   xor	ax,ax
   mov	es,ax
   mov	ax,cs
   seg	es
   mov	[$E6*4+2],ax
-  mov	ax,#reti_ins
+  mov	ax,#iret_ins
   seg	es
   mov	[$E6*4],ax
   mov	ax,#$FFFF
@@ -121,8 +160,8 @@ __exit:
   seg es
   mov	[$472],#$1234	! Warm reboot.
   jmpi	$0000,$FFFF
-reti_ins:
-  reti
+iret_ins:
+  iret
 
 #endasm
 
@@ -141,8 +180,7 @@ char * buf;
       for(v=len; v>0; v--)
       {
          c= *buf++;
-         if( c == '\n') bios_putc('\r');
-	 bios_putc(c);
+	 putch(c);
       }
       return len;
    } 

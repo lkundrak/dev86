@@ -1,3 +1,38 @@
+For version 0.16.*.
+
+> General clean out of some files that are no longer needed.
+
+> as86 modified to use normal malloc routines - no longer has limited 
+  input file size.
+
+> as6809 repaired, appears to work.
+
+> as86 error display adjusted, some errors demoted to warnings.
+
+> Complete re-write of bcc.c driver program. Should now be easier to
+  modify, does have more versatility so that things that were formerly
+  compile time options are all run time.
+
+> #asm and #endasm now interact with statment processing inside functions.
+  If statments and case labels no longer need special layout however #asm
+  must be placed between statments now.
+
+> The __heap_top virtual constant added, allows the -H option to be used
+  with the -d option in the linker.
+
+> Conio routines added, merged with bios_getc/bios_putc routines which
+  now no longer exist under those names.
+
+> monitor.out now copes with very old zimages, like the memtest86 program,
+  and has 'Retry' prompt for disk errors.
+
+> msdos.s and tarboot.s loading of non-a.out executables adjusted for 
+  dos BIN like files.
+
+> Standalone library startup adjusted to allow execution of a '-d' 
+  executable from DOS, if __argr.x.cflag is set this is running under
+  DOS.
+
 For version 0.16.0.
 
 > As major bugs seem to be absent 0.16.0 is escaping.

@@ -15,8 +15,8 @@ void xxerr(x) char * x; { write(2, x, strlen(x)); }
 
 static int no_swap   = 1;
 
-static long_off[4] = {0,1,2,3};
-static int_off[2] = {0,1};
+static int long_off[4] = {0,1,2,3};
+static int int_off[2] = {0,1};
 
 PUBLIC bool_pt typeconv_init(big_endian, long_big_endian)
 bool_pt big_endian;

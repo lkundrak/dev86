@@ -32,29 +32,33 @@ static char minibuf[2] = " ";
 #endif
 
    init_prog();
+
+   if (!x86_test)
+   {
 #ifdef __STANDALONE__
 #ifndef NOCOMMAND
-   if( __get_ds() != 0x1000 )
-   {
-      /* First to top of RAM */
-      relocator(-1);
-      /* Then align DS to 64k boundry -> DMA is simple. */
-      relocator(0x1000-__get_ds()+__get_cs());
+      if( __get_ds() != 0x1000 )
+      {
+	 /* First to top of RAM */
+	 relocator(-1);
+	 /* Then align DS to 64k boundry -> DMA is simple. */
+	 relocator(0x1000-__get_ds()+__get_cs());
 
-      /* Oops, relocate down didn't work, try a little higher. */
-      if( __get_ds() > 0x1000 ) relocator(2);
-      printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
-   }
+	 /* Oops, relocate down didn't work, try a little higher. */
+	 if( __get_ds() > 0x1000 ) relocator(2);
+	 printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
+      }
 #endif
 
-   disk_drive = __argr.h.dl;
+      disk_drive = __argr.h.dl;
 #endif
 #ifdef NOCOMMAND
-   cmd_type("help.txt");
+      cmd_type("help.txt");
 #else
-   display_help(0);
+      display_help(0);
 #endif
-   cmd_bzimage((void*)0);
+      cmd_bzimage((void*)0);
+   }
 
 #ifdef NOCOMMAND
    printf("Unable to boot, sorry\nreboot:");

@@ -3,19 +3,23 @@
 # under the GNU Library General Public License.
 
 ASRC=conio.c
-AOBJ=getch.o getche.o kbhit.o putch.o cputs.o
+AOBJ=getch.o getche.o kbhit.o putch.o
 
-OBJ=$(AOBJ) cprintf.o
+BSRC=conio.c
+BOBJ=cputs.o
+
+BIOSOBJ=$(BOBJ) cprintf.o
+DOSOBJ=$(AOBJ) $(BOBJ) cprintf.o
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 ifeq ($(LIB_CPU)-$(LIB_OS),i86-BIOS)
-all: $(LIBC)($(OBJ))
-	@$(RM) $(OBJ)
+all: $(LIBC)($(BIOSOBJ))
+	@$(RM) $(BIOSOBJ)
 else
 ifeq ($(LIB_CPU)-$(LIB_OS),i86-DOS)
-all: $(LIBC)($(OBJ))
-	@$(RM) $(OBJ)
+all: $(LIBC)($(DOSOBJ))
+	@$(RM) $(DOSOBJ)
 else
 all:
 	@:
@@ -26,11 +30,13 @@ $(LIBC)($(AOBJ)): $(ASRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
 
+$(LIBC)($(BOBJ)): $(BSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+
 $(LIBC)(cprintf.o): cprintf.c
 	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
 	$(AR) $(ARFLAGS) $@ $*.o
-
-
 
 clean:
 	rm -f *.o libc.a

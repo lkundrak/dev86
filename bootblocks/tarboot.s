@@ -97,7 +97,7 @@ endif
   jz	nogood			! If it`s zero .. Hmm
 
  if STACK = 0
-  mov 	sp,#bad_magic		! Real bad magic :-)
+  mov 	sp,#overstack		! Real bad magic :-)
  endif
 
   call	load_sectors
@@ -262,8 +262,9 @@ div_loop:
   loop	div_loop
 
   mov	di,bx
-bad_magic:
   ret
+
+overstack:
 
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 !
@@ -277,8 +278,6 @@ go_go_go:
 
   mov	bx,#LOADSEG
   mov	ds,bx		! DS = loadaddress
-  inc	bx
-  inc	bx		! bx = initial CS
   xor	di,di		! Zero
   mov	ax,[di]
   cmp	ax,#0x0301	! Right magic ?
@@ -291,15 +290,18 @@ go_go_go:
   shr	ax,cl
 impure:
   pop	cx		! Partition offset.
+  inc	bx
+  inc	bx		! bx = initial CS
   add	ax,bx
   mov	ss,ax
   mov	sp,[di+24]	! Chmem value
   mov	ds,ax
 
+  ! AX=ds, BX=cs, CX=X, DX=X, SI=X, DI=0, BP=X, ES=X, DS=*, SS=*, CS=*
+
+bad_magic:
   push	bx		! jmpi	0,#LOADSEG+2
   push	di
-
-  ! AX=ds, BX=cs, CX=X, DX=X, SI=X, DI=0, BP=X, ES=X, DS=*, SS=*, CS=*
   retf
 
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

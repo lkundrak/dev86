@@ -23,6 +23,9 @@ unsigned newseg;
    unsigned moved, codelen;
    unsigned es      = __get_es();
 
+   /* If running under DOS don't relocate */
+   if (__argr.x.cflag) return;
+
    /* Where do we start */
    if(memseg == 0)
    {

@@ -5,10 +5,10 @@ Bruce Evans		<bde@FreeBSD.org>
 Then there's me, I'm controlling the releases of Dev86 and have
 the master files.
 
-Robert de Bath		<robert@mayday.cix.co.uk>
+Robert de Bath		<robert$@mayday.cix.co.uk>
 
 The files are available at linux.mit.edu with the source and yesterday's
-patch file available via http://poboxes.com/rdebath
+patch file available via http://cix.co.uk/~mayday/
 
 We're all available through the Linux-8086 mailing list at:
    linux-8086@vger.rutgers.edu
@@ -33,3 +33,4 @@ Wietse Venema		<wietse@wzv.win.tue.nl>
 Joel Weber II		<nemo@koa.iolani.honolulu.hi.us>
 Claudio Matsuoka	<claudio@helllabs.org>
 Andrew Chittenden	<achitten@madge.com>
+John Coffman 		<johninsd@san.rr.com>

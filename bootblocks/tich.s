@@ -34,5 +34,6 @@ mesg:
 .ascii	"Hello world"
 emesg:
 
+! Floppies aren't supposed to need this, oh well.
 org 510
- .word 0
+ .word $AA55

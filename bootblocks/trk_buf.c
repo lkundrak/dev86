@@ -92,7 +92,6 @@ void reset_disk()
 char * read_lsector(sectno)
 long sectno;
 {
-   int tries = 6;
    int rv;
 
    int phy_s = 1;
@@ -147,12 +146,26 @@ long sectno;
 
    do
    {
-     rv = phy_read(disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
-     tries--;
+     int v,tries = 6;
+     do
+     {
+       rv = phy_read(disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
+       tries--;
+     }
+     while(rv && tries > 0);
+     if( rv )
+     {
+       printf("Disk error 0x%02x %d:%d:%d:%d[%2d] -> 0x%04x[]\nRetry:",
+		      rv, disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
+       fflush(stdout);
+
+       v = phy_reset(disk_drive);
+       v = (getch()&0x7F);
+       printf("\n");
+       if( v == 3 || v == 27 ) break;
+     }
    }
-   while(rv && tries > 0);
-   if( rv ) printf("Disk error 0x%02x %d:%d:%d:%d[%2d] -> 0x%04x[]\n",
-		    rv, disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
+   while(rv);
 
    check_motor = motor_running();
 
@@ -326,6 +339,31 @@ get_dpt(drive)
   mov	cx,ax
   mov	dx,#-1
 func_ok:
+  mov	ax,cx
+
+  pop	es
+  pop	di
+  pop	bp
+#endasm
+}
+
+phy_reset(drive)
+{
+#asm
+  push	bp
+  mov	bp,sp
+
+  push	di
+  push	es
+
+  mov	dl,[bp+2+_phy_reset.drive]
+
+  mov	ah,#$08
+  int	$13
+  jnc	reset_ok
+  mov	cx,ax
+  mov	dx,#-1
+reset_ok:
   mov	ax,cx
 
   pop	es

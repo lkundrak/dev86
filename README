@@ -67,11 +67,14 @@ needed for the linux-i386 kernel and can replace them, versions before
 
 I _strongly_ suggest you install the kernel patch or load the module
 to allow transparent execution of elks executables.  If you're using
-a post 2.1.43 or 2.0.36 kernel the module you need is the binfmt_misc
+a post 2.1.43 or 2.0.36 kernel the only module you need is the binfmt_misc
 driver configured like this:
 
 echo ':i86-elks:M::\x01\x03\x20\x00:\xff\xff\xff\x83:/lib/elksemu:' \
      > /proc/sys/fs/binfmt_misc/register
+
+The elksemu executable must be stored in /lib/elksemu or the above
+line adjusted.
 
 Previous versions need a special module or patch described in elksemu/README
 (All the options need the elksemu executable installed correctly)

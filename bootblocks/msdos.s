@@ -356,8 +356,6 @@ maincode:
 
   mov	bx,#LOADSEG
   mov	ds,bx		! DS = loadaddress
-  inc	bx
-  inc	bx		! bx = initial CS
   xor	di,di		! Zero
   mov	ax,[di]
   cmp	ax,#0x0301	! Right magic ?
@@ -370,19 +368,19 @@ maincode:
   shr	ax,cl
 impure:
   pop	cx		! Partition offset.
+  inc	bx
+  inc	bx		! bx = initial CS
   add	ax,bx
   mov	ss,ax
   mov	sp,[di+24]	! Chmem value
   mov	ds,ax
 
+  ! AX=ds, BX=cs, CX=X, DX=X, SI=X, DI=0, BP=X, ES=X, DS=*, SS=*, CS=*
+
+bad_magic:
   push	bx		! jmpi	0,#LOADSEG+2
   push	di
-
-  ! AX=ds, BX=cs, CX=X, DX=X, SI=X, DI=0, BP=X, ES=X, DS=*, SS=*, CS=*
   retf
-bad_magic:
-  pop	cx
-  jmpi	LOADSEG<<4,0	! No magics, just go.
 
 !---------------------------------------------------------------------------
 ! initilised data
