@@ -327,7 +327,7 @@ int6:
 	mov sp, bp
 	jmp fail386
 
-; This was the old way, didn't always work tho.
+; This was the old way, didn`t always work tho.
 ;	push bp
 ;	mov bp, sp
 ;	push ax

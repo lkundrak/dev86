@@ -135,11 +135,35 @@ PUBLIC void blanks()
     }
 }
 
-PUBLIC void cppscan()
+PUBLIC void cppscan(asm_only)
+int asm_only;
 {
-    while (TRUE)
+    int start_of_line = 1;
+#ifndef ASM_BARE
+    virtual_nl = 1;
+#endif
+    while (!asm_only || asmmode)
     {
-	switch (SYMOFCHAR(ch))
+        int sym = SYMOFCHAR(ch);
+	switch (sym)
+	{
+	case CONTROL:
+	    if( !start_of_line ) sym=BADCHAR;
+	    break;
+	case WHITESPACE:
+	    break;
+	case SPECIALCHAR:
+	    if( ch == '\\' ) sym=BADCHAR;
+	    start_of_line = 1;
+	    break;
+	case CHARCONST:
+	case STRINGCONST:
+	    if( asmmode ) sym=BADCHAR;
+	default:
+	    start_of_line = 0;
+	}
+
+	switch (sym)
 	{
 	case CHARCONST:
 	case STRINGCONST:
@@ -157,9 +181,7 @@ PUBLIC void cppscan()
 	    }
 	    else
 	    {
-		cppmode = FALSE;
 		docontrol();
-		cppmode = TRUE;
 		break;
 	    }
 	case SLASH:
@@ -227,10 +249,17 @@ PUBLIC void cppscan()
 		break;		/* specialchar advanced the input */
 	    /* must be '\\' */
 	default:
+	    /* Allow for multi-instruction lines in asm */
+	    if( ch == '^' && !orig_cppmode && asmmode ) ch='\n';
+
 	    OUTBYTE(ch);
-	    GCH1();
+	    ch = *++lineptr;
+	    if (SYMOFCHAR(ch) == SPECIALCHAR && ch != '\\') specialchar();
 	    break;
 	}
+#ifndef ASM_BARE
+        virtual_nl = 0;
+#endif
     }
 }
 
@@ -383,10 +412,6 @@ PRIVATE void intconst()
 	    break;
 	++digptr;
     }
-    if (lcount > 1)
-	error("more than one 'L' in integer constant");
-    if (ucount > 1)
-	error("more than one 'U' in integer constant");
     if (constant.value.v <= maxintto && lcount == 0 && ucount == 0)
 	constant.type = itype;
     else if (constant.value.v <= maxuintto && lcount == 0
@@ -396,7 +421,8 @@ PRIVATE void intconst()
 	constant.type = ltype;
     else
 	constant.type = ultype;
-    if (*digptr != 0)
+
+    if (lcount > 1 || ucount > 1 || *digptr != 0)
 	error("junk at end of integer constant");
 }
 
@@ -716,7 +742,7 @@ PUBLIC void stringorcharconst()
 	GCH1();
 	if (ch == EOL)
 	{
-	    if (!orig_cppmode)
+	    if (!orig_cppmode && ifcheck() )
 		error(terminator == '"' ? "end of line in string constant"
 		      : "end of line in character constant");
 	    break;
@@ -726,7 +752,7 @@ PUBLIC void stringorcharconst()
 	    *charptr++ = terminator;
 
 	    /* This adds ansi string concatenation BUT only on one line */
-	    do { gch1(); } while(SYMOFCHAR(ch) == WHITESPACE);
+	    do { ch = *++lineptr; } while(SYMOFCHAR(ch) == WHITESPACE);
 	    if( ch == terminator ) /* Hang on .. that's another string ... */
 	    {
 	       charptr--;	   /* Stick it together */

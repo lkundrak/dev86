@@ -60,6 +60,7 @@ DIR  *dirp;
 }
 #endif
 
+#ifdef __AS386_16__
 #ifdef L_readdir
 /*
  * This currently assumes we see a v. simple diectory structure, it's
@@ -81,4 +82,25 @@ DIR  *dirp;
    }
    return dirp->dd_buf;
 }
+#endif
+#else
+
+/* This is for 386 linux */
+
+#ifdef L_readdir
+struct dirent *
+readdir(dirp)
+DIR  *dirp;
+{
+   int cc;
+
+   cc = __readdir(dirp->dd_fd, dirp->dd_buf, 1);
+   if (cc <= 0)
+      return 0;
+   if (cc>1) dirp->dd_buf->d_name[cc] = 0;
+
+   return dirp->dd_buf;
+}
+#endif
+
 #endif

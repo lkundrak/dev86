@@ -23,9 +23,9 @@ static int do_load_elksaout(struct linux_binprm *bprm,struct pt_regs *regs)
 	int retval;
 
 	/* What a horrible hack! :-) */
-	if ((bprm->buf[0] != 1)    || (bprm->buf[1] != 3) || 
-	    (bprm->buf[2] != 0x20) || (bprm->buf[3] != 4) ||
-	    bprm->sh_bang)
+	if ((bprm->buf[0] != 1)   || (bprm->buf[1] != 3) || 
+	    (bprm->buf[2] != 0x20 && bprm->buf[2] != 0x10) ||
+	    (bprm->buf[3] != 4) || bprm->sh_bang)
 		return -ENOEXEC;
 
 	bprm->sh_bang++;

@@ -24,7 +24,7 @@ typedef __u32 loff_t;
 typedef __u32 speed_t;
 
 typedef __u16 dev_t;
-typedef __u16 ino_t;
+typedef __uint ino_t;
 typedef __u32 tcflag_t;
 typedef __u8  cc_t;
 

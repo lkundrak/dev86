@@ -4,10 +4,20 @@
 
 TOP=..
 include $(TOP)/Make.defs
+CFLAGS=$(CCFLAGS)
 
 # Support for integer arithmetic 
+ifeq ($(LIB_CPU),i86)
 IOBJ=__idiv.o __idivu.o __imod.o __imodu.o __imul.o __isl.o __isr.o __isru.o
 ISRC=bcc_int.c
+endif
+
+# Support for integer arithmetic when compiling for the i386
+ifeq ($(LIB_CPU),i386)
+ISRC=bcc_i386.c
+IOBJ=__idiv.o __idivu.o __imod.o __imodu.o __imul.o __isl.o __isr.o __isru.o \
+     __divsi3.o
+endif
 
 # Support for long arithmetic on little-endian (normal) longs 
 LSRC=bcc_long.c
@@ -30,7 +40,13 @@ PSRC=bcc_io.c
 POBJ=__inport.o __inportb.o __outport.o __outportb.o __peekb.o __peekw.o \
      __pokeb.o __pokew.o
 
+ifeq ($(LIB_CPU),i86)
 OBJ=__ldivmod.o $(IOBJ) $(LOBJ) $(AOBJ)
+endif
+ifeq ($(LIB_CPU),i386)
+OBJ=$(IOBJ) $(AOBJ)
+endif
+
 OLDOBJ=$(ROBJ) $(POBJ)
 
 all: $(OBJ)

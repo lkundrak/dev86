@@ -15,6 +15,7 @@
 #include <termios.h>
 #include <time.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
@@ -185,6 +186,14 @@ static int elks_chdir(int bx,int cx,int dx,int di,int si)
 	dbprintf(("chdir(%s)\n",ELKS_PTR(char, bx)));
 	return chdir(ELKS_PTR(char, bx));
 }
+
+#define sys_fchdir elks_fchdir
+static int elks_fchdir(int bx,int cx,int dx,int di,int si)
+{
+	dbprintf(("fchdir(%s)\n",bx));
+	return fchdir(bx);
+}
+
 
 #define sys_mknod elks_mknod
 static int elks_mknod(int bx,int cx,int dx,int di,int si)

@@ -27,8 +27,9 @@ int signo;
 #undef bcopy
 void
 bcopy(src, dest, len)
-void * src, *dest;
-unsigned int len;
+__const void * src;
+void *dest;
+int len;
 {
    (void) memcpy(dest, src, len);
 }
@@ -39,7 +40,7 @@ unsigned int len;
 void
 bzero(dest, len)
 void *dest;
-unsigned int len;
+int len;
 {
    (void) memset(dest, '\0', len);
 }
@@ -49,8 +50,8 @@ unsigned int len;
 #undef bcmp
 int
 bcmp(dest, src, len)
-void * src, *dest;
-unsigned int len;
+__const void * src, *dest;
+int len;
 {
    return memcmp(dest, src, len);
 }
@@ -60,7 +61,7 @@ unsigned int len;
 #undef index
 char *
 index(src, chr)
-char *src;
+__const char *src;
 int chr;
 {
    return strchr(src, chr);
@@ -71,7 +72,7 @@ int chr;
 #undef rindex
 char *
 rindex(src, chr)
-char *src;
+__const char *src;
 int chr;
 {
    return strrchr(src, chr);
@@ -83,7 +84,7 @@ int chr;
 
 int
 remove(src)
-char *src;
+__const char *src;
 {
    extern int errno;
    int er = errno;

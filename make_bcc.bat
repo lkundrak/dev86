@@ -63,16 +63,15 @@ cd ..
 cd ld
 set CFLAGS=-O -Ml -DPOSIX_HEADERS_MISSING -nologo
 @
-copy aout*.h a_out.h
-cl -c %CFLAGS% writebin.c
+cl -c %CFLAGS% writex86.c
+cl -c %CFLAGS% linksyms.c
 cl -c %CFLAGS% dumps.c
 cl -c %CFLAGS% io.c
 cl -c %CFLAGS% ld.c
 cl -c %CFLAGS% readobj.c
 cl -c %CFLAGS% table.c
 cl -c %CFLAGS% typeconv.c
-del a_out.h
-cl -O -nologo -o ld.exe dumps io ld readobj table typeconv writebin
+cl -O -nologo -o ld.exe dumps io ld readobj table typeconv linksyms writex86
 cd ..
 @
 @goto endld

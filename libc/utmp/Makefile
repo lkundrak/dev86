@@ -5,7 +5,9 @@
 TOP=..
 include $(TOP)/Make.defs
 
+ifeq ($(LIB_OS),ELKS)
 OBJ=utent.o
+endif
 
 all: $(OBJ)
 

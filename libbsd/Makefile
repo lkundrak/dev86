@@ -35,7 +35,7 @@ tests: dummy
 	make -C tests
 
 $(LIBBSD): $(OBJS)
-	$(AR) rcvs $(LIBBSD) $(OBJS)
+	$(AR) rcs $(LIBBSD) $(OBJS)
 
 realclean: clean
 	rm -f $(LIBBSD)

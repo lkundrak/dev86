@@ -37,6 +37,7 @@ static char *OFILE = NULL;    /* Points to output file name */
 static char *PRG;             /* Name of invoking program   */
 static unsigned long zcount;  /* Consecutive "0" byte count */
 int objflg = 0;               /* Flag: output object bytes  */
+int force = 0;		      /* Flag: override some checks */
 
 #define unix 1
 #define i8086 1
@@ -134,7 +135,7 @@ objdump(c)
 
 {/* * * * * * * * * * START OF  objdump() * * * * * * * * * */
 
-   register int k;
+   register int k,j;
    int retval = 0;
 
    if (objptr == OBJMAX)
@@ -168,12 +169,30 @@ objdump(c)
 
    for (k = 0; k < objptr; ++k)
       {
-      printf("0x%02.2x",objbuf[k]);
+      printf("$%02.2x",objbuf[k]);
       if (k < (objptr - 1))
          putchar(',');
-      else
-         putchar('\n');
       }
+
+   for (k = objptr; k < OBJMAX; ++k)
+      printf("    ");
+
+   printf("    | \"");
+
+   for (k = 0; k < objptr; ++k)
+      {
+      if (objbuf[k] > ' ' && objbuf[k] <= '~' )
+         putchar(objbuf[k]);
+      else switch(objbuf[k])
+         {
+	 case '\t': printf("\\t"); break;
+	 case '\n': printf("\\n"); break;
+	 case '\f': printf("\\f"); break;
+	 case '\r': printf("\\r"); break;
+	 default:   putchar('.'); break;
+         }
+      }
+   printf("\"\n");
 
    objptr = 0;
 
@@ -355,10 +374,7 @@ distext()
       printf("| File is executable\n\n");
 
    if (HDR.a_flags & A_SEP)
-      {
-      printf("| File has split I/D space, and may have\n");
-      printf("| extraneous instructions in text segment\n\n");
-      }
+      printf("| File has split I/D space\n\n");
 
    prolog();
 
@@ -370,7 +386,9 @@ distext()
 
    for (PC = 0L; PC < HDR.a_text; ++PC)
       {
-      j = getchar() & 0xff;
+      j = getchar();
+      if( j == EOF ) break;
+      j &= 0xFF;
       if ((j == 0) && ((PC + 1L) == HDR.a_text))
          {
          ++PC;
@@ -392,7 +410,7 @@ Fetch()
    if( symptr>=0 && getlab(N_TEXT) != NULL ) { --PC; return -1; }
    
 /* #define FETCH(p)  ++PC; p = getchar() & 0xff; objbuf[objptr++] = p */
-   p = getchar() & 0xff;
+   p = getchar();
    objbuf[objptr++] = p;
    return p;
 }
@@ -426,6 +444,7 @@ disdata()
    unsigned long end;
 
    putchar('\n');
+   if( HDR.a_data == 0 ) return;
 
    if (HDR.a_flags & A_SEP)
       {
@@ -475,6 +494,8 @@ static void disbss()
    unsigned long beg, end;
 
    putchar('\n');
+
+   if( HDR.a_bss == 0 ) return;
 
    if (HDR.a_flags & A_SEP)
       end = HDR.a_data + HDR.a_bss;
@@ -539,6 +560,9 @@ main(argc,argv)
                else
                   ++objflg;
                break;
+            case 'f' :
+	       force++;
+               break;
             default :
                usage(PRG);
             }
@@ -573,22 +597,28 @@ main(argc,argv)
 
    if (BADMAG(HDR))
       {
-      sprintf(a,"input file %s not in object format",IFILE);
-      fatal(PRG,a);
+      if (!force)
+	 {
+	 sprintf(a,"input file %s not in object format",IFILE);
+	 fatal(PRG,a);
+	 }
+
+      memset(&HDR, '\0', sizeof(struct exec));
+      HDR.a_text = 0x10000L;
       }
 
-   if (HDR.a_cpu != A_I8086)
+   if (HDR.a_cpu != A_I8086 && !force)
       {
       sprintf(a,"%s is not an 8086/8088 object file",IFILE);
       fatal(PRG,a);
       }
 
    if (HDR.a_hdrlen <= A_MINHDR)
+   {
       HDR.a_trsize = HDR.a_drsize = 0L;
       HDR.a_tbase = HDR.a_dbase = 0L;
-/*   AST emergency patch
-      HDR.a_lnums = HDR.a_toffs = 0L;
-*/
+ /*   HDR.a_lnums = HDR.a_toffs = 0L; */
+   }
 
    reloff = HDR.a_text        /* Compute reloc data offset  */
           + HDR.a_data
@@ -628,8 +658,6 @@ main(argc,argv)
             read(fd, (char *) &symtab[symptr],sizeof(struct nlist));
          symptr--;
          }
-   else
-      fprintf(stderr,"%s: warning: no symbols\n",PRG);
 
    close(fd);
 

@@ -1,14 +1,65 @@
-#!/usr/bin/awk -f
-BEGIN{
-    started = 0;
-    prefix=ARGV[1] "_";
-    if( 2 in ARGV ) prefix=ARGV[2];
+#!/bin/sh -
+#
+# This file is simply an example of what can be done using the new binary
+# and symbol table output functions. As shown it can be used to produce
+# a C file containing the encapsulated binary of the assembly, plus any
+# public symbols in the source are accessable to the C program.
+#
+# Use it in a makefile:
+#
+# .s.v:
+#	as86_encap $*.s $*.v $*_ $(AS86FLAGS)
+#
 
-    sname = prefix "start";
-    cmd = ARGV[1] ".sym";
-    while(getline < cmd)
-    {
-       if(NF == 0) break;
+[ $# -lt 2 ] && {
+   echo "Usage: `basename $0` infile outfile prefix [as86 opts]" 1>&2
+   exit 1
+}
+
+trap "rm -f _$$.* ; exit 99" 1 2 3 15 
+
+LIBDIR='%%LIBDIR%%'	# Set by make install
+
+IFILE="$1"
+OFILE="$2"
+PREFIX="`basename $IFILE .s`_"
+
+shift ; shift
+if [ $# -ge 1 ]
+then case "$1" in 
+     -* ) ;; 
+     [A-Za-z_]* ) PREFIX="$1"
+                  shift
+		  ;;
+     esac
+fi
+RV=0
+
+$LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
+
+[ "$RV" = 0 ] && {
+  (
+    cat _$$.sym
+    echo %%%%
+    od -v -t uC _$$.bin
+  ) | \
+  awk > _$$.v -v prefix=$PREFIX ' BEGIN{
+       sname = prefix "start";
+    }
+    /^%%%%$/ { flg++; 
+       if( flg == 1 )
+       {
+	  if( !started )
+	     printf "int  %s = 0;\n", sname;
+
+	  printf "\n";
+	  printf "char %sdata[] = {\n", prefix;
+          bincount=0;
+       }
+       next;
+    }
+    flg==0 {
+       if(NF == 0) next;
        if( substr($2,1,4) == "0000" ) $2=substr($2,5);
        if( $1 == "+" && $4 == "$start" )
        {
@@ -19,22 +70,28 @@ BEGIN{
        {
           printf "int  %s%s = 0x%s;\n", prefix, $4, $2;
        }
+       next;
     }
-
-    if( !started )
-       printf "int  %s = 0;\n", sname;
-
-    printf "\n";
-    printf "char %sdata[] = {\n", prefix;
-    cmd = "od " ARGV[1] ".bin -v -t uC";
-    bincount=0;
-    while(cmd | getline)
-    {
-        if(NF == 0) break;
+    flg==1 {
+        if(NF == 0) next;
 	printf "   ";
 	for(i=2;i<=NF;i++) { printf("%3d,", $i); bincount++; }
 	printf "\n";
     }
-    printf "};\n\n";
-    printf "int  %ssize = %d;\n", prefix, bincount;
+    END {
+       printf "};\n\n";
+       printf "int  %ssize = %d;\n", prefix, bincount;
+    }
+  '
+  RV=$?
 }
+
+[ "$RV" = 0 ] && {
+   if [ "X$OFILE" = "X-" ]
+   then cat _$$.v
+   else mv -f _$$.v "$OFILE" || RV=$?
+   fi
+}
+
+rm -f _$$.*
+exit $RV

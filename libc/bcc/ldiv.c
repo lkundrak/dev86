@@ -1,3 +1,5 @@
+
+#ifdef __AS386_16__
 #asm
 .text
 export	_ldiv
@@ -24,4 +26,5 @@ _ldiv:
 .data
 .bss
 #endasm
+#endif
 

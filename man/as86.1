@@ -1,0 +1,354 @@
+.TH as86 1 "Oct, 1996"
+.BY Bruce Evans
+.nh
+.SH NAME
+as86 \- Assembler for 8086..80386 processors
+.SH SYNOPSIS
+.B as86
+.RB [ -03agjuw ]
+.RB [ -lm [ list ]]
+.RB [ -n\ name ]
+.RB [ -o\ obj ]
+.RB [ -b [ bin ]]
+.RB [ -s\ sym ]
+.B src
+
+.B as86_encap\ prog.s\ prog.v
+.RB [ prefix_ ]
+.RB [ as86\ options ]
+
+.SH DESCRIPTION
+.B as86
+is an assembler for the 8086..80386 processors, it's syntax is closer
+to the intel/microsoft form rather than the more normal generic form of
+the unix system assembler.
+
+The
+.B src
+file can be '-' to assemble the standard input.
+
+This assembler can be compiled to support the 6809 cpu and may even work.
+
+.B as86_encap
+is a shell script to call as86 and convert the created binary into a C file
+.B prog.v
+to be included in or linked with programs like boot block installers.
+The
+.B prefix_
+argument is a prefix to be added to all variables defined by the source,
+it defaults to the name of the source file. The variables defined include
+.B prefix_start
+.B prefix_size
+and
+.B prefix_data
+to define and contain the code, plus integers containing the values of all
+exported labels.
+Either or both the
+.B prog.s
+and
+.B prog.v
+arguments can be '-' for standard in/out.
+
+.\" The 'src' file can be '-' for stdin but ONLY on 'big' machines.
+
+.SH OPTIONS
+
+.\"defaults (off or none except for these; no output is produced without a flag):
+.\"-03		native
+.\"list		stdout (beware of clobbering next arg)
+.\"name		basename of the source name
+
+.TP
+.B -0
+start with 16-bit code segment
+.TP
+.B -3
+start with 32-bit code segment
+.TP
+.B -a
+enable partial compatibility with Minix asld
+.TP
+.B -g
+only put global symbols in object or symbol file
+.TP
+.B -j
+force all jumps to be long, don't use this with hand written assembler
+use the 
+.B br\ bmi\ bcc
+style opcodes or the
+.B jmp\ near
+style. The former generates 8086 compatible sequences the latter is 386 only
+for the conditional jumps.
+.TP
+.B -l
+produce list file, filename may follow
+.TP
+.B -m
+print macro expansions in listing
+.TP
+.B -n
+name of module follows (goes in object instead of source name)
+.TP
+.B -o
+produce object file, filename follows
+.TP
+.B -b
+produce a raw binary file, filename may follow.
+This is a 'raw' binary file with no header, if there's no
+.B -s
+option the file starts at location 0.
+.TP
+.B -s
+produce an ASCII symbol file, filename follows.
+The format of this table is designed to be easy to parse for encapsulation
+and related activities in relation to binary files created with the
+.B -b
+option.  If a binary file doesn't start at location zero the first two
+items in the table are the start and end addresses of the binary file.
+.TP
+.B -u
+take undefined symbols as imported-with-unspecified segment
+.TP
+.B -w
+don't print warnings
+.P
+.SH AS86 SOURCE
+Conditionals
+.TP
+.B IF, ELSE, ELSEIF, ENDIF
+Numeric condition
+.TP
+.B IFC, ELSEIFC
+String compare (str1,str2)
+.TP
+.B FAIL .FAIL
+Generate user error.
+.P
+Segment related
+.TP
+.B .TEXT .ROM .DATA .BSS
+Set current segment. These can be preceded by the keyword
+.B .SECT
+.TP
+.B LOC
+Set numeric segment 0=TEXT, 3=DATA,ROM,BSS, 15=MAX
+.P
+Label type definition
+.TP
+.B EXPORT PUBLIC .DEFINE
+Export label defined in this object
+.TP
+.B ENTRY
+Force linker to include label in a.out
+.TP
+.B .GLOBL .GLOBAL
+Define label as external and force import even if it isn't used.
+.TP
+.B EXTRN EXTERN IMPORT .EXTERN
+Import list of externally defined labels
+.br
+NB: It doesn't make sense to use imports for raw binary files.
+.TP
+.B .ENTER
+Mark entry for old binary file (obs)
+.P
+Data definition
+.TP
+.B DB .DATA1 .BYTE  FCB
+List of 1 byte objects.
+.TP
+.B DW .DATA2 .SHORT FDB .WORD
+List of 2 byte objects.
+.TP
+.B DD .DATA4 .LONG
+List of 4 byte objects.
+.TP
+.B .ASCII FCC
+Ascii string copied to output.
+.TP
+.B .ASCIZ
+Ascii string copied to output with trailing
+.B nul
+byte.
+.P
+Space definition
+.TP
+.B .BLKB RMB .SPACE
+Space is counted in bytes.
+.TP
+.B .BLKW .ZEROW
+Space is counted in words. (2 bytes each)
+.TP
+.B COMM .COMM LCOMM .LCOMM
+Common area data definition
+.P
+Other useful pseudo operations.
+.TP
+.B .ALIGN .EVEN
+Alignment
+.TP
+.B EQU
+Define label
+.TP
+.B SET
+Define re-definable label
+.TP
+.B ORG .ORG
+Set assemble location
+.TP
+.B BLOCK
+Set assemble location and stack old one
+.TP
+.B ENDB
+Return to stacked assemble location
+.TP
+.B GET INCLUDE
+Insert new file (no quotes on name)
+.TP
+.B USE16
+Define default operand size as 16 bit
+.TP
+.B USE32
+Define default operand size as 32 bit
+.TP
+.B END
+End of compilation for this file.
+.TP
+.B .WARN
+Switch warnings
+.TP
+.B .LIST
+Listings on/off (1,-1)
+.TP
+.B .MACLIST
+Macro listings on/off (1,-1)
+.P
+Macros, now working, the general form is like this.
+
+    MACRO sax
+       mov ax,#?1
+    MEND
+    sax(1)
+
+.TP
+Unimplemented/unused.
+.TP
+IDENT
+Define object identity string.
+.TP
+SETDP
+Set DP value on 6809
+.TP
+MAP
+Set binary symbol table map number.
+.TP
+Registers
+.br
+BP BX DI SI
+.br
+EAX EBP EBX ECX EDI EDX ESI ESP
+.br
+AX CX DX SP
+.br
+AH AL BH BL CH CL DH DL
+.br
+CS DS ES FS GS SS 
+.br
+CR0 CR2 CR3 DR0 DR1 DR2 DR3 DR6 DR7
+.br
+TR3 TR4 TR5 TR6 TR7 ST
+.TP
+Operand type specifiers
+BYTE DWORD FWORD FAR PTR PWORD QWORD TBYTE WORD NEAR
+.TP
+General instructions understood.
+AAA AAD AAM AAS ADC ADD AND ARPL BCC BCS BEQ BGE BGT BHI BHIS BLE BLO
+BLOS BLT BMI BNE BOUND BPC BPL BPS BR BVC BVS CALL CALLF CALLI CBW CLC
+CLD CLI CMC CMP CMPS CMPSB CMPSD CMPSW CMPW CSEG CWD CWDE CDQ DAA DAS
+DSEG DEC DIV ENTER ESEG FSEG GSEG HLT IDIV IMUL IN INC INS INSB INSD
+INSW INT INTO INW IRET IRETD J JA JAE JB JBE JC JCXE JCXZ JECXE JECXZ JE
+JG JGE JL JLE JMP JMPF JMPI JNA JNAE JNB JNBE JNC JNE JNG JNGE JNL JNLE
+JNO JNP JNS JNZ JO JP JPE JPO JS JZ LAHF LDS LEA LEAVE LES LOCK LODB
+LODS LODSB LODSD LODSW LODW LOOP LOOPE LOOPNE LOOPNZ LOOPZ MOV MOVS
+MOVSB MOVSD MOVSW MOVW MUL NEG NOP NOT OR OUT OUTS OUTSB OUTSD OUTSW
+OUTW POP POPA POPAD POPF POPFD PUSH PUSHA PUSHAD PUSHF PUSHFD RCL RCR
+ROL ROR REP REPE REPNE REPNZ REPZ RET RETF RETI SAHF SAL SAR SBB SCAB
+SCAS SCASB SCASD SCASW SCAW SEG SHL SHR SSEG STC STD STI STOB STOS STOSB
+STOSD STOSW STOW SUB TEST WAIT XCHG XLAT XLATB XOR
+.TP
+And more...
+BSF BSR BSWAP BT BTC BTR BTS CLTS CMPXCHG INVD INVLPG LAR LFS LGDT LGS
+LIDT LLDT LMSW LSL LSS LTR MOVSX MOVZX SETA SETAE SETB SETBE SETC SETE
+SETG SETGE SETL SETLE SETNA SETNAE SETNB SETNBE SETNC SETNE SETNG SETNGE
+SETNL SETNLE SETNO SETNP SETNS SETNZ SETO SETP SETPE SETPO SETS SETZ
+SGDT SIDT SHLD SHRD SLDT SMSW STR VERR VERW WBINVD XADD ADCB ADDB ANDB
+CMPB DECB DIVB IDIVB IMULB INB INCB MOVB MULB NEGB NOTB ORB OUTB RCLB
+RCRB ROLB RORB SALB SARB SHLB SHRB SBBB SUBB TESTB XCHGB XORB
+.TP
+Floating point
+F2XM1 FABS FADD FADDP FBLD FBSTP FCHS FCLEX FCOM FCOMP FCOMPP FCOS
+FDECSTP FDISI FDIV FDIVP FDIVR FDIVRP FENI FFREE FIADD FICOM FICOMP
+FIDIV FIDIVR FILD FIMUL FINCSTP FINIT FIST FISTP FISUB FISUBR FLD FLD1
+FLDL2E FLDL2T FLDCW FLDENV FLDLG2 FLDLN2 FLDPI FLDZ FMUL FMULP FNCLEX
+FNDISI FNENI FNINIT FNOP FNSAVE FNSTCW FNSTENV FNSTSW FPATAN FPREM
+FPREM1 FPTAN FRNDINT FRSTOR FSAVE FSCALE FSETPM FSIN FSINCOS FSQRT FST
+FSTCW FSTENV FSTP FSTSW FSUB FSUBP FSUBR FSUBRP FTST FUCOM FUCOMP
+FUCOMPP FWAIT FXAM FXCH FXTRACT FYL2X FYL2XP1
+.P
+.SH Using GASP
+
+The Gnu assembler preprocessor provides some reasonable implementations
+of user biased pseudo opcodes.
+
+It can be invoked in a form similar to:
+.TP
+.B gasp
+.RB [ -a... ]
+.B file.s
+.RB [ file2.s ]
+.B |
+.br
+.B as86
+.RB [ ... ]
+.B -
+.RB [ -o\ obj ]\ [ -b\ bin ]
+.P
+Be aware though that Gasp generates an error for 
+.B .org
+commands, if you're not using alternate syntax you can use 
+.B org
+instead, otherwise use 
+.BR block
+and
+.BR endb .
+The directive
+.B export
+is translated into
+.BR .global ,
+which forces an import, if you are making a file using
+.B -b
+use
+.B public
+or 
+.B .define
+instead.
+
+The GASP list options have no support in as86.
+.SH SEE ALSO
+as(1), ld86(1), bcc(1)
+.SH BUGS
+The 6809 version does not support -0, -3, -a or -j.
+
+If this assembler is compiled with BCC this is classed as a 'small'
+compiler, so there is a maximum input line length of 256 characters.
+
+The
+.B .text
+and
+.B .data
+pseudo operators are not useful for raw binary files.
+
+When using the
+.B org
+directive the assembler can generate object files that may break ld86(1).
+

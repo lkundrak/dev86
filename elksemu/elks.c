@@ -13,6 +13,7 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/vm86.h>
 #include <sys/mman.h>
@@ -71,7 +72,7 @@ static int load_elks(int fd)
 		return -ENOEXEC;
 	if(mh.type!=ELKS_COMBID&&mh.type!=ELKS_SPLITID)
 		return -ENOEXEC;
-#if 0
+#ifdef DEBUG
 	fprintf(stderr,"Linux-86 binary - %lX. tseg=%ld dseg=%ld bss=%ld\n",
 		mh.type,mh.tseg,mh.dseg,mh.bseg);
 #endif
@@ -88,8 +89,8 @@ static int load_elks(int fd)
 	 *	Load the VM86 registers
 	 */
 	 
-/*	if(mh.type==ELKS_COMBID)
-		dsp=elks_base;*/
+	if(mh.type==ELKS_COMBID)
+		dsp=elks_base;
 	elks_cpu.regs.ds=PARAGRAPH(dsp);
 	elks_cpu.regs.es=PARAGRAPH(dsp);
 	elks_cpu.regs.ss=PARAGRAPH(dsp);
@@ -235,8 +236,14 @@ void main(int argc, char *argv[], char *envp[])
 
 	/* The Linux vm will deal with not allocating the unused pages */
 #if __AOUT__
+#if __GNUC__
 	/* GNU malloc will align to 4k with large chunks */
 	elks_base = malloc(0x20000);
+#else
+	/* But others won't */
+	elks_base = malloc(0x20000+4096);
+	elks_base = (void*) (((int)elks_base+4095) & -4096);
+#endif
 #else
 	/* For ELF first 128M is unmapped, it needs to be mapped manually */
 	elks_base = mmap((void*)0x10000, 0x20000,

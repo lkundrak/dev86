@@ -217,6 +217,7 @@ void include P((void));
 void openio P((int argc, char **argv));
 void skipeol P((void));
 void specialchar P((void));
+void linecontol P((void));
 
 /* label.c */
 void bumplc P((void));
@@ -296,6 +297,7 @@ void definestring P((char *str));
 void docontrol P((void));
 void entermac P((void));
 void ifinit P((void));
+int  ifcheck P((void));
 void leavemac P((void));
 void predefine P((void));
 char *savedlineptr P((void));
@@ -317,7 +319,7 @@ void savereturn P((store_pt savelist, offset_t saveoffset));
 int main P((int argc, char **argv));
 
 /* scan.c */
-void cppscan P((void));
+void cppscan P((int asmonly));
 void eofin P((char *message));
 bool_pt isident P((void));
 void nextsym P((void));

@@ -1,0 +1,14 @@
+ELKS for Debian
+---------------
+All the binaries have been precompile for you and installed with the
+package. For reference/Documentation purposes the complete sourcecode
+is included which you are looking at right now.
+
+Read the Documentation in this directory to get you going with ELKS.
+
+There are also manpages for 
+
+as86, ld86, bcc, bcc-cc1 and dis88 included but they might not be current
+since they come from bcc for FreeBSD.
+
+Christoph Lameter <clameter@debian.org>

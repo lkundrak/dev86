@@ -5,7 +5,9 @@
  * Internal ascii conversion routine, avoid use of printf, it's a bit big!
  */
 
-static hit(buf, val)
+
+static void
+hit(buf, val)
 char * buf;
 int val;
 {
@@ -14,20 +16,21 @@ int val;
 
 void
 __asctime(buffer, ptm)
-char * buffer;
+register char * buffer;
 struct tm * ptm;
 {
-static days[] = "SunMonTueWedThuFriSat";
-static mons[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
+static char days[] = "SunMonTueWedThuFriSat";
+static char mons[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
    int year;
 
    /*              012345678901234567890123456 */
    strcpy(buffer, "Err Err .. ..:..:.. ....\n");
-   if( ptm->tm_wday >= 0 && ptm->tm_wday <= 6 )
-      memcpy(buffer, days+3*ptm->tm_wday, 3);
+   if( (ptm->tm_wday >= 0) && (ptm->tm_wday <= 6) )
+     memcpy(buffer, days+3*(ptm->tm_wday), 3);
 
-   if( ptm->tm_mon >= 1 && ptm->tm_mon <= 12 )
-      memcpy(buffer+4, mons+3*ptm->tm_mon-3, 3);
+   if( (ptm->tm_mon >= 0) && (ptm->tm_mon <= 11) )
+     memcpy(buffer+4, mons+3*(ptm->tm_mon), 3);
+
 
    hit(buffer+ 8, ptm->tm_mday/10);
    hit(buffer+ 9, ptm->tm_mday   );

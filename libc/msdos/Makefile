@@ -15,10 +15,12 @@ BSRC=i86.c
 BOBJ= __seg_regs.o __peek_es.o __poke_es.o __deek_es.o __doke_es.o	\
       __strchr_es.o
 
-ifeq ($(PLATFORM),i86-DOS)
+ifeq ($(LIB_CPU),i86)
+ifeq ($(LIB_OS),DOS)
 OBJ=$(AOBJ) $(BOBJ)
 else
 OBJ=$(BOBJ)
+endif
 endif
 
 all: $(OBJ)

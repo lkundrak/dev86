@@ -10,9 +10,20 @@
 PRIVATE char *asmbeg;		/* beginning of assembler code */
 				/* for overwrite check */
 				/* bss-init to zero = NULL and not changed */
+
+/* Sneaky stuff, the start of a binary file can be _negative_ for the I80386
+   assembler. The -ve addresses are ones over 2GB (or "org -32") */
+#ifdef I80386
+PRIVATE soffset_t binfbuf;	/* binary code buffer for file (counter) */
+PRIVATE soffset_t binmax;	/* maximum value of binmbuf for pass 1 */
+PRIVATE soffset_t binmin;	/* minimum value of binmbuf for pass 1 */
+#define PT soffset_t
+#else
 PRIVATE offset_t binfbuf;	/* binary code buffer for file (counter) */
 PRIVATE offset_t binmax;	/* maximum value of binmbuf for pass 1 */
 PRIVATE offset_t binmin;	/* minimum value of binmbuf for pass 1 */
+#define PT offset_t
+#endif
 
 FORWARD void putbinoffset P((offset_t offset, count_t size));
 
@@ -170,7 +181,11 @@ PUBLIC void genbin()
 
 PUBLIC void initbin()
 {
+#ifdef I80386
+    binmin = ((offset_t)-1 >>1);	/* greater than anything */
+#else
     binmin = -1;		/* greater than anything */
+#endif
 }
 
 /* write char to binary file or directly to memory */
@@ -182,15 +197,16 @@ opcode_pt ch;
     {
 	if (!binaryc)		/* pass 1, just record limits */
 	{
-	    if (binmbuf < binmin)
+	    if ((PT)binmbuf < binmin)
 		binmin = binmbuf;
-	    if (++binmbuf > binmax)
+	    binmbuf++;
+	    if ((PT)binmbuf > binmax)
 		binmax = binmbuf;
 	}
 	else
 	{
 #if 0
-	    if (binfbuf > binmbuf)
+	    if (binfbuf > (PT)binmbuf)
 	    {
 		error(BWRAP);	/* file buffer ahead of memory buffer */
 	    }
@@ -198,12 +214,12 @@ opcode_pt ch;
 #endif
 	    {
 		outfd = binfil;
-		if( binfbuf != binmbuf)
-		    if( lseek(binfil, (long)(binmbuf-binfbuf), 1) < 0 )
+		if( binfbuf != (PT)binmbuf)
+		    if( lseek(binfil, (long)((PT)binmbuf-binfbuf), 1) < 0 )
 			error(BWRAP);
 		binfbuf = binmbuf;
 #if 0
-		while (binfbuf < binmbuf)
+		while (binfbuf < (PT)binmbuf)
 		{
 		    writec(0x0);/* pad with nulls if file buffer behind */
 		    ++binfbuf;

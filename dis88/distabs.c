@@ -107,7 +107,7 @@ struct opcode optab[] =             /* Table of opcode data */
    OR,               aohand,  2,    2,             /* 0x0c  */
    OR,               aohand,  3,    3,             /* 0x0d  */
    "\tpush\tcs",     sbhand,  1,    1,             /* 0x0e  */
-   NULL,             dfhand,  0,    0,             /* 0x0f  */
+   "\t.code\t386",   sbhand,  1,    1,             /* 0x0f  */
    ADC,              aohand,  2,    4,             /* 0x10  */
    ADC,              aohand,  2,    4,             /* 0x11  */
    ADC,              aohand,  2,    4,             /* 0x12  */
@@ -192,10 +192,10 @@ struct opcode optab[] =             /* Table of opcode data */
    NULL,             dfhand,  0,    0,             /* 0x61  */
    NULL,             dfhand,  0,    0,             /* 0x62  */
    NULL,             dfhand,  0,    0,             /* 0x63  */
-   NULL,             dfhand,  0,    0,             /* 0x64  */
-   NULL,             dfhand,  0,    0,             /* 0x65  */
-   NULL,             dfhand,  0,    0,             /* 0x66  */
-   NULL,             dfhand,  0,    0,             /* 0x67  */
+   "\tseg\tfs",      sbhand,  1,    1,             /* 0x64  */
+   "\tseg\tgs",      sbhand,  1,    1,             /* 0x65  */
+   "\tuse\top32",    sbhand,  1,    1,             /* 0x66  */
+   "\tuse\tadr32",   sbhand,  1,    1,             /* 0x67  */
    NULL,             dfhand,  0,    0,             /* 0x68  */
    NULL,             dfhand,  0,    0,             /* 0x69  */
    NULL,             dfhand,  0,    0,             /* 0x6a  */
@@ -514,7 +514,7 @@ lookup(addr,type,kind,ext)
       return (getnam(best.i));
 
    if (kind == LOOK_ABS)
-      sprintf(b,"0x%05.5x",addr);
+      sprintf(b,"$%04lx",addr);
    else
       {
       long x = addr - (PC - kind);
@@ -625,7 +625,7 @@ mtrans(c,m,type)
                strcat(a,"*");
             else
                strcat(a,"#");
-            sprintf(b,"%d(",offset);
+            sprintf(b,"%d(", (short)offset);
             strcat(a,b);
             strcat(a,REGS1[rm]);
             strcat(a,")");
@@ -661,7 +661,7 @@ mtrans(c,m,type)
                strcpy(a,"*");
             else
                strcpy(a,"#");
-            sprintf(b,"%d(",offset);
+            sprintf(b,"%d(", (short)offset);
             strcat(a,b);
             strcat(a,REGS1[rm]);
             strcat(a,")");

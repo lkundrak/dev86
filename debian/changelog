@@ -1,0 +1,25 @@
+elks (0.0.7-3) unstable;urgency=?
+
+  * Replaced man pages by more correct ones.
+  * Added bootblock and standalone examples
+  * Improved method for creation of binary installation, /usr/src/elks
+    isn't strictly needed now but included for example code.
+  * Debian mods included in original distribution.
+
+elks (0.0.7-2) unstable;urgency=high
+
+  * Permissions of /usr/src/elks/tiny wrong
+  * README.debian and changelog.DEBIAN included
+
+ -- Christoph Lameter <clameter@debian.org>  Sun, 22 Sep 1996 9:00:00 -0800
+
+elks (0.0.7-1) unstable;urgency=medium
+
+  * Distribution from linux.mit.edu/pub/ELKS/Dev86 taken and customized
+    for debian
+  * Added manpages from FreeBSD (might not be totally up to date)
+  * I hope elks will enable the debian project to build the bootloader
+    syslinux under Linux and no longer under DOS.
+Local variables:
+mode: debian-changelog
+End:

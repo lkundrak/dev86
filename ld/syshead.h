@@ -18,17 +18,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <io.h>
 
-#define A_OUT_INCL	"a_out.h"
 #undef min
 #define R_OK	0
 #define mode_t		unsigned short
 #define SEEK_SET	0
 #define STDOUT_FILENO	0
-#endif
-
-#ifndef A_OUT_INCL
-#define A_OUT_INCL	"a.out.h"
 #endif
 
 #ifndef O_BINARY
@@ -79,43 +75,4 @@ int read P((int fd, void *buf, unsigned nbytes));
 mode_t umask P((int oldmask));
 int write P((int fd, const void *buf, unsigned nbytes));
 #endif
-
-#ifndef A_OUT_INCL
-# ifdef BSD_A_OUT
-#  ifdef STANDARD_GNU_A_OUT
-#   define A_OUT_INCL <a.out.h>
-#  else
-#   define A_OUT_INCL "bsd-a.out.h"
-#  endif
-
-#  ifdef MSDOS
-#   define A_OUT_INCL "a_out.h"
-#  else
-#   define A_OUT_INCL "a.out.h"	/* maybe local copy of <a.out.h> for X-link */
-#  endif
-# endif /* BSD_A_OUT */
-#endif
-
-# ifdef BSD_A_OUT
-#  ifdef STANDARD_GNU_A_OUT
-#   define RELOC_INFO_SIZE 8	/* unportable bitfields - bcc doesn't pack */
-#  else
-#   define RELOC_INFO_SIZE (sizeof (struct relocation_info))
-#  endif
-#  define C_EXT N_EXT
-#  define C_STAT 0
-#  define n_was_name n_un.n_name
-#  define n_was_numaux n_other
-#  define n_was_other n_numaux
-#  define n_was_sclass n_type
-#  define n_was_strx n_un.n_strx
-#  define n_was_type n_desc
-# else /* not BSD_A_OUT */
-#  define n_was_name n_name
-#  define n_was_numaux n_numaux
-#  define n_was_other n_other
-#  define n_was_sclass n_sclass
-#  define n_was_strx n_value
-#  define n_was_type n_type
-# endif /* BSD_A_OUT */
 

@@ -33,7 +33,9 @@
 #include "a.out.h"      /* Object file format definitions   */
 #include "ansi.h"
 
-#define MAXSYM  800     /* Maximum entries in symbol table  */
+#define MAXSYM  ((sizeof(int)-1)*32400/ \
+                 (sizeof(struct nlist)+sizeof(struct reloc)))
+			/* Maximum entries in symbol table  */
 
 extern struct nlist     /* Array to hold the symbol table   */
    symtab[MAXSYM];

@@ -1,31 +1,37 @@
-The lib can be compiled five different ways for Linux-8086 standard,
-Linux-8086 with 'First arg in AX', MS-DOS, BCC-386 or for GNU-386. At
-the moment the 386 versions are missing some _very_ important bits.
-This can be done by running.
+The lib can be compiled six different ways for Linux-8086 standard,
+Linux-8086 with 'First arg in AX', Linx-8086 standalone, MS-DOS, BCC-386
+or for GNU-386. At the moment the 386 GNU version will NOT work, the
+BCC-386 is just barely working.
+
+This can be done by running one of.
    make PLATFORM=i86-FAST clean all
    make PLATFORM=i86-DOS clean all
-an so on.
+   make PLATFORM=i86-BIOS clean all
+   make PLATFORM=i386-BCC clean all
 
 SYSTEM CALLS
 The system call table (syscalls/syscall.dat) is constantly changing, using
 skewed versions is _very_ likely to give you segfaults and strange behaviour.
 For this lib you should use the same version of elksemu.
 The system call table will only be frozen when the linux-86 kernel is
-running and reasonably stable.
+running and reasonably stable. The 386 version is using a distinct list 
+that matches the Linux-i386 syscall list.
 
 THE COMPILER
 You should use the versions of bcc, unproto, as86, ld86 and elksemu that
 are in this version of the combined development environment. Some other
 versions will work but often they'll just appear to work or not work at
 all. The standard bcc-cc1 won't pickup the right header files, the
-standard ld86 won't generate COM files and looks in the wrong place for
-crt0.o and libc.a.
+standard ld86 won't generate COM files or 386-Linux files and looks in
+the wrong place for crt0.o and libc.a.
 
 Main Subdirectories.
 
 bcc		Lots of BCC helper functions
+bios		Minimal 'system' calls for standalone executables.
 error		The C error functions.
 grp		Routines for /etc/group, from Nat
+i386fp		BCC's floating point routines for 386 code.
 include		Some include files, some new others Glib or Glib hacked.
 kinclude	Kernel include files, here for now.
 malloc1		My malloc routines
@@ -34,12 +40,12 @@ misc		Various larger functions
 msdos		This is the equlivent of the syscall directory for msdos.
 pwd		Routines for /etc/passwd, from Nat
 regexp		Standard regular expression parser
-stdio1		Joel's standard I/O functions - as yet rather incomplete
 stdio2		My standard I/O
 string		The functions for string.h
-syscall		All the system call functions, and a few tied lib ones.
+syscall		All the system call functions, and some tied lib ones.
 termios		Termimal mode control.
 utmp		/etc/utmp updating
+time		Unix time related functions.
 tests		Various C programs used to test the lib.
 
 Directory structure:

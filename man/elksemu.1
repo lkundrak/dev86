@@ -1,0 +1,45 @@
+.TH elksemu 1 "Oct, 1996"
+.BY Me!
+.nh
+.SH NAME
+elksemu \- Embedded Linux Kernel Environment emulator
+.SH SYNOPSIS
+.B /lib/elksemu
+.B program
+.RB [ arguments ]
+.SH DESCRIPTION
+.B Elksemu
+is a program that allows 8086
+.B ELKS
+programs to be run under Linux-i386. These programs can be compiled using
+the
+.B bcc(1)
+C compiler.
+
+It is not usual to invoke
+.I /lib/elksemu
+directly, either the simple patch or kernel module distributed with it 
+will cause the kernel to run
+.I /lib/elksemu
+with the correct arguments whenever the user tries to execute an ELKS 
+executable directly.
+
+.SH OPTIONS
+There are no flag options to elksemu, the first argument is the name of the
+program to run the rest are arguments that are passed to the Elks program.
+
+The 
+.B elksemu
+program is normally installed suid-root and in this event it is able to
+run execute only (chmod 111) elks executables and act correctly on the
+suid permission bits on those executable. This may be considered a
+security hazard so elksemu does
+.I not
+have to be installed suid-root.
+
+.SH SEE ALSO
+bcc(1), as86(1), ld86(1)
+.SH BUGS
+Elksemu is incomplete.
+
+The program may still have security bugs!

@@ -1,0 +1,62 @@
+
+To install the tarfile bootsector
+---------------------------------
+
+ Create the makeboot program:
+
+$ make makeboot
+
+Create the tarfile
+
+$ tar cvfV /dev/fd0 ENIAC monitor.out item2 item3
+
+Make it bootable
+
+$ makeboot /dev/fd0
+
+Note, the distribution tar file is made using this procedure and can be booted
+if uncompressed and copied onto a raw floppy.
+
+To install the minixfs boot sector
+----------------------------------
+
+   Make a minix filesystem on the floppy:
+
+$ mkfs -t minix /dev/fd0 1440
+
+$ mkfs -t minix /dev/fd0 1200
+
+   Make the bootblock program.
+
+$ make minix.bin
+
+   Install it
+
+$ cp minix.bin /dev/fd0
+
+   Place a Linux-8086 executable in the root directory.
+
+$ make monitor.out
+$ mount -t minix /dev/fd0 /mnt
+$ cp monitor.out /mnt/linux
+$ umount /dev/fd0
+
+   Or in a tar file:
+
+$ make monitor.out
+$ mount -t minix /dev/fd0 /mnt
+$ tar cvf /mnt/linux monitor.out long list of other files
+$ umount /dev/fd0
+
+   This works on my 3 1/4 floppy, and it _should_ work on any double sided
+   drive. Be sure to make the filesystem the full size of the floppy.
+
+To boot the floppy in DOSEMU
+----------------------------
+
+$ dos -A
+
+   Press ^C to exit DOSEMU from inside monitor.c
+
+Rob.
+

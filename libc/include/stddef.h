@@ -9,7 +9,9 @@
 #undef __need_ptrdiff_t
 #undef __need_NULL
 
-#if __AS386_16__	/* Only for 8086 */
+/* Fact is these are _normal_ */
+#if 1	/* __BCC__ */	/* Only for Bcc 8086/80386 */
+
 #ifndef __STDDEF_H
 #define __STDDEF_H
 

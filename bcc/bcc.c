@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 
 #define FALSE	0
 #define FORWARD	static
@@ -86,7 +87,7 @@
 #undef STANDARD_CRT0_0_PREFIX
 #undef STANDARD_CRT0_3_PREFIX
 #undef STANDARD_EXEC_PREFIX
-#define STANDARD_EXEC_PREFIX	"/usr/local/libexec/m09/bcc/"
+#define STANDARD_EXEC_PREFIX	LOCALPREFIX "/lib/bcc/m09/"
 #endif /* MC6809 */
 
 #define ALLOC_UNIT	16	/* allocation unit for arg arrays */
@@ -179,6 +180,7 @@ FORWARD void unsupported P((char *option, char *message));
 FORWARD void writen P((void));
 FORWARD void writes P((char *s));
 FORWARD void writesn P((char *s));
+FORWARD void linux_patch P((char * fname));
 
 PUBLIC int main(argc, argv)
 int argc;
@@ -233,6 +235,7 @@ char **argv;
     bool_T prep_line_numbers = FALSE;
     int status;
     char *temp;
+    bool_T patch_exe = FALSE;
 
     progname = argv[0];
     addarg(&cppargs, CPPFLAGS);
@@ -241,11 +244,10 @@ char **argv;
 #endif
     addarg(&asargs, "-u");
     addarg(&asargs, "-w");
-#ifdef BCC86
-    addarg(&ldargs, "-i");
-#endif
 #ifdef BAS86
     addarg(&ldrargs, "-r");
+    addarg(&ldrargs, "-N");	/* GCC uses native objects */
+    				/* GCC also uses 386 how to add -3 too ? */
 #endif
 
     /* Pass 1 over argv to gather compile options. */
@@ -270,6 +272,7 @@ char **argv;
 #ifdef BAS86
 	    case 'G':
 		gnu_objects = TRUE;
+		add_default_lib = 0;
 		break;
 #endif
 	    case 'P':
@@ -281,6 +284,9 @@ char **argv;
 		break;
 	    case 'S':
 		cc_only = TRUE;
+#ifndef CCC
+		addarg(&ccargs, "-t");
+#endif
 		break;
 	    case 'V':
 		echo = TRUE;
@@ -300,13 +306,14 @@ char **argv;
 		debug = TRUE;	/* unsupported( arg, "debug" ); */
 		break;
 	    case 'o':
-		if (--argc < 1)
+		if (argc <= 1)
 		{
 		    ++errcount;
 		    show_who("output file missing after -o\n");
 		}
 		else
 		{
+		    argc--;
 		    if (f_out != NUL_PTR)
 			show_who("more than one output file\n");
 		    f_out = *++argv;
@@ -380,12 +387,22 @@ char **argv;
 #endif
 		   addarg(&cppargs, "-D__MSDOS__");
 		   addarg(&ldargs, "-d");
+		   addarg(&ldargs, "-s");
+		   addarg(&ldargs, "-T100");
 		   libc= "-ldos";
 		   break;
 		case 'f': /* Caller saves+ax is first arg */
 		   libc= "-lc_f";
 		   addarg(&ccargs, "-f");
 		   addarg(&ccargs, "-c");
+		   break;
+		case 's': /* Standalone executable */
+#ifndef CCC
+		   addarg(&ccargs, "-D__STANDALONE__");
+#endif
+		   addarg(&cppargs, "-D__STANDALONE__");
+		   addarg(&ldargs, "-s");
+		   libc= "-lc_s";
 		   break;
 		}
 		break;
@@ -439,6 +456,12 @@ char **argv;
     if (errcount != 0)
 	exit(1);
 
+    if( patch_exe )
+       addarg(&ldargs, "-s");
+#ifdef BCC86
+    else if( !bits32 )
+       addarg(&ldargs, "-i");
+#endif
     if ((temp = getenv("BCC_EXEC_PREFIX")) != NUL_PTR)
 	addprefix(&exec_prefix, temp);
     if( add_default_inc )
@@ -663,6 +686,8 @@ char **argv;
 
     if (!prep_only && !cc_only && !as_only && !runerror)
     {
+        int link_st;
+
 	if (f_out == NUL_PTR)
 	    f_out = "a.out";
 #ifdef BAS86
@@ -683,17 +708,106 @@ char **argv;
 	    }
 
 	    ldargs.prog = fixpath(GCC, &exec_prefix, X_OK);
-	    run((char *) NUL_PTR, f_out, &ldargs);
+	    link_st = run((char *) NUL_PTR, f_out, &ldargs);
 	}
 	else
 #endif
 	{
 	    addarg(&ldargs, libc);
-	    run((char *) NUL_PTR, f_out, &ldargs);
+	    link_st = run((char *) NUL_PTR, f_out, &ldargs);
 	}
+	if( patch_exe && link_st == 0 )
+	   linux_patch(f_out);
     }
     killtemps();
     return runerror ? 1 : 0;
+}
+
+PRIVATE void linux_patch(fname)
+char * fname;
+{
+/* OMAGIC */
+
+#define AOUT_MAG	0x640107L
+#define ELKS_MAG1	0x1010
+#define ELKS_MAG2	0x1011	/* -z */
+#define ELKS_MAG3	0x1020	/* -i */
+#define ELKS_MAG4	0x1021	/* -i -z */
+
+static struct	ELKS_exec {	/* ELKS a.out header */
+  long 		a_magic;	/* magic number */
+  long		a_hdrlen;	/* length, etc of header */
+  long		a_text;		/* size of text segement in bytes */
+  long		a_data;		/* size of data segment in bytes */
+  long		a_bss;		/* size of bss segment in bytes */
+  long		a_entry;	/* entry point */
+  long		a_total;	/* total memory allocated */
+  long		a_syms;		/* size of symbol table */
+}  instr;
+
+
+static struct  aout_exec {
+  unsigned long a_info;	/* Use macros N_MAGIC, etc for access */
+  unsigned a_text;	/* length of text, in bytes */
+  unsigned a_data;	/* length of data, in bytes */
+  unsigned a_bss;	/* length of uninitialized data area, in bytes */
+  unsigned a_syms;	/* length of symbol table data in file, in bytes */
+  unsigned a_entry;	/* start address */
+  unsigned a_trsize;	/* length of relocation info for text, in bytes */
+  unsigned a_drsize;	/* length of relocation info for data, in bytes */
+} outstr;
+
+   int fd;
+
+   fd = open(fname, O_RDWR);
+   if( fd<0 ) return;
+
+   if( read(fd, &instr, sizeof(instr)) != sizeof(instr) )
+   {
+      writesn("Cannot re-read executable header");
+      return;
+   }
+
+   if( instr.a_hdrlen != 0x20 || (instr.a_magic & 0xFFFF) != 0x0301 )
+   {
+      writesn("Executable cannot be converted to OMAGIC");
+      return;
+   }
+
+   switch((int)(instr.a_magic >> 16))
+   {
+   case ELKS_MAG1:
+      outstr.a_info = AOUT_MAG;
+      break;
+   case ELKS_MAG2:
+      writesn("Executable cannot be converted to OMAGIC");
+      return;
+   case ELKS_MAG3:
+   case ELKS_MAG4:
+      writesn("Executable file is split I/D, data overlaps text");
+      return;
+   default:
+      writesn("Executable cannot be converted to OMAGIC");
+      return;
+   }
+
+   if( instr.a_syms != 0 )
+      writesn("Warning: executable file isn't stripped");
+
+   outstr.a_text = instr.a_text;
+   outstr.a_data = instr.a_data;
+   outstr.a_bss  = instr.a_bss;
+   outstr.a_entry= instr.a_entry;
+
+   lseek(fd, 0L, 0);
+
+   if( write(fd, &outstr, sizeof(outstr)) != sizeof(outstr) )
+   {
+      writesn("Cannot re-write executable header");
+      return;
+   }
+
+   close(fd);
 }
 
 PRIVATE void addarg(argp, arg)
@@ -832,8 +946,12 @@ char *name;
     }
     if (unlink(name) < 0)
     {
-	show_who("error unlinking ");
-	writesn(name);
+        if( !runerror || verbosity > 1)
+	{
+	   show_who("error unlinking ");
+	   writesn(name);
+	   runerror = TRUE;
+	}
     }
 }
 
@@ -881,6 +999,7 @@ struct arg_s *argp;
 	}
 	writen();
     }
+    if (verbosity > 4 ) return 0;
 #ifdef MSDOS
     status = spawnv(0, argp->prog, argp->argv+arg0);
 #else
@@ -896,6 +1015,11 @@ struct arg_s *argp;
 	fatal(" failed");
     default:
 	wait(&status);
+	if (status & 0xFF)
+	{
+	   writes(argp->prog);
+	   writesn(": killed by fatal signal");
+        }
     }
 #endif
     for (i = tmpargs.argc - 1; i >= START_ARGS; --i)
@@ -910,8 +1034,8 @@ struct arg_s *argp;
 	}
     if (status != 0)
     {
-	killtemps();
 	runerror = TRUE;
+	killtemps();
     }
     return status;
 }

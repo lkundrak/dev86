@@ -4,10 +4,18 @@
 
 /* switches for code generation */
 
-#define DEBUG			/* generate compiler-debugging code */
+#if !defined(I8088) && !defined(MC6809)
+/* The default compiler type ... */
 #define I8088			/* target processor is Intel 8088 thru 80386 */
-/*#define MC6809*/		/* target processor is Motorola 6809 */
+#undef  MC6809			/* target processor is Motorola 6809 */
+
+#endif
+
 #define SELFTYPECHECK		/* check calculated type = runtime type */
+
+#ifndef __AS386_16__
+#define DEBUG			/* generate compiler-debugging code */
+#endif
 
 #ifdef I8088
 # define FRAMEPOINTER		/* index locals off frame ptr, not stack ptr */
@@ -17,7 +25,7 @@
 
 #ifdef __AS386_16__
 
-/* Humm, not this is nasty :-) */
+/* Humm, now this is nasty :-) */
 #define float	no_hope
 #define double	no_hope
 #define atof	atol
@@ -57,10 +65,10 @@ typedef long no_hope;
 
 /* local style */
 
-#define FALSE 0
 #ifndef NULL
 #define NULL 0
 #endif
+#define FALSE 0
 #define TRUE 1
 
 #define EXTERN extern

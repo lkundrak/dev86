@@ -47,7 +47,6 @@ extern int __STACKSIZE;
   loc	1		! Make sure the pointer is in the correct segment
 auto_func:		! Label for bcc -M to work.
   .word	_malloc_init	! Pointer to the autorun function
-  .word no_op		! Space filler cause segs are padded to 4 bytes.
   .text			! So the function after is also in the correct seg.
 #endasm
 #endif

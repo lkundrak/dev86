@@ -2,9 +2,15 @@
 #	Makefile for elksemu.
 #
 
-CFLAGS=-O2 -fno-strength-reduce -Wall -idirafter . $(DEFS)
-# If you need an a.out exe. NB The program _does_ now work as ELF
+# For gcc with the default compiler
+# CFLAGS=-O2 -fno-strength-reduce -Wall -idirafter . $(DEFS)
+
+# For gcc making a.out with a basically ELF compiler
 # CFLAGS=-O2 -fno-strength-reduce -b i486-linuxaout -N -s -static
+
+# Use BCC to make a tiny static a.out version.
+CFLAGS=-O -3 -N -ansi
+CC=bcc
 
 OBJ=elks.o elks_sys.o elks_signal.o
 
@@ -22,8 +28,8 @@ dummy:
 
 # The kernel patch or module _requires_ this location.
 install: elksemu
-	install -s -o root -g root -m 4111 elksemu /lib/elksemu
-	tar cvf V-files.tar call_tab.v defn_tab.v
+	install -d $(DIST)/lib
+	install -s -o root -g root -m 4555 elksemu $(DIST)/lib/elksemu
 
 clean:
 	rm -f $(OBJ) elksemu call_tab.v defn_tab.v

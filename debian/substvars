@@ -1,0 +1,1 @@
+shlibs:Depends=libc5 (>= 5.2.18)

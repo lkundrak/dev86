@@ -106,7 +106,7 @@ size_t size;
    if (size == 0)
       return 0;			/* No allocation required.  */
 
-   hp = (mem *) (*__alloca_alloc) (sizeof(mem) + size);
+   hp = (mem *) (*__alloca_alloc) (sizeof(mem)*2 + size);
    if (hp == 0)
       return hp;
 
@@ -135,8 +135,8 @@ void *ptr;
    top = (mem *) sbrk(0);
    if (chk + m_size(chk) == top)
    {
-      noise("FREE sbrk", chk);
-      sbrk(-m_size(chk) * sizeof(mem));
+      noise("FREE brk", chk);
+      brk(top-m_size(chk));
       /*
        * Adding this code allow free to release blocks in any order; they
        * can still only be allocated from the top of the heap tho.
@@ -215,9 +215,11 @@ size_t size;
  * circular list of all the free blocks in memory
  */
 
+#define Static static
+
 static mem *chunk_list = 0;
-static void insert_chunk();
-static mem *search_chunk();
+Static void __insert_chunk();
+Static mem *__search_chunk();
 
 void *
 malloc(size)
@@ -248,7 +250,7 @@ size_t size;
    __alloca_alloc = malloc;	/* We'll be messing with the heap now TVM */
 
 #ifdef LAZY_FREE
-   ptr = search_chunk(sz);
+   ptr = __search_chunk(sz);
    if (ptr == 0)
    {
 #endif
@@ -268,11 +270,10 @@ size_t size;
 	       return ptr + 1;
 	    }
 
-	    insert_chunk(ptr);
+	    __insert_chunk(ptr);
 	 }
 	 ptr = m_next(chunk_list);
-         if (m_size(ptr) < (MAX_INT/sizeof(mem))
-	   && ptr + m_size(ptr) == (void *) sbrk(0))
+         if (ptr + m_size(ptr) == (void *) sbrk(0))
 	 {
 	    /* Time to free for real */
 	    m_next(chunk_list) = m_next(ptr);
@@ -281,11 +282,11 @@ size_t size;
 	    free(ptr + 1);
 	 }
 #ifdef LAZY_FREE
-	 ptr = search_chunk(sz);
+	 ptr = __search_chunk(sz);
 #endif
       }
 #ifndef LAZY_FREE
-      ptr = search_chunk(sz);
+      ptr = __search_chunk(sz);
 #endif
       if (ptr == 0)
       {
@@ -294,17 +295,22 @@ size_t size;
          alloc = sizeof(mem) * (MCHUNK * ((sz + MCHUNK - 1) / MCHUNK) - 1);
 	 ptr = __mini_malloc(alloc);
 	 if (ptr)
-	    insert_chunk(ptr - 1);
+	    __insert_chunk(ptr - 1);
 	 else		/* Oooo, near end of RAM */
 	 {
-	    for(alloc/=2; alloc>256; )
+	    unsigned int needed = alloc;
+	    for(alloc/=2; alloc>256 && needed; )
 	    {
 	       ptr = __mini_malloc(alloc);
-	       if (ptr) insert_chunk(ptr - 1);
+	       if (ptr)
+	       {
+	          if( alloc > needed ) needed = 0; else needed -= alloc;
+	          __insert_chunk(ptr - 1);
+	       }
 	       else     alloc/=2;
 	    }
 	 }
-	 ptr = search_chunk(sz);
+	 ptr = __search_chunk(sz);
 	 if (ptr == 0)
 #endif
 	 {
@@ -336,8 +342,8 @@ size_t size;
  * the chain of memory chunks
  */
 
-static void
-insert_chunk(mem_chunk)
+Static void
+__insert_chunk(mem_chunk)
 mem  *mem_chunk;
 {
    register mem *p1, *p2;
@@ -438,8 +444,8 @@ mem  *mem_chunk;
  * chunk returned. If none is found NULL is returned.
  */
 
-static mem *
-search_chunk(mem_size)
+Static mem *
+__search_chunk(mem_size)
 unsigned int mem_size;
 {
    register mem *p1, *p2;

@@ -4,7 +4,6 @@
 
 #include "syshead.h"
 #include "const.h"
-#include "obj.h"		/* needed for LONG_OFFSETS and bin_off_t */
 #include "type.h"
 #include "globvar.h"
 
@@ -15,7 +14,7 @@
 #define OUTBUFSIZE	2048
 #define TRELBUFSIZE	1024
 
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 PRIVATE char *drelbuf;		/* extra output buffer for data relocations */
 PRIVATE char *drelbufptr;	/* data relocation output buffer ptr */
 PRIVATE char *drelbuftop;	/* data relocation output buffer top */
@@ -35,7 +34,7 @@ PRIVATE int outfd;		/* output file descriptor */
 PRIVATE mode_t outputperms;	/* permissions of output file */
 PRIVATE char *outputname;	/* name of output file */
 PRIVATE char *refname;		/* name of program for error reference */
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 PRIVATE char *trelbuf;		/* extra output buffer for text relocations */
 PRIVATE char *trelbufptr;	/* text relocation output buffer ptr */
 PRIVATE char *trelbuftop;	/* text relocation output buffer top */
@@ -45,7 +44,7 @@ PRIVATE unsigned warncount;	/* count of warnings */
 
 FORWARD void errexit P((char *message));
 FORWARD void flushout P((void));
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 FORWARD void flushtrel P((void));
 #endif
 FORWARD void outhexdigs P((bin_off_t num));
@@ -62,7 +61,7 @@ char *progname;
 	refname = progname;	/* name must be static (is argv[0]) */
     else
 	refname = "link";
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     drelbuf = malloc(DRELBUFSIZE);
     drelbuftop = drelbuf + DRELBUFSIZE;
 #endif
@@ -73,7 +72,7 @@ char *progname;
     outbuf = malloc(OUTBUFSIZE);/* outbuf invalid if this fails but then */
 				/* will not be used - tableinit() aborts */
     outbuftop = outbuf + OUTBUFSIZE;
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     trelbuf = malloc(TRELBUFSIZE);
     trelbuftop = trelbuf + TRELBUFSIZE;
 #endif
@@ -88,12 +87,12 @@ PUBLIC void closein()
 
 PUBLIC void closeout()
 {
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     unsigned nbytes;
 #endif
 
     flushout();
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     flushtrel();
     nbytes = drelbufptr - drelbuf;
     if (write(trelfd, drelbuf, nbytes) != nbytes)
@@ -101,7 +100,7 @@ PUBLIC void closeout()
 #endif
     if (close(outfd) == ERR)
 	outputerror("cannot close");
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     if (close(trelfd) == ERR)
 	outputerror("cannot close");
 #endif
@@ -144,7 +143,7 @@ PRIVATE void flushout()
     outbufptr = outbuf;
 }
 
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 PRIVATE void flushtrel()
 {
     unsigned nbytes;
@@ -183,11 +182,11 @@ char *filename;
 	outputerror("cannot stat");
     outputperms = statbuf.st_mode;
     chmod(filename, outputperms & ~EXEC_PERMS);
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     drelbufptr = drelbuf;
 #endif
     outbufptr = outbuf;
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     if ((trelfd = open(filename, O_BINARY|O_WRONLY|O_CREAT|O_TRUNC, CREAT_PERMS)) == ERR)
 	outputerror("cannot reopen");
     trelbufptr = trelbuf;
@@ -344,7 +343,7 @@ unsigned long offset;
 	outputerror("cannot seek in");
 }
 
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 PUBLIC void seektrel(offset)
 unsigned long offset;
 {
@@ -369,7 +368,7 @@ int ch;
     outbufptr = obuf;
 }
 
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 PUBLIC void writedrel(buf, count)
 register char *buf;
 unsigned count;
@@ -407,7 +406,7 @@ unsigned count;
     outbufptr = obuf;
 }
 
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 PUBLIC void writetrel(buf, count)
 register char *buf;
 unsigned count;
@@ -554,14 +553,14 @@ PUBLIC void usage()
 {
     putstr("usage: ");
     putstr(refname);
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     errexit("\
- [-03Mimrstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
-       [-Llibdir] [-Olibfile] [-T textaddr] infile...");
+ [-03NMdimrstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
+       [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] infile...");
 #else
     errexit("\
- [-03Mimstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
-       [-Llibdir] [-Olibfile] [-T textaddr] infile...");
+ [-03NMdimstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
+       [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] infile...");
 #endif
 }
 

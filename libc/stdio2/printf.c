@@ -115,6 +115,11 @@ static FILE  string[1] =
 #endif
 
 #ifdef L_vfprintf
+
+#ifdef FLOATS
+int (*__fp_print)() = 0;
+#endif
+
 static int
 prtfld(op, buf, ljustf, sign, pad, width, preci, buffer_mode)
 register FILE *op;
@@ -197,9 +202,6 @@ register va_list ap;
    register char *ptmp;
    char  tmp[64], *ltostr(), *ultostr();
    int buffer_mode;
-#if FLOATS
-   double fx;
-#endif
 
    /* This speeds things up a bit for unbuffered */
    buffer_mode = (op->mode&__MODE_BUF);
@@ -314,18 +316,6 @@ register va_list ap;
 	    hash=1;
 	    goto fmtnxt;
 
-#if FLOATS
-	 case 'e':		/* float */
-	 case 'f':
-	 case 'g':
-	 case 'E':
-	 case 'G':
-	    fx = va_arg(ap, double);
-	    fp_print(fx, *fmt, preci, ptmp);
-	    preci = -1;
-	    goto printit;
-#endif
-
 	 case 'c':		/* Character */
 	    ptmp[0] = va_arg(ap, int);
 	    ptmp[1] = '\0';
@@ -340,6 +330,21 @@ register va_list ap;
 	    cnt += prtfld(op, ptmp, ljustf,
 			   sign, pad, width, preci, buffer_mode);
 	    break;
+
+#if FLOATS
+	 case 'e':		/* float */
+	 case 'f':
+	 case 'g':
+	 case 'E':
+	 case 'G':
+	    if ( __fp_print )
+	    {
+	       (*__fp_print)(&va_arg(ap, double), *fmt, preci, ptmp);
+	       preci = -1;
+	       goto printit;
+	    }
+	    /* FALLTHROUGH if no floating printf available */
+#endif
 
 	 default:		/* unknown character */
 	    goto charout;

@@ -24,7 +24,8 @@
 # the initialization  data in the lookup tables.  It should not
 # be necessary to alter the formats of the tables.
 
-CC=bcc
+#CC=bcc
+#CFLAGS=-O -A-l -A$*.lst
 CFLAGS=-O
 LDFLAGS=
 
@@ -35,10 +36,8 @@ all:	dis88
 dis88:	$(OBJ)
 	$(CC) $(LDFLAGS) -o dis88 $(OBJ)
 
-install:	/usr/bin/dis88
-
-/usr/bin/dis88:	dis88
-	install -cs -o bin dis88 $@
+install:	dis88
+	install -m 755 -s dis88 $(DIST)/usr/bin/dis88
 
 $(OBJ): dis.h a.out.h
 
@@ -46,4 +45,4 @@ a.out.h:
 	ln -s ../libc/include/a.out.h .
 
 clean:	
-	rm -f *.bak *.o core dis88 a.out.h
+	rm -f *.bak *.lst *.o core dis88 a.out.h

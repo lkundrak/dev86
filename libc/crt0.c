@@ -20,15 +20,20 @@ entry startup		! Crt0 startup
 startup:
   br	___cstartup
 export no_op
-no_op:			! Generic no operation call (the byte was free :-) )
+no_op:			! Generic no operation call
   ret
 
+  .ascii __LIBC__	! Version id.
+
   loc	1		! Segment 1 is where the pointers to the autostart
-ZP_safety:		! functions are stored.
+			! functions are stored.
+#if !__AS386_32__
+ZP_safety:
   .word	0		! But first some zeros to avoid null pointer writes.
   .word	0
   .word	0
   .word	0
+#endif
 export auto_start
 auto_start:
 

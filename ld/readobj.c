@@ -127,7 +127,7 @@ PRIVATE unsigned readfileheader()
     readin((char *) &fileheader, sizeof fileheader);
     readin(&filechecksum, sizeof filechecksum);
     if (filechecksum != checksum((char *) &fileheader, sizeof fileheader))
-	input1error(" is not an object file");
+	input1error(" is not an object file (checksum failed)");
     return c2u2(fileheader.count);
 }
 

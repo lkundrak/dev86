@@ -1,3 +1,71 @@
+For version 0.0.8.
+
+> Christoph Lameter <clameter@debian.org> has provided a patch for
+  installation using the debian packaging, I've probably broken it :-)
+
+> Doselks has been added in, it's not that big really.
+
+> Triggered by the debian stuff the makefiles can now create a pure
+  binary installation tree, nothing needed in /usr/src. If kinclude is
+  configured out the include directory will reference /usr/src/linuxmt
+
+> Some good changes to the linker today, it will generate a Linux-386
+  (That's right, growed up linux) executable. It's still very fragile
+  but it does work. The '-r' option now works, but unlike bin86-0.3
+  it creates a _Linux_ OMAGIC file. This means that bcc -G works, the
+  names are mangled by ld86 such that if it was compiled with ELF the
+  OMAGIC will successfully link in an ELF environment.  Beware older
+  versions of GCC-binutils can segfault in this situation.
+
+> Bit of sneakyness for the assembler, org will accept negative values ...
+
+> Made a few changes to idcc, I think I'll translate it to C soon.
+
+> Fixed a couple of problems with the preprocessor WRT hashes not at the
+  start of a line and quotes in ifdef'd out code.
+
+> Missed a bet in the kernel patch and module, the old one wouldn't
+  execute impure executables it will now.
+
+> Fixed matching bug in elksemu, A piece of code was commented out for
+  some reason ... oops.
+
+> Some of the error reporting in the linker has improved, if it can't
+  open libc it now says so!
+
+> Some 386 specific stuff has been added to libc, mainly the syscall
+  generator, startup stuff and BCC's 386 floating point code.
+
+> Change in malloc, Linux-386 limits +ve brk() changes to 32Mb, the malloc
+  will now allow for this ...  Phew! grab.c will grab about 3Gb of virtual
+  memory, with 1Gb chunks, when compiled in 386 mode! One oddity, glibc
+  (quite an old one) hangs when trying to free if grab.c is compiled static.
+
+> Hunted down the most important 16 bit dependancies in dis88, it seems to
+  generate a reasonable output file now. Plus a couple of fiddles in the
+  disassembler, personally I prefer Hex and I've added a couple of markers
+  for 386 code (use opr32, use adr32, seg fs/gs) and the -f flag to force
+  disassembly of any file.
+
+> The i386 compile uncovered a bug in alloca, In fact the move to 386 has
+  been amazingly painless, practically everything so far has worked first
+  time or nearly so ... Wow!
+
+> Added minimal dirent to i386-lib, elksemu now compiles under BCC-386
+  AND WORKS!
+
+> Trying to compile bash, it does some hackish stuff with the preprocessor
+  and uncovered a couple of problems, fixed. Now I need more float stuff.
+
+> Added for bcc-cc1, code between #asm and #endasm _is_ scanned for #defined
+  words and functions, it didn't effect the libc at all. Of course we now
+  need some way to put multiple instructions in one #define, I've nominated
+  '^' as the statment terminator, I didn't have many choices :-(
+
+> Added '-t' for bcc-cc1 when bcc gets -S
+
+-Rob
+
 For version 0.0.7.
 
 I've been making quite a few changes to the assembler:

@@ -626,12 +626,16 @@ PUBLIC void skipeol()
 	    outbyte(' ');
 	    outline(lineptr);
 	}
+#ifndef ASM_BARE
+	if (!virtual_nl && (orig_cppmode || asmmode))
+#else
 	if (orig_cppmode && !asmmode)
+#endif
 #ifdef INSERT_BACKSLASH_NEWLINES
 	    if (!skip_printing_nl)
 #endif
-
 		outbyte('\n');
+
 #ifdef INSERT_BACKSLASH_NEWLINES
 	if (bs_state == 1 && *(lineptr - 1) == EOL)
 #endif

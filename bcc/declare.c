@@ -579,8 +579,10 @@ PRIVATE void declfunc()
     offset_t argsp;
     uoffset_t argsize;
     struct symstruct *symptr;
+    int main_flag = 0;
 
     strcpy(funcname, gvarname);
+    if( strcmp(funcname, "main") != 0 ) main_flag = -1;
     if (gvarsymptr == NULL)
 	gvarsymptr = addglb(gvarname, gvartype);
     else if (gvarsymptr->type != gvartype ||
@@ -627,6 +629,7 @@ PRIVATE void declfunc()
 	 symptr = (struct symstruct *)
 		  align(&symptr->name.namea[strlen(symptr->name.namea) + 1]))
     {
+        if( main_flag >= 0 ) main_flag++;
 	/* convert arg sizes to offsets */
 	if (symptr->type == fltype)
 	    symptr->type = dtype;
@@ -655,6 +658,12 @@ PRIVATE void declfunc()
 #endif
 	if (arg1inreg && symptr == &locsyms[0])
 	    argsp = returnadrsize;	/* skip return adr after 1st arg */
+    }
+    if( main_flag > 0 )
+    {
+       globl("__mkargv");
+       if( main_flag > 2 )
+          globl("environ");
     }
     lbrace();
     compound();
@@ -990,7 +999,7 @@ PUBLIC void needvarname()
 PUBLIC void program()
 {
     if (orig_cppmode)
-	cppscan();
+	cppscan(0);
     else
     {
 	nextsym();

@@ -5,12 +5,13 @@ exit() function.
 The exit processing uses the standard 'atexit' and 'on_exit' functions
 see the normal man pages.
 
-Execution of code before main is Linux-8086 specific; the method
-is similar to this:
+Execution of code before main is Linux-8086 (actually BCC) specific; the
+method works like this:
 
 /**********************/
-int global_var_that_needs_init;
+long global_var_that_needs_init;
 
+#ifdef __AS386_16__
 #asm
   loc	1		! Make sure the pointer is in the correct segment
 auto_func:		! Label for bcc -M to work.
@@ -18,10 +19,20 @@ auto_func:		! Label for bcc -M to work.
   .word no_op		! Space filler cause segs are padded to 4 bytes.
   .text			! So the function after is also in the correct seg.
 #endasm
+#endif
+
+#ifdef __AS386_32__
+#asm
+  loc	1		! Make sure the pointer is in the correct segment
+auto_func:		! Label for bcc -M to work.
+  .long	_init_vars	! Pointer to the autorun function
+  .text			! So the function after is also in the correct seg.
+#endasm
+#endif
 
 static void init_vars()
 {
-   global_var_that_needs_init = getuid();
+   time(&global_var_that_needs_init);
 }
 /**********************/
 
@@ -33,7 +44,7 @@ not be executed.
 
 Also do note that the init functions are called in essentially random order
 (It's actually the order that they appear in the executable) so you must be
-careful not to call any routines tht have their own autostart from inside
+careful not to call any routines that have their own autostart from inside
 your autostart. Nevertheless you should try to ensure that your routines
 will fail gracefully if they are called before the initilisation routine.
 

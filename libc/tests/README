@@ -16,4 +16,7 @@ size.c	Size of executables and object files.
 sync.c	:-)
 wc.c	Word count.
 
+BTW: i386 OMAGIC files can be converted to deformed ELFs with this:
+    $ ld -N -Ttext 0 --defsym _start=0 sync -o sync1 -s
+
 -Robert

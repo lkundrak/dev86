@@ -1,19 +1,25 @@
-extern long text_base_address;
-#define btextoffset text_base_address
-static long bdataoffset;
-#define page_size() 4096
 
 /* writebin.c - write binary file for linker */
 
 /* Copyright (C) 1994 Bruce Evans */
 
 #include "syshead.h"
-#include A_OUT_INCL
+#define A_OUT_INCL <a.out.h>
+#include "bindef.h"
 #include "const.h"
 #include "obj.h"
 #include "type.h"
-#undef EXTERN
 #include "globvar.h"
+
+#define btextoffset (text_base_value)
+#define bdataoffset (data_base_value)
+#define page_size() 4096
+
+#ifdef __ELF__
+#ifndef ELF_SYMS
+#define ELF_SYMS 1
+#endif
+#endif
 
 #ifdef EDOS
 # define FILEHEADERLENGTH 0
@@ -21,14 +27,19 @@ static long bdataoffset;
 #ifdef MINIX
 # ifdef BSD_A_OUT
 #  ifdef STANDARD_GNU_A_OUT
-#   define FILEHEADERLENGTH 32
+#   define HEADERLEN (sizeof(struct exec))
 #  else
-#   define FILEHEADERLENGTH (doscomfile?0:48)
+#   define HEADERLEN (48)
 #  endif
 # else
-#  define FILEHEADERLENGTH (doscomfile?0:A_MINHDR)
+#  ifdef REL_OUTPUT
+#   define HEADERLEN (reloc_output?sizeof(struct exec):A_MINHDR)
 				/* part of header not counted in offsets */
+#  else
+#   define HEADERLEN (A_MINHDR)
+#  endif
 # endif
+# define FILEHEADERLENGTH (headerless?0:HEADERLEN)
 #endif
 #define DPSEG 2
 
@@ -64,13 +75,13 @@ PRIVATE bin_off_t edataoffset;	/* end of data */
 PRIVATE bin_off_t endoffset;	/* end of bss */
 PRIVATE bin_off_t etextoffset;	/* end of text */
 PRIVATE bin_off_t etextpadoff;	/* end of padded text */
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 PRIVATE unsigned ndreloc;	/* number of data relocations */
 #endif
 PRIVATE unsigned nsym;		/* number of symbols written */
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 PRIVATE unsigned ntreloc;	/* number of text relocations */
-PRIVATE bool_t reloc_output;	/* nonzero to leave reloc info in output */
+extern bool_t reloc_output;	/* nonzero to leave reloc info in output */
 #endif
 PRIVATE unsigned relocsize;	/* current relocation size 1, 2 or 4 */
 PRIVATE bin_off_t segadj[NSEG];	/* adjusts (file offset - seg offset) */
@@ -91,7 +102,6 @@ FORWARD unsigned binheaderlength P((char *commandname));
 FORWARD char *idconvert P((struct entrylist *elptr, char *commandname));
 #endif
 FORWARD void linkmod P((struct modstruct *modptr));
-FORWARD void linkrefs P((struct modstruct *modptr));
 FORWARD void padmod P((struct modstruct *modptr));
 FORWARD void setsym P((char *name, bin_off_t value));
 FORWARD void symres P((char *name));
@@ -103,64 +113,6 @@ FORWARD void writeheader P((char *commandname));
 FORWARD void writeheader P((void));
 #endif
 FORWARD void writenulls P((bin_off_t count));
-
-extern int doscomfile;
-
-/* link all symbols connected to entry symbols */
-
-PUBLIC void linksyms(argreloc_output)
-bool_pt argreloc_output;
-{
-    char needlink;
-    struct entrylist *elptr;
-    struct modstruct *modptr;
-    struct symstruct *symptr;
-
-#ifdef BSD_A_OUT
-    reloc_output = argreloc_output;
-    if (argreloc_output)
-    {
-	if (modfirst->modnext != NUL_PTR)
-	    fatalerror("relocatable output only works for one input file");
-	for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
-	    modptr->loadflag = TRUE;
-	return;
-    }
-#endif
-    if ((symptr = findsym("_main")) != NUL_PTR)
-	entrysym(symptr);
-    do
-    {
-	if ((elptr = entryfirst) == NUL_PTR)
-	    fatalerror("no start symbol");
-	for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
-	    modptr->loadflag = FALSE;
-	for (; elptr != NUL_PTR; elptr = elptr->elnext)
-	    linkrefs(elptr->elsymptr->modptr);
-	if ((symptr = findsym("start")) != NUL_PTR)
-	    linkrefs(symptr->modptr);
-	needlink = FALSE;
-	{
-	    struct redlist *prlptr = 0;
-	    struct redlist *rlptr;
-
-	    for (rlptr = redfirst; rlptr != NUL_PTR;
-		 rlptr = (prlptr = rlptr)->rlnext)
-		if (rlptr->rlmodptr->loadflag &&
-		    rlptr->rlmodptr->class > rlptr->rlsymptr->modptr->class)
-		{
-		    rlptr->rlsymptr->modptr = rlptr->rlmodptr;
-		    rlptr->rlsymptr->value = rlptr->rlvalue;
-		    if (rlptr == redfirst)
-			redfirst = rlptr->rlnext;
-		    else
-			prlptr->rlnext = rlptr->rlnext;
-		    needlink = TRUE;
-		}
-	}
-    }
-    while (needlink);
-}
 
 /* write binary file */
 
@@ -186,7 +138,7 @@ bool_pt arguzp;
     sepid = argsepid;
     bits32 = argbits32;
     stripflag = argstripflag;
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     uzp = arguzp && !reloc_output;
 #else
     uzp = arguzp;
@@ -228,7 +180,7 @@ bool_pt arguzp;
     symres("__end");
     curseg = 0;			/* text seg, s.b. variable */
     symres("__etext");
-    symres("__segoff");
+    if( headerless ) symres("__segoff");
 
     /* calculate segment and common sizes (sum over loaded modules) */
     /* use zero init of segsz[] */
@@ -252,14 +204,14 @@ bool_pt arguzp;
 		    }
 		    else if (symptr->value == 0)
 		    {
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 			if (!reloc_output)
 #endif
 			    undefined(symptr->name);
 		    }
 		    else
 		    {
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 #if 0
 			if (!reloc_output)
 #else	
@@ -343,7 +295,7 @@ bool_pt arguzp;
 		{
 		    if (symptr->flags & (C_MASK | SA_MASK))
 		    {
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 #if 0
 			if (!reloc_output)
 #else	
@@ -353,7 +305,7 @@ bool_pt arguzp;
 			    symptr->value += combase[symptr->flags & SEGM_MASK];
 		    }
 		    else
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 		    if (!reloc_output || !(symptr->flags & I_MASK))
 #endif
 			symptr->value += segbase[symptr->flags & SEGM_MASK];
@@ -382,7 +334,7 @@ bool_pt arguzp;
     setsym("__etext", etextoffset);
     setsym("__edata", edataoffset);
     setsym("__end", endoffset = combase[NSEG - 1] + comsz[NSEG - 1]);
-    setsym("__segoff", (bin_off_t)(segadj[1]-segadj[0])/0x10);
+    if( headerless ) setsym("__segoff", (bin_off_t)(segadj[1]-segadj[0])/0x10);
     if( !bits32 )
     {
         if( etextoffset > 65535L )
@@ -392,7 +344,7 @@ bool_pt arguzp;
     }
 
     openout(outfilename);
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     if (reloc_output)
 	seektrel(FILEHEADERLENGTH
 		 + (unsigned long) (etextpadoff - btextoffset)
@@ -421,7 +373,7 @@ bool_pt arguzp;
 	seekout(FILEHEADERLENGTH
 		+ (unsigned long) (etextpadoff - btextoffset)
 		+ (unsigned long) (edataoffset - bdataoffset)
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 		+ ((unsigned long) ndreloc + ntreloc) * RELOC_INFO_SIZE
 #endif
 		);
@@ -443,8 +395,20 @@ bool_pt arguzp;
 			offtocn((char *) &extsym.n_was_strx,
 				(bin_off_t) stringoff, 4);
 #else
+#if ELF_SYMS
+			if( symptr->name[0] == '_' && symptr->name[1] )
+			   strncpy((char *) extsym.n_was_name, symptr->name+1,
+				   sizeof extsym.n_was_name);
+			else
+			{
+			   memcpy((char *) extsym.n_was_name, "__", 2);
+			   strncpy((char *) extsym.n_was_name+2, symptr->name,
+				   sizeof(extsym.n_was_name)-2);
+			}
+#else
 			strncpy((char *) extsym.n_was_name, symptr->name,
 				sizeof extsym.n_was_name);
+#endif
 #endif
 			u4cn((char *) &extsym.n_value, (u4_t) symptr->value,
 			     sizeof extsym.n_value);
@@ -455,7 +419,7 @@ bool_pt arguzp;
 			else
 			    extsym.n_was_sclass = C_STAT;
 			if (!(flags & I_MASK) ||
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 			     !reloc_output &&
 #endif
 			     flags & C_MASK)
@@ -475,7 +439,13 @@ bool_pt arguzp;
 			writeout((char *) &extsym, sizeof extsym);
 			++nsym;
 #ifdef BSD_A_OUT
+#if ELF_SYMS
+			stringoff += strlen(symptr->name);
+			if( symptr->name[0] != '_' || symptr->name[1] == '\0' )
+			   stringoff += 3;
+#else
 			stringoff += strlen(symptr->name) + 1;
+#endif
 #endif
 		    }
 	    }
@@ -491,14 +461,26 @@ bool_pt arguzp;
 		for (symparray = modptr->symparray;
 		     (symptr = *symparray) != NUL_PTR; ++symparray)
 		    if (symptr->modptr == modptr)
+#if ELF_SYMS
+                    {
+		       if( symptr->name[0] == '_' && symptr->name[1] )
+			  writeout(symptr->name + 1, strlen(symptr->name));
+		       else
+		       {
+		          writeout("__", 2);
+			  writeout(symptr->name, strlen(symptr->name) + 1);
+		       }
+		    }
+#else
 			writeout(symptr->name, strlen(symptr->name) + 1);
+#endif
 	    }
 #endif
 	seekout((unsigned long) offsetof(struct exec, a_syms));
 	u4cn(buf4, (u4_t) nsym * sizeof extsym,
 	     memsizeof(struct exec, a_syms));
 	writeout(buf4, memsizeof(struct exec, a_syms));
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 	seekout((unsigned long) offsetof(struct exec, a_trsize));
 	u4cn(buf4, (u4_t) ntreloc * RELOC_INFO_SIZE,
 	     memsizeof(struct exec, a_trsize));
@@ -511,7 +493,7 @@ bool_pt arguzp;
     }
 #endif /* MINIX */
     closeout();
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     if (!reloc_output)
 #endif
 	executable();
@@ -649,7 +631,7 @@ struct modstruct *modptr;
 		offset -= (spos + relocsize);
 	    offtocn(buf, segbase[modify & SEGM_MASK] + offset, relocsize);
 	    writeout(buf, relocsize);
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 	    if (reloc_output)
 	    {
 		u4_t bitfield;
@@ -682,7 +664,7 @@ struct modstruct *modptr;
 		else
 		    writedrel(buf, 4);
 	    }
-#endif /* BSD_A_OUT */
+#endif /* REL_OUTPUT */
 	    spos += relocsize;
 	    break;
 	case CM_SYMBOL_RELOC:
@@ -691,13 +673,13 @@ struct modstruct *modptr;
 	    offset = readconvsize((unsigned) modify & OF_MASK);
 	    if (modify & R_MASK)
 		offset -= (spos + relocsize);
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 	    if (!reloc_output || !(symptr->flags & I_MASK))
 #endif
 		offset += symptr->value;	    
 	    offtocn(buf, offset, relocsize);
 	    writeout(buf, relocsize);
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 	    if (reloc_output)
 	    {
 		u4_t bitfield;
@@ -734,23 +716,10 @@ struct modstruct *modptr;
 		else
 		    writedrel(buf, 4);
 	    }
-#endif /* BSD_A_OUT */
+#endif /* REL_OUTPUT */
 	    spos += relocsize;
 	}
     }
-}
-
-PRIVATE void linkrefs(modptr)
-struct modstruct *modptr;
-{
-    register struct symstruct **symparray;
-    register struct symstruct *symptr;
-
-    modptr->loadflag = TRUE;
-    for (symparray = modptr->symparray;
-	 (symptr = *symparray) != NUL_PTR; ++symparray)
-	if (symptr->modptr->loadflag == FALSE)
-	    linkrefs(symptr->modptr);
 }
 
 PRIVATE void padmod(modptr)
@@ -788,7 +757,7 @@ bin_off_t value;
 {
     struct symstruct *symptr;
 
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     if (!reloc_output)
 #endif
 	if ((symptr = findsym(name)) != NUL_PTR)
@@ -806,7 +775,7 @@ register char *name;
 	    symptr->flags &= ~SEGM_MASK | curseg;
 	if (symptr->flags != (I_MASK | curseg) || symptr->value != 0)
 	    reserved(name);
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
 	if (!reloc_output)
 #endif
 	    symptr->flags = E_MASK | curseg;	/* show defined, not common */
@@ -900,7 +869,7 @@ PRIVATE void writeheader()
     header.a_magic[0] = A_MAGIC0;
     header.a_magic[1] = A_MAGIC1;
 #endif
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     if (!reloc_output)
 #endif
     {
@@ -938,7 +907,7 @@ PRIVATE void writeheader()
 	    sizeof header.a_data);
     offtocn((char *) &header.a_bss, endoffset - edataoffset,
 	    sizeof header.a_bss);
-#ifdef BSD_A_OUT
+#ifdef REL_OUTPUT
     if (!reloc_output)
 #endif
     {

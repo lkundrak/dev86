@@ -71,7 +71,6 @@ int global_var_that_needs_init = 0x201;
   loc	1		! Make sure the pointer is in the correct segment
 auto_func:		! Label for bcc -M to work.
   .word	_init_vars	! Pointer to the autorun function
-  .word no_op		! Space filler cause segs are padded to 4 bytes.
   .text			! So the function after is also in the correct seg.
 #endasm
 

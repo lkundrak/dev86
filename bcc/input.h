@@ -35,3 +35,4 @@ EXTERN char *lineptr;		/* ptr to current char */
 EXTERN maclev_t maclevel;	/* nest level of #defined identifiers */
 				/* depends on zero init */
 EXTERN bool_t orig_cppmode;	/* same as cppmode ex. not varied while in # */
+EXTERN bool_t virtual_nl;	/* For -C and asm, don't print first nl */

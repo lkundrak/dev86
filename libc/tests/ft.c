@@ -24,11 +24,6 @@
 #include <pwd.h>
 #include <grp.h>
 
-#ifdef __BCC__X
-#undef S_IFLNK
-#undef S_IFSOCK
-#endif
-
 #ifdef S_IFSOCK
 #include <sys/socket.h>
 #endif
@@ -37,7 +32,7 @@
 #endif
 
 /* Ansi prototypes */
-#ifdef __STDC__
+#ifdef __STTDC__
 #define PR(x) x
 #else
 #define PR(x) ()
@@ -66,12 +61,8 @@ int copy_file PR((char * source, char * dest));
 void Usage PR((void));
 int cmd_mkdir PR((char * dirname));
 int cmd_mknod PR((void));
-int warn_func PR((int enumber, char * estr, char * eobj));
-int error_func PR((int enumber, char * estr, char * eobj));
-
-#define warning(x,y,z) ( Line_no = __LINE__, warn_func(x,y,z))
-#define error(x,y,z) ( Line_no = __LINE__, error_func(x,y,z))
-int Line_no = -1;
+int warning PR((int enumber, char * estr, char * eobj));
+int error PR((int enumber, char * estr, char * eobj));
 
 #define DO_BDIR         0x0010	/* Do Dir before contents */
 #define DO_ADIR         0x0020	/* Do Dir after contents */
@@ -109,7 +100,7 @@ struct {
    { "chgrp",	CMD_CHGRP,    1, "vfR" },
    { "chmod",	CMD_CHMOD,    1, "vfR" },
    { "chown",	CMD_CHOWN,    1, "vfR" },
-   { "cp",	CMD_CP,      -1, "vifRrpsd" },
+   { "cp",	CMD_CP,      -1, "vifRrpsda" },
    { "extar",	CMD_EXTAR,    1, "" },
    { "install", CMD_INSTALL, -1, "cdso:g:m:" },
    { "ln",	CMD_LN,      -1, "vifs" },
@@ -215,6 +206,8 @@ int argc; char ** argv;
 	 case 's': flg_symlink++;
 	           if( cmd_tok == CMD_LN) cmd_tok |= OK_DIR+OK_NO_SOURCE;
 		   break;
+	 case 'a': flg_recurse++; flg_preserve++; flg_noderef++;
+	           break;
          }
 	 if(*p == '-') break;
 	 p++;
@@ -393,7 +386,7 @@ char * dname; char * fname;
       buf = alloca(strlen(dname) + strlen(fname) + 4);
       if( buf == 0 )
       {
-         error(errno, "Can't allocate memory for path beyond", dname);
+         error(errno, "Can't allocate memory for path beyond ", dname);
 	 return ;
       }
       strcpy(buf, dname);
@@ -454,16 +447,15 @@ char * dname;
    if( flg_recurse )
    {
       dfd = opendir(dname);
-
       if( dfd == 0 && errno == EACCES && flg_force )
       {
 	 old_mode = (cur_file_stat.st_mode & 07777);
 	 if( chmod(dname, (0700|old_mode)) )
-	    return error(errno, "Can't unlock", dname);
+	    return error(errno, "", dname);
 
 	 dfd = opendir(dname);
       }
-      if( dfd == 0 ) return error(errno, "Can't open", dname);
+      if( dfd == 0 ) return error(errno, "", dname);
 
       while((ent=readdir(dfd)))
       {
@@ -504,12 +496,12 @@ int when; char * fname;
    case CMD_MV:      rv = cmd_mv(fname); break;
    case CMD_RM:      rv = cmd_rm(fname); break;
 
-   case CMD_EXTAR:   error(ENOSYS, "", ""); exit(1);
+   case CMD_EXTAR:   error(EINVAL, "", "No code."); exit(1);
 
    case CMD_LN+OK_DIR+OK_NO_SOURCE:
    case CMD_LN:      rv = cmd_ln(fname); break;
 
-   case CMD_INSTALL: error(EINVAL, "", "Bad program"); exit(1);
+   case CMD_INSTALL: error(EINVAL, "", ""); exit(1);
 
    case CMD_MKDIR:   rv = cmd_mkdir(fname);  break;
    case CMD_MKFIFO:  rv = cmd_mkfifo(fname); break;
@@ -547,7 +539,7 @@ char * prefix; char * ustring;
       {
          if(!strisdigit(userstr) )
 	 {
-	    error(EINVAL, "Unknown user", userstr);
+	    error(EINVAL, "Unknown user ", userstr);
 	    exit(1);
 	 }
 	 set_user = atoi(userstr);
@@ -568,7 +560,7 @@ char * prefix; char * ustring;
          {
             if(!strisdigit(groupstr) )
 	    {
-	       error(EINVAL, "Unknown group", groupstr);
+	       error(EINVAL, "Unknown group ", groupstr);
 	       exit(1);
 	    }
 	    set_group = atoi(groupstr);
@@ -654,7 +646,7 @@ static mtab[] = {0, 0111, 0222, 0333, 0444, 0555, 0666, 0777 };
    if(!done_change)
    {
 ch_error:
-      error(EINVAL, "Invalid mode string", str);
+      error(EINVAL, "Invalid mode string ", str);
       exit(1);
    }
    return mode;
@@ -760,7 +752,7 @@ char * fname;
    if( set_mode >= 0 ) mode=set_mode;
    rv = mknod(fname, S_IFIFO|mode, 0);
    if(rv<0)
-      warning(errno, "Cannot create fifo", fname);
+      warning(errno, "Cannot create fifo ", fname);
    return rv;
 }
 
@@ -783,10 +775,10 @@ char * fname;
    if( fd>=0 ) rv = bind(fd, adr, len);
    if( fd>=0 ) close(fd);
    if(set_mode >= 0 && chmod(fname, set_mode&07777) < 0 )
-      warning(errno, "Chmod", fname);
+      warning(errno, "Chmod ", fname);
 
    if(rv<0)
-      warning(errno, "Cannot create socket", fname);
+      warning(errno, "Cannot create socket ", fname);
    return rv;
 }
 #endif
@@ -879,7 +871,7 @@ char * fname;
       return error(errno, "", fname);
 
    if( S_ISDIR(cur_file_stat.st_mode) )
-      return error(EISDIR, "Can't rename across devices", fname);
+      return error(EISDIR, "Can't rename across devices ", fname);
 
    if( copy_file(fname, destfile) != 0 ) return -1;
    copy_modes(destfile);
@@ -934,7 +926,7 @@ char * fname;
       if( dest_stat.st_ino == cur_file_stat.st_ino
        && dest_stat.st_dev == cur_file_stat.st_dev )
       {
-	 warning(EPERM, "Can't copy file to itself", fname);
+	 warning(EPERM, "Can't copy file to itself ", fname);
          return -1;
       }
    }
@@ -946,12 +938,12 @@ char * fname;
       {
          if( S_ISDIR(dest_stat.st_mode) ) return 0;
 	 if( unlink(destfile) < 0 )
-            return error(errno, "Can't delete", destfile);
+            return error(errno, "Can't delete ", destfile);
       }
       return cmd_mkdir(destfile);
    }
    else if( S_ISDIR(dest_stat.st_mode) )
-      return error(EPERM, "Can't copy non-directory to directory", destfile);
+      return error(EPERM, "Can't copy non-directory to directory ", destfile);
    else if( S_ISREG(cur_file_stat.st_mode) )
    { 
       /* Copy_ok - do we want to force a real file */;
@@ -960,7 +952,7 @@ char * fname;
    }
    else if( flg_recurse ) /* Don't copy other things while recursing */
    {
-      return error(EPERM, "Can't copy", fname);
+      return error(EPERM, "Can't copy ", fname);
    }
 
    if( copy_file(fname, destfile) != 0 ) return -1;
@@ -996,7 +988,7 @@ char * file;
 
   if (chown (file, user, group)
       && (errno != EPERM || geteuid() == 0 || (flg_preserve==0 && flg_force==0)))
-      error (errno, "Can't change perms for", file);
+      error (errno, "Can't change perms for ", file);
 
   mode = cur_file_stat.st_mode;
   if(set_mode>=0) mode=set_mode;
@@ -1046,7 +1038,7 @@ char * source; char * dest;
       if(dfd<0)
       {
          close(sfd);
-         return error(errno, "Cannot create", source);
+         return error(errno, "Cannot create ", source);
       }
    }
 
@@ -1164,13 +1156,13 @@ char * dirname;
       if( set_user > 0 || set_group > 0 )
       {
          if( chown(dirname, set_user, set_group) < 0)
-	    warning(errno, "Cannot change directory owner", dirname);
+	    warning(errno, "Cannot change directory owner ", dirname);
          else if( chmod (dirname, mode & 07777) )
             warning(errno, "", dirname);
       }
    }
 
-   if(retv<0) error(errno, "Cannot create directory", dirname);
+   if(retv<0) error(errno, "Cannot create directory ", dirname);
    return retv;
 }
 
@@ -1199,19 +1191,19 @@ cmd_mknod()
 }
 
 int
-warn_func(enumber, estr, eobj)
+warning(enumber, estr, eobj)
 int enumber; char * estr; char * eobj;
 {
    if(flg_verbose)
-      return error_func(enumber, estr, eobj);
+      return error(enumber, estr, eobj);
    return 0;
 }
 
 int
-error_func(enumber, estr, eobj)
+error(enumber, estr, eobj)
 int enumber; char * estr; char * eobj;
 {
-   fprintf(stderr, "%s%s(%d): ", prog_name[0]=='-'?"ft":"", prog_name, Line_no);
-   fprintf(stderr, "%s%s%s: %s\n", estr, (*estr?" ":""), eobj, strerror(enumber));
+   fprintf(stderr, "%s%s: ", prog_name[0]=='-'?"ft":"", prog_name);
+   fprintf(stderr, "%s%s: %s\n", estr, eobj, strerror(enumber));
    return -1;
 }

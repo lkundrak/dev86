@@ -10,17 +10,17 @@ TOBJ=tcsetattr.o tcgetattr.o tcdrain.o tcflow.o tcflush.o tcsendbreak.o	\
      tcsetpgrp.o tcgetpgrp.o isatty.o	\
      cfgetospeed.o cfgetispeed.o cfsetospeed.o cfsetispeed.o cfmakeraw.o
 
+ifeq ($(LIB_OS),ELKS)
 OBJ=$(TOBJ) ttyname.o
+else
+OBJ=
+endif
 
 all: $(OBJ)
 
-ifeq ($(PLATFORM),i86-DOS)
-libc.a:
-else
 libc.a: $(OBJ)
 	ar r ../$(LIBC) $(OBJ)
 	@touch libc.a
-endif
 
 clean:
 	rm -f *.o libc.a

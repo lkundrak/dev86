@@ -2,13 +2,17 @@
 ifneq ($(TOPDIR),)
 include $(TOPDIR)/Make.defs
 
-# CFLAGS=$(CCFLAGS) -DBSD_A_OUT
+CFLAGS=$(CCFLAGS) -DREL_OUTPUT
 else
-CC=bcc
-LDFLAGS=-s
+CC=bcc -3 -N
+LDFLAGS=
 endif
 
-OBJS		=dumps.o io.o ld.o readobj.o table.o typeconv.o writebin.o
+# May need some of these if the auto-sense fails.
+# -DV7_A_OUT -DBSD_A_OUT -DSTANDARD_GNU_A_OUT
+
+OBJS= dumps.o io.o ld.o readobj.o table.o typeconv.o linksyms.o \
+      writex86.o writebin.o
 
 all: ld86
 
@@ -22,10 +26,5 @@ install: ld86
 clean:
 	rm -f $(OBJS) ld86
 
-dumps.o: dumps.c const.h config.h obj.h type.h globvar.h
-io.o: io.c const.h config.h obj.h type.h globvar.h
-ld.o: ld.c const.h config.h byteord.h type.h globvar.h
-readobj.o: readobj.c const.h config.h byteord.h obj.h type.h globvar.h
-table.o: table.c const.h config.h align.h obj.h type.h globvar.h
-typeconv.o: typeconv.c const.h config.h type.h globvar.h
-writebin.o: writebin.c const.h config.h obj.h type.h globvar.h
+$(OBJS): align.h ar.h bindef.h byteord.h config.h const.h globvar.h obj.h \
+	 syshead.h type.h x86_aout.h

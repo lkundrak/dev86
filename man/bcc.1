@@ -1,0 +1,322 @@
+.TH bcc 1 "Oct, 1996"
+.BY Bruce Evans
+.nh
+.SH NAME
+bcc \- Bruce's C compiler
+.SH SYNOPSIS
+.B bcc
+.RB [ -03EGNOPSVcegv ]
+.RB [ -Aas_option ]
+.RB [ -Bexecutable_prefix ]
+.RB [ -Ddefine ]
+.RB [ -Uundef ]
+.RB [ -Mc_mode ]
+.RB [ -o\ outfile ]
+.RB [ -ansi ]
+.RB [ -Ccc1_option ]
+.RB [ -Iinclude_dir ]
+.RB [ -Lld_option ]
+.RB [ -Ttmpdir ]
+.RB [ -Qc386_option ]
+.RB [ ld_options ]
+.RB [ infiles ]
+.SH DESCRIPTION
+.B Bcc
+is a simple C compiler that produces 8086 assembler, in addition compiler
+compile time options allow 80386 or 6809 versions. The compiler understands
+traditional K&R C with just the restriction that bit fields are mapped to
+one of the other integer types.
+
+The default operation is to produce an 8086 executable called
+.B a.out
+from the source file.
+
+.SH OPTIONS
+.TP
+.B -ansi
+Pass the C source through
+.B unprotoize(1)
+after preprocessing and before code generation. This will allow
+.I some
+ansi C to be compiled but it is definitly
+.B NOT
+a true ansi-C compiler.
+.TP
+.B -0
+8086 target (works on 80386 host, but not 6809)
+.TP
+.B -3
+80386 target (may work on 8086 host, but not 6809)
+.TP
+.B -A
+pass remainder of option to assembler (e.g. -A-l -Alistfile for a listing)
+.TP
+.B -B
+prefix for executable search path (as usual; the search order is all paths
+specified using
+.BR -B ,
+in order, then the path given in the environment variable
+.B BCC_EXEC_PREFIX
+if that is set, then the compiled-in defaults
+(something like /usr/lib/bcc/ followed by /usr/bin/)
+.TP
+.B -C
+pass remainder of option to bcc-cc1, see code generation options.
+.TP
+.B -D
+preprocessor define
+.TP
+.B -E
+produce preprocessor output to standard out.
+.TP
+.B -G
+produce GCC objects (only useful for i386 code)
+.TP
+.B -Ixyz
+include search 'xyz' path
+.TP
+.B -I
+don't add default include to search list
+.TP
+.B -Lxyz
+add directory name 'xyz' to the head of the list of library directories searched
+.TP
+.B -L
+don't add default library to search list
+.TP
+.B -Md
+alters the arguments for all passes to produce MSDOS executable COM files.
+.TP
+.B -Mf
+sets the code generator to pass the
+.B -c
+and
+.B -f
+arguments to the code generator for smaller faster code. Note this code is
+not compatible with the standard calling conventions so a different version
+of the C library is linked too.
+.TP
+.B -Ms
+alters the arguments for all passes and selects C-library
+to produce standalone Linux-86 executables
+.TP
+.B -N
+makes the linker produce a native a.out file (Linux OMAGIC) if combined
+with -3 the executable will run under Linux-i386.
+.TP
+.B -O
+optimize (does nothing)
+.TP
+.B -P
+produce preprocessor output with no line numbers to standard output.
+.TP
+.B -Q
+pass full option to c386 (Only for c386 version)
+.TP
+.B -S
+produce assembler file
+.TP
+.B -T
+temporary directory (overrides previous value and default; default is
+from the environment variable TMPDIR if that is set, otherwise /tmp)
+.TP
+.B -U
+preprocessor undefine
+.TP
+.B -V
+print names of files being compiled
+.TP
+.B -X
+pass remainder of option to linker (e.g. -X-Ofile is passed to the linker
+as -Ofile)
+.TP
+.B -c
+produce object file
+.TP
+.B -e
+run the preprocess pass separately.  This takes less memory, and may help
+or harm by giving more traditional semantics like token pasting with /**/.
+.TP
+.B -f
+error (float emulation not supported)
+.TP
+.B -g
+produce debugging info (does nothing)
+.TP
+.B -o
+output file name follows (assembler, object or executable) (as usual)
+.TP
+.B -p
+error (profiling not supported)
+.TP
+.B -t
+error (substitution of some cc passes not supported)
+.TP
+.B -v
+print names and args of subprocesses being run.  Two or more -v's print
+names of files being unlinked.  Three or more -v's print names of paths
+being searched.
+.P
+Other options are passed to the linker, in particular -i-, -lx, -M, -m, -s.
+The -i option is always passed to the linker but can be cancelled using -i-.
+
+.SH CODE GENERATOR OPTIONS
+These are all options that the code generator pass
+.B bcc-cc1
+understands, only some will be useful for the
+.B -C
+option of bcc. The code generator is normally used as a combined C preprocessor
+and generator but the
+.B -e
+and
+.B -ansi
+options of bcc split the operation.
+.TP 
+.B -0
+8086 target (works even on 80386 host, not on 6809)
+.TP 
+.B -3
+80386 target (may work even on 8086 host, not on 6809)
+.TP 
+.B -D
+define (as usual)
+.TP 
+.B -E
+produce preprocessor output (as usual)
+.TP 
+.B -I
+include search path (as usual)
+.TP 
+.B -P
+produce preprocessor output with no line numbers (as usual)
+.TP 
+.B -c
+produce code with caller saving regs before function calls
+.TP 
+.B -d
+print debugging information in assembly output
+.TP 
+.B -f
+produce code with 1st argument passed in a register (AX, EAX or X)
+.TP 
+.B -l
+produce code for 2 3 1 0 long byte order (only works in 16-bit code),
+a special library of compiler helper functions is needed for this mode.
+.TP 
+.B -o
+assembler output file name follows
+.TP 
+.B -p
+produce (almost) position-independent code (only for the 6809)
+.TP 
+.B -t
+print source code in assembly output
+.TP 
+.B -w
+print what cc1 thinks is the location counter in assembly output
+.P
+All the options except -D, -I and -o may be turned off by following the
+option letter by a '-'.  Options are processed left to right so the last
+setting has precedence.
+
+.SH PREPROCESSOR DEFINES
+The preprocessor has a number of manifest constants.
+.TP
+.B __BCC__ 1
+The compiler identifier, normally used to avoid compiler limitations.
+.TP
+.B __FILE__
+stringized name of current input file
+.TP
+.B __LINE__
+current line number
+.TP 
+.B __MSDOS__ 1
+compiler is configured for generating MSDOS executable COM files.
+.TP 
+.B __STANDALONE__ 1
+compiler is configured for generating standalone executables.
+.TP 
+.B __AS386_16__ 1
+compiler is generating 16 bit 8086 assembler and the
+.B #asm
+keyword is available for including 8086 code.
+.TP 
+.B __AS386_32__ 1
+compiler is generating 32 bit 80386 assembler and the
+.B #asm
+keyword is available for including 80386 code.
+.TP 
+.B __CALLER_SAVES__ 1
+compiler calling conventions are altered so the calling function must save the
+.I SI
+and
+.I DI
+registers if they are in use (ESI and EDI on the 80386)
+.TP 
+.B __FIRST_ARG_IN_AX__ 1
+compiler calling conventions are altered so the calling function is passing
+the first argument to the function in the
+.I AX
+(or
+.I EAX
+)
+register.
+.TP 
+.B __LONG_BIG_ENDIAN__ 1
+alters the word order of code generated by the 8086 compiler.
+.P
+These defines only occur in the 6809 version of the compiler.
+.TP 
+.B __AS09__ 1
+compiler is generating 6809 code
+.TP 
+.B __FIRST_ARG_IN_X__ 1
+the first argument to functions is passed in the
+.I X
+register.
+.TP 
+.B __POS_INDEPENDENT__ 1
+the code generated is (almost) position independent.
+.P
+.SH ENVIRONMENT
+.TP
+.B BCC_EXEC_PREFIX
+default directory to seach for compiler passes
+.TP
+.B TMPDIR
+directory to place temporary files (default /tmp)
+.P
+.SH DIRECTORIES
+All the include, library and compiler components are stored under the
+.I /usr/bcc
+directory under Linux-86, this is laid out the same as a
+.I /usr
+filesystem and if bcc is to be the primary compiler on a system it should
+be moved there. The configuration for this is in the
+.B bcc.c
+source file only, all other executables are independent of location.
+
+The library installation also creates the file
+.BR /usr/lib/liberror.txt ,
+this path is hardcoded into the C library.
+
+The 
+.B bcc
+executable itself is in /usr/bin and the
+.B as86
+and
+.B ld86
+executables can be placed there also, but be aware that some programs
+will require the old operation of the
+.B -r
+argument to ld86 (eg compiling DOSEMU)
+
+.SH SEE ALSO
+unprotoize(1), as86(1), ld86(1), elksemu(1)
+.SH BUGS
+The compiler cannot generate 8086 floating point code, if it's made to
+try it produces a nasty mixture of 8086 and 80386 code that really
+upsets the assembler.
+
+The bcc.c compiler driver source is very untidy.

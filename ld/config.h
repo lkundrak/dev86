@@ -17,11 +17,16 @@
 
 #undef HOST_8BIT		/* enable some 8-bit optimizations */
 
-#ifndef __BCC__
+#ifndef __AS386_16__
 #define S_ALIGNMENT	4	/* source memory alignment, power of 2 */
 				/* don't use for 8 bit processors */
 				/* don't use even for 80386 - overhead for */
 				/* alignment cancels improved access */
+#endif
+
+/* Any machine can use long offsets but i386 needs them */
+#ifdef I80386
+#define LONG_OFFSETS
 #endif
 
 /* these must be defined to suit the source libraries */

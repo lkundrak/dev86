@@ -6,6 +6,9 @@ CC=bcc
 LDFLAGS=-s
 endif
 
+# Temp needed for libc-5.4.7
+CFLAGS+=-Dwarn=as_warn
+
 OBJS		=as.o assemble.o error.o express.o \
 		 genbin.o genlist.o genobj.o gensym.o \
 		 keywords.o macro.o mops.o pops.o readsrc.o \
@@ -19,6 +22,10 @@ as86: $(OBJS)
 install: all
 	install -d $(LIBDIR)
 	install -m 755 as86 $(LIBDIR)
+	sed "s:%%LIBDIR%%:$(LIBDIR):" < as86_encap > tmp
+	install -d $(BINDIR)
+	install -m 755 tmp $(BINDIR)/as86_encap
+	-@rm -f tmp
 
 # typeconv.o: dummy
 # 	-cp -p ../ld/typeconv.o .

@@ -10,49 +10,72 @@
 
 # Define enviroment var for others.
 ifeq ($(PLATFORM),)
-PLATFORM=i86-ELKS
-#PLATFORM=i86-FAST
-#PLATFORM=i86-DOS
-#PLATFORM=i386-Linux
+# PLATFORM=i86-ELKS
+# PLATFORM=i86-FAST  PLATFORM=i86-DOS  PLATFORM=i386-BCC  PLATFORM=i386-Linux
+
+PLATFORM=$(shell if [ -f $(TOP)/.config.otype ] ; \
+                 then cat $(TOP)/.config.otype ; \
+                 else echo i86-ELKS ; fi)
+export PLATFORM
 endif
 
 VERMAJOR=0
 VERMINOR=0
-VERPATCH=7
+VERPATCH=8
 VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
 
-LIBDEFS=-D__LIBC__
+LIBDEFS='-D__LIBC__="$(VER)"'
 LIBC=libc.a
 
-ifneq ($(PLATFORM),i386-Linux)
+##############################################################################
 
 # Normal standard 8086 code
 ifeq ($(PLATFORM),i86-ELKS)
 ARCH=
+LIB_CPU=i86
+LIB_OS=ELKS
 endif
 
 # 8086 elks code With "Caller saves" and "First arg in AX"
 ifeq ($(PLATFORM),i86-FAST)
 ARCH=-Mf
 LIBC=libc_f.a
+LIB_CPU=i86
+LIB_OS=ELKS
+endif
+
+# Standalone executable
+ifeq ($(PLATFORM),i86-BIOS)
+ARCH=-Ms
+LIBC=libc_s.a
+LIB_CPU=i86
+LIB_OS=BIOS
 endif
 
 # MSDOS COM file (msdos libs don't support "First arg in AX")
 ifeq ($(PLATFORM),i86-DOS)
 ARCH=-Md
 LIBC=libdos.a
+LIB_CPU=i86
+LIB_OS=DOS
 endif
+
+##############################################################################
 
 # BCC 386.
 ifeq ($(PLATFORM),i386-BCC)
-ARCH=-3
-endif
+ARCH=-3 -N
+LIB_CPU=i386
+LIB_OS=ELKS
 
 CC=bcc $(ARCH)
-CCFLAGS=-I -I$(TOP)/include # -O
-LKFLAGS=-L -L$(TOP)/ -s
+CCFLAGS=-I -I$(TOP)/include
+LKFLAGS=-L -L$(TOP)/
+endif
 
-else # ifeq ($(PLATFORM),i386-Linux)
+ifeq ($(PLATFORM),i386-Linux)
+LIB_CPU=g386
+LIB_OS=ELKS
 
 CC=gcc $(ARCH)
 # ARCH=-b i486-linuxaout
@@ -61,8 +84,25 @@ CCFLAGS=-O6 -fomit-frame-pointer -I- -I$(TOP)/include -I. -fno-builtin
 WALL=	-ansi -pedantic -Wwrite-strings -Wpointer-arith -Wcast-qual \
 	-Wcast-align -Wtraditional -Wstrict-prototypes -Wmissing-prototypes \
 	-Wnested-externs -Winline -Wshadow
+endif
 
-endif # ifeq ($(PLATFORM),i386-Linux)
+############################################################################
+
+ifeq ($(LIB_CPU),i86)
+CC=bcc $(ARCH)
+CCFLAGS=-I -I$(TOP)/include # -O
+LKFLAGS=-L -L$(TOP)/ -s
+endif
+
+ifeq ($(LIB_CPU),)
+LIB_CPU=Unknown
+LIB_OS=Unknown
+LIBC=libc_X.a
+CCFLAGS=-I$(TOP)/include
+LKFLAGS=
+endif
 
 CFLAGS=$(CCFLAGS) $(LIBDEFS)
 LDFLAGS=$(LKFLAGS)
+
+.PRECIOUS: $(LIBC)

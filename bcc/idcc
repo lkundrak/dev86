@@ -27,7 +27,6 @@ TMPCNT=0
 FILES=
 OPTS=
 RESEXTN=
-OPTIM=no
 VERBOSE=no
 MULTISRC=no
 
@@ -74,17 +73,17 @@ main() {
          [ "$RESEXTN" = "" ] && RESEXTN=O
       fi
       [ "$STEMP"  = 1 ] && rm -f "$SFILE"
-      [ "$INTEMP" = 1 ] && RMFILES="$RMFILES $FILE"
    done
 
-   [ "$RESEXTN" != "" ] && exit $rv
+   [ "$RESEXTN" != "" ] && {
+      rm -f $TMPFIL.*
+      exit $rv
+   }
 
-   [ "$VERBOSE" = yes ] &&
-       echo "$LD $SYSLIB $LDOPTS $LDFLAGS -o $LDDEST $CRT0 $LDFILES $LIBS"
-
-   $LD $SYSLIB $LDOPTS $LDFLAGS -o $LDDEST $CRT0 $LDFILES $LIBS
+   [ "$VERBOSE" = yes ] && eval "echo \"$LINK\"" 1>&2
+   eval "$LINK"
    rv=$?
-   [ "$RMFILES" != "" ] && rm -f $RMFILES
+   rm -f $TMPFIL.*
    exit "$rv"
 }
 
@@ -103,7 +102,6 @@ scanargs() {
       -E )     RESEXTN=i ;;
       -S )     RESEXTN=s ;;
       -c )     RESEXTN=o ;;
-      -O )     OPTIM=yes ;;
       -v )     VERBOSE=yes ;;
       -l?* )   FILES="$FILES $1" ; MULTISRC=yes ;;
       -* )     OPTS="$OPTS `echo .$1 | sed 's/..//'`" ;;
@@ -152,33 +150,27 @@ scanargs() {
 compile() {
    [ -r "$FILE" ] || { echo "Cannot open $FILE" 1>&2 ; return 1 ; }
 
-   [ "$RESEXTN" = "i" ] && {
-      cpp_only $FILE
-      return
-   }
-
    # Loop for the pass list
    # The CCX variables _are_ expanded again.
 
    ret=1
    for pass in $PASSLIST
    do
-      for extn in '' pre post inf res opt
+      for extn in '' res opt
       do eval "CCX$extn=\"\$CC$pass$extn\""
       done
 
       [ "$CCX" = "" ] && continue;
-      [ "$OPTIM" = "" -a "$CCXopt" = yes ] && continue;
       
       shuffel "$RESEXTN" $CCXres
-      [ "$VERBOSE" = yes ] && 
-          eval "echo \"$CCX $CCXpre $SFILE $CCXinf $FILE $CCXpost\""
-      eval "$CCX $CCXpre $SFILE $CCXinf $FILE $CCXpost" || return 1
+      [ "$VERBOSE" = yes ] && eval "echo \"$CCX\"" 1>&2
+      eval "$CCX" || return 1
       ret=0
+      [ "$CCXres" = "$RESEXTN" ] && break
    done
    [ "$ret" = 1 ] && { echo 'CC configuration error' 1>&2 ; return $ret ; }
 
-   [ "$RESEXTN" != "s" ] && PASS=as
+   [ "$RESEXTN" != "$CCXres" ] && PASS=as
    return 0
 }
 
@@ -190,7 +182,7 @@ assem() {
    n=
    [ "$ASNAME" != "" ] && n="$ASNAME$NAME"
 
-   [ "$VERBOSE" = yes ] && echo "$AS $ASFLAGS $n $SFILE -o $FILE"
+   [ "$VERBOSE" = yes ] && echo "$AS $ASFLAGS $n $SFILE -o $FILE" 1>&2
    $AS $ASFLAGS $n $SFILE -o $FILE || return
 
    [ "$RESEXTN" != "o" ] && PASS=lnk
@@ -226,40 +218,52 @@ run_0()
    LIBPATH="/usr/bcc/lib/bcc"
    CRT0="-C0"
    LIBS="-lc"
-   CGEN=
+   CGEN='-0'
    DEFS=
 
    CPP="cpp"
 
    PASSLIST=2
-   CC2="bcc-cc1" CC2pre='$SYSINC $DEFS $CPPFLAGS'
-       CC2inf='-o' CC2post='-0 $CGEN $CPPDEFS' CC2res=s
+   CC2='bcc-cc1 $SYSINC $DEFS $CPPDEFS $CPPFLAGS $CGEN $SFILE -o $FILE'
+   CC2res=s
    AS="as86" ASFLAGS='-u -w -0' ASNAME='-n '
-   LD="ld86" LDFLAGS='-i -0'
+   LINK='ld86 $SYSLIB $LDOPTS $LDFLAGS -o $LDDEST $CRT0 $LDFILES $LIBS'
+   LDFLAGS='-i -0'
+
+   [ "$RESEXTN" = "i" ] && {
+       PASSLIST="0"
+       CC0='bcc-cc1 $SYSINC $DEFS $CPPDEFS $CPPFLAGS $CGEN $SFILE -E'
+       CC0res=i
+   }
 
    opt_ansi=yes
    run_ansi()
    {
        PASSLIST="0 1 2"
-       CC0="bcc-cc1" CC0pre='$SYSINC $DEFS $CPPFLAGS' CC0inf='-o'
-           CC0post='-0 -E -D__STDC__=0 $CPPDEFS' CC0res=i
-       CC1="unproto" CC1pre='' CC1inf='' CC1post='' CC1res=k
-       CC2="bcc-cc1" CC2pre='$CGEN' CC2inf='-o' CC2post='-0' CC2res=s
+       CC0='bcc-cc1 $SYSINC $DEFS $CPPDEFS $CPPFLAGS $CGEN $SFILE -o $FILE -E'
+       CC0res=k
+       CC1res=i CC1='unproto $SFILE $FILE'
+       CC2res=s CC2='bcc-cc1 $CGEN $SFILE -o $FILE'
+       DEFS='-D__STDC__=0'
    }
    opt_I=yes; run_I() { SYSINC= ; }
    opt_L=yes; run_L() { SYSLIB= ; }
-   opt_s=yes; run_s() { LDFLAGS="$LDFLAGS -s" ; }
-   opt_Mf=yes; run_Mf() { LIBS=-lc_f ; CGEN='-f -c' ;}
-   opt_Md=yes; run_Md() { LIBS=-ldos ; DEFS='-D__MSDOS__' LDFLAGS='-i -0 -d' ;}
+   opt_O=yes; run_O() { echo Warning -O ignored 1>&2 ; }
+   opt_Mf=yes; run_Mf() { LIBS=-lc_f ; CGEN='-0 -f -c' ;}
+   opt_Md=yes;
+      run_Md() { LIBS=-ldos ; DEFS=$DEFS' -D__MSDOS__' LDFLAGS='-i -0 -d' ;}
 
    WILDOPT=yes
    wild_opt()
    {
       case "$1" in
-      -O* ) OPTIM=yes ; OPTFLG="$OPTFLG $1" ;;
-      * )   return 1 ;;
       # For normal CC operation unknowns go to the linker. ie:
-      #  * ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      # * ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      # But do this instead.
+      -[dMizmts] ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      -[dMizmt]- ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      -T*        ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      * ) return 1 ;;
       esac
       return 0
    }
@@ -273,36 +277,49 @@ run_3()
    LIBPATH="/usr/bcc/lib/bcc"
    CRT0="-C0"
    LIBS="-lc"
-   CGEN=
+   CGEN='-3'
    DEFS=
 
    CPP="cpp"
 
    PASSLIST=2
-   CC2="bcc-cc3" CC2pre='$SYSINC $DEFS $CPPFLAGS'
-       CC2inf='-o' CC2post='-3 $CGEN $CPPDEFS' CC2res=s
+   CC2='bcc-cc1 $SYSINC $DEFS $CPPDEFS $CPPFLAGS $CGEN $SFILE -o $FILE'
+   CC2res=s
    AS="as86" ASFLAGS='-u -w -3' ASNAME='-n '
-   LD="ld86" LDFLAGS='-i -3'
+   LINK='ld86 $SYSLIB $LDOPTS $LDFLAGS -o $LDDEST $CRT0 $LDFILES $LIBS'
+   LDFLAGS='-3'
+
+   [ "$RESEXTN" = "i" ] && {
+       PASSLIST="0"
+       CC0='bcc-cc1 $SYSINC $DEFS $CPPDEFS $CPPFLAGS $CGEN $SFILE -E'
+       CC0res=i
+   }
 
    opt_ansi=yes
    run_ansi()
    {
        PASSLIST="0 1 2"
-       CC0="bcc-cc3" CC0pre='$SYSINC $DEFS $CPPFLAGS' CC0inf='-o'
-           CC0post='-3 -E -D__STDC__=0 $CPPDEFS' CC0res=i
-       CC1="unproto" CC1pre='' CC1inf='' CC1post='' CC1res=k
-       CC2="bcc-cc1" CC2pre='$CGEN' CC2inf='-o' CC2post='-3' CC2res=s
+       CC0='bcc-cc1 $SYSINC $DEFS $CPPDEFS $CPPFLAGS $CGEN $SFILE -o $FILE -E'
+       CC0res=k
+       CC1res=i CC1='unproto $SFILE $FILE'
+       CC2res=s CC2='bcc-cc1 $CGEN $SFILE -o $FILE'
+       DEFS='-D__STDC__=0'
    }
    opt_I=yes; run_I() { SYSINC= ; }
    opt_L=yes; run_L() { SYSLIB= ; }
-   opt_s=yes; run_s() { LDFLAGS="$LDFLAGS -s" ; }
+   opt_O=yes; run_O() { echo Warning -O ignored 1>&2 ; }
 
    WILDOPT=yes
    wild_opt()
    {
       case "$1" in
-      -O* ) OPTIM=yes ; OPTFLG="$OPTFLG $1" ;;
-      * )   return 1 ;;
+      # For normal CC operation unknowns go to the linker. ie:
+      # * ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      # But do this instead.
+      -[dMizmts] ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      -[dMizmt]- ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      -T*        ) LDFLAGS="$LDFLAGS $1" ; return 0 ;;
+      * ) return 1 ;;
       esac
       return 0
    }

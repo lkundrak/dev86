@@ -4,13 +4,18 @@ WALLP =-Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
        -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls \
        -Wnested-externs -Winline 
 
-# unproto is yukky
-WALL=-Wno-comment -Wstrict-prototypes
+# unproto is yukky, I've included '-w' in the local makefile.
+WALL=-Wstrict-prototypes
 CCFLAGS	=-Wall $(WALL) -O2 -fno-strength-reduce
-LDFLAGS	=-s
 
-export BCCHOME =/usr/bcc
-export LIBDIR	=$(BCCHOME)/lib/bcc
-export BINDIR	=/usr/bin
 CC	=gcc
 CFLAGS  =$(CCFLAGS)
+LDFLAGS	=-s
+
+export DIST
+export BINDIR	=$(DIST)/usr/bin
+export MANDIR	=$(DIST)/usr/man
+export BCCROOT  =/usr/bcc
+export BCCHOME	=$(DIST)$(BCCROOT)
+export LIBDIR	=$(BCCHOME)/lib/bcc
+export ELKSSRC  =/usr/src/linuxmt

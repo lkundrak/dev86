@@ -15,17 +15,17 @@ GOBJ=atoi.o atol.o ltoa.o ltostr.o \
      ctype.o qsort.o bsearch.o rand.o lsearch.o getopt.o \
      itoa.o cputype.o strtol.o crypt.o
 
-UOBJ=getenv.o putenv.o popen.o system.o
+UOBJ=getenv.o putenv.o popen.o system.o setenv.o
 
 
-ifeq ($(PLATFORM),i86-DOS)
-OBJ=$(MOBJ) $(EOBJ) $(GOBJ)
-else
+ifeq ($(LIB_OS),ELKS)
 OBJ=$(MOBJ) $(EOBJ) $(GOBJ) $(UOBJ)
+else
+OBJ=$(MOBJ) $(EOBJ) $(GOBJ)
 endif
 
 # No ELKS strtod() until BCC does 16 bit FP...
-ifeq ($(PLATFORM),i386-Linux)
+ifneq ($(LIB_CPU),i86)
 OBJ+=strtod.o
 endif
 
@@ -45,14 +45,14 @@ $(EOBJ): $(ESRC)
 	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ESRC)
 
 crypt.o: crypt.c
-ifeq ($(PLATFORM),i386-Linux)
+ifeq ($(LIB_CPU),g386)
 	$(CC) $(CFLAGS) $< -c -o $@ $(WALL)
 else
 	$(CC) $(CFLAGS) $< -c -o $@ -ansi
 endif
 	
 strto%.o: strto%.c
-ifeq ($(PLATFORM),i386-Linux)
+ifeq ($(LIB_CPU),g386)
 	$(CC) $(CFLAGS) $< -c -o $@ $(WALL)
 else
 	$(CC) $(CFLAGS) $< -c -o $@ -ansi

@@ -1,0 +1,107 @@
+.TH ld86 1 "Oct, 1996"
+.BY Bruce Evans
+.nh
+.SH NAME
+ld86 \- Linker for as86(1)
+.SH SYNOPSIS
+.BR ld86
+.RB [ -03MNdimrstz [-]]
+.RB [ -llib_extension ]
+.RB [ -o\ outfile ]
+.RB [ -Ccrtfile ]
+.RB [ -Llibdir ]
+.RB [ -Olibfile ]
+.RB [ -Ttextaddr ]
+.RB [ -Ddataaddr ]
+.B infile...
+
+.SH DESCRIPTION
+This linker understands only the object files produced by the as86 assembler,
+it can link them into either an impure or a separate I&D executable.
+
+The linking defaults are everything off or none except for
+.B -0
+and the output file is
+.BR a.out .
+There is
+.I not
+a standard library location defined in the linker.
+
+.SH OPTIONS
+.TP
+.B -0
+produce header with 16-bit magic
+.\"and use library subdir i86 for -lx
+.TP
+.B -3
+produce header with 32-bit magic
+.\"and use library subdir i386 for -lx
+.TP
+.B -d
+delete the header from the output file, used for MSDOS COM files. As a side
+effect this also includes -s as there's nowhere to put a symbol table.
+.TP
+.B -Cx
+add file libdir-from-search/crtx.o to list of files linked
+.TP
+.B -D
+data base address follows (in format suitable for strtoul)
+.TP
+.B -Lx
+add dir name x to the head of the list of library dirs searched
+.TP
+.B -M
+print symbols linked on stdout
+.TP
+.B -N
+Create a native Linux OMAGIC output file. If the contents are i386 code the
+binary can be either linked by GCC or executed by linux.
+.TP
+.B -Ox
+add library libdir-from-search/x to list of files linked
+.TP
+.B -T
+text base address follows (in format suitable for strtoul)
+.TP
+.B -i
+separate I&D output
+.TP
+.B -lx
+add library libdir-from-search/libx.a to list of files linked
+.TP
+.B -m
+print modules linked on stdout
+.TP
+.B -o
+output file name follows
+.TP
+.B -s
+strip symbols
+.TP
+.B -r
+Generate a relocatable object from one source object, note this only works
+when creating native (-N) binaries.
+.TP
+.B -t
+trace modules being looked at on stdout
+.TP
+.B -z
+produce "unmapped zero page" executables
+.P
+All the options not taking an argument may be turned off by following the
+option letter by a '-', as for cc1.
+.SH HISTORY
+
+The 6809 version does not support -i.
+
+The previous versions of the linker could produce an 8086 executable with
+segments of a size >64k, now only i386 executables may have segments
+this large.
+
+The output format for the -r option has changed.
+
+.SH BUGS
+The linker cannot deal with reverse seeks caused by
+.B org
+instructions in the object file. Unlike previous versions the current one
+traps the error rather than trying to fill up the hard disk.

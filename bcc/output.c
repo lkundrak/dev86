@@ -158,7 +158,7 @@ char *message;
 
 PUBLIC void finishup()
 {
-    if (!cppmode)
+    if (!orig_cppmode)
     {
 	if (watchlc)
 	{

@@ -14,11 +14,8 @@ int errno;
 
 #ifdef L_dos_start
 
-static char * argdef[2] = { "C" };
-char ** __argv  =argdef;
-char ** environ =argdef+1;
-
-int __argc      =1;
+static char * defarg[2] = { "C" };
+static char ** def_environ =defarg+1;
 void (*__cleanup)() = 0;
 
 #asm
@@ -109,14 +106,19 @@ zap_bss:		! Clear the BSS
   rep
    stosb
 
-  call	___mkargv	! Fetch the arguments and enviroment
-  push	[_environ]
-  push	[___argv]
-  push	[___argc]
+  push	[_def_environ]	! Defaults for when nothing is used.
+  mov	ax,#_defarg
+  push	ax
+  mov	ax,#1
+  push	ax
 
   mov	si,#auto_start	! Pointer to first autostart function
 auto_run:
-  call	[si]		! Call the function
+  mov	bx,[si]
+  test	bx,bx
+  jz	no_entry
+  call	bx		! Call the function
+no_entry:
   inc	si		! SI at next
   inc	si
   jmp	auto_run	! And round for the next.
@@ -163,11 +165,18 @@ sys_call0:
 
 #ifdef L___mkargv
 
-extern char ** environ;
-extern char ** __argv;
-extern int     __argc;
+#ifdef __AS386_16__
+#asm
+  loc	1		! Make sure the pointer is in the correct segment
+auto_func:		! Label for bcc -M to work.
+  .word	___mkargv	! Pointer to the autorun function
+  .text			! So the function after is also in the correct seg.
+#endasm
+#endif
 
-__mkargv()
+__mkargv(__argc, __argv)
+int __argc;
+char ** __argv;
 {
    int length, i, argc=1, s=0;
    char *ptr, *p;

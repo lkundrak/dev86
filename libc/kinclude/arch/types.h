@@ -10,10 +10,10 @@ typedef unsigned char * __pu8;
 typedef char __s8;
 typedef char * __ps8;
 
-typedef unsigned int __u16;
-typedef unsigned int * __pu16;
-typedef int __s16;
-typedef int * __ps16;
+typedef unsigned short __u16;
+typedef unsigned short * __pu16;
+typedef short __s16;
+typedef short * __ps16;
 
 typedef unsigned long __u32;
 typedef unsigned long * __pu32;

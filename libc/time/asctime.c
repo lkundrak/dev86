@@ -5,7 +5,7 @@ extern void __asctime();
 
 char *
 asctime(timeptr)
-struct tm * timeptr;
+__const struct tm * timeptr;
 {
 static char timebuf[26];
 

@@ -17,8 +17,6 @@ typedef int fastin_t;
 #endif
 typedef int fastin_pt;
 
-#ifdef OBJ_H			/* obj.h is included */
-
 typedef unsigned flags_t;	/* unsigned makes shifts logical */
 
 #ifdef LONG_OFFSETS
@@ -26,6 +24,8 @@ typedef unsigned long bin_off_t;
 #else
 typedef unsigned bin_off_t;
 #endif
+
+#ifdef OBJ_H			/* obj.h is included */
 
 struct entrylist		/* list of entry symbols */
 {
@@ -93,10 +93,8 @@ void flusherr P((void));
 void openin P((char *filename));
 void openout P((char *filename));
 void putstr P((char *message));
-#ifdef OBJ_H
 void put08x P((bin_off_t num));
 void put08lx P((bin_off_t num));
-#endif
 void putbstr P((unsigned width, char *str));
 void putbyte P((int ch));
 int readchar P((void));
@@ -117,9 +115,7 @@ void prematureeof P((void));
 void redefined P((char *name, char *message, char *archentry,
 		  char *deffilename, char *defarchentry));
 void reserved P((char *name));
-#ifdef OBJ_H
 void size_error P((int seg, bin_off_t count, bin_off_t size));
-#endif
 void undefined P((char *name));
 void usage P((void));
 void use_error P((char *message));
@@ -132,10 +128,10 @@ void objinit P((void));
 void readsyms P((char *filename, bool_pt trace));
 #ifdef OBJ_H
 void entrysym P((struct symstruct *symptr));
-bin_off_t readconvsize P((unsigned countindex));
-bin_off_t readsize P((unsigned count));
 unsigned segsizecount P((unsigned seg, struct modstruct *modptr));
 #endif
+bin_off_t readconvsize P((unsigned countindex));
+bin_off_t readsize P((unsigned count));
 
 /* table.c */
 void syminit P((void));
@@ -162,4 +158,10 @@ bool_pt typeconv_init P((bool_pt big_endian, bool_pt long_big_endian));
 /* writebin.c */
 void writebin P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
 		 bool_pt argstripflag, bool_pt arguzp));
+
+/* write_elks.c */
+void write_elks P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
+		 bool_pt argstripflag, bool_pt arguzp));
+
+/* linksym.c */
 void linksyms P((bool_pt argreloc_output));

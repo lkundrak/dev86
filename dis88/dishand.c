@@ -82,8 +82,8 @@ badseq(j,k)                   /* Invalid-sequence routine   */
    register int j, k;
 
 {
-   printf("\t.byte\t0x%02.2x\t\t| invalid code sequence\n",j);
-   printf("\t.byte\t0x%02.2x\n",k);
+   printf("\t.byte\t$%02.2x\t\t| invalid code sequence\n",j);
+   printf("\t.byte\t$%02.2x\n",k);
 }
 
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -107,7 +107,7 @@ dfhand(j)
 
    segflg = 0;
 
-   printf("\t.byte\t0x%02.2x",j);
+   printf("\t.byte\t$%02.2x",j);
 
    if (optab[j].min || optab[j].max)
       putchar('\n');
@@ -178,7 +178,10 @@ aohand(j)
          break;
       case 4 :
          FETCH(k);
-         printf("%s\tal,*0x%02.2x\n",optab[j].text,k);
+	 if( k < 16 )
+            printf("%s\tal,*%d\n",optab[j].text,k);
+	 else
+            printf("%s\tal,*$%02.2x\n",optab[j].text,k);
          break;
       case 5 :
          FETCH(m);
@@ -187,7 +190,12 @@ aohand(j)
          if (lookext((long)(k),(PC - 1),b))
             printf("%s\tax,#%s\n",optab[j].text,b);
          else
-            printf("%s\tax,#0x%04.4x\n",optab[j].text,k);
+	    {
+	    if( k < 100 || k > 65436 )
+	       printf("%s\tax,#%d\n",optab[j].text, (short)k);
+	    else
+	       printf("%s\tax,#$%04x\n",optab[j].text,k);
+	    }
          break;
       default :
          dfhand(j);
@@ -214,6 +222,7 @@ sjhand(j)
 
    register int k;
    int m;
+   unsigned short dest;
 
    objini(j);
 
@@ -225,10 +234,11 @@ sjhand(j)
       k = 0;
 
    k |= m;
+   dest = (PC + k + 1);
 
    printf("%s\t%s\t\t| loc %05.5lx\n",optab[j].text,
-    lookup((PC + k + 1L),N_TEXT,LOOK_REL,-1L),
-    (PC + k + 1L));
+    lookup((long) dest,N_TEXT,LOOK_REL,-1L),
+    (long) dest);
 
    objout();
 
@@ -305,7 +315,7 @@ imhand(j)
          {
          FETCH(m);
          if (m & 0x80)
-            n = 0xff00;
+            n = -0xFF;
          else
             n = 0;
          offset = n | m;
@@ -349,10 +359,18 @@ imhand(j)
       case 1 :
       case 2 :
          if (mod == 1)
+	 {
             strcat(a,"*");
+            sprintf(b,"%d(", (short)offset);
+	 }
          else
+	 {
             strcat(a,"#");
-         sprintf(b,"%d(",offset);
+	    if( offset < 100 || offset > 65436 )
+               sprintf(b,"%d(", (short)offset);
+	    else
+               sprintf(b,"$%04x(",offset);
+	 }
          strcat(a,b);
          strcat(a,REGS1[rm]);
          strcat(a,")");
@@ -364,10 +382,18 @@ imhand(j)
 
    strcat(a,",");
    if (iflag)
+   {
       strcat(a,"#");
+      if( immed < 100 || immed > 65436 )
+         sprintf(b,"%d", (short)immed);
+      else
+         sprintf(b,"$%04x",immed);
+   }
    else
+   {
       strcat(a,"*");
-   sprintf(b,"%d",immed);
+      sprintf(b,"%d",immed);
+   }
    strcat(a,b);
 
    printf("%s\n",a);
@@ -514,12 +540,12 @@ cihand(j)
    FETCH(m);
    FETCH(n);
 
-   printf("#0x%04.4x,",((n << 8) | m));
+   printf("#$%04.4x,",((n << 8) | m));
 
    FETCH(m);
    FETCH(n);
 
-   printf("#0x%04.4x\n",((n << 8) | m));
+   printf("#$%04.4x\n",((n << 8) | m));
 
    objout();
 
@@ -555,7 +581,12 @@ mihand(j)
       if (lookext((long)(k),(PC - 1),b))
          printf("#%s\n",b);
       else
-         printf("#%d\n",k);
+         {
+         if( k < 100 || k > 65436 )
+            printf("#%d\n",(short)k);
+	 else
+            printf("#$%04x\n",k);
+         }
       }
    else
       {
@@ -637,12 +668,17 @@ tqhand(j)
       if (lookext((long)(k),(PC - 1),b))
          printf("#%s\n",b);
       else
-         printf("#%d\n",k);
+         {
+         if( k < 100 || k > 65436 )
+            printf("#%d\n",(short)k);
+	 else
+            printf("#$%04x\n",k);
+         }
       }
    else
       {
       if (m & 80)
-         m |= 0xff00;
+         m |= -0xFF;
       printf("*%d\n",m);
       }
 
@@ -733,7 +769,12 @@ mmhand(j)
       if (lookext((long)(k),(PC - 1),b))
          printf("#%s\n",b);
       else
-         printf("#%d\n",k);
+         {
+         if( k < 100 || k > 65436 )
+            printf("#%d\n",(short)k);
+	 else
+            printf("#$%04x\n",k);
+         }
       }
    else
       {
@@ -843,7 +884,7 @@ iohand(j)
 
    FETCH(k);
 
-   printf("%s\t0x%02.2x\n",optab[j].text,k);
+   printf("%s\t$%02.2x\n",optab[j].text,k);
 
    objout();
 
@@ -865,6 +906,7 @@ ljhand(j)
 
    register int k;
    int m, n;
+   unsigned short dest;
 
    objini(j);
 
@@ -872,10 +914,11 @@ ljhand(j)
    FETCH(n);
 
    k = (n << 8) | m;
+   dest = PC + k + 1;
 
    printf("%s\t%s\t\t| loc %05.5lx\n",optab[j].text,
-    lookup((PC + k + 1L),N_TEXT,LOOK_LNG,(PC - 1L)),
-    (PC + k + 1L));
+          lookup((long)dest,N_TEXT,LOOK_LNG,(PC - 1L)),
+          (long)dest);
 
    objout();
 
@@ -952,7 +995,7 @@ mahand(j)
          if (lookext((long)(k),(PC - 1),b))
             printf(",#%s\n",b);
          else
-            printf(",#%d\n",k);
+            printf(",#$%04x\n",k);
          }
       else
          {

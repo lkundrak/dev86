@@ -5,7 +5,9 @@
 TOP=..
 include $(TOP)/Make.defs
 
+ifeq ($(LIB_OS),ELKS)
 OBJ=termcap.o tparam.o
+endif
 
 all: $(OBJ)
 

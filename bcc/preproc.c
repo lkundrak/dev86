@@ -68,12 +68,19 @@ PRIVATE void asmcontrol()
 
     asmmode = TRUE;
     if (orig_cppmode)
+#ifndef ASM_BARE
+	outstr("#asm");
+#else
 	outstr("#asm\n");
+#endif
     else
     {
 	outstr("!BCC_ASM\n");
 	dumplocs();
     }
+#ifndef ASM_BARE
+    cppscan(1);
+#else
     while (TRUE)
     {
 	skipline();
@@ -120,6 +127,7 @@ PRIVATE void asmcontrol()
 	    outnl();
 	}
     }
+#endif
     if (orig_cppmode)
 	outstr("#endasm");	/* nl is done by skipeol */
     else
@@ -797,6 +805,11 @@ sym_pt ifcase;
 PUBLIC void ifinit()
 {
     ifstate.ifflag = TRUE;
+}
+
+PUBLIC int ifcheck()
+{
+    return (ifstate.ifflag == TRUE);
 }
 
 /* leavemac() - leave current and further macro substrings till not at end */

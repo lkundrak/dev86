@@ -15,8 +15,10 @@
 #define NR_STDLIBS	0
 #endif
 
-PUBLIC long text_base_address;	/* XXX */
-PUBLIC int doscomfile = 0;
+PUBLIC bin_off_t text_base_value = 0;	/* XXX */
+PUBLIC bin_off_t data_base_value = 0;	/* XXX */
+PUBLIC int headerless = 0;
+PUBLIC char hexdigit[] = "0123456789abcdef";
 
 PRIVATE bool_t flag[128];
 PRIVATE char *libs[MAX_LIBS] = {
@@ -81,7 +83,7 @@ char **argv;
     syminit();
     typeconv_init(BIG_ENDIAN, LONG_BIG_ENDIAN);
 #ifndef MC6809
-    flag['z'] = flag['3'] = sizeof(char *) >= 4;
+    flag['3'] = sizeof(char *) >= 4;
 #endif
     outfilename = NUL_PTR;
     for (argn = 1; argn < argc; ++argn)
@@ -92,17 +94,29 @@ char **argv;
 	else
 	    switch (arg[1])
 	    {
+	    case 'r':		/* relocatable output */
+#ifndef REL_OUTPUT
+#ifndef MSDOS
+		/* Ok, try for an alternate linker */
+		if( strcmp(argv[0], "ld86r") != 0 )
+		{
+		   argv[0] = "ld86r";
+	           execv("/usr/bin/ld86r", argv);
+	           execv("/usr/bin/ld86", argv);
+		}
+#endif
+		usage();
+#endif
 	    case '0':		/* use 16-bit libraries */
 	    case '3':		/* use 32-bit libraries */
 	    case 'M':		/* print symbols linked */
 	    case 'i':		/* separate I & D output */
 	    case 'm':		/* print modules linked */
-#ifdef BSD_A_OUT
-	    case 'r':		/* relocatable output */
-#endif
 	    case 's':		/* strip symbols */
 	    case 't':		/* trace modules linked */
 	    case 'z':		/* unmapped zero page */
+	    case 'N':		/* Native format a.out */
+	    case 'd':		/* Make a headerless outfile */
 		if (arg[2] == 0)
 		    flag[(int) arg[1]] = TRUE;
 		else if (arg[2] == '-' && arg[3] == 0)
@@ -112,18 +126,11 @@ char **argv;
 		if (arg[1] == '0')	/* flag 0 is negative logic flag 3 */
 		    flag['3'] = !flag['0'];
 		break;
-	    case 'd':		/* Make DOS com file */
-	        flag['3'] = FALSE;
-	        flag['z'] = FALSE;
-	        flag['0'] = TRUE;
-	        flag['s'] = TRUE;
-	        flag['d'] = TRUE;
-		text_base_address = 0x100;
-		break;
 	    case 'C':		/* startfile name */
 		tfn = buildname(crtprefix, arg + 2, crtsuffix);
 		if ((infilename = expandlib(tfn)) == NUL_PTR)
-		    fatalerror(tfn);	/* XXX - need to describe failure */
+		    infilename = tfn;
+		    /*fatalerror(tfn);	* XXX - need to describe failure */
 		readsyms(infilename, flag['t']);
 		break;
 	    case 'L':		/* library path */
@@ -134,21 +141,37 @@ char **argv;
 		break;
 	    case 'O':		/* library file name */
 		if ((infilename = expandlib(arg + 2)) == NUL_PTR)
-		    fatalerror(arg);	/* XXX */
+		    infilename = arg+2;
+		    /* fatalerror(arg);	* XXX */
 		readsyms(infilename, flag['t']);
 		break;
 	    case 'T':		/* text base address */
-		if (arg[2] != 0 || ++argn >= argc)
+		if (arg[2] == 0 && ++argn >= argc)
 		    usage();
 		errno = 0;    
-		text_base_address = strtoul(argv[argn], (char **) NUL_PTR, 16);
+		if (arg[2] == 0 )
+		   text_base_value = strtoul(argv[argn], (char **)0, 16);
+		else
+		   text_base_value = strtoul(arg+2, (char **)0, 16);
 		if (errno != 0)
 		    use_error("invalid text address");
+		break;
+	    case 'D':		/* data base address */
+		if (arg[2] == 0 && ++argn >= argc)
+		    usage();
+		errno = 0;    
+		if (arg[2] == 0 )
+		   data_base_value = strtoul(argv[argn], (char **)0, 16);
+		else
+		   data_base_value = strtoul(arg+2, (char **)0, 16);
+		if (errno != 0)
+		    use_error("invalid data address");
 		break;
 	    case 'l':		/* library name */
 		tfn = buildname(libprefix, arg + 2, libsuffix);
 		if ((infilename = expandlib(tfn)) == NUL_PTR)
-		    fatalerror(tfn);	/* XXX */
+		    infilename = tfn;
+		    /* fatalerror(tfn);	* XXX */
 		readsyms(infilename, flag['t']);
 		break;
 	    case 'o':		/* output file name */
@@ -160,11 +183,21 @@ char **argv;
 		usage();
 	    }
     }
-    doscomfile = flag['d'];
+
+    /* Headerless executables can't use symbols. */
+    headerless = flag['d'];
+    if( headerless ) flag['s'] = 1;
+
     linksyms(flag['r']);
     if (outfilename == NUL_PTR)
 	outfilename = "a.out";
-    writebin(outfilename, flag['i'], flag['3'], flag['s'],
+#ifndef MSDOS
+    if( flag['N'] )
+       writebin(outfilename, flag['i'], flag['3'], flag['s'],
+	     flag['z'] & flag['3']);
+    else
+#endif
+       write_elks(outfilename, flag['i'], flag['3'], flag['s'],
 	     flag['z'] & flag['3']);
     if (flag['m'])
 	dumpmods();

@@ -2,6 +2,10 @@
 TOP=..
 include $(TOP)/Make.defs
 
+ifneq ($(LIB_CPU),i86)
+CFLAGS=$(CCFLAGS) $(LIBDEFS) -DFLOATS
+endif
+
 ASRC=stdio.c
 AOBJ=_stdio_init.o fputc.o fgetc.o fflush.o fgets.o gets.o fputs.o	\
      puts.o fread.o fwrite.o fopen.o fclose.o fseek.o rewind.o ftell.o	\
@@ -27,6 +31,8 @@ transfer:
 
 clean:
 	rm -f *.o libc.a
+
+$(OBJ): stdio.h
 
 $(AOBJ): $(ASRC)
 	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ASRC)

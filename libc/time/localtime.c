@@ -5,7 +5,7 @@ extern void __tm_conv();
 
 struct tm *
 localtime(timep)
-time_t * timep;
+__const time_t * timep;
 {
    static struct tm tmb;
    struct timezone tz;
@@ -16,7 +16,7 @@ time_t * timep;
    offt = -tz.tz_minuteswest*60L;
 
    /* tmb.tm_isdst = ? */
-   __tm_conv(&tmb, &timep, offt);
+   __tm_conv(&tmb, timep, offt);
 
    return &tmb;
 }

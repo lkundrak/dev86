@@ -47,7 +47,8 @@ OBJECTS	= tok_io.o tok_class.o tok_pool.o unproto.o vstring.o symbol.o error.o
 
 ifneq ($(TOPDIR),)
 include $(TOPDIR)/Make.defs
-CFLAGS=$(CCFLAGS) $(PIPE) $(SKIP)
+CFLAGS=$(CCFLAGS) -w $(PIPE) $(SKIP)
+# I'm fed up, '-w' will shut GCC up about this nasty code!
 else
 CC=bcc
 CFLAGS=-O $(PIPE) $(SKIP)

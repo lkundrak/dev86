@@ -3,6 +3,8 @@
  * under the GNU Library General Public License.
  */
 
+#include <errno.h>
+
 /****************************************************************************/
 
 #ifdef L_errno
@@ -11,8 +13,9 @@ int errno = 0;	/* libc error value */
 
 /****************************************************************************/
 
-#ifdef L___brk_addr
 #ifdef __AS386_16__
+
+#ifdef L___brk_addr
 #asm
 .data
 export brk_addr
@@ -20,14 +23,12 @@ brk_addr: .word __end	! This holds the current return for sbrk(0)
 .text
 #endasm
 #endif
-#endif
 
 /****************************************************************************/
 
 #ifdef L_sbrk
-#ifdef __AS386_16__
 int sbrk(brk_off)
-unsigned int brk_off;
+int brk_off;
 {
 #asm
   mov	bx,sp
@@ -36,14 +37,14 @@ unsigned int brk_off;
 #endif
   test	ax,ax
   jnz	has_change
-  mov	ax,[brk_addr]	! Simple one; read current - can`t fail.
+  mov	ax,[brk_addr]	! Simple one, read current - can`t fail.
   jmp	eof
 
 has_change:
   js	go_down
   add	ax,[brk_addr]	! Goin up!
   jc	Enomem
-  sub	bx,#64		! Safety space
+  sub	bx,#512		! Safety space 512 bytes
   cmp	bx,ax		! Too close ?
   jb	Enomem
 
@@ -71,22 +72,20 @@ eof:
 #endasm
 }
 #endif
-#endif
 
 /****************************************************************************/
 
 #ifdef L_brk
-#ifdef __AS386_16__
 int
 brk(new_brk)
-void * new_brk;
+char * new_brk;
 {
 #asm
   mov	bx,sp
 #if !__FIRST_ARG_IN_AX__
   mov	ax,[bx+2]	! Fetch the requested value
 #endif
-  sub	bx,#64		! Safety space
+  sub	bx,#512		! Safety space 512 bytes
   cmp	bx,ax		! Too close ?
   jb	Enomem
   cmp	ax,#__end
@@ -111,6 +110,75 @@ brk_ok:
 #endasm
 }
 #endif
+
 #endif
 
 /****************************************************************************/
+
+#ifdef __AS386_32__
+extern char * __brk_addr;
+extern char * __brk();
+
+#ifdef L___brk_addr
+char * __brk_addr = 0;	/* This holds the current return for sbrk(0) */
+
+char * 
+__brk(val)
+{
+#asm
+#if __FIRST_ARG_IN_AX__
+  mov	ebx,eax
+#else
+  mov	ebx,[esp+4]
+#endif
+  mov	eax,#45
+  int	$80
+#endasm
+}
+
+__brk_addr_init()
+{
+   if( __brk_addr == 0 && (__brk_addr = __brk(0)) == 0 )
+   {
+      errno = ENOMEM;
+      return -1;
+   }
+   return 0;
+}
+#endif
+
+#ifdef L_sbrk
+char *
+sbrk(brk_off)
+int brk_off;
+{
+   char * new_brk;
+   if( __brk_addr_init() ) return (char*)-1;
+   if( brk_off == 0 ) return __brk_addr;
+
+   new_brk = __brk_addr + brk_off;
+   __brk_addr = __brk(new_brk);
+   if( __brk_addr != new_brk )
+   {
+      errno = ENOMEM;
+      return (char*)-1;
+   }
+   return __brk_addr - brk_off;
+}
+#endif
+
+#ifdef L_brk
+int
+brk(new_brk)
+char * new_brk;
+{
+   if( __brk_addr_init() ) return -1;
+
+   __brk_addr = __brk(new_brk);
+   if( __brk_addr == new_brk ) return 0;
+   errno = ENOMEM;
+   return -1;
+}
+#endif
+
+#endif

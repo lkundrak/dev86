@@ -4,42 +4,54 @@ export TOPDIR := $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
 include Make.defs
 
 PARTS=    ld as unproto bcc
+LIBS2=    libbsd
+LIBS=     libc $(LIBS2)
+EXTRAS=   man dis88 doselks
 TESTDIRS= tests
-EXTRAS=   libbsd dis88
 DISTFILES=Makefile Make.defs README Changes README.ash Libc_version make_bcc.bat
-DISTDIRS= elksemu $(TESTDIRS) $(EXTRAS)
+DISTDIRS= $(LIBS2) elksemu $(TESTDIRS) $(EXTRAS)
 
 default: dummy
 	@echo You have to do make install as root
 	@echo Or:
 	@echo
-	@echo 'make bcc'
-	@echo 'su -c "make install-bcc"'
-	@echo 'make library'
-	@echo 'su -c "make install-lib"'
-	@echo 'make elksemu'
-	@echo 'su -c "make install-emu"'
-	@echo 'make tests'
+	@echo '$ make bcc'
+	@echo '$ su -c "make install-bcc"'
+	@echo '$ make library'
+	@echo '$ su -c "make install-lib"'
+	@echo '$ make elksemu'
+	@echo '$ su -c "make install-emu"'
 	@echo
+	@echo 'Other libraries are built with:'
+	@echo '$ su -c "make install-lib2"'
 	@echo
-	@echo 'Use "make extras" or "make install-extras" for other pieces'
+	@echo 'Others pieces are: "make tests" and "make extras"'
 
 dummy:
 	@if [ -f .runme ] ; then sh .runme ; rm .runme ; fi
 
-install: install-bcc install-lib install-emu tests
+install: install-bcc install-lib install-emu
+
+# Do _everything_!
+install-all: realclean config install install-lib2 install-extras realclean
+
+config:
+	make -C libc config
+
+all: bcc library elksemu tests extras
 
 bcc: dummy
 	@for i in $(PARTS) ; do make -C $$i || exit 1; done
 
-realclean: clean
+realclean:
+	@for i in $(PARTS) libc $(DISTDIRS) ; do \
+	   if grep -q '^realclean' $$i/Makefile ; then \
+	   make -C $$i realclean ; else \
+	   make -C $$i clean ; fi ; done
 
-clean: clean_rest
-	make -C libc realclean
-
-clean_rest: dummy
-	@for i in $(PARTS) ; do make -C $$i clean || exit 1; done
-	@for i in $(DISTDIRS) ; do make -C $$i clean || exit 1; done
+clean:
+	@for i in $(PARTS) libc $(DISTDIRS) ; do \
+	   make -C $$i clean || exit 1; done
 
 tests: dummy
 	@test -f $(BINDIR)/bcc || \
@@ -51,7 +63,7 @@ tests: dummy
 library: dummy
 	@test -f $(BINDIR)/bcc || \
 	( echo 'Must do "make install-bcc" first' && exit 1 )
-	make -C libc
+	make -C libc PLATFORM=i86-ELKS
 
 elksemu: dummy
 	@test -f libc/syscall/call_tab.v || \
@@ -67,16 +79,31 @@ install-bcc: dummy
 install-lib: dummy
 	@test -f $(BINDIR)/bcc || \
 	( echo 'Must do "make install-bcc" first' && exit 1 )
-	make -C libc install
+	@for i in $(LIBS) ; do \
+	 make -C $$i PLATFORM=i86-ELKS install || exit 1 ; \
+	 done
 
-install-lib2: dummy
+install-lib2: install-lib-bios install-lib-dos install-lib-fast install-lib-386
+
+install-lib-bios: dummy
 	@test -f $(BINDIR)/bcc || \
 	( echo 'Must do "make install-bcc" first' && exit 1 )
-	make -s -C libc clean
-	make -s -C libc PLATFORM=i86-FAST install
-	make -s -C libc clean
-	make -s -C libc PLATFORM=i86-DOS install
-	make -s -C libc clean
+	make -C libc PLATFORM=i86-BIOS install
+
+install-lib-dos: dummy
+	@test -f $(BINDIR)/bcc || \
+	( echo 'Must do "make install-bcc" first' && exit 1 )
+	make -C libc PLATFORM=i86-DOS install
+
+install-lib-fast: dummy
+	@test -f $(BINDIR)/bcc || \
+	( echo 'Must do "make install-bcc" first' && exit 1 )
+	make -C libc PLATFORM=i86-FAST install
+
+install-lib-386: dummy
+	@test -f $(BINDIR)/bcc || \
+	( echo 'Must do "make install-bcc" first' && exit 1 )
+	make -C libc PLATFORM=i386-BCC install
 
 install-emu: dummy
 	@test -f libc/syscall/call_tab.v || \
@@ -86,16 +113,5 @@ install-emu: dummy
 install-extras: dummy
 	@for i in $(EXTRAS) ; do make -C $$i install || exit 1; done
 	
-distribution: clean_rest
-	make -C libc dist_ver
-	tar  cf /tmp/Development.tar $(DISTFILES) $(PARTS) $(DISTDIRS)
-	rm -rf /tmp/linux-86
-	mkdir /tmp/linux-86
-	ln -s `pwd`/libc-8086-`cat Libc_version`.tar.gz /tmp/libc-8086.tgz
-	cd /tmp/linux-86 ; tar xzf ../libc-8086.tgz ; rm ../libc-8086.tgz
-	mv /tmp/linux-86/libc-`cat Libc_version` /tmp/linux-86/libc
-	cd /tmp/linux-86 ; tar xf ../Development.tar ; rm ../Development.tar
-	cd /tmp; tar czf Development.tar.gz linux-86 ; rm -rf linux-86
-	mv /tmp/Development.tar.gz /tmp/Dev86-`cat Libc_version`.tar.gz
-	rm -rf libc-`cat Libc_version` Libc_version
-
+distribution:
+	sh Build_dist

@@ -19,7 +19,7 @@ char ** argv;
 	struct s * ptr2;
 	struct s * ptr3;
 	int i,sz;
-	long total = 0;
+	unsigned long total = 0;
 
 	for(i=0, sz=256 ; i<32; i++, sz = ((sz << 1) | (sz & V)) & M)
 	{
@@ -39,7 +39,7 @@ char ** argv;
 			ptr3->n = 0;
 		}
 	}
-	for(sz>>=1; sz>255; )
+	for(sz>>=1; sz>3; )
 	{
 		ptr2 = (struct s *) malloc(sz-sizeof(int));
 		if(ptr2==0) { sz >>=1; continue; }
@@ -77,4 +77,5 @@ char ** argv;
 	   printf("%2d(%8u)..%08lx..%ld\n",i++,sz,(long)ptr2,(long)ptr2);
         }
 	while(ptr2 && i < 100);
+	exit(0);
 }

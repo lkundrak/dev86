@@ -12,37 +12,63 @@ TARGETS=$(OBJ) $(LIBC)
 TXT=Makefile Make.defs README KERNEL COPYING Contributors MAGIC \
     New_subdir Pre_main Config_sh
 
-all: .config.lst $(TARGETS)
+all: .config.dir .config.otype $(TARGETS)
 
-install: all
+install: all install_incl
 	install -d $(BCCHOME)
+	install -d $(LIBDIR)/$(LIB_CPU)
+	install -m 644 crt0.o $(LIBDIR)/$(LIB_CPU)
+	install -m 644 $(LIBC) $(LIBDIR)/$(LIB_CPU)
+	-install -d $(DIST)/usr/lib
+	-install -m 644 error/liberror.txt $(DIST)/usr/lib/liberror.txt
+
+# I've changed this so it'll be easier to make a binary dist.
+old_install_incl:
 	rm -rf $(BCCHOME)/include
 	ln -s $(TOPDIR)/libc/include $(BCCHOME)/include
-	install -d $(LIBDIR)/i86
-	install -m 644 crt0.o $(LIBDIR)/i86
-	install -m 644 $(LIBC) $(LIBDIR)/i86
-	-install -m 644 error/liberror.txt /usr/lib
+
+install_incl:
+	rm -rf $(BCCHOME)/include
+	cp -pr include $(BCCHOME)/include
+	if [ -f kinclude/Used ] ; \
+	then cp -pr kinclude/arch $(BCCHOME)/include/arch ; \
+	else rm -rf $(BCCHOME)/include/linuxmt ; \
+	     ln -s $(ELKSSRC)/include/linuxmt $(BCCHOME)/include ; \
+	fi
+	-chown -R root:root   $(BCCHOME)/include 2>/dev/null
+	-chmod -R u=rwX,og=rX $(BCCHOME)/include
 
 tests: dummy
-	make -C tests
+	$(MAKE) -C tests
 
 dummy:
 
-$(LIBC): .config.dir transfer
+$(LIBC): transfer .config.dir
 	@for i in `cat .config.dir` ; do \
-	   echo make -C $$i libc.a ; make -C $$i libc.a || exit 1 ; \
+	   echo $(MAKE) -C $$i libc.a ; $(MAKE) -C $$i libc.a || exit 1 ; \
 	done
 
-realclean: dummy
-	rm -f $(OBJ) $(LIBC) .config.dir
-	@for i in */Makefile ; do \
-	   grep -q '^clean:' $$i && make -C `dirname $$i` clean ; \
+transfer: .config.dir
+	@echo Checking for transfers
+	@for i in `cat .config.dir`; do \
+	   grep -q '^transfer' $$i/Makefile && $(MAKE) -s -C $$i $@ ; \
 	done ; echo -n
+	@[ -f kinclude/Used ] || \
+	{ rm -f include/linuxmt ; \
+	  ln -s $(ELKSSRC)/include/linuxmt include ; }
 
-clean: .config.dir
+realclean: noconfig clean dellib
+
+clean:
+	rm -f $(OBJ) $(LIBC)
 	@for i in */Makefile ; do \
-	   make -C `dirname $$i` $@ || exit 1 ; \
+	   $(MAKE) -C `dirname $$i` $@ || exit 1 ; \
 	done
+
+dellib:
+	rm -f libc*.a libdos.a
+
+##############################################################################
 
 .config.lst: Makefile Make.defs Config_sh
 	sh Config_sh
@@ -50,13 +76,22 @@ clean: .config.dir
 config:
 	sh Config_sh
 
+noconfig:
+	rm -f .config.dir .config.lst .config.otype
+
 .config.dir: .config.lst
 	@grep '^[^:]*:+:' < .config.lst | sed 's/:.*//' > .config.dir
+
+.config.otype: dummy
+	@[ -f .config.otype ] || echo $(PLATFORM) > .config.otype
+	@[ "$(PLATFORM)" = "`cat .config.otype `" ] || $(MAKE) -$(MAKEFLAGS) clean
+	@rm -f .config.otype
+	@echo $(PLATFORM) > .config.otype
 
 dist: clean
 	-rm -f include/linuxmt
 	tar cf temp.tar \
-		$(TXT) $(TARGETS) $(SRC) include \
+		$(TXT) $(SRC) include \
 		`for i in */Makefile */Config; do dirname $$i; done | sort -u`
 	rm -rf libc-$(VER)
 	mkdir libc-$(VER) ; cd libc-$(VER) ; tar xf ../temp.tar
@@ -66,9 +101,3 @@ dist: clean
 dist_ver: dist
 	mv libc-8086-$(VER).tar.gz ..
 	echo $(VER) > ../Libc_version
-
-transfer: dummy
-	@echo Checking for transfers
-	@for i in `cat .config.dir`; do \
-	   grep -q '^transfer' $$i/Makefile && make -C $$i $@ ; \
-	done ; echo -n

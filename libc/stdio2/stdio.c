@@ -15,21 +15,29 @@
 
 extern FILE *__IO_list;		/* For fflush at exit */
 
-#ifndef __AS386_16__
-#define Inline_init __io_init_vars()
-#else
+#ifdef __AS386_16__
 #define Inline_init
 #endif
 
+#ifdef __AS386_32__
+#define Inline_init
+#endif
+
+#ifndef Inline_init
+#define Inline_init __io_init_vars()
+#endif
+
 #ifdef L__stdio_init
+
+#define buferr (stderr->unbuf)	/* Stderr is unbuffered */
 
 FILE *__IO_list = 0;		/* For fflush at exit */
 
 static char bufin[BUFSIZ];
 static char bufout[BUFSIZ];
+#ifndef buferr
 static char buferr[BUFSIZ];
-
-/* #define buferr (stderr->unbuf)	/* Stderr is unbuffered */
+#endif
 
 FILE  stdin[1] =
 {
@@ -51,18 +59,30 @@ FILE  stderr[1] =
 
 /* Call the stdio initiliser; it's main job it to call atexit */
 
-#ifndef __AS386_16__
-#define STATIC
-#else
+#ifdef __AS386_16__
 #define STATIC static
 
 #asm
   loc	1		! Make sure the pointer is in the correct segment
 auto_func:		! Label for bcc -M to work.
   .word	___io_init_vars	! Pointer to the autorun function
-  .word no_op		! Space filler cause segs are padded to 4 bytes.
   .text			! So the function after is also in the correct seg.
 #endasm
+#endif
+
+#ifdef __AS386_32__
+#define STATIC static
+
+#asm
+  loc	1		! Make sure the pointer is in the correct segment
+auto_func:		! Label for bcc -M to work.
+  .long	___io_init_vars	! Pointer to the autorun function
+  .text			! So the function after is also in the correct seg.
+#endasm
+#endif
+
+#ifndef STATIC
+#define STATIC
 #endif
 
 STATIC int 
@@ -85,8 +105,10 @@ STATIC void
 __io_init_vars()
 {
 #ifndef __AS386_16__
+#ifndef __AS386_32__
    static int first_time = 1;
    if( !first_time ) return ; first_time = 1;
+#endif
 #endif
    if (isatty(1))
       stdout->mode |= _IOLBF;
@@ -483,10 +505,32 @@ long  offset;
 int   ref;
 {
    /* Use fflush to sync the pointers */
-   /*
-    * TODO: if __MODE_READING and no ungetc ever done can just move
-    * pointer
-    */
+
+#if 0
+   /* if __MODE_READING and no ungetc ever done can just move pointer */
+   /* This needs testing! */
+
+   if ( (fp->mode &(__MODE_READING | __MODE_UNGOT)) == __MODE_READING && 
+        ( ref == SEEK_SET || ref == SEEK_CUR )
+   {
+      long fpos = lseek(fp->fd, 0L, SEEK_CUR);
+      if( fpos == -1 ) return EOF;
+
+      if( ref == SEEK_CUR )
+      {
+         ref = SEEK_SET;
+	 offset = fpos + offset + fp->bufpos - fp->bufread;
+      }
+      if( ref == SEEK_SET )
+      {
+         if ( offset < fpos && offset >= fpos + fp->bufstart - fp->bufread )
+	 {
+	    fp->bufpos = offset - fpos + fp->bufread;
+	    return 0;
+	 }
+      }
+   }
+#endif
 
    if (fflush(fp) == EOF)
       return EOF;
@@ -755,6 +799,9 @@ FILE *fp;
    /* Can't read or there's been an error then return EOF */
    if ((fp->mode & (__MODE_READ | __MODE_ERR)) != __MODE_READ)
       return EOF;
+
+   /* Can't do fast fseeks */
+   fp->mode |= __MODE_UNGOT;
 
    if( fp->bufpos > fp->bufstart )
       return *--fp->bufpos = (unsigned char) c;

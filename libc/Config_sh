@@ -30,6 +30,10 @@ main()
 
    CHANGED=0
    RUNNING=1
+   [ "$DIST" != "" ] && {
+      RUNNING=0
+      echo 'Using default configuration'
+   }
    while [ $RUNNING = 1 ]
    do
       display
@@ -51,9 +55,9 @@ main()
       fi
    done
    
-   if [ "$CHANGED" = 1 ]
+   if [ "$CHANGED" = 1 -a \( -f libc.a -o -f crt0.o \) ]
    then echo '
-    You should now run a "make realclean" to clean out the libc.a
+    You should now run a "make clean" to clean out the libc.a
 '
         exit 1
    fi

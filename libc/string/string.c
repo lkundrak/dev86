@@ -343,7 +343,7 @@ char * s;
    register char * p;
 
    len = strlen(s)+1;
-   p = (char *) malloc(s);
+   p = (char *) malloc(len);
    if(p) memcpy(p, s, len); /* Faster than strcpy */
    return p;
 }

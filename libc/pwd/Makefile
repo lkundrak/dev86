@@ -5,14 +5,18 @@
 TOP=..
 include $(TOP)/Make.defs
 
-ifeq ($(PLATFORM),i386-Linux)
+ifeq ($(PLATFORM),i386-ELKS)
 CFLAGS+=$(WALL)
-else # ifeq ($(PLATFORM),i86-ELKS)
+else
 CFLAGS=$(CCFLAGS) $(LIBDEFS) -ansi
 endif
 
 PSRC=__getpwent.c pwent.c getpwnam.c getpwuid.c putpwent.c getpw.c fgetpwent.c
+ifeq ($(LIB_OS),ELKS)
 POBJ=__getpwent.o pwent.o getpwnam.o getpwuid.o putpwent.o getpw.o fgetpwent.o
+else
+POBJ=
+endif
 
 all: $(POBJ)
 

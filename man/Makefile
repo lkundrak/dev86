@@ -1,0 +1,16 @@
+ifneq ($(TOPDIR),)
+include $(TOPDIR)/Make.defs
+else
+MANDIR=/usr/man
+endif
+
+MAN1PG=as86.1 bcc.1 elks.1 elksemu.1 ld86.1
+MAN1DIR=$(MANDIR)/man1
+
+all:
+
+install:
+	install -m 755 -o man -g other -d $(MAN1DIR)
+	install -m 644 -o man -g other    $(MAN1PG) $(MAN1DIR)
+
+clean:
