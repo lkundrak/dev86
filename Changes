@@ -1,5 +1,7 @@
 For version 0.16.0.
 
+> As major bugs seem to be absent 0.16.0 is escaping.
+
 > Seperated the multi-pass optimisation from the jump extension. We now have
   the -j back to it's old meaning and -O added to help shorten instructions.
 

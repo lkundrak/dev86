@@ -68,6 +68,8 @@ mkdir ${TMPDIST}/doselks
 rm -f /tmp/bootblocks.tar.gz /tmp/doselks.tar.gz /tmp/libc-8086-$VER.tar.gz
 
 echo Extracting previous version
+rm -f $ARCDIR/Dev86src-$VER.tar.gz
+
 mkdir ${TMPDIST}.tmp
 ( cd ${TMPDIST}.tmp
   tar xzf `ls -tr $ARCDIR/Dev86src*.0.tar.gz | tail -1`
