@@ -10,6 +10,9 @@ else
 CFLAGS=-O2 -fno-strength-reduce -Wall -idirafter . $(DEFS)
 endif
 
+# Turn on elkemu's strace like facility.
+# DEFS=-DDEBUG
+
 # For gcc making a.out with a basically ELF compiler
 # CFLAGS=-O2 -fno-strength-reduce -b i486-linuxaout -N -s -static
 

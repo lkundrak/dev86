@@ -9,7 +9,7 @@
 #include "readfs.h"
 
 #ifdef __STANDALONE__
-#define VT52COLOUR
+#define NOT_VT52COLOUR
 #define NOT_ANSICOLOUR
 #endif
 
@@ -27,6 +27,9 @@ extern struct t_cmd_list {
 
 static unsigned int current_address;
 static int number_base = 16;
+#ifdef __STANDALONE__
+   extern union REGS __argr;
+#endif
 
 #ifdef __STANDALONE__
 main()
@@ -48,22 +51,17 @@ static char minibuf[2] = " ";
 #endif
 
    init_prog();
-
-#if 0
 #ifdef __STANDALONE__
-   reg_line();
+   if( (__argr.x.dx & 0xFF) == 0 )
 #endif
-#ifdef VT52COLOUR
-   colour_line();
-#endif
-#endif
+   {
+      display_help(0);
 
-   display_help(0);
-
-   if(1) /* ( x86 > 2 && !x86_emu )	/* Check some basics */
-      cmd_bzimage((void*)0);
-   else
-      printf("System appears incompatible use '=' <return> to try anyway\n");
+      if( x86 > 2 && !x86_emu )	/* Check some basics */
+         cmd_bzimage((void*)0);
+      else
+         printf("System is not a 386+ in real mode, load aborted.\nUse 'bzimage' command toattempt load.\n");
+   }
 
    for (;;)
    {
@@ -175,7 +173,6 @@ void init_prog()
 #ifdef __STANDALONE__
 reg_line()
 {
-   extern union REGS __argr;
    printf("REGS: AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x\n",
 	  __argr.x.ax, __argr.x.bx, __argr.x.cx, __argr.x.dx,
 	  __argr.x.si, __argr.x.di);

@@ -2,10 +2,9 @@
 
 # Rules for loading short variables
 
-# Chad says this one (I think) is broken
-# mov	%0$0[%2],%3
-# =
-# mov	%0[%2],%3
+mov	%0$0[%2],%3
+=
+mov	%0[%2],%3
 
 mov	%2,%[ax|bx|cx|dx]1
 mov	%[ax|bx|cx|dx]1,%2
@@ -131,12 +130,14 @@ stosb
 
 # Rules for manipulating short values
 
-mov	%[ax|bx]2,%1
-%[add|and|xor|sub|or]4	%[ax|bx]2,%3
-mov	%1,%[ax|bx]2
-=
-mov	%2,%3
-%4	%1,%2
+# This is the broken rule - Chad
+
+#mov	%[ax|bx]2,%1
+#%[add|and|xor|sub|or]4	%[ax|bx]2,%3
+#mov	%1,%[ax|bx]2
+#=
+#mov	%2,%3
+#%4	%1,%2
 
 mov	%[ax|bx]2,%1
 %[add|and|xor|or]4	%[ax|bx]2,%3

@@ -13,14 +13,13 @@ OBJ=$(SOBJ) strpbrk.o strsep.o strstr.o strtok.o strcspn.o	\
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(LIBC)
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC): $(LIBC)($(OBJ))
 
 $(LIBC)($(SOBJ)): $(SSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 transfer:
 	-@rm -f ../include/string.h

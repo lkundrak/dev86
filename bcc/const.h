@@ -17,9 +17,13 @@
 
 #endif
 
+#ifdef __AS386_16__
+#define VERY_SMALL_MEMORY
+#endif
+
 #define SELFTYPECHECK		/* check calculated type = runtime type */
 
-#ifndef __AS386_16__
+#ifndef VERY_SMALL_MEMORY
 #define DEBUG			/* generate compiler-debugging code */
 #endif
 
@@ -29,7 +33,7 @@
 				 * since assembler has only 1 data seg */
 # define DYNAMIC_LONG_ORDER 1	/* long word order spec. at compile time */
 
-#ifdef __AS386_16__
+#ifdef VERY_SMALL_MEMORY
 
 /* Humm, now this is nasty :-) */
 #define float	no_hope
@@ -61,12 +65,9 @@ typedef long no_hope;
 
 /* switches for source machine dependencies */
 
-#ifndef SOS_EDOS
-# define S_ALIGNMENT (sizeof(int))  /* source memory alignment, power of 2 */
-#endif
-
-#ifndef SOS_MSDOS /* need portable alignment for large model */
-# define UNPORTABLE_ALIGNMENT
+/* Unportable alignment needed for specific compilers */
+#ifndef VERY_SMALL_MEMORY
+# define S_ALIGNMENT (sizeof(long)) /* A little safer */
 #endif
 
 /* local style */

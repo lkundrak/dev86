@@ -278,12 +278,11 @@ END{
 cat >> syscall.mak <<\!
 
 all: $(LIBC)($(OBJ))
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC)($(OBJ)): syscall.dat
 	$(CC) $(CFLAGS) -DL_$* syscall.c -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 !
 
 exit $?

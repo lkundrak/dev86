@@ -30,9 +30,7 @@ C:\> makeboot dos a:
    Place a Linux-8086 executable in the root directory of the floppy.
 
 $ make monitor.out
-$ mount -t msdos /dev/fd0 /mnt
-$ cp monitor.out /mnt/bootfile.sys
-$ umount /dev/fd0
+$ mcopy monitor.out a:BOOTFILE.SYS
 
 or 
 C:\> copy monitor.out a:\bootfile.sys
@@ -80,10 +78,10 @@ Take 1 msdos floppy.
 $ makeboot dos /dev/fd0
 $ mount -t msdos /dev/fd0 /mnt
 $ cp monitor.out /mnt/bootfile.sys
-$ umount /dev/fd0
-$ cp /usr/src/linux/arch/i386/boot/bzImage /mnt/fd0/vmlinuz
-$ echo 'root=/dev/ram ramdisk_file=ramdisk.gz mem=80M' > /mnt/fd0/vmlinuz.cmd
-$ cp /archive/ramdisk.gz /mnt/fd0/ramdisk.gz
+
+$ cp /usr/src/linux/arch/i386/boot/bzImage /mnt/vmlinuz
+$ echo 'root=/dev/ram ramdisk_file=ramdisk.gz mem=80M' > /mnt/vmlinuz.cmd
+$ cp /archive/ramdisk.gz /mnt/ramdisk.gz
 $ umount /dev/fd0
 
 The stuff about ramdisk is only if you want an init ramdisk. You can also use:

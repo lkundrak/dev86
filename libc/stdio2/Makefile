@@ -22,24 +22,21 @@ OBJ= $(AOBJ) $(POBJ) $(SOBJ)
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(LIBC)
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC): $(LIBC)($(OBJ))
 
 $(LIBC)($(AOBJ)): $(ASRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(POBJ)): $(PSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(SOBJ)): $(SSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 transfer:
 	-@rm -f ../include/stdio.h

@@ -5,8 +5,7 @@
 #define ARBITRARY_BACKSLASH_NEWLINES_NOT
 #define INSERT_BACKSLASH_NEWLINES_NOT
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "gencode.h"
 #include "output.h"
 #include "os.h"

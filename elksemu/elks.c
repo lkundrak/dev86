@@ -234,7 +234,7 @@ void main(int argc, char *argv[], char *envp[])
 	setregid(rgid, egid);
 	setreuid(ruid, euid);
 
-	dbprintf(("ELKSEMU 0.0.6 Alpha\n"));
+	dbprintf(("ELKSEMU 0.12.0\n"));
 	elks_init();
 
 	/* The Linux vm will deal with not allocating the unused pages */

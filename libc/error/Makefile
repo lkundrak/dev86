@@ -8,7 +8,7 @@ ifeq ($(LIB_OS),ELKS)
 OBJ=error.o sys_errlist.o perror.o sys_siglist.o __assert.o
 
 all: $(LIBC)($(OBJ))
-	@:
+	@$(RM) $(OBJ)
 else
 all:
 	@:

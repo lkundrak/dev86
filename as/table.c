@@ -180,7 +180,7 @@ PUBLIC struct sym_s *lookup()
     symptr->type = 0;
     symptr->data = inidata;
     symptr->length = length;
-    symptr->value_reg_or_op.value = (unsigned) (symptr->next = NUL_PTR);
+    symptr->value_reg_or_op.value = (offset_t) (symptr->next = NUL_PTR);
     heapptr = symptr->name;
     do
 	*heapptr++ = *nameptr++;

@@ -30,7 +30,7 @@ main()
 
    CHANGED=0
    RUNNING=1
-   [ "$DIST" != "" ] && {
+   [ "$DIST" != "" -o ! -t 1 -o ! -t 0 ] && {
       RUNNING=0
       echo 'Using default configuration'
    }

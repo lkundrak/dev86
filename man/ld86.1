@@ -83,8 +83,9 @@ output file name follows
 strip symbols
 .TP
 .B -r
-Generate a relocatable object from one source object, note this only works
-when creating native (-N) binaries.
+Generate a relocatable object from one source object, if the linker is
+given the -N option also the output format will be the hosts native format
+if possible.
 .TP
 .B -t
 trace modules being looked at on stdout
@@ -102,10 +103,12 @@ The previous versions of the linker could produce an 8086 executable with
 segments of a size >64k, now only i386 executables may have segments
 this large.
 
-The output format for the -r option has changed.
-
 .SH BUGS
 The linker cannot deal with reverse seeks caused by
 .B org
 instructions in the object file. Unlike previous versions the current one
 traps the error rather than trying to fill up the hard disk.
+
+The linker produces a broken a.out object file if given one input and the
+.B -r
+option this is so it is compatible with pre-dev86 versions.

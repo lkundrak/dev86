@@ -21,24 +21,34 @@ MAKEC=$(MAKE) -C
 MAKEX=
 
 #ifdef __GNUC__
+# unproto is yukky, I've included '-w' in the local makefile.
+
 WALL  =-Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
        -Wcast-qual -Wcast-align -Wconversion -Waggregate-return \
        -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls \
        -Wnested-externs -Winline 
 
-# unproto is yukky, I've included '-w' in the local makefile.
 WALL  =-Wstrict-prototypes
 
 CC	=gcc $(GCCFLAG)
+#ifdef __i386__
+CFLAGS	=-Wall $(WALL) -O2 -m486 -fno-strength-reduce
+#else
 CFLAGS	=-Wall $(WALL) -O2 -fno-strength-reduce
+#endf
 LDFLAGS	=-s
+#endif
+
+#ifndef GNUMAKE
+MAKEC=sh makec
+MAKEX=makec
 #endif
 
 #ifdef __minix
 # Minix make doesn't understand -C, cc runs out of memory with the headers.
 MAKEC=ash makec
 MAKEX=makec
-CFLAGS=-O -m -w -DPOSIX_HEADERS_MISSING
+CFLAGS=-O -m -w -DPOSIX_HEADERS_MISSING -DVERY_SMALL_MEMORY
 #endif
 
 #ifdef __BCC__
@@ -106,12 +116,12 @@ copt:  bindir
 
 as86: bindir
 	$(MAKEC) as $(MAKEARG) all
-	cp -p as/as86 lib/as86
+	cp -p as/as86 bin/as86
 	cp -p as/as86_encap bin/as86_encap
 
 ld86: bindir
 	$(MAKEC) ld $(MAKEARG) ld86
-	cp -p ld/ld86 lib/ld86
+	cp -p ld/ld86 bin/ld86
 
 elksemu: bindir
 	$(MAKEC) elksemu $(MAKEARG) elksemu
@@ -120,13 +130,15 @@ elksemu: bindir
 install-bcc: bcc unproto copt as86 ld86
 	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
 	install $(INEXE) bin/bcc 	$(DISTBIN)/bcc
+	install $(INEXE) bin/as86_encap	$(DISTBIN)/as86_encap
+	install $(INEXE) bin/as86 	$(DISTBIN)/as86
+	install $(INEXE) bin/ld86 	$(DISTBIN)/ld86
 	install $(INEXE) lib/bcc-cc1 	$(DISTLIB)/bcc-cc1
 	install $(INEXE) lib/unproto 	$(DISTLIB)/unproto
-	install $(INEXE) lib/as86 	$(DISTLIB)/as86
-	install $(INEXE) bin/as86_encap	$(DISTBIN)/as86_encap
-	install $(INEXE) lib/ld86 	$(DISTLIB)/ld86
 	install $(INEXE) lib/copt 	$(DISTLIB)/copt
 	install $(INDAT) lib/rules.* 	$(DISTLIB)/i86
+	@test ! -f $(DISTLIB)/as86 || rm -f $(DISTLIB)/as86
+	@test ! -f $(DISTLIB)/ld86 || rm -f $(DISTLIB)/ld86
 
 install-emu: elksemu
 	install -d $(DIST)/lib
@@ -191,11 +203,19 @@ lib-386: bindir
 
 ##############################################################################
 
-check_config:
+#ifdef GNUMAKE
+
+check_config: $(MAKEX)
 	$(MAKEC) libc .config.dir
 
-config:
+config: $(MAKEX)
 	$(MAKEC) libc config
+
+#else
+check_config: $(MAKEX) ;
+
+config: ;
+#endif
 
 makec:
 	echo 'cd $$1 ; shift ; make "$$@"' > makec
@@ -222,5 +242,6 @@ realclean:
 	-@for i in $(CLEANLIST) ; do $(MAKEC) $$i $@ ; true ; done
 	rm -rf bin lib
 	rm -f include
+	rm -f makec
 
 ##############################################################################

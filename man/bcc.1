@@ -325,14 +325,11 @@ this path is hardcoded into the C library.
 
 The 
 .B bcc
-executable itself is in /usr/bin and the
+executable itself,
 .B as86
 and
 .B ld86
-executables can be placed there also, but be aware that some programs
-will require the old operation of the
-.B -r
-argument to ld86 (eg compiling DOSEMU)
+are in /usr/bin.
 
 .SH SEE ALSO
 unprotoize(1), as86(1), ld86(1), elksemu(1)
@@ -342,3 +339,8 @@ try it produces a nasty mixture of 8086 and 80386 code that really
 upsets the assembler.
 
 The bcc.c compiler driver source is very untidy.
+
+The linker, ld86, produces a broken a.out object file if given one input and
+the
+.B -r
+option this is so it is compatible with pre-dev86 versions.

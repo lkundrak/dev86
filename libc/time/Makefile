@@ -7,7 +7,7 @@ OBJ=localtime.o gmtime.o asctime.o ctime.o asc_conv.o tm_conv.o
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(LIBC)
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC): $(LIBC)($(OBJ))
 

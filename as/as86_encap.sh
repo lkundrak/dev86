@@ -21,6 +21,7 @@ trap "rm -f _$$.* ; exit 99" 1 2 3 15
 LIBDIR='%%LIBDIR%%'	# Set by make install
 
 # If the one set by install fails then try a couple of others.
+[ -x "$LIBDIR/as86" ] || LIBDIR="`dirname $0`"
 [ -x "$LIBDIR/as86" ] || LIBDIR="`dirname $0`/../lib"
 [ -x "$LIBDIR/as86" ] || LIBDIR=/usr/bin
 

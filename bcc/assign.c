@@ -2,8 +2,7 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "byteord.h"
 #include "gencode.h"
 #include "reg.h"
@@ -236,7 +235,7 @@ struct symstruct *target;
 	    if (long_big_endian)
 #endif
 #if DYNAMIC_LONG_ORDER || LONG_BIG_ENDIAN
-# if BIG_ENDIAN
+# if INT_BIG_ENDIAN
 		target->offset.offi += oldsize - ctypesize;
 # else
 	    {
@@ -249,7 +248,7 @@ struct symstruct *target;
 	    else
 #endif
 #if DYNAMIC_LONG_ORDER || LONG_BIG_ENDIAN == 0
-# if BIG_ENDIAN
+# if INT_BIG_ENDIAN
 	    target->offset.offi += ctypesize;
 # else
 	    ;

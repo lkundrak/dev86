@@ -330,6 +330,16 @@ PUBLIC void factor()
 	chkabs();
 	lastexp.offset = ~lastexp.offset;
 	return;
+    case ADDOP:
+	getsym();
+	factor();
+	return;
+    case SUBOP:
+	getsym();
+	factor();
+	chkabs();
+	lastexp.offset = -lastexp.offset;
+	return;
     case STAR:
 	/* context-sensitive, STAR means location counter here */
 	lastexp.offset = lc;

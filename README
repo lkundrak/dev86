@@ -45,16 +45,6 @@ The as86 and ld86 with this are _different_ from the ones needed for the
 linux-i386 kernel but can replace them, the kernel-i386 ones _will_ _not_
 work correctly here!
 
-Unfortunatly, the DOSEMU folks have been using the '-r' option of ld86
-This version does accept '-r' (with -N) but it generates _LINUX_ a.out
-object files.  I think they should really be using 'as86_encap' but in 
-the short term DOSEMU is being changed to be able to use the new ld86.
-
-Neverthless this ld86 will call a program called /usr/bin/ld86r if it's
-given -r without -N, this can be the old ld86 renamed.  For simplicity
-Dev86 doesn't yet overwrite /usr/bin/ld86 but stores the linker in 
-/usr/bcc/lib.
-
 I _strongly_ suggest you install the kernel patch or load the module in
 the elksemu directory in your Linux-i386 kernel, it makes things _much_
 easier. (They both need the elksemu executable installed correctly)

@@ -66,8 +66,12 @@
 # endif /* BSD_A_OUT */
 
 /* And finally make sure it worked */
-#ifdef C_EXT
+#if defined(A_MINHDR) || defined(BSD_A_OUT)
+#if defined(C_EXT) && defined(C_STAT) && !defined(SCNHSZ)
+
 #define AOUT_DETECTED	1
+
+#endif
 #endif
 
 #endif /* NO_AOUT */

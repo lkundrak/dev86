@@ -2,11 +2,9 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
-#include "const.h"
+#include "bcc.h"
 
 #ifdef DEBUG
-
-#include "types.h"
 #include "gencode.h"
 #include "reg.h"
 #include "sc.h"

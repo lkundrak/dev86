@@ -15,17 +15,15 @@ OBJ=$(AOBJ) $(BOBJ)
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(LIBC)($(OBJ))
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC)($(AOBJ)): $(ASRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(BOBJ)): $(BSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 else
 all:
 	@:

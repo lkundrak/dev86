@@ -4,7 +4,8 @@ OBJ=malloc.o stack.o
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(LIBC)($(OBJ))
-	@:
+	@$(RM) $(OBJ)
+
 clean:
 	rm -f *.o libc.a
 

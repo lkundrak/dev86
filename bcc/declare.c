@@ -2,8 +2,7 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "align.h"
 #include "byteord.h"
 #include "gencode.h"
@@ -644,7 +643,7 @@ PRIVATE void declfunc()
 		arg1size = itypesize;
 	    argsp = softsp -= arg1size;
 	}
-#if BIG_ENDIAN
+#if INT_BIG_ENDIAN
 	if (argsize < itypesize)
 	    argsp += itypesize - argsize;
 	symptr->offset.offi = argsp;

@@ -35,7 +35,7 @@ main() {
    ARCH=-ml
    build bcc bcc-cc1 lib "$HDR_CC1" $SRC_CC1
    build as  as86    bin "$HDR_AS"  $SRC_AS
-   build ld  ld86    lib "$HDR_LD"  $SRC_LD
+   build ld  ld86    bin "$HDR_LD"  $SRC_LD
    echo ":exit_now"
 }
 

@@ -4,7 +4,9 @@
 /* Copyright (C) 1994 Bruce Evans */
 
 #ifndef NO_AOUT
+#ifndef A_OUT_INCL
 #define A_OUT_INCL <a.out.h>
+#endif
 #endif
 
 #include "syshead.h"
@@ -43,7 +45,9 @@
 #   define HEADERLEN (A_MINHDR)
 #  endif
 # endif
-# define FILEHEADERLENGTH (headerless?0:HEADERLEN)
+# ifndef FILEHEADERLENGTH
+#  define FILEHEADERLENGTH (headerless?0:HEADERLEN)
+# endif
 #endif
 #define DPSEG 2
 
@@ -119,8 +123,11 @@ FORWARD void writeheader P((void));
 FORWARD void writenulls P((bin_off_t count));
 
 /* write binary file */
+#ifndef FUNCNAME 
+#define FUNCNAME writebin
+#endif
 
-PUBLIC void writebin(outfilename, argsepid, argbits32, argstripflag, arguzp)
+PUBLIC void FUNCNAME(outfilename, argsepid, argbits32, argstripflag, arguzp)
 char *outfilename;
 bool_pt argsepid;
 bool_pt argbits32;
@@ -422,11 +429,11 @@ bool_pt arguzp;
 			    extsym.n_was_sclass = C_EXT;
 			else
 			    extsym.n_was_sclass = C_STAT;
-			if (!(flags & I_MASK) ||
+			if (!(flags & I_MASK) || (
 #ifdef REL_OUTPUT
 			     !reloc_output &&
 #endif
-			     flags & C_MASK)
+			     (flags & C_MASK)))
 			    switch (flags & (A_MASK | SEGM_MASK))
 			    {
 			    case 0:
@@ -485,14 +492,17 @@ bool_pt arguzp;
 	     memsizeof(struct exec, a_syms));
 	writeout(buf4, memsizeof(struct exec, a_syms));
 #ifdef REL_OUTPUT
-	seekout((unsigned long) offsetof(struct exec, a_trsize));
-	u4cn(buf4, (u4_t) ntreloc * RELOC_INFO_SIZE,
-	     memsizeof(struct exec, a_trsize));
-	writeout(buf4, memsizeof(struct exec, a_trsize));
-	seekout((unsigned long) offsetof(struct exec, a_drsize));
-	u4cn(buf4, (u4_t) ndreloc * RELOC_INFO_SIZE,
-	     memsizeof(struct exec, a_drsize));
-	writeout(buf4, memsizeof(struct exec, a_drsize));
+	if( FILEHEADERLENGTH >= offsetof(struct exec, a_trsize)+8)
+	{
+		seekout((unsigned long) offsetof(struct exec, a_trsize));
+		u4cn(buf4, (u4_t) ntreloc * RELOC_INFO_SIZE,
+	     	memsizeof(struct exec, a_trsize));
+		writeout(buf4, memsizeof(struct exec, a_trsize));
+		seekout((unsigned long) offsetof(struct exec, a_drsize));
+		u4cn(buf4, (u4_t) ndreloc * RELOC_INFO_SIZE,
+	     	memsizeof(struct exec, a_drsize));
+		writeout(buf4, memsizeof(struct exec, a_drsize));
+	}
 #endif
     }
 #endif /* MINIX */

@@ -1,3 +1,46 @@
+For version 0.12.0.
+
+> Notice the change in the version numbers, as long as I'm releasing the
+  upto the minute patches I thought I'd better give everyone a way of
+  keeping track. So now the 0.X.0 are the main releases, the 0.X.Y are
+  interim patches.
+
+> I've added a new output binary for ld86, it can now do the broken
+  relocatable a.out that bin86 produces. I don't like this but it
+  does let me move ld86 back to /usr/bin without breaking DOSEMU.
+  Note! If you've installed vsn 0.0.11 or earlier you will need to
+  uninstall it before installing this one.
+
+> Altered makefiles for GNU-make 3.74, GNU-make no longer generates
+  automatic 'rm' commands so I have to do it manually.
+
+> Altered makefiles again, starting to get non GNU makefile working.
+
+> Added some cleanups to ifdef.c. (voids etc)
+
+> Assembler now understands monadic '-' and '+' operations (for copt).
+
+> Improved the type conversion functions, they should now work on most
+  machines. There may still be some problems with sizeof(long) == 8 tho,
+  added some warnings/traps.
+
+> Improved the auto-detection and auto-rejection of <a.out.h> ld is more
+  likely to compile even if a.out.h is completely incompatible (leaving
+  out native support).
+
+> Fix for stdio, there was a problem if the OS only did a partial write.
+
+> Alter align() macros to use ssize_t iff both __STDC__ and _POSIX_SOURCE
+  are defined.
+
+> Add some changes for compiling under AIX. Assember and BCC appear to work,
+  ld has problems with AIX's 'ar' command - problem: AIX's make and gmake
+  won't like the smell of a standard following ar86 command ... hmmm.
+
+> Changes in bootblocks, minix.c can now be compiled for a hard disk (works
+  on dosemu, dunno about the real thing tho), fixes for mbr.s re preboot
+  facility. Addition to minix.c to fix number of sectors in bpb for floppy.
+
 For version 0.0.11.
 
 > New, most recent, version of unproto inserted.

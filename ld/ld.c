@@ -83,7 +83,7 @@ char **argv;
     ioinit(argv[0]);
     objinit();
     syminit();
-    typeconv_init(BIG_ENDIAN, LONG_BIG_ENDIAN);
+    typeconv_init(INT_BIG_ENDIAN, LONG_BIG_ENDIAN);
 #ifndef MC6809
     flag['3'] = sizeof(char *) >= 4;
 #endif
@@ -205,6 +205,7 @@ char **argv;
 
 #ifdef REL_OUTPUT
 #ifndef MSDOS
+#ifndef BUGCOMPAT
     if( flag['r'] && !flag['N'] )
     {
        /* Ok, try for an alternate linker */
@@ -215,6 +216,7 @@ char **argv;
 	  execv("/usr/bin/ld86", argv);
        }
     }
+#endif
 #endif
 #endif
 
@@ -238,6 +240,12 @@ char **argv;
 #ifndef MSDOS
     if( flag['N'] )
        writebin(outfilename, flag['i'], flag['3'], flag['s'],
+	     flag['z'] & flag['3']);
+    else
+#endif
+#ifdef BUGCOMPAT
+       if( flag['r'] )
+          write_rel(outfilename, flag['i'], flag['3'], flag['s'],
 	     flag['z'] & flag['3']);
     else
 #endif

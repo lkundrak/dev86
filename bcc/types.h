@@ -202,5 +202,3 @@ struct typelist
 
 #define NULLNODE ((struct nodestruct *) NULL)
 #define NULLTYPE ((struct typestruct *) NULL)
-
-#include "proto.h"

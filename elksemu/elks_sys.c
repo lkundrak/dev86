@@ -110,13 +110,22 @@ static int elks_read(int bx,int cx,int dx,int di,int si)
 		bx,cx,dx));
 	if( bx >= 10000 && bx < 10000+DIRCOUNT)
 		return elks_readdir(bx, cx, dx);
+	if( dx < 0 || dx > 1024 ) dx = 1024;
 	return read(bx, ELKS_PTR(void, cx), dx);
 }
 
 #define sys_write elks_write
 static int elks_write(int bx,int cx,int dx,int di,int si)
 {
-	dbprintf(("write(%d, %d, %d)\n",bx,cx,dx));
+	if( dx > 1024 || dx < 0 )
+	{
+	   dx = 1024;
+	   dbprintf(("write(%d, %d, >%d)\n",bx,cx,dx));
+	}
+	else 
+	{
+	   dbprintf(("write(%d, %d, %d)\n",bx,cx,dx));
+	}
 	return write(bx,ELKS_PTR(void, cx),dx);
 }
 

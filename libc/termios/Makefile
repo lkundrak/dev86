@@ -13,14 +13,13 @@ OBJ=$(TOBJ) ttyname.o
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(LIBC)
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC): $(LIBC)($(OBJ))
 
 $(LIBC)($(TOBJ)): $(TSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 else
 all:
 	@:

@@ -8,7 +8,7 @@
 
 ! Lowest available is $0500, MSDOS appears to use $0600 ... I wonder why?
 ORGADDR=$0500
-preboot=1	! Include the pre-boot loader ?
+preboot=0	! Include the pre-boot loader ?
 
 ! Include standard layout
 org ORGADDR
@@ -58,7 +58,7 @@ more_boot:
   jnc	more_boot	! This doesn't retry, with a HD it shouldn't be bad.
   jc	disk_error
 load_done:
-  call	[di]
+  call	di
 exec_done:
   pop	bx
  endif
@@ -70,6 +70,7 @@ exec_done:
 check_active:
   cmp	byte [si],#$80			! Flag for activated partition
   jz	found_active
+bad_boot:
   add	si,#partition_2-partition_1
   cmp	si,#bootblock_magic
   jnz	check_active
@@ -83,6 +84,7 @@ found_active:
   mov	cx,[si+2]	! cx = Sector & head encoded for int $13
   ! bx is correct
 retry:
+  movb	[$7DFE],#0	! Clear magic for dosemu
   mov	ax,#$0201	! Read 1 sector
   int   $13		! Disk read.
   jnc	sector_loaded
@@ -101,7 +103,7 @@ disk_error:
 sector_loaded:
   mov	di,#$7DFE	! End of sector loaded
   cmp	[di],#$AA55	! Check for magic
-  jnz	check_active	! No? Try next partition.
+  jnz	bad_boot	! No? Try next partition.
 
   mov	bp,si		! LILO says some BBs use bp rather than si
   jmpi	#$7C00,#0	! Go!
@@ -141,6 +143,8 @@ return:
 
 export pre_boot_table
 pre_boot_table:
+  ! Example: Load rest of H0,C0 into mem at $7C00 (8k).
+  ! .word $7C00, $7C00,$0002,$0000,$0210, $0000
   .word return
   .word	0
  endif

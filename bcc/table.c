@@ -6,8 +6,7 @@
  * usually be set to some level different from OFFKLUDGELEVEL.
  */
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "align.h"
 #include "gencode.h"
 #include "os.h"
@@ -25,7 +24,7 @@
 #define GOLDEN 157		/* GOLDEN/HASHTABSIZE approx golden ratio */
 #define HASHTABSIZE 256
 #define MARKER ((unsigned) 0x18C396A5L)	/* lint everywhere it is used */
-#ifdef __AS386_16__
+#ifdef VERY_SMALL_MEMORY
 #define MAXEXPR 125
 #else
 #define MAXEXPR 500

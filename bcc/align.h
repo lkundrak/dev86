@@ -5,11 +5,10 @@
 #ifndef S_ALIGNMENT
 # define align(x) (x)
 #else
-# ifdef UNPORTABLE_ALIGNMENT
-typedef unsigned pointerint_t;
-#  define align(x) (((pointerint_t) (x) + (S_ALIGNMENT-1)) & ~(S_ALIGNMENT-1))
+# if defined(__STDC__) && defined(_POSIX_SOURCE)
+#  define align(x) (((ssize_t) (x) + (S_ALIGNMENT-1)) & ~(S_ALIGNMENT-1))
 # else
-#  define align(x) ((char *) (x) + (- (int) (x) & (S_ALIGNMENT-1)))
+#  define align(x) ((char *) (x) + (- (char) (x) & (S_ALIGNMENT-1)))
 # endif
 #endif
 

@@ -24,7 +24,7 @@ struct bblist {
 } bblocks[] = {
    { "tar",   tarboot_data,  FS_TAR,	"Bootable GNU tar volume lable"      },
    { "dosfs", msdos_data,    FS_ADOS,	"Boots file BOOTFILE.SYS from dosfs" },
-   { "bare",  sysboot_data,  FS_DOS,	"Bare bootblock, lockup if booted"   },
+   { "none",  sysboot_data,  FS_DOS,	"No OS bookblock, just message"      },
    { "skip",  skip_data,     FS_DOS,	"Bypasses floppy boot with message"  },
    { "stat",  0,	     FS_STAT,	"Display dosfs superblock"	     },
    { "copy",  0,	     FS_STAT,	"Copy boot block to makeboot.sav"    },

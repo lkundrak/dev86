@@ -207,7 +207,8 @@ int
 fflush(fp)
 FILE *fp;
 {
-   int   len, cc;
+   int   len, cc, rv=0;
+   char * bstart;
    if (fp == NULL)		/* On NULL flush the lot. */
    {
       if (fflush(stdin))
@@ -231,24 +232,29 @@ FILE *fp;
 
       if (len)
       {
+	 bstart = fp->bufstart;
 	 /*
-	  * The loop is so we don't get upset by signals
+	  * The loop is so we don't get upset by signals or partial writes.
 	  */
 	 do
 	 {
-	    cc = write(fp->fd, fp->bufstart, len);
+	    cc = write(fp->fd, bstart, len);
+	    if( cc > 0 )
+	    {
+	       bstart+=cc; len-=cc;
+	    }
 	 }
-	 while (cc == -1 && errno == EINTR);
+	 while ( cc>0 || (cc == -1 && errno == EINTR));
 	 /*
-	  * I think the following test is _too_ stringent, but it's not
-	  * serious If it is found to be a problem then if cc>0 we can do
-	  * a memcpy to put the buffer in a state for a retry. Or even do
-	  * the retry ourselves.
+	  * If we get here with len!=0 there was an error, exactly what to
+	  * do about it is another matter ...
+	  *
+	  * I'll just clear the buffer.
 	  */
-	 if (cc != len)
+	 if (len)
 	 {
 	    fp->mode |= __MODE_ERR;
-	    return EOF;
+	    rv = EOF;
 	 }
       }
    }
@@ -260,7 +266,7 @@ FILE *fp;
 
       len = fp->bufread - fp->bufpos;	/* Bytes buffered but unread */
       /* If it's a file, make it good */
-      if (len > 0 && lseek(fp->fd, -len, 1) < 0)
+      if (len > 0 && lseek(fp->fd, (long)-len, 1) < 0)
       {
 	 /* Hummm - Not certain here, I don't think this is reported */
 	 /*
@@ -272,7 +278,7 @@ FILE *fp;
    /* All done, no problem */
    fp->mode &= (~(__MODE_READING|__MODE_WRITING|__MODE_EOF|__MODE_UNGOT));
    fp->bufread = fp->bufwrite = fp->bufpos = fp->bufstart;
-   return 0;
+   return rv;
 }
 #endif
 
@@ -475,12 +481,21 @@ FILE *fp;
    else
       /* Too big for the buffer */
    {
-      put = write(fp->fd, buf, bytes);
-      if (put < 0)
+      put = bytes;
+      do
       {
-	 fp->mode |= __MODE_ERR;
-	 put = 0;
+         len = write(fp->fd, buf, bytes);
+	 if( len > 0 )
+	 {
+	    buf+=len; bytes-=len;
+	 }
       }
+      while (len > 0 || (len == -1 && errno == EINTR));
+
+      if (len < 0)
+	 fp->mode |= __MODE_ERR;
+
+      put -= bytes;
    }
 
    return put / size;
@@ -504,8 +519,6 @@ FILE *fp;
 long  offset;
 int   ref;
 {
-   /* Use fflush to sync the pointers */
-
 #if 1
    /* if __MODE_READING and no ungetc ever done can just move pointer */
    /* This needs testing! */
@@ -531,6 +544,8 @@ int   ref;
       }
    }
 #endif
+
+   /* Use fflush to sync the pointers */
 
    if (fflush(fp) == EOF)
       return EOF;

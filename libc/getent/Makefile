@@ -22,7 +22,7 @@ ifeq ($(LIB_OS),ELKS)
 OBJ=$(POBJ) $(GOBJ) $(UOBJ)
 
 all: $(LIBC)($(OBJ))
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC)($(GOBJ)): config-grp.h
 

@@ -2,8 +2,7 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 
 PUBLIC int main(argc, argv)
 int argc;

@@ -2,8 +2,7 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "byteord.h"
 #include "condcode.h"
 #include "gencode.h"
@@ -380,11 +379,11 @@ struct symstruct *target;
 	    indcount = source->indcount;
 # endif
 	    outopsep();
-# if BIG_ENDIAN == 0
+# if INT_BIG_ENDIAN == 0
 	    ++source->offset.offi;
 # endif
 	    outadr(source);
-# if BIG_ENDIAN == 0
+# if INT_BIG_ENDIAN == 0
 	    --source->offset.offi;
 # endif
 # if MAXINDIRECT > 1
@@ -396,7 +395,7 @@ struct symstruct *target;
 	}
 	outregname(BREG);
 	outopsep();
-# if BIG_ENDIAN
+# if INT_BIG_ENDIAN
 	++source->offset.offi;
 # endif
 	outadr(source);

@@ -4,11 +4,19 @@ CFLAGS	=-O
 LDFLAGS	=-s
 
 # May need some of these if the auto-sense fails.
-# -DV7_A_OUT -DBSD_A_OUT -DSTANDARD_GNU_A_OUT
-DEFS	=-DREL_OUTPUT
+# -DV7_A_OUT			# a.out.h is like V7
+# -DBSD_A_OUT			# a.out.h is like BSD
+# -DSTANDARD_GNU_A_OUT		# a.out.h is like GNU normal.
+# -DNO_AOUT			# a.out.h is like nothing known!
+#
+DEFS	=-DREL_OUTPUT -DBUGCOMPAT
+
+# An alternative file for a non-standard a.out.h (eg i386 linux on an Alpha)
+#
+# NATIVE=  -DA_OUT_INCL='"a_out_local.h"' 
 
 OBJS= dumps.o io.o ld.o readobj.o table.o typeconv.o linksyms.o \
-      writex86.o writebin.o
+      writex86.o writebin.o writerel.o
 
 all: ld86
 
@@ -28,6 +36,11 @@ $(OBJS): align.h ar.h bindef.h byteord.h config.h const.h globvar.h obj.h \
 ar.h:
 	ln -s ../libc/include/ar.h . || \
 	ln ../libc/include/ar.h .
+
+writebin.o: writebin.c
+	$(CC) $(CFLAGS) $(DEFS) $(NATIVE) -c writebin.c
+
+writerel.o: writebin.c
 
 .c.o:
 	$(CC) $(CFLAGS) $(DEFS) -c $< -o $@

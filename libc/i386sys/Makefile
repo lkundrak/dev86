@@ -19,7 +19,7 @@ SYSCALLS=syscalls
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(SYSCALLS) $(LIBC)($(OBJ))
-	@:
+	@$(RM) $(OBJ)
 
 syscalls: syscall.mak
 	$(MAKE) -f syscall.mak LIBC="$(LIBC)" CFLAGS="$(CFLAGS)"
@@ -30,17 +30,14 @@ syscall.mak: mksyscall syscall.dat
 $(LIBC)($(LOBJ)): $(LSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(DOBJ)): $(DSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(EOBJ)): $(ESRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 else
 all:
 	@:

@@ -45,7 +45,7 @@
 #define EXESUF
 #endif
 
-#ifdef __minix
+#if defined(__minix) || defined(_AIX)
 #define realpath(x,y) 0
 #endif
 
@@ -531,10 +531,14 @@ char **argv;
        addarg(&cppargs, "-D__linux__");
        addarg(&ldargs, "-N"); /* Make OMAGIC */
        break;
+    case 0:
+       break;
+    default:
+       fatal("Fatal error: illegal -M option given");
     }
 #endif
 
-if( !aswarn )
+    if( !aswarn )
        addarg(&asargs, "-w");
     if( patch_exe )
        addarg(&ldargs, "-s");

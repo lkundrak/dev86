@@ -24,7 +24,7 @@ CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 ifeq ($(LIB_CPU),i386)
 all: $(LIBC)($(FPOBJ))
-	rm -f $(JUNK)
+	rm -f $(JUNK) $(FPOBJ)
 else
 all:
 	@:

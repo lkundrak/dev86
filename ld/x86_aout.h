@@ -8,25 +8,33 @@
 #ifndef __AOUT_H
 #define __AOUT_H
 
+/* If the host isn't an x86 all bets are off, use chars. */
+#if defined(i386) || defined(__BCC__)
+typedef long Long;
+#define __OUT_OK 1
+#else
+typedef char Long[4];
+#endif
+
 struct	exec {			/* a.out header */
   unsigned char	a_magic[2];	/* magic number */
   unsigned char	a_flags;	/* flags, see below */
   unsigned char	a_cpu;		/* cpu id */
   unsigned char	a_hdrlen;	/* length of header */
   unsigned char	a_unused;	/* reserved for future use */
-  unsigned short a_version;	/* version stamp (not used at present) */
-  long		a_text;		/* size of text segement in bytes */
-  long		a_data;		/* size of data segment in bytes */
-  long		a_bss;		/* size of bss segment in bytes */
-  long		a_entry;	/* entry point */
-  long		a_total;	/* total memory allocated */
-  long		a_syms;		/* size of symbol table */
+  unsigned char a_version[2];	/* version stamp (not used at present) */
+  Long		a_text;		/* size of text segement in bytes */
+  Long		a_data;		/* size of data segment in bytes */
+  Long		a_bss;		/* size of bss segment in bytes */
+  Long		a_entry;	/* entry point */
+  Long		a_total;	/* total memory allocated */
+  Long		a_syms;		/* size of symbol table */
 
   /* SHORT FORM ENDS HERE */
-  long		a_trsize;	/* text relocation size */
-  long		a_drsize;	/* data relocation size */
-  long		a_tbase;	/* text relocation base */
-  long		a_dbase;	/* data relocation base */
+  Long		a_trsize;	/* text relocation size */
+  Long		a_drsize;	/* data relocation size */
+  Long		a_tbase;	/* text relocation base */
+  Long		a_dbase;	/* data relocation base */
 };
 
 #define A_MAGIC0      (unsigned char) 0x01
@@ -34,12 +42,12 @@ struct	exec {			/* a.out header */
 #define BADMAG(X)     ((X).a_magic[0] != A_MAGIC0 ||(X).a_magic[1] != A_MAGIC1)
 
 /* CPU Id of TARGET machine (byte order coded in low order two bits) */
-#define A_NONE	0x00	/* unknown */
-#define A_I8086	0x04	/* intel i8086/8088 */
-#define A_M68K	0x0B	/* motorola m68000 */
-#define A_NS16K	0x0C	/* national semiconductor 16032 */
+#define A_NONE	 0x00	/* unknown */
+#define A_I8086	 0x04	/* intel i8086/8088 */
+#define A_M68K	 0x0B	/* motorola m68000 */
+#define A_NS16K	 0x0C	/* national semiconductor 16032 */
 #define A_I80386 0x10	/* intel i80386 */
-#define A_SPARC	0x17	/* Sun SPARC */
+#define A_SPARC	 0x17	/* Sun SPARC */
 
 #define A_BLR(cputype)	((cputype&0x01)!=0) /* TRUE if bytes left-to-right */
 #define A_WLR(cputype)	((cputype&0x02)!=0) /* TRUE if words left-to-right */
@@ -56,15 +64,17 @@ struct	exec {			/* a.out header */
 /* Offsets of various things. */
 #define A_MINHDR	32
 #define	A_TEXTPOS(X)	((long)(X).a_hdrlen)
-#define A_DATAPOS(X)	(A_TEXTPOS(X) + (X).a_text)
 #define	A_HASRELS(X)	((X).a_hdrlen > (unsigned char) A_MINHDR)
 #define A_HASEXT(X)	((X).a_hdrlen > (unsigned char) (A_MINHDR +  8))
 #define A_HASLNS(X)	((X).a_hdrlen > (unsigned char) (A_MINHDR + 16))
 #define A_HASTOFF(X)	((X).a_hdrlen > (unsigned char) (A_MINHDR + 24))
+#ifdef __OUT_OK
+#define A_DATAPOS(X)	(A_TEXTPOS(X) + (X).a_text)
 #define A_TRELPOS(X)	(A_DATAPOS(X) + (X).a_data)
 #define A_DRELPOS(X)	(A_TRELPOS(X) + (X).a_trsize)
 #define A_SYMPOS(X)	(A_TRELPOS(X) + (A_HASRELS(X) ? \
   			((X).a_trsize + (X).a_drsize) : 0))
+#endif
 
 struct reloc {
   long r_vaddr;			/* virtual address of reference */

@@ -2,9 +2,13 @@
 # This file is part of the Linux-8086 Development environment and is
 # distributed under the GNU General Public License.
 
-TARGETS=all bcc unproto copt as86 ld86 \
+TARGETS=bcc unproto copt as86 ld86 \
         install install-all install-lib install-lib2 install-other \
 	clean tests alt-libs library config other
+
+# Some makes take the last of a list as the default ...
+all: make.fil
+	PATH="`pwd`/bin:$$PATH" $(MAKE) -f make.fil TOPDIR=`pwd` $@
 
 $(TARGETS): make.fil
 	PATH="`pwd`/bin:$$PATH" $(MAKE) -f make.fil TOPDIR=`pwd` $@
@@ -14,7 +18,7 @@ phony:
 
 realclean:
 	[ ! -f make.fil ] || $(MAKE) -f make.fil TOPDIR=`pwd` $@
-	rm -f make.fil ifdef
+	rm -f make.fil ifdef ifdef.o
 
 make.fil: ifdef makefile.in
 	./ifdef -MU makefile.in >tmp.mak
@@ -23,11 +27,15 @@ make.fil: ifdef makefile.in
 ifdef: ifdef.o
 	$(CC) -o ifdef ifdef.o
 
+ifdef.o: ifdef.c
+	$(CC) $(CFLAGS) $(IFDEFFLAGS) -c ifdef.c
+
 Uninstall: phony
 	@echo 'Are you really sure... have you checked this... ^C to interrupt'
 	@read line
 	rm -rf /usr/bcc
 	rm -f /usr/bin/bcc /usr/bin/as86_encap /usr/bin/dis88
+	rm -f /usr/bin/as86 /usr/bin/ld86
 	rm -f /lib/elksemu
 	rm -f /usr/lib/liberror.txt
 	rm -f /usr/man/man1/elks.1* /usr/man/man1/elksemu.1*

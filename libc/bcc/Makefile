@@ -50,34 +50,29 @@ CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 ifneq ($(OBJ),)
 
 all: $(LIBC)
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC): $(LIBC)($(OBJ))
 
 $(LIBC)($(IOBJ)): $(ISRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(LOBJ)): $(LSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(AOBJ)): $(ASRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(ROBJ)): $(RSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(POBJ)): $(PSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 else
 all:
 	@:

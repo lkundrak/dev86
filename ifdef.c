@@ -2,6 +2,16 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <string.h>
+
+#ifdef __STDC__		/* == Not braindead compiler (hopefully!) */
+#include <malloc.h>
+
+#define P(x) x
+#else
+#define P(x) ()
+#define void char
+#endif
 
 struct varrec
 {
@@ -32,6 +42,18 @@ char * commentstr = "#";
 char names[16][32];
 char state[16];
 
+int  main P((int argc, char ** argv));
+void Usage P((char * prog));
+void save_name P((char * varname, int state));
+void do_file P((char * fname));
+void set_line P((int lineno));
+int do_hashcom P((void));
+int do_ifdef P((char * p, int which));
+void check_name P((char * nm));
+void fatal P((char * msg));
+void manifest_constant P((void));
+
+int
 main(argc, argv)
 int argc;
 char ** argv;
@@ -77,7 +99,7 @@ char ** argv;
    exit(0);
 }
 
-Usage(prog)
+void Usage(prog)
 char * prog;
 {
    fprintf(stderr, "Usage: %s [-DFLAG] [-UFLAG] [-blcrMDU] [-C##] files\n",
@@ -85,6 +107,7 @@ char * prog;
    exit(1);
 }
 
+void
 save_name(varname, state)
 char * varname;
 int state;
@@ -110,7 +133,7 @@ int state;
    curr->state = state;
 }
 
-
+void
 do_file(fname)
 char * fname;
 {
@@ -146,6 +169,7 @@ char * fname;
    fclose(fd);
 }
 
+void
 set_line(lineno)
 int lineno;
 {
@@ -156,6 +180,7 @@ int lineno;
    prline = lineno;
 }
 
+int
 do_hashcom()
 {
    char * p = linebuf+1;
@@ -202,6 +227,7 @@ do_hashcom()
    return 0;
 }
 
+int
 do_ifdef(p, which)
 char * p;
 int which;
@@ -245,6 +271,7 @@ int which;
    return 1;
 }
 
+void
 check_name(nm)
 char * nm;
 {
@@ -270,6 +297,7 @@ x_error:
    fputc('\n', stderr);
 }
 
+void
 fatal(msg)
 char * msg;
 {
@@ -281,6 +309,7 @@ char * msg;
  *
  * Unfortunatly I can find no way of discovering the variables automatically
  */
+void
 manifest_constant()
 {
 /* General */
@@ -289,6 +318,9 @@ manifest_constant()
 #endif
 #ifdef __GNUC__
    save_name("__GNUC__", 'D');
+#endif
+#ifdef GNUMAKE
+   save_name("GNUMAKE", 'D');
 #endif
 
 /* MSDOS */

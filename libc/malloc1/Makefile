@@ -8,12 +8,11 @@ AOBJ=malloc.o alloca.o free.o calloc.o realloc.o
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(LIBC)($(AOBJ))
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC)($(AOBJ)): $(ASRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 clean:
 	rm -f *.o libc.a

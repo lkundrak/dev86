@@ -8,7 +8,7 @@ ifeq ($(LIB_OS),ELKS)
 OBJ=termcap.o tparam.o
 
 all: $(LIBC)($(OBJ))
-	@:
+	@$(RM) $(OBJ)
 else
 all:
 	@:

@@ -29,19 +29,17 @@ endif
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(LIBC)
-	@:
+	@$(RM) $(OBJ)
 
 $(LIBC): $(LIBC)($(OBJ))
 
 $(LIBC)($(MOBJ)): $(MSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(EOBJ)): $(ESRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 clean:
 	rm -f *.o libc.a
@@ -49,14 +47,11 @@ clean:
 $(LIBC)(strtol.o): strtol.c
 	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)(strtod.o): strtod.c
 	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)(crypt.o): crypt.c
 	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o

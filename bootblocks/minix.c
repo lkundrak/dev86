@@ -2,7 +2,7 @@
  * This bootblock loads the linux-8086 executable in the file 'linux'
  * from the root directory of a minix filesystem.
  *
- * Copyright (C) 1990-1996 Robert de Bath, distributed under the GPL Version 2
+ * Copyright (C) 1990-1997 Robert de Bath, distributed under the GPL Version 2
  * Based on minix filesystem definitions.
  */
 
@@ -16,24 +16,39 @@
 #define BOOTSEG	  (0x07c0)
 #define LOADSEG   (0x1000)
 
+#ifdef HARDDISK
+#define get_now()
+#endif
+
 #asm 
-BOOTSEG  = 0x07c0
+! BOOTSEG  = 0x07c0
+! LOADSEG  = 0x1000	! This must be sector aligned
+
 BOOTADDR = 0x7c00
-LOADSEG  = 0x1000	! This must be sector aligned
+ORGADDR  = $0500
 
 .text
 ! Apparently on startup the only things we can assume are that we start at
-! `start` (ABS addr $07C00) ...
+! `start` (ABS addr $07C00) and the boot sector is in the segment.
 
 ! So first set CS=DS=ES=SS=0
 ! The we move this to $0500 and put the stack at the top of the first 64k.
 ! The directory 'file' is loaded $1500 and scanned there.
 ! The final executable will be loaded in the 2nd 64k chunk.
 !
-org $0500	! The lowest available address.
+org ORGADDR	! The lowest available address.
 start:
   include sysboot.s
+
+org dos_sysid
+  .ascii "MINIXFS BOOT (C) 1990-1997,  Robert de Bath"
+
   org codestart
+
+#ifdef HARDDISK
+  mov	bx,[si+8]	! Fetch the linear address of part from DS:SI
+  mov	dh,[si+10]	! DL is drive number
+#endif
 
   xor	ax,ax
   mov	ds,ax
@@ -41,11 +56,32 @@ start:
   mov	ss,ax
   mov	sp,ax
 
+#ifndef HARDDISK
   mov	ax,#$0204		! Read 4 sectors, code + superblock.
   mov	bx,#start		! Where this _should_ be
   mov	cx,#$0001		! From sector 1
   xor	dx,dx			! Of the floppy drive head zero
   int	$13
+#else
+
+  mov	cx,#$100	! Move 256 words
+  mov	si,#BOOTADDR	! From default BB
+  mov	di,#ORGADDR	! To the correct address.
+  rep
+   movsw
+
+  xchg	dl,dh
+  mov	[bootpart],bx	! Save the partition sector offset (and drive)
+  mov	[bootpart+2],dx
+
+  ! Read first 3 sectors of hd.
+  xor	dx,dx
+  mov	cx,#1
+  mov	bx,#ORGADDR+$200
+  mov	al,#3
+
+  call	load_sect
+#endif
 
   jmpi	code,#0
 
@@ -214,15 +250,213 @@ _bootfile:			! 'boot' is good too.
    .ascii	"linux"
    .byte	0,0,0,0,0,0,0,0,0
 
+#ifdef HARDDISK
+bootpart:   .long	0
+#else
 _loadcount: .word	0
 _firstsect: .word	0
 _loadaddr:  .word	0
 _lastsect:  .word	0
+#endif
 
 code:
   call	_loadprog
   call	_runprog
   br	_nogood
+
+#endasm
+
+#ifdef HARDDISK
+
+#asm
+_load_block:
+  push	bp
+  mov	bp,sp
+
+  ! Fetch load location
+  mov	ax,[bp+4]
+  mov	es,ax
+
+  ! Test for block zero
+  mov	ax,6[bp]
+  test	ax,ax
+  jne 	real_block
+
+  ! Iff block zero, zap memory
+  push	di
+  mov	cx,#512
+  xor	ax,ax
+  mov	di,ax
+  rep
+   stosw
+  pop	di
+
+func_exit:
+  mov	sp,bp
+  pop	bp
+  ret
+
+real_block:
+#ifdef DOTS
+  mov	ax,#$2E
+  push	ax
+  call	_bios_putc
+  inc	sp
+  inc	sp
+#endif
+
+! Load a real block.
+  mov	cx,ax
+  xor	dx,dx
+  shl	cx,#1
+  rcl	dx,#1
+
+  xor	bx,bx
+  mov	al,#2
+  call	load_sect 
+
+  j	func_exit
+
+!
+! Load AL sectors from linear sector DX:CX into location ES:BX
+! Linear sector zero is a [bootpart]
+! This loads one sector at a time, but that's OK cause even in the _very_
+! worst case it'll take no more that 5 seconds to load a 16 bit executable.
+!
+load_sect:
+  add	cx,[bootpart]
+  adc	dx,[bootpart+2]
+moresect:
+  cmp	al,#0
+  jnz	onesect
+  clc
+  ret
+
+! Load one sector...
+onesect:
+  push	ax	! Save lots
+  push	di
+  push	si
+  push	cx	! Drive and sector.
+  push	dx
+
+  push	es	! Load location
+  push	bx
+
+  push	cx	! Drive and sector.
+  push	dx
+
+  ! Fetch drive 'shape'
+  mov	ah,#8
+  mov	dl,dh
+  int	$13	! DX:CX = drive specification
+  jc	_nogood
+
+  and	cx,#$3F	! Get sector count => DI
+  mov	di,cx
+
+  xor	dl,dl	! Get head count  => SI
+  xchg	dl,dh
+  inc	dx
+  mov	si,dx
+  
+  pop	dx	! Get back drive and sector
+  pop	ax
+
+  mov	bl,dh	! Save drive
+  xor	dh,dh
+
+  div	di	! DX=sector, AX=track number
+  mov	cx,dx
+  inc	cl	! CL=sector number
+
+  xor	dx,dx
+  div	si	! DX=head, AX=cylinder
+
+  mov	dh,dl
+  mov	dl,bl	! DX for int 1302
+
+  xchg	al,ah
+  ror	al,#1
+  ror	al,#1
+  or	cx,ax	! CX for int 1302
+
+  pop	bx	! ES:BX for int 1302
+  pop	es
+
+  mov	ax,#$0201
+  int	$13
+  jc	_nogood
+
+  pop	dx
+  pop	cx
+  pop	si
+  pop	di
+  pop	ax
+
+  dec	al
+  add	cx,#1
+  adc	dh,#0
+  add	bh,#2
+  jmp	moresect
+#endasm
+
+#else
+#asm
+_set_bpb:
+bios_tabl=dosfs_stat		! Temp space.
+bios_disk=dosfs_stat+4		!
+
+#ifndef __CALLER_SAVES__
+  push	si
+  push	di
+#endif
+
+  mov	di,#bios_disk
+  mov	bx,#0x78		
+! 0:bx is parameter table address
+
+  push	ds
+  push	di
+
+  mov	si,[bx]
+  mov	ax,[bx+2]
+  mov	[bios_tabl],si
+  mov	[bios_tabl+2],ax
+  push	ax
+
+  pop	ds
+! ds:si is source
+
+! copy 12 bytes
+  mov	cl,#6			
+  cld
+  rep
+  movsw
+
+  pop	di
+  pop	ds
+  mov	ax,[_n_sectors]
+  movb	4[di],al		! patch sector count
+
+  mov	[bx],di
+  mov	2[bx],es
+
+#ifndef __CALLER_SAVES__
+  pop	si
+  pop	di
+#endif
+  ret
+
+_unset_bpb:
+! 0:0x78 is parameter table address
+
+  mov	ax,[bios_tabl]
+  mov	[0x78],ax
+  mov	ax,[bios_tabl+2]
+  mov	[0x78+2],ax
+  ret
+
 #endasm
 
 static
@@ -314,11 +548,7 @@ zero_block(address)
 #endasm
 }
 
-#ifndef load_zone
-NOT_DEFINED_load_zone(address, zoneno)
-{
-}
-#endif
+#endif /* !HARDDISK */
 
 #ifdef DOTS
 static
@@ -339,6 +569,27 @@ bios_putc(c)
 static
 nogood()
 {
+#ifdef HARDDISK
+#asm
+  mov	si,#fail_fs
+min_nextc:
+  lodsb
+  cmp	al,#0
+  jz	min_eos
+  mov	bx,#7
+  mov	ah,#$E		! Can't use $13 cause that's AT+ only!
+  int	$10
+  jmp	min_nextc
+min_eos:		! Wait for a key then reboot
+  xor	ax,ax
+  int	$16
+  !int	$19		! This should be OK as we haven't touched anything.
+  jmpi	$0,$FFFF	! Wam! Try or die!
+
+fail_fs:
+  .asciz	"Inital boot failed, press return to reboot\r\n"
+#endasm
+#else
 /* This didn't work, chain the boot sector of the HD */
 #asm
   push	cs
@@ -352,15 +603,19 @@ hcode:
   jc	hcode			! Keep trying forever!
   jmpi	BOOTADDR,0
 #endasm
+#endif
 }
 
+/****************************************************************************/
 #asm
 end_of_part1:
   if *>start+0x200
-     fail
+     fail! Part 1 too large!
   endif
   .blkb	0x200+start-*
 #endasm
+
+/****************************************************************************/
 
 static
 loadprog()
@@ -371,6 +626,10 @@ loadprog()
    if( b_super.s_magic != SUPER_MAGIC ) nogood();
    n_sectors = b_super.s_nzones / 80;
    if( n_sectors < 5 ) n_sectors = b_super.s_nzones / 40;
+
+#ifndef HARDDISK
+   set_bpb();
+#endif
 
 try_again:;
 #ifdef zone_shift
@@ -459,6 +718,9 @@ register char * p = dirptr->d_name;
       }
       nogood();
    }
+#ifndef HARDDISK
+   unset_bpb();
+#endif
 }
 
 static
@@ -466,8 +728,14 @@ runprog()
 {
 /* This did work, run the loaded executable */
 #asm
+#ifdef HARDDISK
+  mov	dx,[bootpart+2]
+  xchg	dh,dl		! DX => hard drive
+  push	[bootpart]	! CX => partition offset
+#else
   xor	dx,dx		! DX=0 => floppy drive
   push	dx		! CX=0 => partition offset = 0
+#endif
   mov	si,[_n_sectors]	! Save for monitor.out
 
   mov	bx,#LOADSEG
@@ -477,7 +745,7 @@ runprog()
   xor	di,di		! Zero
   mov	ax,[di]
   cmp	ax,#0x0301	! Right magic ?
-  bne	nogood		! Yuk ...
+  bne	_nogood		! Yuk ...
   mov	ax,[di+2]
   and	ax,#$20		! Is it split I/D ?
   jz	impure		! No ...
@@ -509,6 +777,13 @@ idiv_u:
 	xor	dx,dx
 	div	bx
 	ret
+#ifndef zone_shift
+isl:
+islu:
+	mov	cl,bl
+	shl	ax,cl
+	ret
+#endif
 libend:
 
 vars:

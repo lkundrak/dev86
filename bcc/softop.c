@@ -2,8 +2,7 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "gencode.h"
 #include "reg.h"
 #include "scan.h"

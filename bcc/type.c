@@ -2,8 +2,7 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "align.h"
 #include "gencode.h"		/* s.b. switches.h */
 #include "sc.h"

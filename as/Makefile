@@ -23,7 +23,7 @@ install: all
 	install -d $(LIBDIR)
 	install -m 755 as86 $(LIBDIR)
 	install -d $(BINDIR)
-	install -m 755 tmp $(BINDIR)/as86_encap
+	install -m 755 as86_encap $(BINDIR)/as86_encap
 	-@rm -f tmp
 
 clean realclean:

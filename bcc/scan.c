@@ -4,8 +4,7 @@
 
 #define GCH1() do { if (SYMOFCHAR(ch = *++lineptr) == SPECIALCHAR) specialchar(); } while (0)
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "input.h"
 #include "os.h"
 #include "output.h"

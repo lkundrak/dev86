@@ -45,10 +45,37 @@ dos4_serial:	.blkw 2		! Serial number
 dos4_label:	.blkb 11	! Disk Label (DOS 4+)
 dos4_fattype:	.blkb 8		! FAT type
 
+!
+! This is where the code will be overlaid, the default is an 'oops'
 .blkb sysboot_start+0x3E-*
 public codestart
 codestart:
-  jmp	codestart
+  xor	ax,ax
+  mov	ds,ax
+  mov	es,ax
+  mov	ss,ax
+  mov	sp,ax
+  jmpi	sys_code+$7C00-sysboot_start,#0
+
+sys_code:		! SI now has pointer to error message
+  mov	si,#sys_no_os+$7C00-sysboot_start
+sys_nextc:
+  lodsb
+  cmp	al,#0
+  jz	sys_eos
+  mov	bx,#7
+  mov	ah,#$E		! Can't use $13 cause that's AT+ only!
+  int	$10
+  jmp	sys_nextc
+sys_eos:		! Wait for a key then reboot
+  xor	ax,ax
+  int	$16
+  !int	$19		! This should be OK as we haven't touched anything.
+  jmpi	$0,$FFFF	! Wam! Try or die!
+
+sys_no_os:
+  .asciz	"PANIC! NO OS Found!\r\n"
+
 
 ! Partition table
 public partition_1

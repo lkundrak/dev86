@@ -22,8 +22,12 @@ FILE * fd;
 int * itb;
 
 int        size;
-int        maxno= 8000;
 long        cnt=0;
+#ifdef __GNUC__
+int        maxno= 16384;
+#else 
+int        maxno= 8000;
+#endif 
 
 long icount = 0;
 long ocount = 0;

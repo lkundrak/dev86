@@ -159,6 +159,9 @@ bool_pt typeconv_init P((bool_pt big_endian, bool_pt long_big_endian));
 void writebin P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
 		 bool_pt argstripflag, bool_pt arguzp));
 
+void write_rel P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
+		 bool_pt argstripflag, bool_pt arguzp));
+
 /* write_elks.c */
 void write_elks P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
 		 bool_pt argstripflag, bool_pt arguzp));

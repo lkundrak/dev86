@@ -2,20 +2,12 @@
 /* Speed and space hacks for BCC */
 #ifdef __AS386_16__
 #define LOW_BYTE	0	/* must be changed for big-endian */
-#define align(x)		/* Don't bother */
+#else
 
+#define S_ALIGNMENT	sizeof(long)
 #endif
 
-#ifndef align
-#ifdef MSDOS
-#define align(x)		
-#endif
-#endif
-
-#ifndef align			/* Normal ... */
-#define align(x)		((x) = (void*)(((long) (x) + (4-1)) & ~(4-1)))
-#endif
-
+#include "align.h"
 
 /* const.h - constants for assembler */
 

@@ -2,8 +2,7 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "byteord.h"
 #include "gencode.h"
 #include "parse.h"
@@ -13,7 +12,7 @@
 #include "sizes.h"
 #include "type.h"
 
-#ifdef __AS386_16__
+#ifdef VERY_SMALL_MEMORY
 #define ETREESIZE 300
 #else
 #define ETREESIZE 1200
@@ -375,6 +374,7 @@ struct nodestruct *p2;
 	    if (lscalar & RSCALAR && !(rscalar & RSCALAR))
 	    {
 		double val;
+		/* XXX: Gcc warns about ansi vs k&r problem with this */
 		static double MAXULONG = (double)0xFFFFFFFFL +1;
 
 		val = *target->offset.offd;
@@ -425,7 +425,7 @@ struct nodestruct *p2;
 	    if (long_big_endian)
 #endif
 #if DYNAMIC_LONG_ORDER || LONG_BIG_ENDIAN
-# if BIG_ENDIAN
+# if INT_BIG_ENDIAN
 		target->offset.offi += targszdelta;
 # else
 	    {
@@ -438,7 +438,7 @@ struct nodestruct *p2;
 	    else
 #endif
 #if DYNAMIC_LONG_ORDER || LONG_BIG_ENDIAN == 0
-# if BIG_ENDIAN
+# if INT_BIG_ENDIAN
 	    {
 		if (rscalar & CHAR)
 		    target->offset.offi += ctypesize;

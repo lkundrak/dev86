@@ -5,8 +5,7 @@
 #define islvalop(op) \
 	(((op) >= ASSIGNOP && (op) <= SUBABOP) || (op) == PTRADDABOP)
 
-#include "const.h"
-#include "types.h"
+#include "bcc.h"
 #include "align.h"
 #include "condcode.h"
 #include "reg.h"

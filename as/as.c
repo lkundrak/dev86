@@ -62,7 +62,7 @@ char **argv;
     initbin();
     initobj();
     initsource();		/* only nec to init for unsupported mem file */
-    typeconv_init(BIG_ENDIAN, LONG_BIG_ENDIAN);
+    typeconv_init(INT_BIG_ENDIAN, LONG_BIG_ENDIAN);
     as_warn.global = TRUE;		/* constant */
     last_pass=1;
     process_args(argc, argv);

@@ -28,7 +28,7 @@ endif
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 all: $(SYSCALLS) $(LIBC)
-	@:
+	@$(RM) $(OBJ)
 
 call_i86: syscall.mak
 	$(MAKE) -f syscall.mak LIBC="$(LIBC)" CFLAGS="$(CFLAGS)"
@@ -41,22 +41,18 @@ $(LIBC): $(LIBC)($(OBJ))
 $(LIBC)($(LOBJ)): $(LSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(DOBJ)): $(DSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(EOBJ)): $(ESRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 $(LIBC)($(LOBJ0)): $(LSRC0)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
-	$(RM) $*.o
 
 clean:
 	rm -f *.o libc.a

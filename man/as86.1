@@ -73,7 +73,9 @@ start with 32-bit code segment, don't warn for any instructions. (not even
 486 or 586)
 .TP
 .B -a
-enable partial compatibility with Minix asld
+enable partial compatibility with Minix asld. This swaps the interpretation
+of round brackets and square brackets as well as making alterations to the
+code generation for 16bit jumps and calls.
 .TP
 .B -g
 only put global symbols in object or symbol file

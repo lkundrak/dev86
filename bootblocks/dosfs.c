@@ -54,6 +54,7 @@ struct filestatus {
 open_file(fname)
 char * fname;
 {
+   extern union REGS __argr;
    char conv_name[12];
    char *s, *d;
    int i;
