@@ -584,7 +584,10 @@ store_pt targreg;
 		if (strcmp (source->name.namep, "__AX") == 0)
 		{
 		    /* Load AX register - do nothing. */
-done:		    source->storage = AXREG;	/* in register for further use */
+done:		    
+		    if (targreg != AXREG) 
+		       bugerror("specified access of register clone variable not implemented");
+		    source->storage = AXREG;	/* in register for further use */
 		    source->flags = 0;
 		    if (source->level == OFFKLUDGELEVEL)
 			source->level = EXPRLEVEL;
@@ -653,6 +656,12 @@ store_pt targreg;
 {
     if ((store_t) targreg & ALLDATREGS && source->type->scalar & CHAR)
 	targreg = BREG;
+#ifdef I8086
+    if (source->type->scalar & CHAR &&
+	  targreg != BREG && targreg != DATREG1B ) {
+       bugerror("moving char sym into int register");
+    }
+#endif
 #ifdef I80386
     if (i386_32 && source->type->scalar & SHORT &&
 	source->indcount <= 1)

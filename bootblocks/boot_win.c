@@ -49,6 +49,13 @@ main()
    if (rv != 0 || bs_buf[510] != 0x55 || bs_buf[511] != (char)0xAA) {
       cprintf("Hard disk not bootable.\n");
       floppy_only = 1;
+
+      /* Check for zapped MBR */
+      for(i=0; i<512; i++) {
+	 if (bs_buf[i]) break;
+	 if (i==511)
+	    boot_floppy();
+      }
    }
 
    if (!floppy_only) {

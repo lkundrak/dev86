@@ -722,13 +722,15 @@ static int last_uid=-1, last_gid=-1, last_mode=-1;
          if( (cur_file_stat.st_mode&07777) != (last_mode&07777) )
 	    printf(":%03o", cur_file_stat.st_mode & 07777);
 
-	 major = (cur_file_stat.st_rdev >> 8);
-	 minor = (cur_file_stat.st_rdev&0xFF);
 #ifdef __linux__
-	 major &= 0xFFF;
-	 minor |= ((cur_file_stat.st_rdev&0xFF000000)>>12);
+	 major = ((cur_file_stat.st_rdev >> 8) & 0xfff);
+	 if (sizeof(cur_file_stat.st_rdev) > 4)
+	    major |= ((cur_file_stat.st_rdev >> 32) & ~0xfff);
+	 minor = (cur_file_stat.st_rdev & 0xff) | 
+	         ((cur_file_stat.st_rdev >> 12) & ~0xff);
 #else
-	 major &= 0xFF;
+	 major = ((cur_file_stat.st_rdev >> 8) & 0xFF);
+	 minor = (cur_file_stat.st_rdev&0xFF);
 #endif
          switch(cur_file_stat.st_mode & S_IFMT)
          {

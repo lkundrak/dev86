@@ -39,7 +39,8 @@ struct symstruct *target;
     else
 	scalar |= source->type->scalar;
     if ((source->indcount == 0 && !shiftflag) ||
-	source->storage & (DREG | OPREG | OPWORKREG))
+	source->type->scalar & CHAR ||
+	source->storage & (BREG | DREG | OPREG | OPWORKREG))
     {
 	pres2(source, target);
 	push(source);
@@ -60,6 +61,16 @@ struct symstruct *target;
 	if (source->offset.offv == 0)
 	    goto shiftdone;
     }
+#ifdef I8088
+    /* This is ugly! But it works. I should be able to stop it being used
+     * by removing the char demotion. */
+    if (source->type->scalar & CHAR && 
+	  !(source->storage & (BREG|DREG|DATREG1B))) {
+	load(source, DATREG1B);
+	outop2str("xor\tch,ch"); outnl();
+	source->storage = DATREG1;
+    }
+#endif
     load(source, OPWORKREG);
     switch ((op_t) op)
     {

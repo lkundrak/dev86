@@ -1082,6 +1082,15 @@ char ** argv;
 
    if (opt_arch == 1) libdir_suffix = "/i386";
    if (opt_arch == 4) libdir_suffix = "/m09";
+
+#ifdef VERSION
+   {
+      char verbuf[64];
+      sprintf(verbuf, "-D__BCC_VERSION__=0x%02x%02x%02xL",
+	    VER_MAJ, VER_MIN, VER_PAT);
+      append_option(verbuf, 'p');
+   }
+#endif
 }
 
 void
@@ -1222,8 +1231,10 @@ int size;
 
 void Usage()
 {
+#ifdef VERSION
    if (opt_v)
       fprintf(stderr, "%s: version %s\n", progname, VERSION);
+#endif
    fprintf(stderr,
 	 "Usage: %s [-ansi] [-options] [-o output] file [files].\n", progname);
    exit(1);

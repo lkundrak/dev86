@@ -626,8 +626,12 @@ PUBLIC void usage()
 PUBLIC void version_msg()
 {
     stderr_out();
+#ifdef VERSION
     putstr("ld86 version: ");
     errexit(VERSION);
+#else
+    errexit("ld86 version unknown");
+#endif
 }
 
 PUBLIC void use_error(message)

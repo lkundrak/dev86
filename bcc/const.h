@@ -21,9 +21,8 @@
 #define VERY_SMALL_MEMORY
 #endif
 
-#define SELFTYPECHECK		/* check calculated type = runtime type */
-
 #ifndef VERY_SMALL_MEMORY
+#define SELFTYPECHECK		/* check calculated type = runtime type */
 #define DEBUG			/* generate compiler-debugging code */
 #define OPTIMISE		/* include optimisation code */
 #define BUILTIN_CPP

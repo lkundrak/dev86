@@ -219,7 +219,16 @@ struct symstruct *target;
        {
        case DIVOP:
 #ifdef I8088
-	   call("idiv_");
+	   if (uflag)
+	       call("idiv_");
+	   else {
+	        if (i386_32)
+	            outnop1str("cdq");
+		else
+	            outnop1str("cwd");
+		outop2str("idiv\t");
+		outregname(INDREG0);
+	   }
 #else
 	   call("idiv");
 #endif

@@ -16,7 +16,7 @@ BCFLAGS=$(ANSI) $(CFLAGS) $(LDFLAGS)
 OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \
 	function.o gencode.o genloads.o glogcode.o hardop.o input.o label.o \
 	loadexp.o longop.o output.o preproc.o preserve.o scan.o softop.o \
-	state.o table.o type.o assign.o	
+	state.o table.o type.o assign.o	hashcmd.o
 
 all:	bcc-cc1 bcc 
 

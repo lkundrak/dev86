@@ -150,6 +150,11 @@ bindir: $(MAKEX)
 
 bcc: bindir
 	echo '#define VERSION "'"$(VERSION)"'"' > bcc/version.h
+	VER=$(VERSION) ; \
+	echo "#define VER_MAJ $${VER%%.*}" >> bcc/version.h ; \
+	VER="$${VER#*.}" ; \
+	echo "#define VER_MIN $${VER%.*}" >> bcc/version.h ; \
+	echo "#define VER_PAT $${VER#*.}" >> bcc/version.h 
 	$(MAKEC) bcc $(MAKEARG) BCCARCH='$(BCCARCH)' bcc ncc bcc-cc1
 	cp -p bcc/bcc$(EXE) bin/Bcc$(EXE)
 	cp -p bcc/ncc$(EXE) bin/ncc$(EXE)

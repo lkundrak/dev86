@@ -1619,6 +1619,18 @@ offset_T value;
     outstr(name);
     outset();
     outshex(value);
+#ifdef FRAMEPOINTER
+#ifdef I8088
+#ifndef NO_DEL_PUSH
+    if (framep && optimise && !callersaves && value+sp-framep >= 0 
+	  && !(regfuse & callee1mask)) {
+	outbyte('-');
+	outstr(funcname);
+	outstr(".off");
+    }
+#endif
+#endif
+#endif
     outnl();
 #ifdef FRAMEPOINTER
     if (framep) 
@@ -1629,6 +1641,16 @@ offset_T value;
        outstr(name);
        outset();
        outshex(value+sp-framep);
+#ifdef I8088
+#ifndef NO_DEL_PUSH
+       if (optimise && !callersaves && value+sp-framep < 0 
+	     && !(regfuse & callee1mask)) {
+           outbyte('+');
+           outstr(funcname);
+           outstr(".off");
+       }
+#endif
+#endif
        outnl();
     }
 #endif

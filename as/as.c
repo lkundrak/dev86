@@ -193,7 +193,11 @@ char **argv;
 	    case 'v':
 	       outfd = STDOUT;
 	       writes("as86 version: ");
+#ifdef VERSION
 	       writesn(VERSION);
+#else
+	       writesn("Unknown!");
+#endif
 	       exit(1);
 #ifdef I80386
 	    case '0': case '1': case '2':
