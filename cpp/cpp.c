@@ -23,17 +23,18 @@
  *   c_lineno Current line number in file being parsed.
  *
  *   alltok   Control flag for the kind of tokens you want (C or generic)
- *   dislect  Control flag to change the preprocessor for Ansi C.
+ *   dialect  Control flag to change the preprocessor for Ansi C.
  *
  * TODO:
  *    #asm -> asm("...") translation.
  *    ?: in #if expressions
- *    __DATE__ and __TIME__ macros.
- *    Add #line directive.
- *    Poss: Seperate current directory for #include from errors (#line).
- *    Poss: C99 Variable macro args.
+ *    Complete #line directive.
  *    \n in "\n" in a stringized argument.
  *    Comments in stringized arguments should be deleted.
+ *
+ *    Poss: Seperate current directory for #include from errors (#line).
+ *          (For editors that hunt down source files)
+ *    Poss: C99 Variable macro args.
  */
 
 #define KEEP_SPACE	0
@@ -83,7 +84,7 @@ static int if_count = 0;
 static int if_false = 0;
 static int if_has_else = 0;
 static int if_hidden = 0;
-static int if_stack = 0;
+static unsigned int if_stack = 0;
 
 struct arg_store {
    char * name;
@@ -276,7 +277,7 @@ Try_again:
       if( cc < WORDSIZE-1 ) *p++ = ch;	/* Clip to WORDSIZE */
       *p = '\0'; cc++;
       ch = chget();
-      if (ch == 1) ch = chget();
+      if (ch == SYN) ch = chget();
    }
 break_break:
    /* Numbers */
@@ -671,7 +672,10 @@ do_preproc()
 	    cwarn(curword);
 	 } else if( strcmp(curword, "pragma") == 0 ) {
             do_proc_copy_hashline(); pgetc();
-	    /* Ignore #pragma */
+	    /* Ignore #pragma ? */
+	 } else if( strcmp(curword, "line") == 0 ) {
+            do_proc_copy_hashline(); pgetc();
+	    /* Ignore #line for now. */
 	 } else if( strcmp(curword, "asm") == 0 ) {
 	    alltok |= 0x100;
             return do_proc_copy_hashline();
@@ -905,6 +909,13 @@ do_proc_if(type)
 int type;
 {
    int ch = 0;
+   if(if_false && if_hidden)
+   {
+      if( type != 3 ) if_hidden++;
+      do_proc_tail();
+      return 0;
+   }
+
    if( type == 3 )
    {
       if( if_count == 0 )

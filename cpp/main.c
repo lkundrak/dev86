@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <malloc.h>
+#include <time.h>
 
 #include "cc.h"
 
@@ -137,6 +138,22 @@ static char Usage[] = "Usage: cpp -E -0 -Dxxx -Uxxx -Ixxx infile -o outfile";
 
    if (!curfile)
       cfatal(Usage);
+
+   /* Define date and time macros. */
+   if (dialect != DI_KNR) {
+      time_t now;
+      char * timep;
+      char buf[128];
+      time(&now);
+      timep = ctime(&now);
+
+      /* Yes, well */
+      sprintf(buf, "__TIME__=\"%.8s\"", timep + 11);
+      define_macro(buf);
+      /* US order; Seems to be mandated by standard. */
+      sprintf(buf, "__DATE__=\"%.3s %.2s %.4s\"", timep + 4, timep + 8, timep + 20);
+      define_macro(buf);
+   }
 
    if (outfile) ofd = fopen(outfile, "w");
    else         ofd = stdout;

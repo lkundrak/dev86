@@ -7,29 +7,33 @@
 #define strong_alias(Y,X) asm("export _" "X",  "_" "X" " = _" "Y" )
 #endif
 
-#if __STDC__
-#define comb(x,y) x ## y
-#warning Using Ansi combine
-#elif __BCC__
-#define comb(x,y) x/**/y
-#warning Using bcc combine
-#else
-#define comb(x,y) x/**/y
-#warning Using K&R combine
+#if 1
+# if __STDC__
+# define comb(x,y) x ## y
+# warning Using Ansi combine
+# elif __BCC__
+# define comb(x,y) x/**/y
+# warning Using bcc combine
+# else
+# define comb(x,y) x/**/y
+# warning Using K&R combine
+# endif
 #endif
 
-#define signed unsigned
-#define unsigned signed
+#define o define
+#o signed unsigned
+#o unsigned signed
 
 #ifdef signed
 typedef signed char t_sc;
 typedef comb(un,signed) char t_uc;
-#endif
 
 char c;
 t_sc sc;
 t_uc uc;
+#endif
 
+#pragma full optimise
 strong_alias(main,zulu);
 main()
 {

@@ -23,8 +23,8 @@
 #define R_OK	0
 #define mode_t		unsigned short
 #define SEEK_SET	0
-#define STDOUT_FILENO	0
-#define STDERR_FILENO	0
+#define STDOUT_FILENO	1
+#define STDERR_FILENO	2
 #define VERSION 	"MSDOS Compile"
 #endif
 
@@ -55,7 +55,7 @@ void *memset P((void *s, int c, unsigned n));
 #define R_OK	0
 int access P((const char *path, int amode));
 #define SEEK_SET	0
-#define STDOUT_FILENO	0
+#define STDOUT_FILENO	1
 #define STDERR_FILENO	2
 
 #define mode_t		unsigned short

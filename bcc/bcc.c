@@ -503,6 +503,8 @@ validate_link_opt(char * option)
    }
    if (err)
       fprintf(stderr, "warning: linker option %s not recognised.\n", option);
+   else if (!do_link)
+      fprintf(stderr, "warning: linker option %s unused.\n", option);
 }
 
 void
@@ -518,6 +520,15 @@ validate_link_opts()
 
    for(next_file = files; next_file; next_file = next_file->next) 
       validate_link_opt(next_file->file);
+
+   if (!do_link) {
+      if (opt_i)
+	 fprintf(stderr, "warning: linker option -i unused.\n");
+      if (opt_x)
+	 fprintf(stderr, "warning: linker option -x unused.\n");
+      if (opt_L)
+	 fprintf(stderr, "warning: linker option -L unused.\n");
+   }
 }
 
 void
@@ -931,16 +942,20 @@ char ** argv;
       break;
    case 'd': 		/* DOS COM file */
       prepend_option("-D__MSDOS__", 'p');
-      libc="-ldos";
-      append_option("-d", 'l');
-      append_option("-T100", 'l');
+      if (do_link) {
+	 libc="-ldos";
+	 append_option("-d", 'l');
+	 append_option("-T100", 'l');
+      }
       break;
    case 'l': 		/* 386 Linux a.out */
       opt_arch=1;
       prepend_option("-D__unix__", 'p');
       prepend_option("-D__linux__", 'p');
-      libc="-lc";
-      append_option("-N", 'l');
+      if (do_link) {
+	 libc="-lc";
+	 append_option("-N", 'l');
+      }
       break;
    case 'g':		/* 386 Linux object using gcc as linker */
       opt_arch = 2;
