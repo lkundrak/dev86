@@ -10,7 +10,7 @@
  * Of course the best of all is to use strerror().
  */
 
-#ifdef __AS386_16__
+#if defined(__AS386_16__) || defined(__AS386_32__)
 #define NR_ERRORS	128
 
 extern char **__sys_errlist;
@@ -19,12 +19,21 @@ extern int __sys_nerr;
 char *sys_errlist[NR_ERRORS];
 int sys_nerr = NR_ERRORS;
 
+#ifdef __AS386_16__
 #asm
   loc	1		! Make sure the pointer is in the correct segment
 auto_func:		! Label for bcc -M to work.
   .word	_init_vars	! Pointer to the autorun function
   .text			! So the function after is also in the correct seg.
 #endasm
+#else
+#asm
+  loc	1		! Make sure the pointer is in the correct segment
+auto_func:		! Label for bcc -M to work.
+  .long	_init_vars	! Pointer to the autorun function
+  .text			! So the function after is also in the correct seg.
+#endasm
+#endif
 
 static void init_vars()
 {
@@ -71,4 +80,4 @@ static void init_vars()
    __sys_nerr = sys_nerr = NR_ERRORS;
 }
 
-#endif /* __AS386_16__ */
+#endif /* __AS386_??__ */

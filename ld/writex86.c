@@ -13,10 +13,8 @@
 #define bdataoffset (data_base_value)
 #define page_size() ((bin_off_t)4096)
 
-#ifdef __ELF__
 #ifndef ELF_SYMS
-#define ELF_SYMS 1
-#endif
+#define ELF_SYMS 0
 #endif
 
 #  define FILEHEADERLENGTH (headerless?0:A_MINHDR)
@@ -130,13 +128,21 @@ bool_pt arguzp;
 	symres(segboundary);	/* __segXCL */
 	segboundary[7] = 'H';
 	symres(segboundary);	/* __segXCH */
+#ifndef DATASEGS
+        if( curseg > 3 )
+	{
+	   segboundary[6] = 'S';
+	   segboundary[7] = 'O';
+	   symres(segboundary); /* __segXSO */
+        }
+#endif
     }
     curseg = 3;
     symres("__edata");
     symres("__end");
     curseg = 0;			/* text seg, s.b. variable */
     symres("__etext");
-    if( headerless ) symres("__segoff");
+    symres("__segoff");
 
     /* calculate segment and common sizes (sum over loaded modules) */
     /* use zero init of segsz[] */
@@ -186,8 +192,13 @@ bool_pt arguzp;
 	}
 
     /* calculate seg positions now their sizes are known */
-    /* temp use fixed order 0D 0C 1D 1C 2D 2C ... */
-    /* assume seg 0 is text and rest are data */
+    /*
+#ifdef DATASEGS
+     * Assume seg 0 is text and rest are data
+#else
+     * Assume seg 1..3 are data, Seg 0 is real text, seg 4+ are far text
+#endif
+     */
     segpos[0] = segbase[0] = spos = btextoffset;
     combase[0] = segbase[0] + segsz[0];
     segadj[1] = segadj[0] = -btextoffset;
@@ -201,9 +212,23 @@ bool_pt arguzp;
 	bdataoffset = etextpadoff;
     segpos[1] = segbase[1] = edataoffset = bdataoffset;
     combase[1] = segbase[1] + segsz[1];
+#ifndef DATASEGS
+    for (seg = 4; seg < NSEG; ++seg)
+    {
+	segpos[seg] = segbase[seg] = 0;
+	combase[seg] = segbase[seg] + segsz[seg];
+	segadj[seg] = etextpadoff;
+
+	etextpadoff += ld_roundup(segsz[seg] + comsz[seg], 0x10, bin_off_t);
+	segadj[1]   += ld_roundup(segsz[seg] + comsz[seg], 0x10, bin_off_t);
+    }
+    for (seg = 2; seg < 4; ++seg)
+#else
     for (seg = 2; seg < NSEG; ++seg)
+#endif
     {
 	segpos[seg] = segbase[seg] = combase[seg - 1] + comsz[seg - 1];
+#ifdef MC6809
 	if (seg == DPSEG)
 	{
 	    /* temporarily have fixed DP seg */
@@ -216,6 +241,7 @@ bool_pt arguzp;
 		segpos[seg] = segbase[seg] = (segbase[seg] + 0xFF)
 					     & ~(bin_off_t) 0xFF;
 	}
+#endif
 	combase[seg] = segbase[seg] + segsz[seg];
 	segadj[seg] = segadj[seg - 1];
     }
@@ -241,8 +267,12 @@ bool_pt arguzp;
     /* adjust special symbols */
     for (seg = 0; seg < NSEG; ++seg)
     {
+#ifdef DATASEGS
 	if (segsz[seg] != 0)
 	    /* only count data of nonzero length */
+#else
+	if (segsz[seg] != 0 && seg < 4)
+#endif
 	    edataoffset = segbase[seg] + segsz[seg];
 	segboundary[5] = hexdigit[seg];		/* to __segX?H */
 	segboundary[6] = 'D';
@@ -256,11 +286,24 @@ bool_pt arguzp;
 	segboundary[7] = 'H';
 	setsym(segboundary, tempoffset + comsz[seg]);
 						/* __segXCH */
+#ifndef DATASEGS
+        if( seg > 3 )
+	{
+	   segboundary[6] = 'S';
+	   segboundary[7] = 'O';
+	   setsym(segboundary, (bin_off_t)(segadj[seg]-segadj[0])/0x10);
+	   /* __segXSO */
+        }
+#endif
     }
     setsym("__etext", etextoffset);
     setsym("__edata", edataoffset);
+#ifdef DATASEGS
     setsym("__end", endoffset = combase[NSEG - 1] + comsz[NSEG - 1]);
-    if( headerless ) setsym("__segoff", (bin_off_t)(segadj[1]-segadj[0])/0x10);
+#else
+    setsym("__end", endoffset = combase[3] + comsz[3]);
+#endif
+    setsym("__segoff", (bin_off_t)(segadj[1]-segadj[0])/0x10);
     if( !bits32 )
     {
         if( etextoffset > 65536L )
@@ -322,11 +365,20 @@ bool_pt arguzp;
 			     flags & C_MASK)
 			    switch (flags & (A_MASK | SEGM_MASK))
 			    {
+#ifdef DATASEGS
 			    case 0:
+#else
+			    default:
+#endif
 				extsym.n_sclass |= N_TEXT;
 			    case A_MASK:
 				break;
+#ifdef DATASEGS
 			    default:
+#else
+			    case 1: case 2: case 3:
+			    case A_MASK|1: case A_MASK|2: case A_MASK|3:
+#endif
 				if (flags & (C_MASK | SA_MASK))
 				    extsym.n_sclass |= N_BSS;
 				else
@@ -414,7 +466,14 @@ struct modstruct *modptr;
 	case CM_OFFSET_RELOC:
 	    offset = readsize(relocsize);
 	    if (modify & R_MASK)
+	    {
+#ifndef DATASEGS
+                int m = (modify & SEGM_MASK);
+	        if( curseg != m && m != SEGM_MASK )
+	           interseg(modptr->filename, modptr->archentry, (char*)0);
+#endif
 		offset -= (spos + relocsize);
+            }
 	    offtocn(buf, segbase[modify & SEGM_MASK] + offset, relocsize);
 	    writeout(buf, relocsize);
 	    spos += relocsize;
@@ -424,7 +483,14 @@ struct modstruct *modptr;
 					    (modify & S_MASK ? 2 : 1))];
 	    offset = readconvsize((unsigned) modify & OF_MASK);
 	    if (modify & R_MASK)
+	    {
+#ifndef DATASEGS
+                int m = (symptr->flags & SEGM_MASK);
+	        if( curseg != m && m != SEGM_MASK )
+	           interseg(modptr->filename, modptr->archentry, symptr->name);
+#endif
 		offset -= (spos + relocsize);
+	    }
 	    offset += symptr->value;	    
 	    offtocn(buf, offset, relocsize);
 	    writeout(buf, relocsize);

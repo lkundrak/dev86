@@ -107,7 +107,7 @@ char ** envp;
 	}
 	*pip++ = 0;
 
-	rv = __exec(fname, stk_ptr, stack_bytes);
+	rv = __execve(fname, stk_ptr, stack_bytes);
 	/* FIXME: This will probably have to interpret '#!' style exe's */
 	sbrk(-stack_bytes);
 	return rv;
@@ -283,7 +283,7 @@ char ** envp;
 	}
 	*pip++ = 0;
 
-	rv = __exec(fname, stk_ptr, stack_bytes);
+	rv = __execve(fname, stk_ptr, stack_bytes);
 	/* FIXME: This will probably have to interpret '#!' style exe's */
 	sbrk(-stack_bytes);
 	return rv;

@@ -4,7 +4,7 @@
 
 LSRC=syslib0.c
 LOBJ=__cstartup.o lseek.o getpid.o getppid.o getuid.o geteuid.o getgid.o \
-      getegid.o dup2.o dup.o getpgrp.o times.o
+      getegid.o dup2.o getpgrp.o times.o
 
 ESRC=exec.c
 EOBJ=execve.o execl.o execv.o execle.o execlp.o execvp.o
@@ -13,7 +13,7 @@ DSRC=dirent.c
 DOBJ=opendir.o closedir.o readdir.o
 
 ifeq ($(LIB_CPU)-$(LIB_OS),i86-ELKS)
-OBJ=$(LOBJ) $(LOBJ) $(DOBJ) $(EOBJ) signal.o setjmp.o
+OBJ=$(LOBJ) $(DOBJ) $(EOBJ) signal.o setjmp.o
 SYSCALLS=call_i86
 endif
 
@@ -32,6 +32,9 @@ call_i86: syscall.mak
 syscall.mak: mksyscall syscall.dat
 	sh mksyscall
 
+syscall.dat:
+	@touch syscall.dat
+
 $(LIBC): $(LIBC)($(OBJ))
 
 $(LIBC)($(LOBJ)): $(LSRC)
@@ -48,5 +51,5 @@ $(LIBC)($(EOBJ)): $(ESRC)
 
 clean:
 	rm -f *.o libc.a
-	rm -f syscall.c syscall.mak
+	rm -f syscall.c syscall.mak syscall.dat
 	rm -f call_tab.v defn_tab.v

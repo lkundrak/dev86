@@ -253,6 +253,7 @@ PUBLIC void pproceof()
 	maclevel = iflevel = blocklevel =
 	    totwarn = toterr = linum = macnum = 0;
 	initp1p2();		/* reset other varaiables */
+	ptext();
 	if(pass==last_pass)
 	   binaryc = binaryg;
 #ifdef I80386

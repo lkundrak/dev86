@@ -12,11 +12,26 @@
 PUBLIC void dumpmods()
 {
     struct modstruct *modptr;
+    char *s, *d;
+    int i;
 
     for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
     {
-	putstr(modptr->loadflag ? "L " : "  ");
-	putbstr(20, modptr->modname);
+	for(s=d=modptr->filename; *s ; s++)
+	   if( *s == '/' ) d=s+1;
+        if( memcmp(d, "libc", 4) == 0 && !modptr->loadflag ) continue;
+
+	putstr(modptr->modname);
+	i = strlen(modptr->modname);
+	while(i<16) putbyte(' '),i++;
+	putbyte( modptr->loadflag ? '+':'-' );
+	putstr(d);
+	if( modptr->archentry )
+	{
+	   putbyte('(');
+	   putstr(modptr->archentry);
+	   putbyte(')');
+	}
 	putbyte('\n');
     }
 }
@@ -55,7 +70,10 @@ PUBLIC void dumpsyms()
 #else
 			put08x(symptr->value);
 #endif
-		    putstr(flags & A_MASK ? "  A" : "  R");
+		    if( flags & (E_MASK|C_MASK) )
+		       putstr(flags & A_MASK ? "  A" : "  R");
+		    else
+		       putstr(flags & A_MASK ? "  a" : "  r");
 		    if (uflag)
 			putstr(" U");
 		    if (flags & C_MASK)

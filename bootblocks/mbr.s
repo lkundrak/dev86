@@ -14,6 +14,11 @@ preboot=0	! Include the pre-boot loader ?
 org ORGADDR
 include sysboot.s
 
+public partition_1
+public partition_2
+public partition_3
+public partition_4
+
 org ORGADDR+$3
 .ascii "ELKS MBR     Copyright 1996, Robert de Bath"
 

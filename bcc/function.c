@@ -198,7 +198,7 @@ PUBLIC void loadretexpression()
 
 PUBLIC void listo(target, lastargsp)
 struct symstruct *target;
-offset_t lastargsp;
+offset_T lastargsp;
 {
     extend(target);
     push(target);
@@ -364,11 +364,11 @@ PUBLIC void reslocals()
 PUBLIC void ret()
 {
 #ifdef FRAMEPOINTER
-    offset_t newsp;
+    offset_T newsp;
 
     if (framep != 0)
     {
-	newsp = -(offset_t) func1saveregsize;
+	newsp = -(offset_T) func1saveregsize;
 	if (switchnow != NULL || newsp - sp >= 0x80)
 	    changesp(newsp, TRUE);
 	else
@@ -403,7 +403,7 @@ PUBLIC void ret()
 #else
     if (sp != 0)
     {
-	modstk(-(offset_t) func1saveregsize);
+	modstk(-(offset_T) func1saveregsize);
 	poplist(callee1mask);
     }
     outreturn();

@@ -12,7 +12,7 @@
 
 FORWARD void blockmove P((struct symstruct *source, struct symstruct *target));
 FORWARD void call3 P((char *funcname, struct symstruct *target,
-		      struct symstruct *source, uoffset_t size));
+		      struct symstruct *source, uoffset_T size));
 FORWARD void fconvert P((struct symstruct *source, struct typestruct *type));
 
 PUBLIC void assign(source, target)
@@ -129,7 +129,7 @@ struct symstruct *source;
 struct symstruct *target;
 {
     struct symstruct oldtarget;
-    uoffset_t typesize;
+    uoffset_T typesize;
     struct symstruct worksource;
 
     oldtarget = *target;
@@ -176,10 +176,10 @@ PRIVATE void call3(funcname, target, source, size)
 char *funcname;
 struct symstruct *target;
 struct symstruct *source;
-uoffset_t size;
+uoffset_T size;
 {
     store_pt regpushed;
-    offset_t spmark;
+    offset_T spmark;
     struct symstruct *length;
 
     pushlist(regpushed = reguse & ~calleemask);
@@ -203,9 +203,9 @@ struct typestruct *type;
 struct symstruct *target;
 {
     scalar_t newscalar;
-    uoffset_t newsize;
+    uoffset_T newsize;
     scalar_t oldscalar;
-    uoffset_t oldsize;
+    uoffset_T oldsize;
     store_pt targreg;
 
     if (type->constructor & (ARRAY | FUNCTION)
@@ -356,7 +356,7 @@ PRIVATE void fconvert(source, type)
 struct symstruct *source;
 struct typestruct *type;
 {
-    offset_t spmark;
+    offset_T spmark;
 
     pushlist(reguse & OPREG);
     spmark = sp;

@@ -13,6 +13,10 @@
 #include <malloc.h>
 #include <errno.h>
 
+#ifndef O_BINARY
+#define O_BINARY	0
+#endif
+
 extern FILE *__IO_list;		/* For fflush at exit */
 
 #ifdef __AS386_16__
@@ -131,12 +135,12 @@ FILE *fp;
    if ((v & __MODE_READING) && fflush(fp))
       return EOF;
 
-   /* Can't write or there's been an EOF or error then return EOF */
+   /* Can't write if there's been an EOF or error then return EOF */
    if ((v & (__MODE_WRITE | __MODE_EOF | __MODE_ERR)) != __MODE_WRITE)
       return EOF;
 
    /* In MSDOS translation mode */
-#if __MODE_IOTRAN
+#if __MODE_IOTRAN && !O_BINARY
    if (ch == '\n' && (v & __MODE_IOTRAN) && fputc('\r', fp) == EOF)
       return EOF;
 #endif
@@ -197,7 +201,7 @@ FILE *fp;
    }
    ch = *(fp->bufpos++);
 
-#if __MODE_IOTRAN
+#if __MODE_IOTRAN && !O_BINARY
    /* In MSDOS translation mode; WARN: Doesn't work with UNIX macro */
    if (ch == '\r' && (fp->mode & __MODE_IOTRAN))
       goto try_again;
@@ -407,11 +411,12 @@ FILE *fp;
    {
       memcpy(buf, fp->bufpos, (unsigned) bytes);
       fp->bufpos += bytes;
-      return bytes;
+      return nelm;
    }
    else if (len > 0)		/* Some buffered */
    {
       memcpy(buf, fp->bufpos, len);
+      fp->bufpos += len;
       got = len;
    }
 
@@ -473,12 +478,18 @@ FILE *fp;
    len = fp->bufend - fp->bufpos;
    if (bytes <= len)		/* It'll fit in the buffer ? */
    {
+      register int do_flush=0;
       fp->mode |= __MODE_WRITING;
       memcpy(fp->bufpos, buf, bytes);
+      if (v & _IOLBF)
+      {
+         if(memchr(fp->bufpos, '\n', bytes))
+	    do_flush=1;
+      }
       fp->bufpos += bytes;
 
-      /* If we're not fully buffered */
-      if (v & (_IOLBF | _IONBF))
+      /* If we're unbuffered or line buffered and have seen nl */
+      if (do_flush || (v & _IONBF) != 0)
 	 fflush(fp);
 
       return nelm;
@@ -584,7 +595,7 @@ FILE *fp;
 char *mode;
 {
    int   open_mode = 0;
-#if __MODE_IOTRAN
+#if __MODE_IOTRAN && !O_BINARY
    int	 do_iosense = 1;
 #endif
    int   fopen_mode = 0;
@@ -617,14 +628,19 @@ char *mode;
       case '+':
 	 fopen_mode |= __MODE_RDWR;
 	 break;
-#if __MODE_IOTRAN
+#if __MODE_IOTRAN || O_BINARY
       case 'b':		/* Binary */
 	 fopen_mode &= ~__MODE_IOTRAN;
+	 open_mode |= O_BINARY;
+#if __MODE_IOTRAN && !O_BINARY
 	 do_iosense=0;
+#endif
 	 break;
       case 't':		/* Text */
 	 fopen_mode |= __MODE_IOTRAN;
+#if __MODE_IOTRAN && !O_BINARY
 	 do_iosense=0;
+#endif
 	 break;
 #endif
       }
@@ -674,7 +690,7 @@ char *mode;
       if( isatty(fd) )
       {
 	 fp->mode |= _IOLBF;
-#if __MODE_IOTRAN
+#if __MODE_IOTRAN && !O_BINARY
 	 if( do_iosense ) fopen_mode |= __MODE_IOTRAN;
 #endif
       }
@@ -786,6 +802,7 @@ char * buf;
 int mode;
 size_t size;
 {
+   int rv = 0;
    fflush(fp);
    if( fp->mode & __MODE_FREEBUF ) free(fp->bufstart);
    fp->mode &= ~(__MODE_FREEBUF|__MODE_BUF);
@@ -796,14 +813,21 @@ size_t size;
    if( mode == _IOFBF || mode == _IOLBF )
    {
       if( size <= 0  ) size = BUFSIZ;
-      if( buf == 0 ) buf = malloc(size);
-      if( buf == 0 ) return EOF;
-
-      fp->bufstart = buf;
-      fp->bufend = buf+size;
-      fp->mode |= mode;
+      if( buf == 0 )
+      {
+         if( (buf = malloc(size)) != 0 )
+	    fp->mode |= __MODE_FREEBUF;
+         else rv = EOF;
+      }
+      if( buf )
+      {
+         fp->bufstart = buf;
+         fp->bufend = buf+size;
+         fp->mode |= mode;
+      }
    }
    fp->bufpos = fp->bufread = fp->bufwrite = fp->bufstart;
+   return rv;
 }
 #endif
 

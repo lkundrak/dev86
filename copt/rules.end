@@ -1,6 +1,6 @@
 # Rules to optimize BCC assembler output
 
-# Redo the changes done in rules.start
+# Undo the changes done in rules.start
 
 proc_start
 =

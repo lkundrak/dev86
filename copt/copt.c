@@ -302,13 +302,6 @@ static void readinfile(char *filename, char comment)
 	  (void)fclose(fp);
 }
 
-
-
-/*
- * Eval an expression into an integer number
- */
-static long eval(char *str, int len)
-{
 #define NO_OP  0
 #define ADD_OP 1
 #define SUB_OP 2
@@ -317,39 +310,52 @@ static long eval(char *str, int len)
 #define SHL_OP 5
 #define SHR_OP 6
 
-  char *oldcp, *cp, c;
   long retval = 0;
   long num = 0;
   int sign = 1;
   int base = 10;
-  int state = 0;
   int op = NO_OP;
+
+/* Apply operation to current numeric value */
+static void doretval(void)
+{
+      switch (op) {
+	      case NO_OP:	retval = num * sign;
+			      break;
+	      case ADD_OP:	retval += num * sign;
+			      break;
+	      case SUB_OP:	retval -= num * sign;
+			      break;
+	      case MUL_OP:	retval *= num * sign;
+			      break;
+	      case DIV_OP:	retval /= num * sign;
+			      break;
+	      case SHL_OP:	retval <<= num;
+			      break;
+	      case SHR_OP:	retval >>= num;
+			      break;
+      }
+      op = NO_OP;
+      num = 0;
+      sign = 1;
+      base = 10;
+}
+
+
+/*
+ * Eval an expression into an integer number
+ */
+static long eval(char *str, int len)
+{
+  char *oldcp, *cp, c;
+  int state = 0;
   int i, varnum;
 
-  /* Apply operation to current numeric value */
-  static void doretval(void)
-  {
-	switch (op) {
-		case NO_OP:	retval = num * sign;
-				break;
-		case ADD_OP:	retval += num * sign;
-				break;
-		case SUB_OP:	retval -= num * sign;
-				break;
-		case MUL_OP:	retval *= num * sign;
-				break;
-		case DIV_OP:	retval /= num * sign;
-				break;
-		case SHL_OP:	retval <<= num;
-				break;
-		case SHR_OP:	retval >>= num;
-				break;
-	}
-	op = NO_OP;
-	num = 0;
-	sign = 1;
-	base = 10;
-  }
+  retval = 0;
+  num = 0;
+  sign = 1;
+  base = 10;
+  op = NO_OP;
 
   /* Scan through whole string and decode it */
   for (cp = str, i = 0; *cp && i < len; cp++, i++) {

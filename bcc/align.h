@@ -12,4 +12,4 @@
 # endif
 #endif
 
-extern uoffset_t alignmask;	/* general alignment mask */
+extern uoffset_T alignmask;	/* general alignment mask */

@@ -11,17 +11,12 @@ endif
 
 VERMAJOR=0
 VERMINOR=13
-VERPATCH=0
+VERPATCH=5
 VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
 
 CC=bcc
 CCFLAGS=-I -I$(TOP)/include
 DEFS=-D__LIBC__
-
-ifeq ($(ELKSSRC),)
-ELKSSRC=/usr/src/elks
-endif
-export ELKSSRC
 
 include Make.defs
 

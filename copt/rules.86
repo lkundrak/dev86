@@ -68,7 +68,6 @@ inc	%[si|di]*
 mov	al,-1[si]
 mov	-1[di],al
 =
-cld
 lodsb
 stosb
 
@@ -77,7 +76,6 @@ inc	%[si|di]*
 mov	al,-1[di]
 mov	-1[si],al
 =
-cld
 xchg	si,di
 lodsb
 stosb
@@ -86,13 +84,11 @@ xchg	si,di
 inc	si
 mov	al,-1[si]
 =
-cld
 lodsb
 
 inc	di
 mov	-1[di],al
 =
-cld
 stosb
 
 dec	%[si|di]*
@@ -103,6 +99,7 @@ mov	1[di],al
 std
 lodsb
 stosb
+cld
 
 dec	%[si|di]*
 dec	%[si|di]*
@@ -114,18 +111,21 @@ xchg	si,di
 lodsb
 stosb
 xchg	si,di
+cld
 
 dec	si
 mov	al,1[si]
 =
 std
 lodsb
+cld
 
 dec	di
 mov	1[di],al
 =
 std
 stosb
+cld
 
 
 # Rules for manipulating short values

@@ -410,6 +410,13 @@ int len;
    int ch;
    int pos=0;
 
+   if( len < 0 ) { errno = EINVAL; return -1; }
+   if( len == 0 )
+   {
+      if( bios_khit() == 0 ) return 0;
+      errno = EINTR;
+      return -1;
+   }
    if( len == 1 )
    {
       buf[0]=((ch=bios_getc())&0xFF?ch&0xFF:((ch>>8)&0xFF|0x80));

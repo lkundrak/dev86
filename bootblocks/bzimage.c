@@ -4,6 +4,7 @@
  */
 
 #include <stdio.h>
+#include <dos.h>
 #include "i86_funcs.h"
 #include "readfs.h"
 
@@ -13,8 +14,17 @@ char * append_line = 0;		/* A preset append line value */
 static char * initrd_name = 0;	/* Name of init_ramdisk to load */
 static int vga_mode = -1;	/* SVGA_MODE = normal */
 
+static int  is_zimage = 0;
+static int  image_length;	/* Length of image in sectors */
+static long image_size;		/* Length of image file in bytes */
+
 static char * read_cmdfile();
 static char * input_cmd();
+
+#define ZIMAGE_LOAD_SEG	 0x1000	/* Segment that zImage data is loaded */
+#define COMMAND_LINE_POS 0x4000 /* Offset in segment 0x9000 of command line */
+
+int has_command_line = 0;
 
 cmd_bzimage(ptr)
 char * ptr;
@@ -58,12 +68,13 @@ char * command_line;
 
    printf("Loading %s\n", fname);
 
-   if( read_block(buffer) < 0 || check_magics(buffer) < 0 )
+   if( read_block(buffer) < 0 || check_magics(fname, buffer) < 0 )
    {
-      printf("File %s isn't a bzImage.\n", fname);
+      printf("Cannot execute file %s\n", fname);
       return -1;
    }
 
+#ifndef __ELKS__
    if( boot_mem_top < 0x9500 )
    {
       printf("There must be 640k of boot memory to load Linux\n");
@@ -74,7 +85,7 @@ char * command_line;
     * I expect we could lookup the size in the gzip header but
     * this is probably close enough (3*the size of the bzimage)
     */
-   len = file_length() * 3 / 1024;
+   len = (image_size=file_length()) * 3 / 1024;
    if( main_mem_top < len )
    {
       printf("This kernel needs at least %ld.%ldM of main memory\n",
@@ -83,12 +94,29 @@ char * command_line;
    }
    if( main_mem_top < 3072 )
       printf("RTFM warning: Linux really needs at least 4MB of memory.\n");
+#endif
 
-   low_sects = buffer[497] + 1; /* setup sects + boot sector */
+   low_sects    = buffer[497] + 1; /* setup sects + boot sector */
+   image_length = (file_length()+511)/512 - low_sects;
    address = 0x900;
+
+#ifndef __ELKS__
+   if( is_zimage )
+   {
+      relocator(8);	/* Need space in low memory */
+
+      if( image_length > (__get_cs()>>5) - ZIMAGE_LOAD_SEG/32 )
+      {
+         printf("This zImage file is too large, maximum is %ld bytes\n",
+                 ((__get_cs()>>5) - ZIMAGE_LOAD_SEG/32 + low_sects)*512L );
+         return -1;
+      }
+   }
+#endif
 
    /* load the blocks */
    rewind_file();
+   reset_crc();
    for(len = file_length(); len>0; len-=1024)
    {
       int v;
@@ -109,6 +137,7 @@ char * command_line;
 	 return -1;
       }
 
+      if( len > 1024 ) addcrc(buffer, 1024); else addcrc(buffer, (int)len);
       for(v=0; v<1024; v+=512)
       {
          if( putsect(buffer+v, address) < 0 )
@@ -119,10 +148,15 @@ char * command_line;
          if( low_sects )
 	 {
 	    low_sects--;
-	    if( low_sects == 0 ) address = 0x1000;
+	    if( low_sects == 0 )
+	    {
+	       if( is_zimage ) address = ZIMAGE_LOAD_SEG/16;
+	       else            address = 0x1000;
+	    }
 	 }
       }
    }
+   display_crc();
 
    /* Yesss, loaded! */
    printf("Loaded, "); fflush(stdout);
@@ -134,6 +168,14 @@ char * command_line;
    if( initrd_name )
       if( load_initrd(address) < 0 )
          return -1;
+
+   check_crc();
+
+   if( is_zimage )
+   {
+      printf("Sorry, zImage's don't seem to be working at the moment.\n");
+      if( !keep_going() ) return -1;
+   }
 
    printf("Starting ...\n");
 
@@ -156,9 +198,39 @@ char * command_line;
       if( !keep_going() ) return -1;
    }
 
-   /* Patch setup to deactivate safety switch */
+#ifdef __ELKS__
+   printf("Cannot start.\n");
+   return -1;
+#endif
+
    __set_es(0x9000);
-   __poke_es(0x210, 0xFF);
+
+   /* Save pointer to command line */
+   if( has_command_line )
+   {
+      __doke_es(0x0020, 0xA33F);
+      __doke_es(0x0022, COMMAND_LINE_POS);	
+   }
+
+#if ZIMAGE_LOAD_SEG != 0x1000
+   if( is_zimage )
+   {
+#if ZIMAGE_LOAD_SEG != 0x100
+      /* Tell setup that we've loaded the kernel somewhere */
+      __poke_es(0x20C, ZIMAGE_LOAD_SEG);
+#else
+      /* Tell setup it's a bzImage _even_ tho it's a _zImage_ because we have
+       * actually loaded it where it's supposed to end up!
+       */
+      __poke_es(0x211, __peek_es(0x211)|1);
+
+      __poke_es(0x210, 0xFF); /* Patch setup to deactivate safety switch */
+#endif
+   }
+#endif
+
+   if( !is_zimage )
+      __poke_es(0x210, 0xFF); /* Patch setup to deactivate safety switch */
 
    /* Set SVGA_MODE if not 'normal' */
    if( vga_mode != -1 ) __doke_es(506, vga_mode);
@@ -178,6 +250,8 @@ char * command_line;
   mov	ax,$9000
   mov	bx,$4000-12	! Fix this to use boot_mem_top
   mov	es,ax
+  mov	fs,ax
+  mov	gs,ax
   mov	ds,ax
   mov	ss,ax
   mov	sp,bx
@@ -186,51 +260,63 @@ char * command_line;
    }
 }
 
-check_magics(buffer)
+check_magics(fname, buffer)
+char * fname;
 char * buffer;
 {
+   is_zimage = 0;
+
    /* Boot sector magic number */
-   if( *(unsigned short*)(buffer+510) != 0xAA55 ) return -1;
+   if( *(unsigned short*)(buffer+510) != 0xAA55 ||
 
    /* Setup start */
-   if( memcmp(buffer+0x202, "HdrS", 4) != 0 ) return -1;
+       memcmp(buffer+0x202, "HdrS", 4) != 0 ||
 
    /* Setup version */
-   if( *(unsigned short*)(buffer+0x206) < 0x200 ) return -1;
-   
-   /* Check load flags for bzImage */
-   if( (buffer[0x211] & 1) == 0 ) return -1;
+       *(unsigned short*)(buffer+0x206) < 0x200 )
+   {
+      printf("File %s is not a linux Image file\n", fname);
+      return -1;
+   }
 
-   /* Code 32 start address */
-   if( *(unsigned long*)(buffer+0x214) != 0x100000 ) return -1;
+   /* Code 32 start address for zImage */
+   if( *(unsigned long*)(buffer+0x214) == 0x1000 )
+   {
+      printf("File %s is a zImage file\n", fname);
+      is_zimage = 1;
+      return 0;
+   }
+   else
+   /* Code 32 start address bzImage */
+   if( *(unsigned long*)(buffer+0x214) != 0x100000 )
+   {
+      printf("File %s is not a bzImage file\n", fname);
+      return -1;
+   }
+   printf("File %s is a bzImage file\n", fname);
 
    return 0;
 }
 
+#ifndef __ELKS__
 putsect(buffer, address)
 char * buffer;
 unsigned int address;
 {
    int rv, tc=3;
+   /* In real mode memory, just put it directly */
+   if( address < 0xA00 )
+   {
+      __movedata(__get_ds(), buffer, address*16, 0, 512);
+      return 0;
+   }
+
 retry:
    tc--;
 #if 1
    if( x86_emu )
-   {
-static unsigned int last_address = 0;
-      if( address <= last_address )
-         printf("Problem %d<=%d\n", address, last_address);
-      if( address < 0xA00 )
-      {
-         int i;
-         __set_es(address*16);
-	 for(i=0; i<512; i++)
-	    __poke_es(i, buffer[i]);
-      }
-      else
-         printf("In EMU can't write to 0x%x\n", address);
-      return 0;
-   }
+      return 0;	/* In an EMU we can't write to high mem but
+                   we'll pretend we can for debuggering */
 #endif
    if( (rv=ext_put(buffer, address, 512)) != 0 )
    {
@@ -261,6 +347,7 @@ static unsigned int last_address = 0;
    }
    return 0;
 }
+#endif
 
 static char *
 read_cmdfile(iname, extno)
@@ -352,6 +439,8 @@ static char * image_str = "BOOT_IMAGE=";
    char * free_cmd = 0;
    char * free_app = 0;
    char * free_dfl = 0;
+
+   has_command_line = 0;
 
    if( append == 0 )
       append = free_app = read_cmdfile(image, 2);
@@ -447,11 +536,18 @@ static char * image_str = "BOOT_IMAGE=";
       len = 2048;
    }
 
+#ifdef __ELKS__
+   fprintf(stderr, "Command line: '%s'\n", ptr+1);
+#else
+/*
    __set_es(0x9000);
    __doke_es(0x0020, 0xA33F);
-   __doke_es(0x0022, 0x4000);	
+   __doke_es(0x0022, COMMAND_LINE_POS);	
+*/
 
-   __movedata(__get_ds(), (unsigned)ptr+1, 0x9000, 0x4000, len);
+   __movedata(__get_ds(), (unsigned)ptr+1, 0x9000, COMMAND_LINE_POS, len);
+   has_command_line = 1;
+#endif
 
    free(ptr);
 
@@ -554,4 +650,39 @@ unsigned int k_top;
    }
 
    return 0;
+}
+
+check_crc()
+{
+   char buffer[512];
+   int low_sects;
+   unsigned int address = 0x900;
+   long len;
+
+   if( !is_zimage ) return;
+
+   reset_crc();
+
+   __movedata(address*16, 0, __get_ds(), buffer, 512);
+   low_sects = buffer[497] + 1; /* setup sects + boot sector */
+
+   for(len=image_size; len>0; len-=512)
+   {
+      if( address >= 0xA00 ) return;
+      __movedata(address*16, 0, __get_ds(), buffer, 512);
+
+      if( len > 512 ) addcrc(buffer, 512); else addcrc(buffer, (int)len);
+      
+      address += 2;
+      if( low_sects )
+      {
+	 low_sects--;
+	 if( low_sects == 0 )
+	 {
+	    if( is_zimage ) address = ZIMAGE_LOAD_SEG/16;
+	    else            address = 0x1000;
+	 }
+      }
+   }
+   display_crc();
 }

@@ -53,6 +53,8 @@ endpwent(void)
 struct passwd *
 getpwent(void)
 {
+  if (pw_fd==-1)
+    setpwent();
   if (pw_fd!=-1)
     return __getpwent(pw_fd);
   return NULL;  

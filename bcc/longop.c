@@ -27,7 +27,7 @@ struct symstruct *target;
     store_t regmark;
     bool_t shiftflag;
     scalar_t scalar;
-    offset_t spmark;
+    offset_T spmark;
 
     pushlist(reglist = (regmark = reguse) & (OPREG | OPWORKREG));
     reguse &= ~reglist;

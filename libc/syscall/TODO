@@ -10,6 +10,8 @@ Subject: 8086 Shared Libs and local RPC.
 True shared libs are impossible with the 8086 in small model.
 BUT we can use RPC type links to provide a similar system.
 
+This is very machine specific.
+
 Client side
 -----------
 

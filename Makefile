@@ -9,6 +9,7 @@ TARGETS= \
     all-libs alt-libs library lib-386 lib-bsd lib-dos lib-fast lib-stand \
     config other tests dis88 doselks bootblocks ld86r
 
+ELKSSRC= /usr/src/elks
 PREFIX=	 /usr/bcc
 BINDIR=	 /usr/bin
 LIBDIR=  $(PREFIX)/lib/bcc
@@ -36,6 +37,7 @@ make.fil: ifdef makefile.in
 	sed -e "s:%PREFIX%:$(PREFIX):" \
 	    -e "s:%BINDIR%:$(BINDIR):" \
 	    -e "s:%LIBDIR%:$(LIBDIR):" \
+	    -e "s:%ELKSSRC%:$(ELKSSRC):" \
 	    -e "s:%CC%:$(CC):" \
 	    -e "s:%CFLAGS%:$(CFLAGS):" \
 	    -e "s:%LDFLAGS%:$(LDFLAGS):" \
@@ -57,6 +59,7 @@ Uninstall: phony
 	rm -rf /usr/bcc
 	rm -f $(BINDIR)/bcc $(BINDIR)/as86_encap $(BINDIR)/dis86
 	rm -f $(BINDIR)/as86 $(BINDIR)/ld86
+	rm -f $(BINDIR)/objdump86 $(BINDIR)/nm86 $(BINDIR)/size86
 	rm -f /lib/elksemu
 	rm -f /usr/lib/liberror.txt
 	rm -f /usr/man/man1/elks.1* /usr/man/man1/elksemu.1*
@@ -67,21 +70,33 @@ Uninstall: phony
 distribution:
 	@rm -f /tmp/linux-86 || true
 	@[ ! -f Copy_dist ] || sh Copy_dist
-	mkdir -p /tmp/Dist
+	mkdir -p -m 0777 /tmp/Dist
 	[ -d /tmp/linux-86 ] || ln -s `pwd` /tmp/linux-86
 	cd /tmp 							&&\
 	$(MAKE) -C linux-86 realclean					&&\
 	$(MAKE) -C linux-86/libc Libc_version				&&\
 	VER=`cat linux-86/Libc_version`					&&\
-	tar cf Dist/Dev86src-$$VER.tar linux-86/*			&&\
+	tar cf Dist/Dev86src-$$VER.tar linux-86/*
+	gzip -f9 /tmp/Dist/Dev86src-*.tar &
+
+	cd /tmp 							&&\
+	VER=`cat linux-86/Libc_version`					&&\
 	ln -s linux-86/as as86						&&\
 	cp -p linux-86/man/as86.1 as86/as86.1				&&\
 	cp -p linux-86/COPYING as86/COPYING				&&\
 	tar cf Dist/as86-$$VER.tar `find as86/* -prune -type f`		&&\
-	rm as86/as86.1 as86						&&\
+	rm as86/as86.1 as86
+	gzip -f9 /tmp/Dist/as86-*.tar &
+
+	cd /tmp 							&&\
+	VER=`cat linux-86/Libc_version`					&&\
 	ln -s linux-86/libc libc-$$VER 					&&\
 	tar cf Dist/libc-8086-$$VER.tar libc-$$VER/*			&&\
-	rm libc-$$VER							&&\
+	rm libc-$$VER
+	gzip -f9 /tmp/Dist/libc-8086-*.tar &
+
+	cd /tmp 							&&\
+	VER=`cat linux-86/Libc_version`					&&\
 	$(MAKE) -C /tmp/linux-86 install 				\
 		ARFLAGS=q DIST=/tmp/linux-86-dist ELKSSRC=/dev/null	&&\
 	$(MAKE) -C /tmp/linux-86 other					&&\
@@ -94,5 +109,5 @@ distribution:
 		Bcc/lib/i386/crt0.o Bcc/lib/i386/libc.a			&&\
 	rm Bcc
 
-	gzip -v9f /tmp/Dist/*.tar
+	gzip -v9f /tmp/Dist/Dev86bin-*.tar
 	@rm /tmp/linux-86 || true

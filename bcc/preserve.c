@@ -10,7 +10,7 @@
 /* change stack ptr without changing condition codes */
 
 PUBLIC void changesp(newsp, absflag)
-offset_t newsp;
+offset_T newsp;
 bool_pt absflag;
 {
     if (newsp != sp || ((bool_t) absflag && switchnow != NULL))
@@ -74,7 +74,7 @@ struct symstruct *target;
 /* change stack ptr */
 
 PUBLIC void modstk(newsp)
-offset_t newsp;
+offset_T newsp;
 {
     if (newsp != sp)
     {
@@ -173,11 +173,11 @@ PRIVATE smalin_t regoffset[] = {0, 0, 0, 1, 3, 2};
 
 PUBLIC void savereturn(savelist, saveoffset)
 store_pt savelist;
-offset_t saveoffset;
+offset_T saveoffset;
 {
     store_t reg;
     smalin_t *regoffptr;
-    offset_t spoffset;
+    offset_T spoffset;
 
     if (savelist == 0)
 	return;

@@ -1,11 +1,11 @@
-.TH bcc 1 "Jan, 1997"
+.TH bcc 1 "Nov, 1997"
 .BY Bruce Evans
 .nh
 .SH NAME
 bcc \- Bruce's C compiler
 .SH SYNOPSIS
 .B bcc
-.RB [ -03EGNOPSVcegv ]
+.RB [ -03EGNOPSVcegvwxW ]
 .RB [ -Aas_option ]
 .RB [ -Bexecutable_prefix ]
 .RB [ -Ddefine ]
@@ -18,6 +18,7 @@ bcc \- Bruce's C compiler
 .RB [ -Lld_option ]
 .RB [ -Ttmpdir ]
 .RB [ -Qc386_option ]
+.RB [ -ttext_segno ]
 .RB [ ld_options ]
 .RB [ infiles ]
 .SH DESCRIPTION
@@ -168,7 +169,7 @@ output file name follows (assembler, object or executable) (as usual)
 error (profiling not supported)
 .TP
 .B -t
-error (substitution of some cc passes not supported)
+pass to the assembler to renumber the text segment for multi-segment programs.
 .TP
 .B -v
 print names and args of subprocesses being run.  Two or more -v's print
@@ -176,8 +177,15 @@ names of files being unlinked.  Three or more -v's print names of paths
 being searched.
 .TP
 .B -w
-allow the assembler to generate warnings, useful for finding 80186+
-instructions.
+Supress any warning diagnostics.
+.TP
+.B -W
+Turn
+.B on
+assembler warning messages.
+.TP
+.B -x
+don't include crt0.o in the link.
 .P
 Other options are passed to the linker, in particular -i-, -lx, -M, -m, -s, -H.
 The -i option is always passed to the linker but can be cancelled using -i-.

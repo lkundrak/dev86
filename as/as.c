@@ -68,6 +68,7 @@ char **argv;
     last_pass=1;
     process_args(argc, argv);
     initscan();
+    ptext();
 
     assemble();			/* doesn't return, maybe use setjmp */
 
@@ -253,6 +254,13 @@ char **argv;
 		    usage();
 		symgen = TRUE;
 		symfil = my_creat(nextarg, "error creating symbol file");
+		--argc;
+		++argv;
+		break;
+	    case 't':
+		if (!isnextarg || binfil != 0)
+		    usage();
+		textseg = atoi(nextarg);
 		--argc;
 		++argv;
 		break;

@@ -14,13 +14,16 @@ If you don't want it to install some bits in /usr/bin you can override
 the bindir on the first make ie: 'make BINDIR=/usr/local/bin' this
 is remembered until 'make.fil' is rebuilt. 
 
-The manual pages in the man subdirectory are a start as some pages matched
-to these programs, there are also some hints for using as86 well.
-The tests and bootblocks directories give some example code.
+The manual pages in the man subdirectory are matched to these programs,
+there are also some hints for using as86 well.  The tests and bootblocks
+directories give some example code.
 
-The bcc command defaults to using /usr/bcc/include and /usr/bcc/lib the
-libraries _and_ include files are copied to these locations by install.
-This can be changed by overriding 'PREFIX=...' on the initial make.
+The bcc command defaults to using /usr/bcc/include and /usr/bcc/lib/bcc
+the libraries _and_ include files are copied to these locations by
+install.  This can be changed by overriding 'PREFIX=/usr/bcc' or
+'LIBDIR=/usr/bcc/lib/bcc' on the initial make. Also available in the
+same way the 'ELKSSRC=/usr/src/elks' variable can be altered if you
+have ELKS on a different path.
 
 All the versions of the library are built by make; 'normal', 'fast',
 'MSDOS', 'standalone' and Linux-i386.
@@ -47,7 +50,7 @@ work correctly here!
 
 I _strongly_ suggest you install the kernel patch or load the module in
 the elksemu directory in your Linux-i386 kernel, it makes things _much_
-easier.  If you're using a post 2.1.43 kernel the modeule you need is
+easier.  If you're using a post 2.1.43 kernel the module you need is
 the binfmt_misc driver as described in elksemu/README. 
 (All the options need the elksemu executable installed correctly)
 
@@ -58,9 +61,12 @@ the GPL.  The `bccfp' library now in the libc/i386fp directory is under
 the LGPL. (Copyright holder Bruce Evans)
 
 The contents of the libc and libbsd subdirectories are under the LGPL
-with a few noted exceptions.  The programs in 'tests', elksemu, copt and
-the bootblocks directory are under the GPL. Dis88 and unproto are freely
-distributable if the source is distributed also.
+with a few noted exceptions.  The programs in 'tests', elksemu, copt
+and the bootblocks directory are under the GPL.  Dis88 is freely
+distributable if the source is distributed also.  Unproto is freely
+distributable as long as Wietse Venema <wietse@wzv.win.tue.nl> and the
+"Mathematics and Computing Science Dept.  Eindhoven University of
+Technology.  The Netherlands." is given credit.
 
 In libc the regular expression routine and the printf/scanf functions are
 not under LGPL, the former is 'freely distributable' the latter is public
@@ -70,4 +76,4 @@ See the COPYING file in this directory for the GPL and the COPYING file
 in the libc directories for the LGPL.
 
 --
-Rob.                           (Robert de Bath <robert@mayday.cix.co.uk>)
+Rob.                           (Robert de Bath <rdebath@poboxes.com>)

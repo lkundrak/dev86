@@ -252,7 +252,7 @@ struct nodestruct *p2;
     struct symstruct *source = NULL; /* for -Wall */
     value_t sourceval = 0 ;  /* for -Wall */
     struct symstruct *target;
-    offset_t targszdelta;
+    offset_T targszdelta;
     value_t targval = 0; /* for -Wall */
     scalar_t rscalar = 0; /* for -Wall */
     bool_t uflag;

@@ -31,11 +31,11 @@ WALL  =-Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
 
 WALL  =-Wstrict-prototypes
 
-CC	=gcc $(GCCFLAG)
+CC	=gcc
 #ifdef __i386__
-CFLAGS	=-Wall $(WALL) -O2 -m486 -fno-strength-reduce -g
+CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O2 -m486 -fno-strength-reduce -g
 #else
-CFLAGS	=-Wall $(WALL) -O6 -g
+CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O6 -g
 #endif
 #endif
 
@@ -68,8 +68,15 @@ INDAT=-o root -g root -m 644
 INEXE=-o root -g root -m 755 -s
 INSCR=-o root -g root -m 755
 
-all: check_config bcc unproto copt as86 ld86 \
+#ifdef GNUMAKE
+all: check_config bcc unproto copt as86 ld86 objdump86 \
      library lib-bsd alt-libs elksemu
+#else
+all: check_config bcc unproto copt as86 ld86 objdump86
+	@echo
+	@echo 'NOTE: To build the libraries you need GNU-Make.'
+	@echo '      They are available precompiled in the Dev86clb-X.X.X.zip file.'
+#endif
 
 install: check_config install-bcc install-man \
      install-lib install-lib2 install-emu
@@ -81,9 +88,14 @@ install-all: install install-other
 LIBARGS= CC=ncc CCFLAGS= ARFLAGS=$(ARFLAGS)
 
 # Season in the top makefile
+ELKSSRC= %ELKSSRC%
 PREFIX=	 %PREFIX%
 BINDIR=	 %BINDIR%
 LIBDIR=  %LIBDIR%
+
+#ifdef GNUMAKE
+export ELKSSRC
+#endif
 
 DISTBIN= $(DIST)$(BINDIR)
 DISTLIB= $(DIST)$(LIBDIR)
@@ -100,6 +112,10 @@ bindir: $(MAKEX)
 	@mkdir -p bin lib lib/i386
 	@rm -f include
 	@ln -s libc/include include 2>/dev/null || true
+#ifndef GNUMAKE
+	@ln -s ../kinclude/linuxmt include/linuxmt 2>/dev/null || true
+	@ln -s ../kinclude/arch    include/arch    2>/dev/null || true
+#endif
 
 phony:
 
@@ -131,13 +147,17 @@ ld86r: bindir
 	$(MAKEC) ld $(MAKEARG) ld86r
 	cp -p ld/ld86r bin/ld86r
 
+objdump86: bindir
+	$(MAKEC) ld $(MAKEARG) objdump86
+	cp -p ld/objdump86 bin/objdump86
+
 elksemu: bindir
 #ifdef __i386__
 	$(MAKEC) elksemu \
 	CC='$(CC)' PREFIX=$(PREFIX) LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' \
 	elksemu
 #else
-	$(MAKEC) elksemu CC='ncc' DEFS=-N- elksemu
+	$(MAKEC) elksemu CC='ncc' elksemu
 #endif
 	cp -p elksemu/elksemu bin/elksemu
 
@@ -151,12 +171,15 @@ install-ln: bcc unproto copt as86 ld86 elksemu
 	install -d $(DIST)/usr/lib
 	install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
 
-install-bcc: bcc unproto copt as86 ld86
+install-bcc: bcc unproto copt as86 ld86 objdump86
 	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
 	install $(INEXE) bin/Bcc 	$(DISTBIN)/bcc
 	install $(INSCR) bin/as86_encap	$(DISTBIN)/as86_encap
 	install $(INEXE) bin/as86 	$(DISTBIN)/as86
 	install $(INEXE) bin/ld86 	$(DISTBIN)/ld86
+	install $(INEXE) bin/objdump86 	$(DISTBIN)/objdump86
+	install $(INEXE) bin/objdump86 	$(DISTBIN)/nm86
+	install $(INEXE) bin/objdump86 	$(DISTBIN)/size86
 	install $(INEXE) lib/bcc-cc1 	$(DISTLIB)/bcc-cc1
 	install $(INEXE) lib/unproto 	$(DISTLIB)/unproto
 	install $(INEXE) lib/copt 	$(DISTLIB)/copt
@@ -256,7 +279,7 @@ config: $(MAKEX)
 	$(MAKEC) libc config
 
 #else
-check_config: $(MAKEX) ;
+check_config: ;
 
 config: ;
 #endif
@@ -285,5 +308,6 @@ realclean:
 	rm -rf bin lib
 	rm -f include
 	rm -f makec
+	rm -f `find . -type l -print`
 
 ##############################################################################

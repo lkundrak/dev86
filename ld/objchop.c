@@ -61,7 +61,7 @@ long bsize;
    FILE * ofd;
 
    ofd = fopen(fname, "w");
-   if( ofd == 0 ) fatal("Cannout open output file");
+   if( ofd == 0 ) fatal("Cannot open output file");
 
    while(bsize>0)
    {

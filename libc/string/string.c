@@ -632,7 +632,7 @@ unsigned int srcseg, srcoff, destseg, destoff, len;
   cld
 #endif
 
-  ! sei			! Are we _really_ paranoid ?
+  ! sti			! Are we _really_ paranoid ?
 
 #if !__FIRST_ARG_IN_AX__
   mov	ds,[bp+4]	! Careful, [bp+xx] is SS based.

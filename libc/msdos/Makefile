@@ -10,7 +10,7 @@ AOBJ= dos_start.o __mkargv.o __mkenvp.o dos__fconv.o dos_read.o		\
 
 BSRC=i86.c
 BOBJ= __seg_regs.o __peek_es.o __poke_es.o __deek_es.o __doke_es.o	\
-      __strchr_es.o
+      __strnget_es.o __strchr_es.o __strlen_es.o
 
 ifeq ($(LIB_CPU),i86)
 ifeq ($(LIB_OS),DOS)

@@ -1,3 +1,24 @@
+For version 0.14.0.
+
+> Objdump86 utility added, also includes nm86 and size86 that work on
+  as86's object files and elks executables.
+
+> Added ability to put ELKSSRC=/././. on initial make command line.
+
+> Some bug fixes and buffering improvements for stdio2.
+
+> Changed output of linker -m option to be more verbose (useful).
+
+> Linker errors are now directed to STDERR on unix/elks.
+
+> Alterations to elksemu and the C library to be closer to elks, 0.13.1+
+  should not need a patch to work with 0.0.60+ ELKS.
+
+> Link symbol dump now flags local variables differently to exported.
+
+> Fixes for libc/misc/crypt.c, they do change the values of the encrypted
+  password so beware.
+
 For version 0.13.0.
 
 > Removed too eager 'typeconv.c' warning.
@@ -177,7 +198,7 @@ For version 0.0.10.
   standalone executable to be executed from an msdos floppy. Makeboot
   can also install several other types of bootblock.
 
-> Monitor.out not includes 'bzimage' command, which will boot a Linux-i386
+> Monitor.out now includes 'bzimage' command, which will boot a Linux-i386
   bzImage with command line and initrd.
 
 > 'skip.s' bootblock fixed.

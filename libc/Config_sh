@@ -46,7 +46,7 @@ main()
    do
       display
       echo 
-      echon 'Option to flip [or quit] >'
+      echon 'Select config option to flip [or quit] >'
       read n
       v=""
       case "$n" in
@@ -76,8 +76,6 @@ main()
 display()
 {
    clear 
-   echo 'Configuration options'
-   echo
    awk -F: < .config.lst '{
       if( $3 == "+" ) next;
       if( $2 == "+" )  { flags[$1] = 1; next; }

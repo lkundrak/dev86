@@ -15,7 +15,16 @@
 
 COMPACT=1
 
-rm -f syscall.c syscall.mak call_tab.v defn_tab.v
+rm -f syscall.c syscall.mak call_tab.v defn_tab.v syscall.dat
+
+if [ -r ${ELKSSRC}/arch/i86/kernel/syscall.dat \
+ -a ! -r ${TOPDIR}/libc/kinclude/Used ]
+
+then echo Using syscalls from ${ELKSSRC}
+     cp -p ${ELKSSRC}/arch/i86/kernel/syscall.dat syscall.dat
+else echo Using syscalls from syscall.dev86
+     cp -p syscall.dev86 syscall.dat
+fi
 
 tr '[A-Z]' '[a-z]' < syscall.dat | \
 awk -v COMPACT=$COMPACT 'BEGIN{
@@ -148,16 +157,18 @@ awk -v COMPACT=$COMPACT 'BEGIN{
 /^[	 ]*#/ { next; }
 /^[	 ]*$/ { next; }
 {
-   if( $2 > max_call ) max_call = $2;
-   if( !($2 in calltab) )
-      callwas[$2] = " /* " $1 " */";
+   callno = 0+$2;
+   if( !(callno in calltab) )
+      callwas[callno] = " /* " $1 " */";
 
    if( $3 == "x" || $3 == "" ) next;
-   else if( $4 == "-" )        next;
+   else if( $4 == "@" || $4 == "-" ) next;
    else if( $4 == "*" )        funcname="__" $1;
    else                        funcname=$1;
 
-   calltab[$2] = $1;
+   if( callno > max_call ) max_call = callno;
+
+   calltab[callno] = $1;
 
    if( length(obj) > 60 )
    {
@@ -178,14 +189,14 @@ awk -v COMPACT=$COMPACT 'BEGIN{
    {
       if( $3 == 0 )
       {
-         printf("  mov   ax,#%d\n", $2);
+         printf("  mov   ax,#%d\n", callno);
       }
       else
       {
          printf("#if __FIRST_ARG_IN_AX__\n");
-         printf("  mov   dx,#%d\n", $2);
+         printf("  mov   dx,#%d\n", callno);
          printf("#else\n");
-         printf("  mov   ax,#%d\n", $2);
+         printf("  mov   ax,#%d\n", callno);
          printf("#endif\n");
       }
       printf("  br    sys_call%d\n", $3);
@@ -231,7 +242,7 @@ awk -v COMPACT=$COMPACT 'BEGIN{
       if( $3 >= 1 )
          printf("#endif\n");
 
-         printf("  mov   ax,#%d\n", $2);
+         printf("  mov   ax,#%d\n", callno);
 
          printf("  int   $80\n");
 

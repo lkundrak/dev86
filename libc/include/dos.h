@@ -24,6 +24,7 @@ void         __setvect __P((int i, long j));
 long         __getvect __P((int vecno));
 #endif
 
+unsigned int __get_cs  __P((void));
 unsigned int __get_ds  __P((void));
 unsigned int __get_es  __P((void));
 void         __set_es  __P((unsigned int seg));

@@ -26,7 +26,7 @@
 struct labdatstruct
 {
     label_no labnum;		/* 0 if not active */
-    offset_t lablc;		/* location counter for branch or label */
+    offset_T lablc;		/* location counter for branch or label */
     char *labpatch;		/* buffer ptr for branch, NULL for label */
     ccode_t labcond;		/* condition code for branch */
 };
@@ -58,7 +58,7 @@ PRIVATE char condnames[][2] =	/* names of condition codes */
 PRIVATE label_no lasthighlab = 0xFFFF+1;	/* temp & temp init so labels fixed */
 				/* lint */
 PRIVATE label_no lastlab;	/* bss init to 0 */
-PRIVATE offset_t lc;		/* bss init to 0 */
+PRIVATE offset_T lc;		/* bss init to 0 */
 
 PRIVATE struct labdatstruct vislab[MAXVISLAB];	/* bss, all labnum's init 0 */
 PRIVATE smalin_t nextvislab;	/* bss init to NULL */
@@ -159,9 +159,9 @@ PUBLIC void clearswitchlabels()
 
 /* return location counter */
 
-PUBLIC uoffset_t getlc()
+PUBLIC uoffset_T getlc()
 {
-    return (uoffset_t) lc;
+    return (uoffset_T) lc;
 }
 
 /* define location of label and backpatch references to it */
@@ -174,7 +174,7 @@ label_no label;
     struct labdatstruct *labmax;
     struct labdatstruct *labmid;
     struct labdatstruct *labptrsave;
-    offset_t nlonger;
+    offset_T nlonger;
 
     outnlabel(label);
     {
@@ -379,7 +379,7 @@ PUBLIC void outlabel(label)
 label_no label;
 {
     outbyte(LABELSTARTCHAR);
-    outhexdigs((uoffset_t) label);
+    outhexdigs((uoffset_T) label);
 }
 
 /* print label and newline */

@@ -13,12 +13,12 @@ DEFS	=-DREL_OUTPUT -DBUGCOMPAT
 
 # An alternative file for a non-standard a.out.h (eg i386 linux on an Alpha)
 #
-# NATIVE=  -DA_OUT_INCL='"a_out_local.h"' 
+# NATIVE=-DA_OUT_INCL='"a_out_local.h"' 
 
 OBJS= dumps.o io.o ld.o readobj.o table.o typeconv.o linksyms.o \
       writex86.o writebin.o writerel.o
 
-all: ld86 objchop catimage
+all: ld86 objchop catimage objdump86
 
 ld86: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -o $@
@@ -28,7 +28,7 @@ install: ld86
 	install -m 755 ld86 $(LIBDIR)
 
 clean realclean:
-	rm -f *.o ld86 ld86r objchop catimage
+	rm -f *.o ld86 ld86r objchop catimage objdump86
 
 $(OBJS): align.h ar.h bindef.h byteord.h config.h const.h globvar.h obj.h \
 	 syshead.h type.h x86_aout.h

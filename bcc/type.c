@@ -13,12 +13,12 @@
 #define EXTERN
 #include "type.h"
 
-PUBLIC uoffset_t ctypesize = 1;
-PUBLIC uoffset_t dtypesize = 8;
-PUBLIC uoffset_t ftypesize = 0;
-PUBLIC uoffset_t itypesize = 2;
-PUBLIC uoffset_t ptypesize = 2;
-PUBLIC uoffset_t stypesize = 2;
+PUBLIC uoffset_T ctypesize = 1;
+PUBLIC uoffset_T dtypesize = 8;
+PUBLIC uoffset_T ftypesize = 0;
+PUBLIC uoffset_T itypesize = 2;
+PUBLIC uoffset_T ptypesize = 2;
+PUBLIC uoffset_T stypesize = 2;
 
 PRIVATE char skey0;
 PRIVATE char skey1;
@@ -79,7 +79,7 @@ PUBLIC struct typestruct *newtype()
 ++ts_n_type;
 ts_s_type += sizeof *type;
 #endif
-    type->typesize =		/* (uoffset_t) */
+    type->typesize =		/* (uoffset_T) */
 	type->scalar =		/* (scalar_t) */
 	type->constructor =	/* (constr_t) */
 	type->structkey[0] = 0;
@@ -105,7 +105,7 @@ struct typestruct *type;
 
 PUBLIC struct typestruct *prefix(constructor, size, type)
 constr_pt constructor;
-uoffset_t size;
+uoffset_T size;
 struct typestruct *type;
 {
     register struct typestruct *searchtype;
@@ -121,7 +121,7 @@ struct typestruct *type;
 	searchtype->alignmask = type->alignmask;
 	break;
     case FUNCTION:
-	searchtype->alignmask = ~(uoffset_t) 0;
+	searchtype->alignmask = ~(uoffset_T) 0;
 	break;
     case POINTER:
 	searchtype->alignmask = ~(ptypesize - 1) | alignmask;
@@ -190,7 +190,7 @@ PUBLIC void typeinit()
 	    uitype->alignmask =
 	    ltype->alignmask =
 	    ultype->alignmask =
-	    itype->alignmask = ~(uoffset_t) (4 - 1);
+	    itype->alignmask = ~(uoffset_T) (4 - 1);
 	ltype->scalar = LONG;	/* not DLONG */
 	ultype->scalar = UNSIGNED | LONG;
     }

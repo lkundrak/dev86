@@ -12,7 +12,7 @@ GOBJ=atoi.o atol.o ltoa.o ltostr.o \
      ctype.o qsort.o bsearch.o rand.o lsearch.o getopt.o \
      itoa.o cputype.o strtol.o crypt.o
 
-UOBJ=getenv.o putenv.o popen.o system.o setenv.o getcwd.o
+UOBJ=getenv.o putenv.o popen.o system.o setenv.o getcwd.o tmpnam.o
 
 SSRC=syslib.c
 SOBJ=time.o abort.o wait.o wait3.o waitpid.o killpg.o setpgrp.o sleep.o \

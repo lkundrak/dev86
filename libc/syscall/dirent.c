@@ -60,33 +60,6 @@ DIR  *dirp;
 }
 #endif
 
-#ifdef __AS386_16__
-#ifdef L_readdir
-/*
- * This currently assumes we see a v. simple diectory structure, it's
- * probably faked!
- */
-struct dirent *
-readdir(dirp)
-DIR  *dirp;
-{
-   int   cc;
-   cc = read(dirp->dd_fd, dirp->dd_buf, sizeof(struct dirent));
-
-   if (cc <= 0)
-      return 0;
-   if (cc != sizeof(struct dirent))
-   {
-      errno = EBADF;
-      return 0;
-   }
-   return dirp->dd_buf;
-}
-#endif
-#else
-
-/* This is for 386 linux */
-
 #ifdef L_readdir
 struct dirent *
 readdir(dirp)
@@ -103,4 +76,3 @@ DIR  *dirp;
 }
 #endif
 
-#endif

@@ -63,12 +63,12 @@
 /* type sizes */
 /* default sizes and long and float sizes are hard-coded into type data */
 
-extern uoffset_t ctypesize;
-extern uoffset_t dtypesize;
-extern uoffset_t ftypesize;
-extern uoffset_t itypesize;
-extern uoffset_t ptypesize;
-extern uoffset_t stypesize;
+extern uoffset_T ctypesize;
+extern uoffset_T dtypesize;
+extern uoffset_T ftypesize;
+extern uoffset_T itypesize;
+extern uoffset_T ptypesize;
+extern uoffset_T stypesize;
 
 /* basic scalar types */
 

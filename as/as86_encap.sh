@@ -57,10 +57,10 @@ $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
        if( flg == 1 )
        {
 	  if( !started )
-	     printf "int  %s = 0;\n", sname;
+	     printf "#define %s 0\n", sname;
 
 	  printf "\n";
-	  printf "char %sdata[] = {\n", prefix;
+	  printf "static char %sdata[] = {\n", prefix;
           bincount=0;
        }
        next;
@@ -70,12 +70,12 @@ $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
        if( substr($2,1,4) == "0000" ) $2=substr($2,5);
        if( $1 == "+" && $4 == "$start" )
        {
-          printf "int  %s = 0x%s;\n", sname, $2;
+          printf "#define %s 0x%s\n", sname, $2;
 	  started = 1;
        }
        else if( substr($3, 1, 1) == "E" && $4 != "start" && $4 != "size" && $4 != "data" )
        {
-          printf "int  %s%s = 0x%s;\n", prefix, $4, $2;
+          printf "#define %s%s 0x%s\n", prefix, $4, $2;
        }
        next;
     }
@@ -93,7 +93,7 @@ $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
     }
     END {
        printf "};\n\n";
-       printf "int  %ssize = %d;\n", prefix, bincount;
+       printf "#define %ssize %d\n", prefix, bincount;
     }
   '
   RV=$?

@@ -24,6 +24,7 @@
 #define mode_t		unsigned short
 #define SEEK_SET	0
 #define STDOUT_FILENO	0
+#define STDERR_FILENO	0
 #endif
 
 /******************************************************************************/
@@ -54,6 +55,7 @@ void *memset P((void *s, int c, unsigned n));
 int access P((const char *path, int amode));
 #define SEEK_SET	0
 #define STDOUT_FILENO	0
+#define STDERR_FILENO	2
 
 #define mode_t		unsigned short
 #define off_t		long

@@ -113,7 +113,7 @@ struct symstruct *item;
 	break;
     default:
 	outstr("bad storage (");
-	outhex((uoffset_t) item->storage);
+	outhex((uoffset_T) item->storage);
 	outbyte(')');
 	outstr(" offset ");
     }

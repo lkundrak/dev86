@@ -219,7 +219,7 @@ ccode_t *pcondtrue;
 	    targreg = YREG;
 	if (target->indcount != 0)
 	    load(target, targreg);
-	target->offset.offi -= (offset_t) intconst;
+	target->offset.offi -= (offset_T) intconst;
 	loadreg(target, targreg);
 	return TRUE;
     }
@@ -237,7 +237,7 @@ bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
     ccode_t condtrue;
     store_t regmark;
     struct symstruct *source;
-    offset_t spmark;
+    offset_T spmark;
     struct symstruct *target;
 
     regmark = reguse;

@@ -114,6 +114,7 @@ void outofmemory P((void));
 void prematureeof P((void));
 void redefined P((char *name, char *message, char *archentry,
 		  char *deffilename, char *defarchentry));
+void interseg P((char *fname, char *aname, char *name));
 void reserved P((char *name));
 void size_error P((int seg, bin_off_t count, bin_off_t size));
 void undefined P((char *name));

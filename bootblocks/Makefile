@@ -22,9 +22,13 @@ SSRC=sysboot.s \
 encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v
 bin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin
 
-MOBJ=monitor.o i86_funcs.o relocate.o help.o bzimage.o dosfs.o nofs.o
-MSRC=monitor.c i86_funcs.c relocate.c help.c bzimage.c dosfs.c nofs.c
+MOBJ=monitor.o i86_funcs.o relocate.o help.o bzimage.o trk_buf.o unix.o \
+     fs.o fs_tar.o fs_min.o fs_dos.o
+MSRC=monitor.c i86_funcs.c relocate.c help.c bzimage.c trk_buf.c unix.c \
+     fs.c fs_tar.c fs_min.c fs_dos.c
 MINC=i86_funcs.h readfs.h
+
+BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v tarboot.v minix.v minixhd.v
 
 EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s
 
@@ -37,7 +41,7 @@ $(MOBJ): $(MINC) version.h
 
 monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=-ansi' monitor.out
+	make 'CFLAGS=-ansi -H0x8000' monitor.out
 	mv monitor.out monitor
 	@rm -f $(MOBJ)
 
@@ -47,10 +51,10 @@ minix.s: minix.c
 minixhd.s: minix.c
 	$(BCC) -Mf -DDOTS -DHARDDISK $(MDEFS) -S minix.c -o minixhd.s
 
-makeboot:	makeboot.c sysboot.v noboot.v skip.v msdos.v tarboot.v
+makeboot:	makeboot.c $(BOOTBLOCKS)
 	$(HOSTCC) $(HOSTCCFLAGS) -o makeboot makeboot.c
 
-makeboot.com:	makeboot.c sysboot.v noboot.v skip.v msdos.v tarboot.v
+makeboot.com:	makeboot.c $(BOOTBLOCKS)
 	$(BCC) -Md -o makeboot.com makeboot.c
 
 version.h:

@@ -19,6 +19,10 @@
 #include <sys/mman.h>
 #include "elks.h" 
 
+#ifdef __BCC__
+#define OLD_LIBC_VERSION
+#endif
+
 volatile struct vm86_struct elks_cpu;
 unsigned char *elks_base;	/* Paragraph aligned */
 
@@ -114,13 +118,33 @@ static int load_elks(int fd)
 	return 0;
 }
 
+#ifndef OLD_LIBC_VERSION
+  /*
+   *  recent versions of libc have changed the proto for vm86()
+   *  for now I'll just override ...
+   */
+#define OLD_SYS_vm86  113
+#define NEW_SYS_vm86  166
+
+static inline int vm86_mine(struct vm86_struct* v86)
+{
+	int __res;
+	__asm__ __volatile__("int $0x80\n"
+	:"=a" (__res):"a" ((int)OLD_SYS_vm86), "b" ((int)v86));
+	return __res;
+} 
+#endif
 
 void run_elks()
 {
 	/*
 	 *	Execute 8086 code for a while.
 	 */
+#ifndef OLD_LIBC_VERSION
+	int err=vm86_mine((struct vm86_struct*)&elks_cpu);
+#else
 	int err=vm86((struct vm86_struct*)&elks_cpu);
+#endif
 	switch(VM86_TYPE(err))
 	{
 		/*

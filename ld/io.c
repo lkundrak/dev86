@@ -22,6 +22,7 @@ PRIVATE char *drelbuftop;	/* data relocation output buffer top */
 PRIVATE char *errbuf;		/* error buffer (actually uses STDOUT) */
 PRIVATE char *errbufptr;	/* error buffer ptr */
 PRIVATE char *errbuftop;	/* error buffer top */
+PRIVATE int  errfil = STDOUT_FILENO;
 PRIVATE char *inbuf;		/* input buffer */
 PRIVATE char *inbufend;		/* input buffer top */
 PRIVATE char *inbufptr;		/* end of input in input buffer */
@@ -56,6 +57,7 @@ FORWARD void outputerror P((char *message));
 FORWARD void put04x P((unsigned num));
 FORWARD void putstrn P((char *message));
 FORWARD void refer P((void));
+FORWARD void stderr_out P((void));
 
 PUBLIC void ioinit(progname)
 char *progname;
@@ -65,6 +67,10 @@ char *progname;
 	refname = progname;	/* name must be static (is argv[0]) */
     else
 	refname = "link";
+    for(progname=refname; *progname; progname++)
+       if(*progname=='/')
+          refname=progname+1;
+
 #ifdef REL_OUTPUT
     drelbuf = malloc(DRELBUFSIZE);
     drelbuftop = drelbuf + DRELBUFSIZE;
@@ -129,8 +135,18 @@ PUBLIC void executable()
 
 PUBLIC void flusherr()
 {
-    write(STDOUT_FILENO, errbuf, (unsigned) (errbufptr - errbuf));
+    if( errbufptr != errbuf )
+       write(errfil, errbuf, (unsigned) (errbufptr - errbuf));
     errbufptr = errbuf;
+}
+
+PRIVATE void stderr_out()
+{
+   if( errfil != STDERR_FILENO )
+   {
+      flusherr();
+      errfil = STDERR_FILENO;
+   }
 }
 
 PRIVATE void flushout()
@@ -287,7 +303,7 @@ char *message;
 {
     putstr(message);
     putbyte('\n');
-    flusherr();
+    flusherr(); errfil = STDOUT_FILENO;
 }
 
 PUBLIC int readchar()
@@ -525,11 +541,32 @@ char *defarchentry;
 	putstr(defarchentry);
 	putbyte(')');
     }
-    putbyte('\n');
+    putstrn("");
+}
+
+PUBLIC void interseg(fname, aname, name)
+char *fname, *aname, *name;
+{
+    ++errcount;
+    refer();
+    putstr("error in ");
+    putstr(fname);
+    if( aname ) 
+    {
+       putstr("(");
+       putstr(aname);
+       putstr(")");
+    }
+    putstr(" intersegment jump to ");
+    if( name ) putstr(name);
+    else       putstr("same file");
+
+    putstrn("");
 }
 
 PRIVATE void refer()
 {
+    stderr_out();
     putstr(refname);
     putstr(": ");
 }
@@ -538,6 +575,7 @@ PUBLIC void reserved(name)
 char *name;
 {
     ++errcount;
+    stderr_out();
     putstr("incorrect use of reserved symbol: ");
     putstrn(name);
 }
@@ -554,19 +592,21 @@ bin_off_t size;
     outhexdigs(count);
     putstr(", supposed to be ");
     outhexdigs(size);
-    errexit("\n");
+    errexit("");
 }
 
 PUBLIC void undefined(name)
 char *name;
 {
     ++errcount;
+    stderr_out();
     putstr("undefined symbol: ");
     putstrn(name);
 }
 
 PUBLIC void usage()
 {
+    stderr_out();
     putstr("usage: ");
     putstr(refname);
 #ifdef REL_OUTPUT

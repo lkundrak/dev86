@@ -71,14 +71,14 @@ PRIVATE void blockpush(source)
 struct symstruct *source;
 {
     struct symstruct *length;
-    offset_t spmark;
-    uoffset_t typesize;
+    offset_T spmark;
+    uoffset_T typesize;
 
     typesize = source->type->typesize;
     length = constsym((value_t) typesize);
     length->type = uitype;
     address(source);
-    modstk(spmark = sp - (offset_t) typesize);
+    modstk(spmark = sp - (offset_T) typesize);
 #ifdef STACKREG
     regtransfer(STACKREG, DREG);
 #else
@@ -157,7 +157,7 @@ struct symstruct *target;
 #ifdef MC6809
     bool_t canABX;
 #endif
-    uoffset_t size;
+    uoffset_T size;
     store_pt sourcereg;
     struct typestruct *targtype;
     store_pt targreg;
@@ -348,8 +348,8 @@ store_pt targreg;
 	if (source->storage == CONSTANT)
 	{
 	    /* XXX - more for non-386 */
-	    loadconst(((offset_t *) source->offset.offd)[0], DREG);
-	    loadconst(((offset_t *) source->offset.offd)[1], targreg);
+	    loadconst(((offset_T *) source->offset.offd)[0], DREG);
+	    loadconst(((offset_T *) source->offset.offd)[1], targreg);
 	}
 	else
 	{
@@ -368,7 +368,7 @@ store_pt targreg;
 	float val;
 
 	val = *source->offset.offd;
-	loadconst(((offset_t *) &val)[0], targreg);
+	loadconst(((offset_T *) &val)[0], targreg);
     }
     else if (source->indcount == 0 && source->storage != CONSTANT)
 	loadadr(source, targreg);
@@ -454,7 +454,7 @@ struct symstruct *source;
 store_pt targreg;
 {
     sc_t flags;
-    offset_t offset;
+    offset_T offset;
     store_t reg;
     struct typestruct *type;
 
@@ -478,19 +478,19 @@ PUBLIC void loadreg(source, targreg)
 struct symstruct *source;
 store_pt targreg;
 {
-    offset_t longhigh;
-    offset_t longlow;
+    offset_T longhigh;
+    offset_T longlow;
 
     if (source->storage == CONSTANT)
     {
 	if (source->type->scalar & CHAR && (store_t) targreg & ALLDATREGS)
 	    targreg = BREG;
-	longlow = (offset_t) source->offset.offv;
+	longlow = (offset_T) source->offset.offv;
 	if (source->type->scalar & DLONG)
 	{
-	    longlow &= (offset_t) intmaskto;
-	    longhigh = (offset_t) (source->offset.offv >> INT16BITSTO)
-		       & (offset_t) intmaskto;
+	    longlow &= (offset_T) intmaskto;
+	    longhigh = (offset_T) (source->offset.offv >> INT16BITSTO)
+		       & (offset_T) intmaskto;
 	    if ((store_t) targreg != LONGREG2)	/* loading the whole long */
 	    {
 #if DYNAMIC_LONG_ORDER
@@ -589,7 +589,7 @@ store_pt targreg;
 #endif
 	outregname(targreg);
     if (source->storage == CONSTANT)
-	adjlc((offset_t) source->offset.offv, targreg);
+	adjlc((offset_T) source->offset.offv, targreg);
 #ifdef I8088
     outcomma();
 #endif
@@ -677,7 +677,7 @@ struct symstruct *adr;
     switch (adr->storage)
     {
     case CONSTANT:
-	outimmadr((offset_t) adr->offset.offv);
+	outimmadr((offset_T) adr->offset.offv);
 	break;
 #ifdef I8088
     case DREG:
@@ -827,7 +827,7 @@ struct symstruct *adr;
 	    outlabel(adr->name.label);
 	else if (*adr->name.namep == 0)	/* constant address */
 	{
-	    outhex((uoffset_t) adr->offset.offi);
+	    outhex((uoffset_T) adr->offset.offi);
 	    break;
 	}
 	else
@@ -998,7 +998,7 @@ struct symstruct *source;
 {
     store_t reg;
 #ifdef I8088
-    uoffset_t size;
+    uoffset_T size;
 #endif
     scalar_t sscalar;
 
@@ -1047,7 +1047,7 @@ struct symstruct *source;
 	    if (source->storage == CONSTANT)
 	    {
 		unbumplc();
-		adjlc((offset_t) source->offset.offv, INDREG0);
+		adjlc((offset_T) source->offset.offv, INDREG0);
 	    }
 	    if (size == 2)
 	    {

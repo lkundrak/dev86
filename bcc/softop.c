@@ -188,36 +188,58 @@ struct symstruct *target;
 
     extend(target);
     load(target, DREG);
-    load(source, OPREG);
-    switch ((op_t) op)
+#ifndef IN_FUNC		/* I8088 ? */
+    if ((op_t) op != DIVOP && (op_t) op != MODOP )
     {
-    case DIVOP:
-#ifdef I8088
-	call("idiv_");
-#else
-	call("idiv");
-#endif
-	break;
-    case MODOP:
-	call("imod");
-	break;
-    case MULOP:
-#ifdef I8088
-	call("imul_");
-#else
-	call("imul");
-#endif
-	break;
-    case SLOP:
-	call("isl");
-	break;
-    case SROP:
-	call("isr");
-	break;
+       load(source, DATREG1);	/* CX */
+       switch ((op_t) op)
+       {
+       case MULOP:
+	   outnop2str("imul\tcx");
+	   break;
+       case SLOP:
+	   outnop2str("shl\tax,cl");
+	   break;
+       case SROP:
+	   if (uflag) outnop2str("shr\tax,cl");
+	   else       outnop2str("sar\tax,cl");
+	   break;
+       }
     }
-    if (uflag)
-	outbyte('u');
-    outnl();
+    else
+#endif
+    {
+       load(source, OPREG);
+       switch ((op_t) op)
+       {
+       case DIVOP:
+#ifdef I8088
+	   call("idiv_");
+#else
+	   call("idiv");
+#endif
+	   break;
+       case MODOP:
+	   call("imod");
+	   break;
+       case MULOP:
+#ifdef I8088
+	   call("imul_");
+#else
+	   call("imul");
+#endif
+	   break;
+       case SLOP:
+	   call("isl");
+	   break;
+       case SROP:
+	   call("isr");
+	   break;
+       }
+       if (uflag)
+	   outbyte('u');
+       outnl();
+    }
     target->type = iscalartotype(resultscalar);
     poplist(regpushed);
     reguse = regmark;

@@ -24,7 +24,7 @@ static int mdays[13] = { 0,31,31+28,31+28+31,31+28+31+30,
 static long get_time(ah)
 {
 #asm
-#if !__FIST_ARG_IN_AX__
+#if !__FIRST_ARG_IN_AX__
   mov	bx,sp
   mov	ax,[bx+2]
 #endif

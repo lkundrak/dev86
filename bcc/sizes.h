@@ -21,12 +21,12 @@
 #define MINSCHTO	(-128)	/* minimum signed character */
 
 #ifdef MC6809
-# define is5bitoffset(n)   ((uoffset_t) (n) + 0x10 < 0x20)
+# define is5bitoffset(n)   ((uoffset_T) (n) + 0x10 < 0x20)
 #endif
-#define isbyteoffset(n)	((uoffset_t) (n) - MINSCHTO <= MAXSCHTO - MINSCHTO)
+#define isbyteoffset(n)	((uoffset_T) (n) - MINSCHTO <= MAXSCHTO - MINSCHTO)
 #define ischarconst(n)	((uvalue_t) (n) <= MAXUCHTO)
 #define isnegbyteoffset(n) ((uvalue_t) (n) + MAXSCHTO <= MAXSCHTO - MINSCHTO)
-#define isshortbranch(n)   ((uoffset_t) (n) - MINSCHTO <= MAXSCHTO - MINSCHTO)
+#define isshortbranch(n)   ((uoffset_T) (n) - MINSCHTO <= MAXSCHTO - MINSCHTO)
 
 #ifdef MC6809
 /* Hack to reduce number of direct page variables. */

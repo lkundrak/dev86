@@ -40,7 +40,7 @@ struct typestruct *type;
     struct symstruct *exprmark;
     struct nodestruct *lhs;
     struct symstruct *symptr;
-    uoffset_t value;
+    uoffset_T value;
 
     if (gvarsymptr->storage != GLOBAL)
 	reslocals();
@@ -76,12 +76,12 @@ struct typestruct *type;
 		float val;
 
 		val = *symptr->offset.offd;
-		deflong(((uoffset_t *) &val)[0]);
+		deflong(((uoffset_T *) &val)[0]);
 	    }
 	    else
 	    {
-		deflong(((uoffset_t *) symptr->offset.offd)[0]);
-		deflong(((uoffset_t *) symptr->offset.offd)[1]);
+		deflong(((uoffset_T *) symptr->offset.offd)[0]);
+		deflong(((uoffset_T *) symptr->offset.offd)[1]);
 	    }
 	    etptr = etmark;	/* XXX - stuff from end of function */
 	    exprptr = exprmark;
@@ -98,7 +98,7 @@ struct typestruct *type;
 	switch (symptr->storage)
 	{
 	case CONSTANT:
-	    value = (uoffset_t) symptr->offset.offv;
+	    value = (uoffset_T) symptr->offset.offv;
 	    if (type->scalar & DLONG)
 	    {
 		deflong(value);
@@ -119,12 +119,12 @@ struct typestruct *type;
 	    {
 		outlabel(symptr->name.label);
 		outplus();
-		outnhex((uoffset_t) symptr->offset.offi);
+		outnhex((uoffset_T) symptr->offset.offi);
 		break;
 	    }
 	    if (*symptr->name.namep == 0)	/* constant address */
 	    {
-		outnhex((uoffset_t) symptr->offset.offi);
+		outnhex((uoffset_T) symptr->offset.offi);
 		break;
 	    }
 	    outccname(symptr->name.namep);

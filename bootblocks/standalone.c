@@ -1,4 +1,5 @@
 
+#include <dos.h>
 #include <errno.h>
 #asm
 entry _int_80		! Tell ld86 we really do need this file.

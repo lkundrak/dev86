@@ -983,7 +983,10 @@ PUBLIC void psetdp()
 
 PUBLIC void ptext()
 {
-    setloc(TEXTLOC);
+    if( textseg <= 0 )
+       setloc(TEXTLOC);
+    else
+       setloc(BSSLOC+textseg);
 }
 
 /* .WARN pseudo-op */

@@ -306,7 +306,7 @@ PRIVATE struct nodestruct *primary_exp()
 {
     bool_t isdefined;
     struct nodestruct *nodeptr;
-    uoffset_t stringlen;
+    uoffset_T stringlen;
     struct symstruct *symptr;
     struct symstruct *symptr1;
     bool_t waslparen;

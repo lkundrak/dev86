@@ -40,7 +40,7 @@ static int elks_enosys(int bx,int cx,int dx,int di,int si);
 DIR * dirtab[DIRCOUNT];
 int diropen = 0;
 static int elks_opendir(char * dname);
-static int elks_readdir(int bx, int cx, int dx);
+static int elks_readdir(int bx,int cx,int dx,int di,int si);
 static int elks_closedir(int bx);
 
 /*
@@ -109,7 +109,7 @@ static int elks_read(int bx,int cx,int dx,int di,int si)
 	dbprintf(("read(%d, %d, %d)\n",
 		bx,cx,dx));
 	if( bx >= 10000 && bx < 10000+DIRCOUNT)
-		return elks_readdir(bx, cx, dx);
+		return elks_readdir(bx, cx, dx, di, si);
 	if( dx < 0 || dx > 1024 ) dx = 1024;
 	return read(bx, ELKS_PTR(void, cx), dx);
 }
@@ -297,8 +297,8 @@ static int elks_getuid(int bx,int cx,int dx,int di,int si)
 #define sys_alarm elks_alarm
 static int elks_alarm(int bx,int cx,int dx,int di,int si)
 {
-	dbprintf(("alarm(%d)\n",bx<<16|cx));
-	return alarm(bx<<16|cx);
+	dbprintf(("alarm(%d)\n",bx&0xFFFF));
+	return alarm(bx&0xFFFF);
 }
 
 #define sys_fstat elks_fstat
@@ -403,8 +403,8 @@ static int elks_getgid(int bx,int cx,int dx,int di,int si)
  *
  * Of course with the Patch in the Linux kernel we could just run the exe.
  */
-#define sys_exec elks_exec
-static int elks_exec(int bx,int cx,int dx,int di,int si)
+#define sys_execve elks_execve
+static int elks_execve(int bx,int cx,int dx,int di,int si)
 {
 	int fd;
 	int arg_ct,env_ct;
@@ -510,6 +510,18 @@ static int elks_fcntl(int bx,int cx,int dx,int di,int si)
 	}
 	errno = EINVAL;
 	return -1;
+}
+
+#define sys_dup elks_dup
+static int elks_dup(int bx,int cx,int dx,int di,int si)
+{
+	return dup(bx);
+}
+
+#define sys_dup2 elks_dup2
+static int elks_dup2(int bx,int cx,int dx,int di,int si)
+{
+	return dup2(bx, cx);
 }
 
 #define sys_rename elks_rename
@@ -651,13 +663,13 @@ elks_opendir(char * dname)
 	return 10000+rv;
 }
 
-static int
-elks_readdir(int bx, int cx, int dx)
+#define sys_readdir elks_readdir
+static int elks_readdir(int bx,int cx,int dx,int di,int si)
 {
 	struct dirent * ent;
 
 	/* Only read _ONE_ _WHOLE_ dirent at a time */
-	if( dx != 266 )
+	if( dx != 266 && dx != 1 )
 	{
 		errno=EINVAL; return -1;
 	}

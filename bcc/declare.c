@@ -33,7 +33,7 @@ FORWARD void declarator P((void));
 FORWARD void declarg P((void));
 FORWARD struct typestruct *declenum P((void));
 FORWARD void declfunc P((void));
-FORWARD void declselt P((struct typestruct *structype, offset_t *psoffset,
+FORWARD void declselt P((struct typestruct *structype, offset_T *psoffset,
 			 struct typelist ** ptypelist));
 FORWARD bool_pt declspec P((void));
 FORWARD struct typestruct *declsu P((void));
@@ -89,7 +89,7 @@ PUBLIC void decllist()
 
 PRIVATE void declaf()
 {
-    uoffset_t asize;
+    uoffset_T asize;
     bool_t levelnew;
 #ifdef TESTING_PROTOTYPES
     char ogvarname[NAMESIZE];
@@ -253,7 +253,7 @@ PRIVATE struct typestruct *declenum()
 {
     register struct symstruct *esymptr;
     register struct typestruct *enumtype;
-    offset_t ordinal;
+    offset_T ordinal;
 
     nextsym();
     if (sym != IDENT && sym != TYPEDEFNAME)
@@ -314,13 +314,13 @@ PRIVATE struct typestruct *declenum()
 
 PRIVATE void declselt(structype, psoffset, ptypelist)
 struct typestruct *structype;
-offset_t *psoffset;
+offset_T *psoffset;
 struct typelist **ptypelist;
 {
     struct typestruct *basetype;
     value_t fieldwidth;
     value_t fwidth;
-    offset_t offset;
+    offset_T offset;
     scalar_t scalar=0;
 
     offset = *psoffset;
@@ -521,8 +521,8 @@ break2:
 PRIVATE struct typestruct *declsu()
 {
     sym_t ogvarsc;
-    offset_t soffset;
-    offset_t struclength;
+    offset_T soffset;
+    offset_T struclength;
     sym_t susym;
     struct typelist *typelist;
     struct typestruct *structype;
@@ -575,8 +575,8 @@ PRIVATE struct typestruct *declsu()
 
 PRIVATE void declfunc()
 {
-    offset_t argsp;
-    uoffset_t argsize;
+    offset_T argsp;
+    uoffset_T argsize;
     struct symstruct *symptr;
     int main_flag = 0;
 
@@ -679,7 +679,7 @@ PRIVATE void idecllist()
     struct typestruct *basetype;
     struct typestruct *inittype;
     scopelev_t levelmark;
-    uoffset_t newoffset;
+    uoffset_T newoffset;
 
     argsallowed = level == GLBLEVEL;
     levelmark = level;
@@ -862,12 +862,12 @@ PRIVATE void idecllist()
 PRIVATE void initarray(type)
 struct typestruct *type;
 {
-    uoffset_t basesize;
+    uoffset_T basesize;
     struct typestruct *basetype;
-    uoffset_t dimension;
+    uoffset_T dimension;
     char *stringend;
-    uoffset_t stringlength;
-    uoffset_t remaining;
+    uoffset_T stringlength;
+    uoffset_T remaining;
 
     if ((basesize = (basetype = type->nexttype)->typesize) == 0)
 	dimension = remaining = 0;
@@ -938,8 +938,8 @@ PRIVATE void initstruct(type)
 struct typestruct *type;
 {
     struct typestruct *memtype;
-    uoffset_t newoffset;
-    uoffset_t offset;
+    uoffset_T newoffset;
+    uoffset_T offset;
     struct typelist *typelist;
 
     offset = 0;

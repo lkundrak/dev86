@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <dos.h>
 #include "i86_funcs.h"
 
 int   x86 = 0;			/* CPU major number */

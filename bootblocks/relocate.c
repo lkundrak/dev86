@@ -1,9 +1,21 @@
 
-#include <i86_funcs.h>
+#include <stdio.h>
+#include <dos.h>
+#include "i86_funcs.h"
 
 static unsigned memseg = 0, memlen = 0;
 
 char buf[1];
+
+/* If newseg == 0x0000 => Lowest address CS=$50
+ * If newseg == 0x0001 => DS to 64k position
+ * If newseg == 0x0002 => DS to 128k position
+ * ...
+ * If newseg == 0x0009 => DS to 576k position
+ * If newseg == 0xFFFF => Highest address leaving Linux-i386 clear.
+ *
+ * All others are literal, will fail if would overlap with something important.
+ */
 
 void
 relocator(newseg)
@@ -27,12 +39,17 @@ unsigned newseg;
       __set_es(es);
    }
 
+   if( newseg == 0 ) newseg = 0x50;
+   if( newseg > 0 && newseg < 10 )
+   {
+      newseg = (newseg<<12) - (__get_ds() - __get_cs());
+   }
    if( newseg < 0x50 ) return;
 
    if( newseg == 0xFFFF )
    {
       newseg = boot_mem_top;
-      if( newseg > 0x90000 ) newseg = 0x90000;
+      if( newseg > 0x9000 ) newseg = 0x9000;
       newseg -= memlen;
    }
 
@@ -44,16 +61,14 @@ unsigned newseg;
    for(moved=0; moved < memlen; )
    {
        unsigned int lump;
-       if( memlen <= 0x800 ) lump = memlen; else lump = 0x800;
+       if( memlen-moved <= 0x800 ) lump = memlen-moved; else lump = 0x800;
 
        __movedata(memseg+moved, 0, newseg+moved, 0, (lump<<4));
        moved += lump;
    }
 
    /* re-link int 0x80, this one is only an example (used by 'standalone.c') */
-   /*
-      __set_es(0); __doke_es(0x80*4+2, newseg); __set_es(es);
-    */
+   /* __set_es(0); __doke_es(0x80*4+2, newseg); __set_es(es); */
 
    /* The actual jump ... */
    memseg = newseg;

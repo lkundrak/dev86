@@ -83,6 +83,8 @@ EXTERN unsigned char pcrflag;	/* OBJ_RMASK set if addressing is PC-relative */
 EXTERN int last_pass;		/* Pass number of last pass */
 EXTERN int dirty_pass;		/* Set if this pass had a label movement */
 
+EXTERN int textseg;		/* Text segment id */
+
 #ifdef I80386
 
 EXTERN opcode_t aprefix;	/* address size prefix or 0 */

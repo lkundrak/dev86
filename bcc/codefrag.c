@@ -121,12 +121,12 @@ PRIVATE void adjcarry()
 {
     outop3str("rcl\t");
     outregname(DXREG);
-    outncimmadr((offset_t) 9);
+    outncimmadr((offset_T) 9);
     outand();
     bumplc2();
     bumplc2();
     outregname(DXREG);
-    outncimmadr((offset_t) 0x100);
+    outncimmadr((offset_T) 0x100);
 }
 PUBLIC void clrBreg()
 {
@@ -608,22 +608,22 @@ PUBLIC void adc0()
     {
 	outadc();
 	outhiaccum();
-	outncimmadr((offset_t) 0);
+	outncimmadr((offset_T) 0);
     }
 }
 
 /* add constant to register */
 
 PUBLIC void addconst(offset, reg)
-offset_t offset;
+offset_T offset;
 store_pt reg;
 {
 #ifdef I8088
 #ifdef I80386
-    if ((i386_32 && (uoffset_t) offset + 1 <= 2)  /* do -1 to 1 by dec/inc */
-	|| (!i386_32 && (uoffset_t) offset + 2 <= 4))	/* do -2 to 2  */
+    if ((i386_32 && (uoffset_T) offset + 1 <= 2)  /* do -1 to 1 by dec/inc */
+	|| (!i386_32 && (uoffset_T) offset + 2 <= 4))	/* do -2 to 2  */
 #else
-    if ((uoffset_t) offset + 2 <= 4)	/* do -2 to 2  */
+    if ((uoffset_T) offset + 2 <= 4)	/* do -2 to 2  */
 #endif
     {
 	if (reg == ALREG)
@@ -668,7 +668,7 @@ store_pt reg;
 /* adjust lc for signed offset */
 
 PUBLIC void adjlc(offset, reg)
-offset_t offset;
+offset_T offset;
 store_pt reg;
 {
     if (!(reg & CHARREGS))
@@ -704,7 +704,7 @@ label_no label;
     else
     {
 	outplus();
-	outhex((uoffset_t) - sp);
+	outhex((uoffset_T) - sp);
     }
 #ifdef MC6809
     outcregname(LOCAL);
@@ -719,18 +719,18 @@ label_no label;
 /* and accumulator with constant */
 
 PUBLIC void andconst(offset)
-offset_t offset;
+offset_T offset;
 {
     char_t botbits;
-    uoffset_t topbits;
+    uoffset_T topbits;
 
-    if ((topbits = offset & ~(uoffset_t) CHMASKTO & intmaskto) != 0 &&
-	topbits != (~(uoffset_t) CHMASKTO & intmaskto))
+    if ((topbits = offset & ~(uoffset_T) CHMASKTO & intmaskto) != 0 &&
+	topbits != (~(uoffset_T) CHMASKTO & intmaskto))
 	/* if topbits == 0, callers reduce the type */
     {
 #ifdef OP1
 	outandhi();
-	outncimmadr((offset_t) (topbits >> (INT16BITSTO - CHBITSTO)));
+	outncimmadr((offset_T) (topbits >> (INT16BITSTO - CHBITSTO)));
 #else
 	outandac();
 #ifdef I80386
@@ -746,7 +746,7 @@ offset_t offset;
     else if (botbits != CHMASKTO)
     {
 	outandlo();
-	outncimmadr((offset_t) botbits);
+	outncimmadr((offset_T) botbits);
     }
 }
 
@@ -805,7 +805,7 @@ PUBLIC label_no casejump()
 PRIVATE void clr(reg)
 store_pt reg;
 {
-    loadconst((offset_t) 0, reg);
+    loadconst((offset_T) 0, reg);
 }
 
 /* define common storage */
@@ -838,19 +838,19 @@ PUBLIC void cseg()
 /* define long */
 
 PUBLIC void deflong(value)
-uoffset_t value;
+uoffset_T value;
 {
-    uoffset_t longhigh;
-    uoffset_t longlow;
+    uoffset_T longhigh;
+    uoffset_T longlow;
 
-    longlow = value & (uoffset_t) intmaskto;
+    longlow = value & (uoffset_T) intmaskto;
 #ifdef I80386
     if (i386_32)
 	defdword();
     else
 #endif
     {
-	longhigh = (value >> INT16BITSTO) & (uoffset_t) intmaskto;
+	longhigh = (value >> INT16BITSTO) & (uoffset_T) intmaskto;
 	defword();
 #if DYNAMIC_LONG_ORDER
 	if (long_big_endian)
@@ -875,7 +875,7 @@ uoffset_t value;
 /* define null storage */
 
 PUBLIC void defnulls(nullcount)
-uoffset_t nullcount;
+uoffset_T nullcount;
 {
     if (nullcount != 0)
     {
@@ -946,7 +946,7 @@ bool_pt dataflag;
 	    {
 		if (count < DEFSTR_BYTEMAX - 1)
 		    outcomma();	/* byte separator */
-		outhex((uoffset_t) byte);
+		outhex((uoffset_T) byte);
 		byte = (unsigned char) *sptr++;
 	    }
 	    outnl();
@@ -1044,7 +1044,7 @@ char *string;
 
 PUBLIC void equlab(label, offset)
 label_no label;
-offset_t offset;
+offset_T offset;
 {
     outbyte(LOCALSTARTCHAR);
     outlabel(label);
@@ -1092,7 +1092,7 @@ store_pt reg;
 	clr(reg);
 	testhi();
 	sbranch(GE, exitlab = getlabel());
-	loadconst((offset_t) - 1, reg);
+	loadconst((offset_T) - 1, reg);
 	outnlabel(exitlab);
 #endif
     }
@@ -1124,7 +1124,7 @@ char *name;
 /* load effective address */
 
 PUBLIC void lea(offset, sourcereg, targreg)
-offset_t offset;
+offset_T offset;
 store_pt sourcereg;
 store_pt targreg;
 {
@@ -1140,7 +1140,7 @@ store_pt targreg;
 /* load constant into given register */
 
 PUBLIC void loadconst(offset, reg)
-offset_t offset;
+offset_T offset;
 store_pt reg;
 {
 #ifdef I8088
@@ -1304,7 +1304,7 @@ bool_pt uflag;
     {
 	if (sign)
 	    negDreg();
-	andconst((offset_t) divisor);	/* if original divisor 0, this is
+	andconst((offset_T) divisor);	/* if original divisor 0, this is
 					   null */
 	if (sign)
 	    negDreg();
@@ -1440,7 +1440,7 @@ PUBLIC void outhiaccum()
 /* print immediate address */
 
 PUBLIC void outimmadr(offset)
-offset_t offset;
+offset_T offset;
 {
 #ifdef I8088
     if (!isbyteoffset(offset))
@@ -1456,7 +1456,7 @@ offset_t offset;
 /* print register, comma, immediate address and adjust lc */
 
 PUBLIC void outimadj(offset, targreg)
-offset_t offset;
+offset_T offset;
 store_pt targreg;
 {
     outregname(targreg);
@@ -1492,7 +1492,7 @@ char *name;
 /* print separator, immediate address, newline */
 
 PUBLIC void outncimmadr(offset)
-offset_t offset;
+offset_T offset;
 {
 #ifdef I8088
     outcomma();
@@ -1507,7 +1507,7 @@ offset_t offset;
 /* print signed offset and adjust lc */
 
 PUBLIC void outoffset(offset)
-offset_t offset;
+offset_T offset;
 {
 #ifdef MC6809
     if (!is5bitoffset(offset))
@@ -1595,7 +1595,7 @@ PUBLIC void sbc0()
     {
 	outsbc();
 	outhiaccum();
-	outncimmadr((offset_t) 0);
+	outncimmadr((offset_T) 0);
     }
 }
 
@@ -1603,7 +1603,7 @@ PUBLIC void sbc0()
 
 PUBLIC void set(name, value)
 char *name;
-offset_t value;
+offset_T value;
 {
     outccname(funcname);
     outbyte(LOCALSTARTCHAR);
@@ -1644,7 +1644,7 @@ store_pt reg;
 	    if (shift != 1)
 		bumplc();
 	    outregname(reg);
-	    outncimmadr((offset_t) shift);
+	    outncimmadr((offset_T) shift);
 	}
 	return;
     }
@@ -1666,7 +1666,7 @@ store_pt reg;
 	    outload();
 	    outregname(SHIFTREG);
 	    outcomma();
-	    outimmadr((offset_t) shift);
+	    outimmadr((offset_T) shift);
 	    outnl();
 	    outsl();
 	    outregname(reg);
@@ -1698,7 +1698,7 @@ bool_pt uflag;
 	    if (shift != 1)
 		bumplc();
 	    outaccum();
-	    outncimmadr((offset_t) shift);
+	    outncimmadr((offset_T) shift);
 	}
 	return;
     }
@@ -1728,7 +1728,7 @@ bool_pt uflag;
 	    outload();
 	    outregname(SHIFTREG);
 	    outcomma();
-	    outimmadr((offset_t) shift);
+	    outimmadr((offset_T) shift);
 	    outnl();
 	    if ((bool_t) uflag)
 		outusr();

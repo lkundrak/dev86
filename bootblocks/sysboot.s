@@ -53,10 +53,6 @@ codestart:
   j	codestart
 
 ! Partition table
-public partition_1
-public partition_2
-public partition_3
-public partition_4
 public bootblock_magic
 
 .blkb sysboot_start+0x1BE-*

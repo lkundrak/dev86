@@ -148,9 +148,7 @@ blk_link:	.byte	'V
 
   block	blk_mode
 public sectors
-sectors:	.blkw 1			! POSITION OF THIS FIELD IS MAGIC!
-					! other programs know it's at pos 100
-
+sectors:	.blkw 1			! 
 bios_disk:	.blkb 12		! BPB for FD0
 head:		.word 0			! current head
 track:		.word 0			! current track

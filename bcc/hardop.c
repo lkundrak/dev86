@@ -38,7 +38,7 @@ struct symstruct *target;
 	extend(target);
 	if (target->indcount != 0 || target->storage & reguse)
 	    loadany(target);
-	target->offset.offi += (offset_t) source->offset.offv;
+	target->offset.offi += (offset_T) source->offset.offv;
     }
     else if (source->indcount == 0)
     {
@@ -64,7 +64,7 @@ PUBLIC void incdec(op, source)
 op_pt op;
 struct symstruct *source;
 {
-    offset_t bump;
+    offset_T bump;
     bool_t postflag;
     store_t regmark;
     struct symstruct *target;
@@ -315,7 +315,7 @@ struct symstruct *target;
     load(target, DREG);
     opstr = opstring(op);
     if (source->storage == CONSTANT && op == ANDOP)
-	andconst((offset_t) source->offset.offv);
+	andconst((offset_T) source->offset.offv);
 #ifdef OP1
     else if (tscalar & CHAR && !(sscalar & CHAR) && op != ANDOP)
 	outload();
@@ -337,12 +337,12 @@ struct symstruct *target;
 	    if (!(sscalar & CHAR))
 	    {
 		outhiaccum();
-		outncimmadr((offset_t) ((uoffset_t) source->offset.offv
+		outncimmadr((offset_T) ((uoffset_T) source->offset.offv
 					>> (INT16BITSTO - CHBITSTO)));
 		outop2str(opstr);
 	    }
 	    outregname(BREG);
-	    outncimmadr((offset_t) source->offset.offv & CHMASKTO);
+	    outncimmadr((offset_T) source->offset.offv & CHMASKTO);
 #else /* OP1 */
 	    if (!(sscalar & CHAR))
 	    {
@@ -355,7 +355,7 @@ struct symstruct *target;
 	    if (i386_32 && !(sscalar & CHAR))
 		bumplc2();
 # endif
-	    outncimmadr((offset_t) source->offset.offv);
+	    outncimmadr((offset_T) source->offset.offv);
 
 #endif /* OP1 */
 	}
@@ -429,7 +429,7 @@ struct symstruct *source;
 struct symstruct *target;
 {
     label_no exitlab;
-    uoffset_t factor;
+    uoffset_T factor;
     label_no usignlab;
 
     if (source->indcount == 0 && source->storage != CONSTANT)
@@ -482,7 +482,7 @@ struct symstruct *target;
 	extend(target);
 	if (target->indcount != 0 || target->storage & reguse)
 	    loadany(target);
-	target->offset.offi -= (offset_t) source->offset.offv;
+	target->offset.offi -= (offset_T) source->offset.offv;
     }
     else
 	sub1(source, target);

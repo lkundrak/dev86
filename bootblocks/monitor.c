@@ -44,12 +44,20 @@ static char minibuf[2] = " ";
    struct t_cmd_list * cptr;
 
 #ifdef __STANDALONE__
-   printf("\n\n");
+   printf("\r");
 #else
    if( argc > 1 && strcmp(argv[1], "-t") == 0 ) x86_test=0; else x86_test=1;
 #endif
 
    init_prog();
+   if( __get_ds() != 0x1000 )
+   {
+      relocator(-1);
+      relocator(1);
+      if( __get_ds() > 0x1000 ) relocator(2);
+      printf("Relocated to CS=$%04x DS=%04x\n", __get_cs(), __get_ds());
+   }
+
 #ifdef __STANDALONE__
    if( (__argr.x.dx & 0xFF) == 0 )
 #endif
@@ -254,6 +262,38 @@ unsigned int * valptr;
    return flg;
 }
 
+more_char(ch)
+int ch;
+{
+static int line_number = 0;
+
+   if( ch == -1 ) { line_number = 0; return 0; }
+
+   if( (ch & 0xE0 ) || ch == '\n' )
+      putchar(ch);
+   if( ch == '\n' && ++line_number == 24)
+   {
+      char buf[4];
+      printf("More ?"); fflush(stdout);
+      if( read(0, buf, 1) <= 0 )            return -1;
+      if( buf[0] == 3 || buf[0] == '\033'
+       || buf[0] == 'q' || buf[0] == 'Q' )  return -1;
+      if( buf[0] == '\r' ) line_number--;
+      if( buf[0] == ' ' ) line_number=2;
+      printf("\r      \r");
+   }
+   return 0;
+}
+
+more_strn(str, len)
+char * str;
+int len;
+{
+   for(; len>0 && *str ; len--,str++)
+      if( more_char( *str & 0xFF ) < 0 ) return -1;
+   return 0;
+}
+
 /****************************************************************************/
 
 int cmd_quit(args)
@@ -337,13 +377,15 @@ int cmd_rel(ptr)
 char * ptr;
 {
    int nseg = 0xFFFF;
+   int cs = __get_cs();
 
    getnum(&ptr, &nseg);
 
-   printf("Monitor code seg from 0x%04x ", __get_cs());
-   fflush(stdout);
    relocator(nseg);
-   printf("to 0x%04x\n", __get_cs());
+   if( __get_cs() == cs )
+      printf("Didn't relocate; CS=$%04x DS=%04x\n", __get_cs(), __get_ds());
+   else
+      printf("Relocated to CS=$%04x DS=%04x\n", __get_cs(), __get_ds());
 }
 
 int cmd_dir(ptr)
@@ -373,7 +415,38 @@ char * ptr;
          write(1, buffer, len);
    }
    else
-      printf("Cannout open file '%s'\n", fname);
+      printf("Cannot open file '%s'\n", fname);
+   close_file();
+   return 0;
+}
+
+int cmd_more(ptr)
+char * ptr;
+{
+   char * fname;
+   char buffer[1024];
+   long len;
+   int cc;
+   char * sptr;
+
+   while(*ptr == ' ') ptr++;
+   if( (fname=ptr) == 0 ) return 0;
+   while(*ptr & *ptr != ' ') ptr++;
+
+   more_char(-1);
+
+   if( open_file(fname) >= 0 ) for(len=file_length(); len>0; len-=1024)
+   {
+      if( read_block(buffer) < 0 ) break;
+      if( len > 1024 ) cc = 1024; else cc = len;
+      for(sptr=buffer; cc>0 ; cc--,sptr++)
+      {
+	 if( more_char(*sptr & 0xFF) < 0 ) goto break_break;
+      }
+   }
+   else
+      printf("Cannot open file '%s'\n", fname);
+break_break:;
    close_file();
    return 0;
 }
@@ -395,8 +468,8 @@ struct t_cmd_list cmd_list[] =
    {"bzimage",cmd_bzimage}, /* Load and run 386 bzimage file */
    {"=",      cmd_bzimage}, /* Load and run 386 bzimage file */
    {"dir",    cmd_dir},     /* Display directory */
-   {"type",   cmd_type},    /* Cat/Type a file to the screen */
    {"cat",    cmd_type},    /* Cat/Type a file to the screen */
+   {"more",   cmd_more},    /* More a file to the screen */
 
    /* Debugger/monitor commands */
    {"memdump",cmd_memdump}, {"mem",cmd_memdump}, {"m",  cmd_memdump},

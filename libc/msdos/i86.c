@@ -173,20 +173,48 @@ got_it:
 }
 #endif
 
-#ifdef L___strchr_es
+#ifdef L___strnget_es
 char *
 __strnget_es(d, s, c)
-char *d, *s;
-int c;
+char *d;
+char *s;
+register int c;
 {
-   int ds, es;
-   char *p = __strchr_es(s, '\0');
-   if(p != 0 && p-s < c) 
-      c = p-s+1;
-   ds = __get_ds();
-   es = __get_es();
+   register int i = __strlen_es(s);
+   if(i < c) c = i+1;
+   /* else s[--c] = 0;  ?? */
+   /* else return -E2BIG; ?? */
 
-   __movedata(es, s, ds, d, c);
+   __movedata(__get_es(), s, __get_ds(), d, c);
+}
+#endif
+
+#ifdef L___strlen_es
+int __strlen_es(str)
+char * str;
+{
+#asm
+#if !__FIRST_ARG_IN_AX__
+  mov	bx,sp
+#endif
+  push	di
+  cld
+
+#if __FIRST_ARG_IN_AX__
+  mov	di,ax
+#else
+  mov	di,[bx+2]
+#endif
+  mov	cx,#-1
+  xor	ax,ax
+  repne
+  scasb		! Scans [ES:DI]
+  not	cx
+  dec	cx
+  mov	ax,cx
+
+  pop	di
+#endasm
 }
 #endif
 

@@ -28,7 +28,7 @@ struct loopstruct
     struct symstruct *exprmark;	/* expression symbols built during loop */
     struct symstruct *locmark;	/* local variables built during loop */
     struct loopstruct *prevloop;   /* previous active for, switch or while */
-    offset_t spmark;		/* stack value for continue and break */
+    offset_T spmark;		/* stack value for continue and break */
 };
 
 struct switchstruct
@@ -105,7 +105,7 @@ PRIVATE void deleteloop()
 PRIVATE void evalexpression(exp)
 struct nodestruct *exp;
 {
-    offset_t spmark;
+    offset_T spmark;
 
     spmark = sp;
     makeleaf(exp);
@@ -172,13 +172,13 @@ PUBLIC void compound()		/* have just seen "{" */
     struct symstruct *locmark;
     store_t regmark;
 #ifdef FRAMEPOINTER
-    offset_t framepmark;
-    offset_t softspmark;
+    offset_T framepmark;
+    offset_T softspmark;
 #else
     /* softsp == sp here unless level == ARGLEVEL so mark is unnec */
     /* this is also true if funcsaveregsize != 0 but the tests are too messy */
 #endif
-    offset_t spmark;
+    offset_T spmark;
 
     locmark = locptr;
     regmark = reguse;
@@ -249,7 +249,7 @@ PRIVATE void doasm()
 
 PRIVATE void dobreak()
 {
-    offset_t spmark;
+    offset_T spmark;
 
     if (loopnow == NULL)
 	badloop();
@@ -312,7 +312,7 @@ ts_s_case_tot += GROWCASES * sizeof (struct casestruct);
 PRIVATE void docont()
 {
     struct loopstruct *contloop;
-    offset_t spmark;
+    offset_T spmark;
     struct switchstruct *switchthen;
 
     for (contloop = loopnow, switchthen = switchnow; ;
@@ -472,7 +472,7 @@ PRIVATE void doif()
 
 PRIVATE void doreturn()
 {
-    offset_t spmark;
+    offset_T spmark;
 
     spmark = sp;
     if (sym != SEMICOLON)	/* returning expression */
@@ -485,7 +485,7 @@ PRIVATE void doswitch()
 {
     struct switchstruct *sw;
     struct loopstruct switchloop;
-    offset_t spmark = 0; /* for -Wall */
+    offset_T spmark = 0; /* for -Wall */
     label_no sdecidelab;
 
     sw = (struct switchstruct *) ourmalloc(sizeof *sw);
@@ -590,7 +590,7 @@ PRIVATE void jumptocases()
     while (caseptr <= casetop)
     {
 	outsub();
-	outimadj((offset_t) (caseptr->casevalue - basevalue), targreg);
+	outimadj((offset_T) (caseptr->casevalue - basevalue), targreg);
 	basevalue = caseptr->casevalue;
 	for (case1ptr = caseptr; case1ptr < casetop; ++case1ptr)
 	    if (case1ptr->casevalue < (case1ptr + 1)->casevalue - 10)
@@ -604,7 +604,7 @@ PRIVATE void jumptocases()
 	{
 	    lbranch(lowcondition, dfaultlab);
 	    outcmp();
-	    outimadj((offset_t) (case1ptr->casevalue - basevalue), targreg);
+	    outimadj((offset_T) (case1ptr->casevalue - basevalue), targreg);
 	    lbranch(HI, zjtablelab = getlabel());
 	    if (charselector)
 		ctoi();
@@ -657,7 +657,7 @@ PRIVATE void jumptocases()
 }
 
 PUBLIC void outswoffset (offset)
-offset_t offset;
+offset_T offset;
 {
 #ifdef FRAMEPOINTER
     outoffset(offset - softsp - framep);

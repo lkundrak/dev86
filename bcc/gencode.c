@@ -37,7 +37,7 @@ PUBLIC store_pt allregs = BREG | DREG | DATREG1 | DATREG2
 PUBLIC store_pt allregs = BREG | DREG | INDREG0 | INDREG1 | INDREG2;
 #endif
 PUBLIC store_pt allindregs = INDREG0 | INDREG1 | INDREG2;
-PUBLIC uoffset_t alignmask = ~(uoffset_t) 0x0001;
+PUBLIC uoffset_T alignmask = ~(uoffset_T) 0x0001;
 PUBLIC bool_t arg1inreg = FALSE;
 PUBLIC store_pt calleemask = INDREG1 | INDREG2;
 PUBLIC bool_t callersaves = FALSE;
@@ -45,8 +45,8 @@ PUBLIC char *callstring = "call\t";
 PUBLIC store_pt doubleargregs = DREG | INDREG0 | INDREG1 | INDREG2;
 PUBLIC store_pt doubleregs = DREG | INDREG0 | INDREG1 | INDREG2;
 PUBLIC store_pt doublreturnregs = DREG | INDREG0 | INDREG1 | INDREG2;
-PUBLIC offset_t jcclonger = 3;
-PUBLIC offset_t jmplonger = 1;
+PUBLIC offset_T jcclonger = 3;
+PUBLIC offset_T jmplonger = 1;
 PUBLIC char *jumpstring = "br \t";
 PUBLIC char *regpulllist = "f2ax2ax2bx2si2di2bp2qx2qx2cx2dx2";
 PUBLIC char *regpushlist = "dx2cx2qx2qx2bp2di2si2bx2ax2ax2f2";
@@ -76,7 +76,7 @@ PUBLIC char *stackregstr = "sp";
 #ifdef MC6809
 PUBLIC store_pt allregs = BREG | DREG | INDREG0 | INDREG1 | INDREG2;
 PUBLIC store_pt allindregs = INDREG0 | INDREG1 | INDREG2;
-PUBLIC uoffset_t alignmask = ~(uoffset_t) 0x0000;
+PUBLIC uoffset_T alignmask = ~(uoffset_T) 0x0000;
 PUBLIC bool_t arg1inreg = TRUE;
 PUBLIC store_pt calleemask = INDREG1 | INDREG2;
 PUBLIC bool_t callersaves = TRUE;
@@ -84,8 +84,8 @@ PUBLIC char *callstring = "JSR\t>";
 PUBLIC store_pt doubleargregs = DREG | INDREG0 | INDREG1 | INDREG2;
 PUBLIC store_pt doubleregs = DREG | INDREG0 | INDREG1 | INDREG2;
 PUBLIC store_pt doublreturnregs = DREG | INDREG0 | INDREG1 | INDREG2;
-PUBLIC offset_t jcclonger = 2;
-PUBLIC offset_t jmplonger = 1;
+PUBLIC offset_T jcclonger = 2;
+PUBLIC offset_T jmplonger = 1;
 PUBLIC char *jumpstring = "JMP\t>";
 PUBLIC char *regpulllist = "CC1B1D2X2U2Y2DP1PC2";
 PUBLIC char *regpushlist = "PC2DP1Y2U2X2D2B1CC1";
@@ -100,14 +100,14 @@ PUBLIC char *ireg2str = "Y";
 PUBLIC char *localregstr = "S";
 #endif
 
-PUBLIC uoffset_t accregsize = 2;
+PUBLIC uoffset_T accregsize = 2;
 #ifdef FRAMEPOINTER
-PUBLIC uoffset_t frameregsize = 2;
+PUBLIC uoffset_T frameregsize = 2;
 #endif
-PUBLIC uoffset_t maxregsize = 2;
-PUBLIC uoffset_t opregsize = 2;
-PUBLIC uoffset_t pshregsize = 2;
-PUBLIC uoffset_t returnadrsize = 2;
+PUBLIC uoffset_T maxregsize = 2;
+PUBLIC uoffset_T opregsize = 2;
+PUBLIC uoffset_T pshregsize = 2;
+PUBLIC uoffset_T returnadrsize = 2;
 
 #ifndef MC6809
 PUBLIC uvalue_t intmaskto = 0xFFFFL;
@@ -121,7 +121,7 @@ PUBLIC uvalue_t shortmaskto = 0xFFFFL;
 #endif
 
 PRIVATE store_pt callermask;
-PRIVATE offset_t lastargsp;
+PRIVATE offset_T lastargsp;
 
 PRIVATE smalin_t opdata[] =
 {
@@ -391,7 +391,7 @@ PUBLIC void codeinit()
 #else
 	allindregs = INDREG0 | INDREG1 | INDREG2;
 #endif
-	alignmask = ~(uoffset_t) 0x00000003;
+	alignmask = ~(uoffset_T) 0x00000003;
 	calleemask = INDREG0 | INDREG1 | INDREG2;
 	doubleargregs = DREG | DATREG2;
 	doubleregs = DREG | DATREG2;
@@ -470,11 +470,11 @@ struct nodestruct *exp;
     ccode_t condtrue;
     op_pt op;
     store_t regmark;
-    offset_t saveargsp = 0; /* for -Wall */
+    offset_T saveargsp = 0; /* for -Wall */
     store_t savelist = 0; /* for -Wall */
-    offset_t saveoffset = 0; /* for -Wall */
+    offset_T saveoffset = 0; /* for -Wall */
     struct symstruct *source;
-    offset_t spmark;
+    offset_T spmark;
     struct symstruct *structarg = 0; /* for -Wall */
     struct symstruct *target;
 
@@ -536,7 +536,7 @@ struct nodestruct *exp;
 	lastargsp = savelist = 0;
 	if (exp->nodetype->constructor & STRUCTU)
 	{
-	    modstk(sp - (offset_t) exp->nodetype->typesize);
+	    modstk(sp - (offset_T) exp->nodetype->typesize);
 	    onstack(structarg = constsym((value_t) 0));
 	}
 	else
@@ -615,7 +615,7 @@ struct nodestruct *exp;
 	/* -2 skips for ax and bx */
 	/* need dirtymask to mostly avoid this */
 	savereturn(regmark & callermask & regregs,
-		   spmark - 2 * (offset_t) pshregsize);
+		   spmark - 2 * (offset_T) pshregsize);
 	if (exp->nodetype->constructor & STRUCTU)
 	{
 	    address(structarg);

@@ -45,7 +45,7 @@
 #define EXESUF
 #endif
 
-#if defined(__minix) || defined(_AIX) || defined(__BCC__)
+#if defined(__minix) || defined(__BCC__)
 #define realpath(x,y) 0
 #endif
 
@@ -57,7 +57,6 @@
 #define CC1_MINUS_O_BROKEN	FALSE
 #define CPP			"bcc-cc1" EXESUF
 #define CPPFLAGS		"-E"
-#define CRT0			"crt0.o"
 #define GCC			"gcc"
 #define LD			"ld86" EXESUF
 #define UNPROTO 		"unproto" EXESUF
@@ -135,15 +134,6 @@ PRIVATE struct arg_s ccargs = { CC1, CC1_MINUS_O_BROKEN, };
 PRIVATE struct arg_s cppargs = { CPP, };
 PRIVATE struct arg_s unprotoargs = { UNPROTO, TRUE };
 PRIVATE struct arg_s optargs =     { OPTIM };
-#ifdef STANDARD_CRT0_PREFIX
-PRIVATE struct prefix_s crt0_prefix = { STANDARD_CRT0_PREFIX, };
-#endif
-#ifdef STANDARD_CRT0_0_PREFIX
-PRIVATE struct prefix_s crt0_0_prefix = { STANDARD_CRT0_0_PREFIX, };
-#endif
-#ifdef STANDARD_CRT0_3_PREFIX
-PRIVATE struct prefix_s crt0_3_prefix = { STANDARD_CRT0_3_PREFIX, };
-#endif
 PRIVATE struct prefix_s exec_prefix;
 PRIVATE struct arg_s ldargs = { LD, };
 #ifdef BAS86
@@ -201,7 +191,6 @@ FORWARD void startarg P((struct arg_s *argp));
 FORWARD char *stralloc P((char *s));
 FORWARD char *stralloc2 P((char *s1, char *s2));
 FORWARD void trap P((int signum));
-FORWARD void unsupported P((char *option, char *message));
 FORWARD void writen P((void));
 FORWARD void writes P((char *s));
 FORWARD void writesn P((char *s));
@@ -233,21 +222,18 @@ char **argv;
 #else
     bool_T cpp_pass = FALSE;
 #endif
-#ifdef BCC86
-    char *crt0;
-#endif
     char *libc = "-lc";
 #ifdef MSDOS
     char major_mode = 'd';
 #else
     char major_mode = 0;
 #endif
+    bool_T has_crt0 = TRUE;
     bool_T debug = FALSE;
     bool_T echo = FALSE;
     unsigned errcount = 0;
     char ext;
     char *f_out = NUL_PTR;
-    bool_T float_emulation = FALSE;
 #ifdef BAS86
     bool_T gnu_objects = FALSE;
 #endif
@@ -263,6 +249,7 @@ char **argv;
     bool_T profile = FALSE;
     bool_T prep_only = FALSE;
     bool_T prep_line_numbers = FALSE;
+    bool_T compiler_warnings = TRUE;
     int status;
     char *temp;
     bool_T patch_exe = FALSE; /* Hackish patch to convert minix i386->OMAGIC */
@@ -334,13 +321,8 @@ char **argv;
 	    case 'e':
 		cpp_pass = TRUE;
 		break;
-	    case 'f':
-		float_emulation = TRUE;
-		++errcount;
-		unsupported(arg, "float emulation");
-		break;
 	    case 'g':
-		debug = TRUE;	/* unsupported( arg, "debug" ); */
+		debug = TRUE;	/* unsupported */
 		break;
 	    case 'o':
 		if (argc <= 1)
@@ -359,14 +341,19 @@ char **argv;
 		break;
 	    case 'p':
 		profile = TRUE;
-		++errcount;
-		unsupported(arg, "profile");
 		break;
 	    case 'v':
 		++verbosity;
 		break;
+	    case 'w':
+		compiler_warnings = FALSE;
+		aswarn = FALSE;
+		break;
 	    case 'W':
 		aswarn = TRUE;
+		break;
+	    case 'x':
+		has_crt0 = FALSE;
 		break;
 	    case 'I':
 		add_default_inc = 0;
@@ -391,6 +378,10 @@ char **argv;
 		adddefine("-D__STDC__=0");
 	      }
 	      break;
+	    case 't':
+		addarg(&asargs, "-t");
+		addarg(&asargs, arg+2);
+		break;
 	    case 'A':
 		addarg(&asargs, arg + 2);
 		break;
@@ -435,10 +426,6 @@ char **argv;
 		break;
 	    case 'T':
 		tmpdir = arg + 2;
-		break;
-	    case 't':
-		++errcount;
-		unsupported(arg, "pass number");
 		break;
 	    default:
 		*argdone = FALSE;
@@ -486,7 +473,6 @@ char **argv;
        libc= "-ldos";
        adddefine("-D__MSDOS__");
        addarg(&ldargs, "-d");
-       addarg(&ldargs, "-s");
        addarg(&ldargs, "-T100");
        break;
 
@@ -525,7 +511,11 @@ char **argv;
        libc= "-lc";
        adddefine("-D__linux__");
        adddefine("-D__unix__");
+#ifdef __linux__
        addarg(&ldargs, "-N"); /* Make OMAGIC */
+#else
+       patch_exe = TRUE;
+#endif
        break;
 
     case '?':
@@ -598,16 +588,10 @@ char **argv;
 #ifdef BCC86
 #ifdef STANDARD_CRT0_3_PREFIX
     if (bits32)
-    {
 	bits_arg = "-3";
-	crt0 = fixpath(CRT0, &crt0_3_prefix, R_OK);
-    }
     else
 #endif
-    {
 	bits_arg = "-0";
-	crt0 = fixpath(CRT0, &crt0_0_prefix, R_OK);
-    }
     addarg(&ccargs, bits_arg);
     addarg(&cppargs, bits_arg);
     addarg(&asargs, bits_arg);
@@ -616,15 +600,11 @@ char **argv;
     {
 	addarg(&ldargs, bits_arg);
 	addarg(&ldrargs, bits_arg);
-	/* addarg(&ldargs, crt0);*/
-	addarg(&ldargs, "-C0");
+	if( has_crt0 )
+	   addarg(&ldargs, "-C0");
     }
 #endif /* BAS86 */
 #endif /* BCC86 */
-#if defined(BAS86) && !defined(BCC86)
-    if (!gnu_objects)
-	addarg(&ldargs, fixpath(CRT0, &crt0_prefix, R_OK));
-#endif
     set_trap();
 
     /* Pass 2 over argv to compile and assemble .c, .i, .S and .s files and
@@ -839,15 +819,19 @@ char * fname;
 {
 /* OMAGIC */
 
-#define AOUT_MAG	0x640107L
-#define ELKS_MAG1	0x1010
-#define ELKS_MAG2	0x1011	/* -z */
-#define ELKS_MAG3	0x1020	/* -i */
-#define ELKS_MAG4	0x1021	/* -i -z */
+#define AOUT_MAG	"\x07\x01\x64\x00" /* 0x640107L */
+#define ELKS_MAG1	0x10
+#define ELKS_MAG2	0x11	/* -z */
+#define ELKS_MAG3	0x20	/* -i */
+#define ELKS_MAG4	0x21	/* -i -z */
 
 static struct	ELKS_exec {	/* ELKS a.out header */
-  long 		a_magic;	/* magic number */
-  long		a_hdrlen;	/* length, etc of header */
+  char		a_magic1;	/* magic number */
+  char		a_magic2;	/* magic number */
+  char		a_magic3;	/* magic number */
+  char		a_magic4;	/* magic number */
+  char		a_hdrlen;	/* length, etc of header */
+  char		a_hdrlen3[3];
   long		a_text;		/* size of text segement in bytes */
   long		a_data;		/* size of data segment in bytes */
   long		a_bss;		/* size of bss segment in bytes */
@@ -858,7 +842,7 @@ static struct	ELKS_exec {	/* ELKS a.out header */
 
 
 static struct  aout_exec {
-  unsigned long a_info;	/* Use macros N_MAGIC, etc for access */
+  char     a_info[4];	/* Use macros N_MAGIC, etc for access */
   unsigned a_text;	/* length of text, in bytes */
   unsigned a_data;	/* length of data, in bytes */
   unsigned a_bss;	/* length of uninitialized data area, in bytes */
@@ -879,32 +863,33 @@ static struct  aout_exec {
       return;
    }
 
-   if( instr.a_hdrlen != 0x20 || (instr.a_magic & 0xFFFF) != 0x0301 )
+   if( instr.a_hdrlen != 0x20 || instr.a_magic1 != 0x01 ||
+       instr.a_magic2 != 0x03 || instr.a_magic4 != 0x10 )
    {
-      writesn("Executable cannot be converted to OMAGIC");
+      writesn("Executable cannot be converted to OMAGIC - bad magics");
       return;
    }
 
-   switch((int)(instr.a_magic >> 16))
+   switch((int)(instr.a_magic3))
    {
    case ELKS_MAG1:
-      outstr.a_info = AOUT_MAG;
       break;
    case ELKS_MAG2:
-      writesn("Executable cannot be converted to OMAGIC");
+      writesn("Executable cannot be converted to OMAGIC (compiled with -z)");
       return;
    case ELKS_MAG3:
    case ELKS_MAG4:
       writesn("Executable file is split I/D, data overlaps text");
       return;
    default:
-      writesn("Executable cannot be converted to OMAGIC");
+      writesn("Executable cannot be converted to OMAGIC (unknown type)");
       return;
    }
 
    if( instr.a_syms != 0 )
       writesn("Warning: executable file isn't stripped");
 
+   memcpy(outstr.a_info, AOUT_MAG, 4);
    outstr.a_text = instr.a_text;
    outstr.a_data = instr.a_data;
    outstr.a_bss  = instr.a_bss;
@@ -1335,17 +1320,6 @@ int signum;
     signal(signum, SIG_IGN);
     show_who("caught signal");
     fatal("");
-}
-
-PRIVATE void unsupported(option, message)
-char *option;
-char *message;
-{
-    show_who("compiler option ");
-    writes(option);
-    writes(" (");
-    writes(message);
-    writesn(") not supported yet");
 }
 
 PRIVATE void writen()

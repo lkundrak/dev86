@@ -10,7 +10,7 @@ AOBJ=bios_start.o bios_isatty.o \
 BSRC=bios_vid.c
 BOBJ=bios_putc.o bios_getc.o bios_khit.o bios_rdline.o
 
-OBJ=$(AOBJ) $(BOBJ)
+OBJ=$(AOBJ) $(BOBJ) time.o
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 

@@ -13,14 +13,14 @@ typedef long value_t;		/* target ints, longs and offsets */
 typedef unsigned long uvalue_t;	/* target unsigned ints, longs and offsets */
 
 #ifdef I8088
-typedef long offset_t;		/* target machine offset */
-typedef unsigned long uoffset_t;	/* target unsigned machine offset */
+typedef long offset_T;		/* target machine offset */
+typedef unsigned long uoffset_T;	/* target unsigned machine offset */
 #define outuvalue outhex
 #define outvalue outshex
 #endif
 #ifdef MC6809
-typedef int offset_t;
-typedef unsigned uoffset_t;
+typedef int offset_T;
+typedef unsigned uoffset_T;
 #endif
 
 
@@ -146,7 +146,7 @@ struct symstruct
     union
     {
 	double *offd;		/* value for double constants */
-	offset_t offi;		/* offset for register or global storage */
+	offset_T offi;		/* offset for register or global storage */
 	label_no offlabel;	/* label number for strings */
 	char *offp;		/* to string for macro definitions */
 	sym_pt offsym;		/* symbol code for keywords */
@@ -173,8 +173,8 @@ struct typestruct
     char structkey[2];		/* unique prefix for member names */
 				/* ranges from "\001\001" to "@\377" */
 				/* avoiding nulls */
-    uoffset_t alignmask;	/* alignment mask, typesize - 1 for scalars */
-    uoffset_t typesize;		/* size of this type */
+    uoffset_T alignmask;	/* alignment mask, typesize - 1 for scalars */
+    uoffset_T typesize;		/* size of this type */
     char *tname;		/* name of scalar type or constructor */
     struct typelist *listtype;	/* list of member types */
     struct typestruct *nexttype;

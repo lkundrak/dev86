@@ -354,7 +354,7 @@ char *str;
 /* print unsigned offset, hex format */
 
 PUBLIC void outhex(num)
-uoffset_t num;
+uoffset_T num;
 {
 #ifdef HEXSTARTCHAR
     if (num >= 10)
@@ -370,7 +370,7 @@ uoffset_t num;
 /* print unsigned offset, hex format with digits only (no hex designator) */
 
 PUBLIC void outhexdigs(num)
-register uoffset_t num;
+register uoffset_T num;
 {
     if (num >= 0x10)
     {
@@ -431,7 +431,7 @@ int byte;
 /* print unsigned offset, hex format, then newline */
 
 PUBLIC void outnhex(num)
-uoffset_t num;
+uoffset_T num;
 {
     outhex(num);
     outnl();
@@ -530,14 +530,14 @@ PUBLIC void outplus()
 /* print signed offset, hex format */
 
 PUBLIC void outshex(num)
-offset_t num;
+offset_T num;
 {
     if (num >= -(maxoffsetto + 1))
     {
 	outminus();
 	num = -num;
     }
-    outhex((uoffset_t) num);
+    outhex((uoffset_T) num);
 }
 
 /* print string  */
@@ -771,7 +771,7 @@ register value_t num;
 	outminus();
 	num = -num;
     }
-    outuvalue((uoffset_t) num);
+    outuvalue((uoffset_T) num);
 }
 
 #endif /* DEBUG */

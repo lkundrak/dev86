@@ -13,7 +13,7 @@ Useful bits for /etc/magic:
 >28	long		!0		not stripped
 #
 0	string		\243\206\001\0	Linux-8086 object file
-# There is _no_ difference between 16 and 32 bit .o files
+# There is _no_ difference between 16 and 32 bit .o files that file can see.
 #
 0	string		\01\03\020\20	Minix-386 impure executable	
 >28	long		!0		not stripped
