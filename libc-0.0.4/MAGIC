@@ -1,0 +1,23 @@
+Useful bits for /etc/magic:
+
+#------------------------------------------------------------------------------
+# Localstuff:  file(1) magic for locally observed files
+#
+# $Id: Localstuff,v 1.3 1995/01/21 21:09:00 christos Exp $
+# Add any locally observed files here.  Remember:
+# text if readable, executable if runnable binary, data if unreadable.
+#
+0	string		\01\03\020\04	Linux-8086 impure executable	
+>16	long		!0		not stripped
+0	string		\01\03\040\04	Linux-8086 executable
+>16	long		!0		not stripped
+#
+0	string		\243\206\001\0	Linux-8086 object file
+# There is _no_ difference between 16 and 32 bit .o files
+#
+0	string		\01\03\020\20	Minix-386 impure executable	
+>16	long		!0		not stripped
+0	string		\01\03\040\20	Minix-386 executable
+>16	long		!0		not stripped
+#
+#------------------------------------------------------------------------------

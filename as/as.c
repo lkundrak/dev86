@@ -21,7 +21,6 @@ void *malloc P((unsigned size));
 char *strcpy P((char *s1, const char *s2));
 unsigned strlen P((const char *s));
 #else
-#undef NULL
 #include <stdlib.h>
 #include <string.h>
 #endif
@@ -31,7 +30,6 @@ int close P((int fd));
 int creat P((const char *path, int mode));
 int write P((int fd, const void *buf, unsigned nbytes));
 #else
-#undef NULL
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -53,7 +51,9 @@ FORWARD void summary P((fd_t fd));
 FORWARD void summ_number P((unsigned num));
 FORWARD void usage P((void));
 
+#ifndef USERMEM
 #define USERMEM (sizeof(int) <= 2 ? (unsigned) 0xAC00 : (unsigned) 0x28000L)
+#endif
 
 PUBLIC int main(argc, argv)
 int argc;
@@ -146,7 +146,11 @@ char *message;
 {
     int fd;
 
+#ifdef O_BINARY
+    if ((fd = open(name, O_RDWR|O_BINARY|O_CREAT|O_TRUNC, CREAT_PERMS)) < 0 || fd > 255)
+#else
     if ((fd = creat(name, CREAT_PERMS)) < 0 || fd > 255)
+#endif
 	as_abort(message);
     return fd;
 }
@@ -157,7 +161,7 @@ char **argv;
 {
     char *arg;
     bool_t isnextarg;
-    char *nextarg;
+    char *nextarg = 0;
 
     if (argc <= 1)
 	usage();

@@ -6,7 +6,6 @@
 #ifdef STDC_HEADERS_MISSING
 char *strcpy P((char *s1, const char *s2));
 #else
-#undef NULL
 #include <string.h>
 #endif
 

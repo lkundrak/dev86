@@ -10,14 +10,12 @@
 void *memset P((void *s, int c, unsigned n));
 int strcmp P((const char *s1, const char *s2));
 #else
-#undef NULL
 #include <string.h>
 #endif
 
 #ifdef POSIX_HEADERS_MISSING
 int write P((int fd, const void *buf, unsigned nbytes));
 #else
-#undef NULL
 #include <sys/types.h>
 #include <unistd.h>
 #endif
@@ -51,7 +49,7 @@ PUBLIC void gensym()
     align(heapptr);
     for (hashptr = spt, symlptr = copyptr = (struct sym_s **) heapptr;
 	 hashptr < spt_top;)
-	if ((symptr = *hashptr++) != NULL)
+	if ((symptr = *hashptr++) != NUL_PTR)
 	    do
 		if (!(symptr->type & (MACBIT | MNREGBIT | VARBIT)))
 		{
@@ -66,7 +64,7 @@ PUBLIC void gensym()
 		    ++label_count;
 		    labels_length += symptr->length + 3; /* 3 for type, value */
 		}
-	    while ((symptr = symptr->next) != NULL);
+	    while ((symptr = symptr->next) != NUL_PTR);
 
 sort_symbols:
     sort(symlptr, copyptr, TRUE);	/* sort on name */

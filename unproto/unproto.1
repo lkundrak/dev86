@@ -1,0 +1,79 @@
+.TH UNPROTO 1 
+.ad
+.fi
+.SH NAME
+unproto
+\-
+ANSI C to old C converter
+.SH PACKAGE
+.na
+.nf
+unproto
+.SH SYNOPSIS
+.na
+.nf
+/lib/cpp ... | unproto
+
+/somewhere/cpp ...
+.SH DESCRIPTION
+.ad
+.fi
+This document describes a filter that sits between the
+C preprocessor (usually \fI/lib/cpp\fP) and the next C compiler
+pass. It rewrites ANSI-C style function headers, function type
+declarations, function pointer types, and function pointer casts
+to old style. Other ANSI-isms are passed on without modification
+(token pasting, pragmas, etcetera).
+
+For maximal flexibility, the "cpp | unproto" pipeline can  be
+packaged as an executable shell script named "/somewhere/cpp".
+This script should then be specified to the C compiler as a
+non-default preprocessor.
+
+The overhead of shell script interpretation can be avoided by
+having the unprototyper itself open the pipe to the preprocessor.
+In that case, the source should be compiled with the PIPE_THROUGH_CPP
+macro defined (usually as "/lib/cpp"), and the resulting binary
+should be installed as "/somewhere/cpp".
+.SH SEE ALSO
+.na
+.nf
+.ad
+.fi
+cc(1), how to specify a non-default C preprocessor.
+
+Some versions of the lint command are implemented as a shell
+script. It should require only minor modification for integration
+with the unprotoizer. Other versions of the lint command accept the same
+command syntax as the C compiler for the specification of a non-default
+preprocessor. Some research may be needed.
+.SH DIAGNOSTICS
+.ad
+.fi
+The progam will complain if it unexpectedly
+reaches the end of input.
+.SH BUGS
+.ad
+.fi
+Should be run on preprocessed source only, i.e. after macro expansion.
+
+Declarations of (whatever) are misunderstood and will result in
+syntax errors.
+
+Does not generate explicit type casts for function argument
+expressions.
+.SH AUTHOR(S)
+.na
+.nf
+Wietse Venema (wietse@wzv.win.tue.nl)
+Eindhoven University of Technology
+Department of Mathematics and Computer Science
+Den Dolech 2, P.O. Box 513, 5600 MB Eindhoven, The Netherlands
+.SH LAST MODIFICATION
+.na
+.nf
+91/09/22 21:21:35
+.SH VERSION/RELEASE
+.na
+.nf
+1.2

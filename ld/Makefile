@@ -1,13 +1,24 @@
-CFLAGS		=-O -DBSD_A_OUT -DSTANDARD_GNU_A_OUT
-LDFLAGS		=-N -s
+
+ifneq ($(TOPDIR),)
+include $(TOPDIR)/Make.defs
+else
+CC=bcc
+LDFLAGS=-s
+endif
 
 OBJS		=dumps.o io.o ld.o readobj.o table.o typeconv.o writebin.o
 
-ld: $(OBJS)
+all: ld86
+
+ld86: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -o $@
 
+install: ld86
+	install -d $(LIBDIR)
+	install -m 755 ld86 $(LIBDIR)
+
 clean:
-	rm -f $(OBJS) ld
+	rm -f $(OBJS) ld86
 
 dumps.o: dumps.c const.h config.h obj.h type.h globvar.h
 io.o: io.c const.h config.h obj.h type.h globvar.h

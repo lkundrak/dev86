@@ -10,9 +10,10 @@
 
 #ifdef STDC_HEADERS_MISSING
 void *malloc P((unsigned size));
+char * strcpy P((char* dest, char* src));
 #else
-#undef NULL
 #include <stdlib.h>
+#include <string.h>
 #endif
 
 #define GOLDEN		157	/* GOLDEN/HASHTABSIZE approx golden ratio */
@@ -32,13 +33,13 @@ PUBLIC void syminit()
 
     for (i = sizeof(int) <= 2 ? 0xE000 : (unsigned) 0x38000;
 	 i != 0; i -= 512)
-	if ((tableptr = malloc(i)) != NULL)
+	if ((tableptr = malloc(i)) != NUL_PTR)
 	    break;
-    if (tableptr == NULL)
+    if (tableptr == NUL_PTR)
 	outofmemory();
     tableend = tableptr + i;
     for (i = 0; i < HASHTABSIZE; i++)
-	hashtab[i] = NULL;
+	hashtab[i] = NUL_PTR;
 }
 
 /* add named symbol to end of table - initialise only name and next fields */
@@ -48,12 +49,12 @@ PUBLIC struct symstruct *addsym(name)
 char *name;
 {
     struct symstruct **hashptr;
-    struct symstruct *oldsymptr;
+    struct symstruct *oldsymptr = 0;
     struct symstruct *symptr;
 
     hashptr = gethashptr(name);
     symptr = *hashptr;
-    while (symptr != NULL)
+    while (symptr != NUL_PTR)
     {
 	oldsymptr = symptr;
 	symptr = symptr->next;
@@ -62,11 +63,11 @@ char *name;
     symptr = (struct symstruct *) tableptr;
     if ((tableptr = symptr->name + (strlen(name) + 1)) > tableend)
 	outofmemory();
-    symptr->modptr = NULL;
-    symptr->next = NULL;
+    symptr->modptr = NUL_PTR;
+    symptr->next = NUL_PTR;
     if (name != symptr->name)
 	strcpy(symptr->name, name);	/* should't happen */
-    if (*hashptr == NULL)
+    if (*hashptr == NUL_PTR)
 	*hashptr = symptr;
     else
 	oldsymptr->next = symptr;
@@ -81,7 +82,7 @@ char *name;
     struct symstruct *symptr;
 
     symptr = *gethashptr(name);
-    while (symptr != NULL && (!(symptr->flags & (E_MASK | I_MASK)) ||
+    while (symptr != NUL_PTR && (!(symptr->flags & (E_MASK | I_MASK)) ||
 			      strcmp(symptr->name, name) != 0))
 	symptr = symptr->next;
     return symptr;

@@ -1,0 +1,19 @@
+This is just the malloc for libc.  It is untested; it won't even compile
+right now.  In particular, __malloc_init needs some bug fixing!
+
+Apparently, there is another malloc that Robert Debath wrote which probably
+works by now.  However, I honestly think that my malloc may be just as
+good when it's finished.
+
+In about six months, you'll probably see something like this:
+
+
+Linux/less-than-32-bit installation program
+Do you want
+	1.  Chad Page's kernel
+	2.  Alan Cox's kernel
+Enter your chioce --> 2
+Do you want
+	1.  Robert Debath's malloc
+	2.  Joel Weber's malloc
+[more choices for compilers, filetools, etc]

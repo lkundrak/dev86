@@ -23,7 +23,6 @@ off_t lseek P((int fd, off_t offset, int whence));
 int open P((const char *path, int oflag, ...));
 int read P((int fd, void *buf, unsigned nbytes));
 #else
-#undef NULL
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -220,7 +219,7 @@ PUBLIC void readline()
       char *oldbufptr;
       struct schain_s *parameters;
       char paramnum;
-      unsigned char remaining;	/* space remaining in line + 2 */
+      unsigned int remaining;	/* space remaining in line + 2 */
 				/* value 0 not used except for temp predec */
 				/* value 1 means error already gen */
 				/* values 1 and 2 mean no space */
@@ -244,9 +243,9 @@ PUBLIC void readline()
 		{
 		    parameters = macstak->parameters;
 		    for (paramnum = *bufptr++; paramnum-- != '0';)
-			if ((parameters = parameters->next) == NULL)
+			if ((parameters = parameters->next) == NUL_PTR)
 			    break;
-		    if (parameters != NULL)
+		    if (parameters != NUL_PTR)
 		    {
 			for (oldbufptr = bufptr, bufptr = parameters->string;
 			     *bufptr++ != 0;)

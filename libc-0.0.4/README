@@ -1,0 +1,70 @@
+
+This is the README for libc-8086-0.0.3.tar.gz
+Robert de Bath,  22/Feb/96, rdebath@cix.compulink.co.uk
+
+The lib is starting to look a lot fatter, it can now be compiled five
+different ways for Linux-8086 standard, Linux-8086 with 'First arg in AX',
+MS-DOS, BCC-386 or for GNU-386. At the moment the 386 versions are
+missing some _very_ important bits.
+
+THE COMPILER
+ You should use the newest version of the bcc/bcc-cc1/as86/ld86 tools these
+ contain patches to ease operating in a cross-compiling enviroment and
+ the arguments to BCC have changed slightly.
+
+ The standard ld86 can't generate MSDOS COM files by itself.
+ If you need to change search paths they can all be done from the command
+ line or by recompiling _only_ bcc.c.
+ These tools also contain Nat's 'clean' and 'ansi' patches.
+
+Main Subdirectories.
+
+include		Some include files, some new others Glib or Glib hacked.
+		(They are a _real_ mess ATM and very light on the ground)
+
+bcc		Lots of BCC helper functions
+malloc1		My malloc routines
+malloc2		Joel's malloc routines
+misc		Various larger functions
+msdos		This is the equlivent of the syscall directory for msdos.
+string		The functions for string.h
+syscall		All the system call functions, and a few tied lib ones.
+stdio		Joel's standard I/O functions - as yet rather incomplete
+pwd		Routines for /etc/passwd, from Nat
+grp		Routines for /etc/group, from Nat
+regexp		Standard regular expression parser
+tests		Various C programs used to test the lib.
+
+Directory structure:
+
+      The top Makefile will try to call any "Makefile" it finds in a
+      subdirectory, so to add a new chunk to "libc.a" just drop in
+      the directory a Makefile that understands "make clean" and
+      "make libc.a" (Which must also update ../libc.a)
+      There's now a tiny script (New_subdir) that'll do this.
+
+      Make config will look in all subdirectories for a file 'Config'
+      any it finds will be displayed and can be used to switch a directory
+      on or off by renaming Makefile<->makefile.
+      (This seemed like a good idea, I'm not so sure now ...)
+
+      The exit(rv) function is already defined. It will call the contents
+      of the function pointer (*__cleanup)() before it calls _exit();
+      This pointer should be used through the 'atexit' or 'on_exit' lib
+      functions. (See standard man pages)
+
+      If you need to call something before main see the file 'Pre_main'.
+
+There are symlinks in the archive, they assume a layout something like:
+
+  Linux_8086
+  Linux_8086/libc	This Libc
+  Linux_8086/linuxmt	The Elks Kernel
+  Linux_8086/ELKSemu	The Elks Emulator
+  Linux_8086/bcc	Compiler src
+  Linux_8086/as		Assembler
+  Linux_8086/ld		Linker
+
+-Robert
+
+-=*=- -=*=- -=*=- -=*=- -=*=- -=*=- -=*=- -=*=- -=*=- -=*=- -=*=- -=*=- -=*=-

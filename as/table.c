@@ -9,7 +9,6 @@
 #ifdef STDC_HEADERS_MISSING
 int memcmp P((const void *s1, const void *s2, unsigned n));
 #else
-#undef NULL
 #include <string.h>
 #endif
 
@@ -809,7 +808,7 @@ unsigned char data;
  * If string is not found and ifflag is TRUE, string is added to table, with
  *	type = 0
  *	data = inidata (RELBIT | UNDBIT, possibly with IMPBIT | SEGM)
- * Returns pointer to symbol entry (NULL if not found and not installed)
+ * Returns pointer to symbol entry (NUL_PTR if not found and not installed)
  * unless symbol table overflows, when routine aborts.
  */
 
@@ -855,7 +854,7 @@ PUBLIC struct sym_s *lookup()
     nameptr = symname;
     if ((symptr = *(hashptr = spt +
 			      (hashval ^ (hconv(nameptr[0]) << 1)) % SPTSIZ))
-	!= NULL)
+	!= NUL_PTR)
     {
 	do
 	{
@@ -873,9 +872,9 @@ PUBLIC struct sym_s *lookup()
 	    if (memcmp(symptr->name, nameptr, length) == 0)
 		return symptr;
 	}
-	while ((symptr = symptr->next) != NULL);
+	while ((symptr = symptr->next) != NUL_PTR);
 
-	/* Calculate last non-NULL hash ptr.
+	/* Calculate last non-NUL_PTR hash ptr.
 	 * This is faster than keeping hashptr up to date in previous loop
 	 * since most lookups are successful and hash ptr is not needed.
 	 */
@@ -884,10 +883,10 @@ PUBLIC struct sym_s *lookup()
 	    symptr = *hashptr;
 	    hashptr = &symptr->next;
 	}
-	while (symptr->next != NULL);
+	while (symptr->next != NUL_PTR);
     }
     if (!ifflag)
-	return NULL;
+	return NUL_PTR;
     align(heapptr);
     if (heapptr >= heapend)
 	fatalerror(SYMOV);
@@ -900,7 +899,7 @@ PUBLIC struct sym_s *lookup()
     symptr->type = 0;
     symptr->data = inidata;
     symptr->length = length;
-    symptr->value_reg_or_op.value = (unsigned) (symptr->next = NULL);
+    symptr->value_reg_or_op.value = (unsigned) (symptr->next = NUL_PTR);
     heapptr = symptr->name;
     do
 	*heapptr++ = *nameptr++;
@@ -917,7 +916,7 @@ unsigned hashval;
     register struct sym_s *symptr;
 
     printf("%04x ", hashval);
-    for (symptr = spt[hashval]; symptr != NULL; symptr = symptr->next)
+    for (symptr = spt[hashval]; symptr != NUL_PTR; symptr = symptr->next)
 	printf("%s ", symptr->name);
     printf("\n");
 }

@@ -1,0 +1,130 @@
+@(#) README 1.3 91/12/01 12:37:55
+
+unproto - ANSI C to old C converter
+
+Purpose:
+
+This is a filter that sits in between the C preprocessor and the next C
+compiler stage, and that on the fly rewrites ANSI C to old C. Its
+primary application is to compile ANSI C software in UNIX environments
+that do not (yet) have an ANSI C compiler and that cannot run GCC
+because of technical or political problems.
+
+The filter leaves old-style C alone, and de-ANSI-fies function
+headings, function pointer type declarations (and casts), function type
+declarations, and combinations thereof. Many freely-distributable
+unprotoizers have problems with the latter because they are based on a
+non-recursive algorithm or even make assumptions about code layout.
+
+The unprototyper has support for systems that require special tricks
+for variadic functions (fortunately, many don't). A sample `stdarg.h'
+file is provided with support for sparc, mc68k, 80x86, vax and others.
+
+The program has been tested on a Sun SLC running SunOS 4.1.1 and on a
+80286 PC clone running Microport's version of System V Release 2. It
+runs at about the same speed as /lib/cpp, so it should have negigible
+impact on compilation times.
+
+Problems solved with this release:
+
+Minor: the program was originally intended for the compilation of
+already tested ANSI C source, so that diagnostics from the native C
+compiler would be sufficient. The present release produces better
+diagnostics, so that it can also be used for program development.
+
+Major: the template Makefile suggested that all #pragma directives be
+filtered out. This turns out to be a bad idea because some non-ANSI
+compilers (SunOS) rely on #pragmas to correctly handle the unusual flow
+control caused by vfork(2), setjmp(3) etcetera. A warning to this
+effect has been added to the Makefile.
+
+No changes were made to the actual filter logic; output should be
+identical to that of the previous release.
+
+Restrictions:
+
+Other ANSI-isms are just passed on without modification, such as
+trigraphs, token pasting (##), #pragmas, stringizing (#text) and
+string concatenation ("string1" "string2").
+
+The unprototyper does not understand declarations of (object). The
+result (the object disappears) will be a syntax error so this should
+not go by unnoticed.
+
+Some C programmers rely on ANSI-style prototypes for the automatic type
+conversion of function arguments.  The unprototyper, however, does not
+generate casts. The lack of automatic conversion between integral
+and/or pointer argument types should not be a problem in environments
+where sizeof(int) == sizeof(long) == sizeof(pointer).  A more serious
+problem is the lack of automatic type conversions beteen integral and
+floating-point function argument types.  Let lint(1) be your friend.
+
+Operation:
+
+This package implements an non-default C preprocessor (the output from
+the default C preprocessor being piped through the unprototyper).  How
+one tells the C compiler to use an non-default preprocessor program is
+somewhat compiler-dependent:
+
+    SunOS 4.x:  cc -Qpath directory_with_non-default_cpp ...
+
+    SysV Rel2:  cc -Bdirectory_with_non-default_cpp/ -tp ...
+
+Your C compiler manual should provide the necessary information.
+
+On some systems the lint(1) command is just a shell script, and writing
+a version that uses the unprototyper should not be too hard. With SunOS
+4.x, /usr/bin/lint is not a shell script, but it does accept the same
+syntax as the cc(1) command for the specification of a non-default
+compiler pass. 
+
+You may have to do some research on the lint command provided with your
+own machine.
+
+Configuration:
+
+Check the contents of the `stdarg.h' file provided with this package.
+This file serves a dual purpose. It should be included by C source file
+that implements ANSI-style variadic functions. It is also used to
+configure the `unproto' program so that it emits the proper magic for
+the `...' construct.
+
+The `stdarg.h' file contains definitions for the sparc architecture and
+for architectures that pass arguments via the stack (usually OK for
+80*86, mc68k and vax C compilers).  Risc processors often need special
+tricks.  These are usually found in the file `/usr/include/varargs.h'.
+
+The file `varargs.c' provided with this package can be used to verify
+that the `stdarg.h' file has been set up correctly.
+
+For maximal flexibility, you can use the `cpp' shell script provided
+with this package to set up the pipe between the default C preprocessor
+and the unprototyper command. The script assumes that the unprototyper
+binary is called `unproto'. See the cpp.sh script and the Makefile for
+details.
+
+The overhead of shell-script interpretation can be avoided by having
+the unprototyper itself open the pipe to the C preprocessor.  In this
+case, the `unproto.c' source file should be compiled with the
+`PIPE_THROUGH_CPP' macro defined as the pathname of the C preprocessor
+(usually `/lib/cpp'), and the unprototyper binary should be called
+`cpp'.  See the Makefile for details.
+
+Installation:
+
+Install the `stdarg.h' include file and the `unproto.1' manual page in
+suitable places.
+
+If you use the `cpp' shell script to pipe the preprocessor output
+through the unprototyper program, install the `unproto' binary in a
+place where the `cpp' shell script can find it, and install the `cpp'
+shell script in a suitable place.
+
+If the unprototyper itself opens the pipe to the C preprocessor (i.e.
+the unprototyper was built with the `PIPE_THROUGH_CPP' macro defined),
+install the `cpp' unprototyper binary in a suitable place.
+
+	Wietse Venema
+	wietse@wzv.win.tue.nl
+	Eindhoven University of Technology
+	The Netherlands

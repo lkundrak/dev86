@@ -1,0 +1,8 @@
+This is currently a very cutdown version of the syslib.
+
+This also currently does nothing about the difference between 'TEXT' and
+'BINARY' modes but I think that this level of operation should be pure
+binary, the 'TEXT' mode is more suited to stdio where an "fopen(f, "rb")"
+is more reasonable and probably won't break on other OSs.
+
+-Robert.

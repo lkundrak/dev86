@@ -11,14 +11,12 @@ char *strcpy P((char *s1, const char *s2));
 char *strrchr P((const char *s, int c));
 unsigned strlen P((const char *s));
 #else
-#undef NULL
 #include <string.h>
 #endif
 
 #ifdef POSIX_HEADERS_MISSING
 int write P((int fd, const void *buf, unsigned nbytes));
 #else
-#undef NULL
 #include <sys/types.h>
 #include <unistd.h>
 #endif
@@ -371,22 +369,22 @@ PUBLIC void objheader()
     /* build array of imported/exported symbols */
 
     symosiz = 0;
-    if (truefilename == NULL)
+    if (truefilename == NUL_PTR)
 	truefilename = filnamptr;
     nameptr = strrchr(truefilename, DIRCHAR);
-    strcpy(module_name, nameptr != NULL ? nameptr + 1 : truefilename);
-    if ((nameptr = strrchr(module_name, '.')) != NULL)
+    strcpy(module_name, nameptr != NUL_PTR ? nameptr + 1 : truefilename);
+    if ((nameptr = strrchr(module_name, '.')) != NUL_PTR)
 	*nameptr = 0;
     strsiz = strlen(module_name) + 1;
     align(heapptr);
     for (hashptr = spt, arrext = copyptr = (struct sym_s **) heapptr;
 	 hashptr < spt_top;)
-	if ((symptr = *hashptr++) != NULL)
+	if ((symptr = *hashptr++) != NUL_PTR)
 	    do
 	    {
 		if ((symptr->type & EXPBIT || symptr->data & IMPBIT) ||
-		    !globals_only_in_obj && symptr->name[0] != '.' &&
-		    !(symptr->type & (MNREGBIT | MACBIT | VARBIT)))
+		    (!globals_only_in_obj && symptr->name[0] != '.' &&
+		    !(symptr->type & (MNREGBIT | MACBIT | VARBIT))))
 		{
 		    if (copyptr >= (struct sym_s **) heapend)
 		    {
@@ -412,7 +410,7 @@ PUBLIC void objheader()
 		    ++numext;
 		}
 	    }
-	    while ((symptr = symptr->next) != NULL);
+	    while ((symptr = symptr->next) != NUL_PTR);
     heapptr = (char *) (copytop = copyptr);
 
     /* calculate length of text, and number of seg size bytes in header */

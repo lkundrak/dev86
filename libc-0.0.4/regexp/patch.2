@@ -1,0 +1,27 @@
+Subject: 2nd bug fix for regexp(3), in regsub()
+Newsgroups: mod.sources
+Approved: jpn@panda.UUCP
+
+Mod.sources:  Volume 4, Issue 33
+Submitted by: genrad!decvax!utzoo!henry
+
+I cringe with embarrassment!  Another bug in regexp!  In regsub.c, the
+following line (line 72 in the original distribution):
+
+	if (*(dst-1) == '\0') {        /* strncpy hit NUL. */
+
+should read
+
+	if (len != 0 && *(dst-1) == '\0') {	/* strncpy hit NUL. */
+
+This shows up as an occasional spurious complaint from regsub about
+"damaged match string"... *if* the program invoking it, and the compiler
+compiling it, happen to interact just right.  It didn't show in any of
+my tests because mine don't.
+
+My thanks to H}vard Eidnes for finding this.
+
+				Henry Spencer @ U of Toronto Zoology
+				{allegra,ihnp4,linus,decvax}!utzoo!henry
+
+

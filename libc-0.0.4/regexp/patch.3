@@ -1,0 +1,46 @@
+Subject: regexp(3) improvement
+Newsgroups: mod.sources
+Approved: jpn@panda.UUCP
+
+Mod.sources:  Volume 4, Issue 49
+Submitted by: utzoo!henry (Henry Spencer)
+
+One flaw of my regexp(3) as distributed is that there is no way to get
+a literal `&' or '\n' (n a digit) past regsub().  The V8 manual page
+made no mention of an escape convention.  It turns out that this is a
+deficiency in the documentation rather than the software.  Accordingly,
+the following update should be applied to my regexp(3) to preserve full
+compatibility and to add this useful facility.
+
+In regsub.c, change the following (line numbers approximate only):
+
+67,69c67,71
+< 		if (no < 0)	/* Ordinary character. */
+< 			*dst++ = c;
+< 		else if (prog->startp[no] != NULL && prog->endp[no] != NULL) {
+---
+> 		if (no < 0) {	/* Ordinary character. */
+> 			if (c == '\\' && (*src == '\\' || *src == '&'))
+> 				c = *src++;
+> 			*dst++ = c;
+> 		} else if (prog->startp[no] != NULL && prog->endp[no] != NULL) {
+
+In regexp.3, add the following sentence to the end of the paragraph
+describing regsub:
+
+To get a literal `&' or `\e\fIn\fR' into \fIdest\fR, prefix it with `\e';
+to get a literal `\e' preceding `&' or `\e\fIn\fR', prefix it with
+another `\e'.
+
+And add the following two lines to the "tests" file:
+
+abcd	abcd	y	&-\&-\\&	abcd-&-\abcd
+a(bc)d	abcd	y	\1-\\1-\\\1	bc-\1-\bc
+
+My thanks to Mike Lutz at Rochester Institute of Technology for noticing
+this issue and alerting me to it.
+
+				Henry Spencer @ U of Toronto Zoology
+				{allegra,ihnp4,decvax,pyramid}!utzoo!henry
+
+

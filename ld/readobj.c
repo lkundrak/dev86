@@ -14,7 +14,6 @@ int strncmp P((const char *s1, const char *s2, unsigned n));
 char *strncpy P((char *dest, const char *src, unsigned n));
 unsigned long strtoul P((const char *s, char **endptr, int base));
 #else
-#undef NULL
 #include <stdlib.h>
 #include <string.h>
 #endif
@@ -51,9 +50,9 @@ FORWARD unsigned segbits P((unsigned seg, char *sizedesc));
 
 PUBLIC void objinit()
 {
-    modfirst = modlast = NULL;
-    entryfirst = entrylast = NULL;
-    redfirst = redlast = NULL;
+    modfirst = modlast = NUL_PTR;
+    entryfirst = entrylast = NUL_PTR;
+    redfirst = redlast = NUL_PTR;
 }
 
 /* read all symbol definitions in an object file */
@@ -76,7 +75,7 @@ bool_pt trace;
     case OMAGIC:
 	seekin((unsigned long) 0);
 	for (modcount = readfileheader(); modcount-- != 0;)
-	    readmodule(filename, (char *) NULL);
+	    readmodule(filename, (char *) NUL_PTR);
 	break;
     default:
 	seekin((unsigned long) 0);
@@ -118,7 +117,7 @@ char **parchentry;
     do
 	*endptr = 0;
     while (endptr > nameptr && *--endptr == ' ');
-    return strtoul(arheader.ar_size, (char **) NULL, 0);
+    return strtoul(arheader.ar_size, (char **) NUL_PTR, 0);
 }
 
 /* read and check file header of the object file just opened */
@@ -185,7 +184,7 @@ char *archentry;
     {
 	symname = readstring();
 	if ((flags = symdptr->dflags) & (E_MASK | I_MASK) &&
-	    (symptr = findsym(symname)) != NULL)
+	    (symptr = findsym(symname)) != NUL_PTR)
 	{
 	    /*
 	       weaken segment-checking by letting the maximum segment
@@ -220,7 +219,7 @@ char *archentry;
 	if (flags & N_MASK)
 	    entrysym(symptr);
     }
-    *symparray = NULL;
+    *symparray = NUL_PTR;
 }
 
 /* put symbol on entry symbol list if it is not already */
@@ -230,13 +229,13 @@ struct symstruct *symptr;
 {
     register struct entrylist *elptr;
 
-    for (elptr = entryfirst; elptr != NULL; elptr = elptr->elnext)
+    for (elptr = entryfirst; elptr != NUL_PTR; elptr = elptr->elnext)
 	if (symptr == elptr->elsymptr)
 	    return;
     elptr = (struct entrylist *) ourmalloc(sizeof(struct entrylist));
-    elptr->elnext = NULL;
+    elptr->elnext = NUL_PTR;
     elptr->elsymptr = symptr;
-    if (entryfirst == NULL)
+    if (entryfirst == NUL_PTR)
 	entryfirst = elptr;
     else
 	entrylast->elnext = elptr;
@@ -263,7 +262,7 @@ PRIVATE void reedmodheader()
 
     readin((char *) &modheader, sizeof modheader);
     modptr = (struct modstruct *) ourmalloc(sizeof(struct modstruct));
-    modptr->modnext = NULL;
+    modptr->modnext = NUL_PTR;
     modptr->textoffset = c4u4(modheader.htextoffset);
     modptr->class = modheader.hclass;
     readin(modptr->segmaxsize, sizeof modptr->segmaxsize);
@@ -281,7 +280,7 @@ PRIVATE void reedmodheader()
 	    cptr += count;
 	}
     }
-    if (modfirst == NULL)
+    if (modfirst == NUL_PTR)
 	modfirst = modptr;
     else
 	modlast->modnext = modptr;
@@ -298,11 +297,11 @@ offset_t value;
     if (symptr->modptr->class != (class = modlast->class))
 	for (rlptr = redfirst;; rlptr = rlptr->rlnext)
 	{
-	    if (rlptr == NULL)
+	    if (rlptr == NUL_PTR)
 	    {
 		rlptr = (struct redlist *)
 		    ourmalloc(sizeof(struct redlist));
-		rlptr->rlnext = NULL;
+		rlptr->rlnext = NUL_PTR;
 		rlptr->rlsymptr = symptr;
 		if (symptr->modptr->class < class)
 		    /* prefer lower class - put other on redlist */
@@ -317,7 +316,7 @@ offset_t value;
 		    rlptr->rlvalue = symptr->value;
 		    symptr->value = value;
 		}
-		if (redfirst == NULL)
+		if (redfirst == NUL_PTR)
 		    redfirst = rlptr;
 		else
 		    redlast->rlnext = rlptr;

@@ -1,0 +1,13 @@
+I found that it was helpful to have the extern stuff actually defined in
+one file as not external...
+
+Still trying to find the other problems
+
+Whether it is desireable to list stdio.h as a dependency is debateable
+
+-Joel
+
+I've made a horrible number of changes here, look in 'Reverse_Patch' for
+how to go back ...
+
+-Robert

@@ -1,0 +1,15 @@
+Error checking is known to be wanting.  However the author just wants to
+get it working right now.
+
+fread() and fwrite() are not supported.  open(), read(), write(), and close()
+work very well for binary data.
+
+fopen() is the only way to open a file.  None of the temp stuff is supported,
+and frepon() is unsupported.
+
+GNU extensions are unsupported.
+
+Some printf specifications may not work.  Read the code for details of what
+IS supported.
+
+Other than that, this should be a perfectly normal stdio lib when it's finished.

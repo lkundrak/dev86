@@ -14,14 +14,12 @@
 void *memset P((void *s, int c, unsigned n));
 unsigned strlen P((const char *s));
 #else
-#undef NULL
 #include <string.h>
 #endif
 
 #ifdef POSIX_HEADERS_MISSING
 int write P((int fd, const void *buf, unsigned nbytes));
 #else
-#undef NULL
 #include <sys/types.h>
 #include <unistd.h>
 #endif
@@ -186,8 +184,8 @@ PUBLIC void listline()
 {
     if (!listpre)
     {
-	if (errcount || list.current && (!macflag || mcount != 0) ||
-	    macflag && maclist.current)
+	if (errcount || (list.current && (!macflag || mcount != 0)) ||
+	    (macflag && maclist.current))
 	    list1(lstfil);
 	if (errcount)
 	{

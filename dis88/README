@@ -1,0 +1,90 @@
+                                     dis88
+                                  Beta Release
+                                    87/09/01
+                                      ---
+                                 G. M. HARDING
+                                    POB 4142
+                           Santa Clara CA  95054-0142
+
+
+             "Dis88" is a symbolic disassembler for the Intel 8088 CPU,
+        designed to run under the PC/IX  operating  system on an IBM XT
+        or fully-compatible clone.  Its output is in the format of, and
+        is completely compatible with, the PC/IX assembler,  "as".  The
+        program is copyrighted by its author, but may be copied and re-
+        distributed freely provided that complete source code, with all
+        copyright notices, accompanies any distribution. This provision
+        also applies to any  modifications you may make.  You are urged
+        to comment such changes,  giving,  as a miminum,  your name and
+        complete address.
+
+             This release of the program is a beta release, which means
+        that it has been  extensively,  but not  exhaustively,  tested.
+        User comments, recommendations, and bug fixes are welcome.  The
+        principal features of the current release are:
+
+             (a)  The ability to  disassemble  any file in PC/IX object
+        format, making full use of symbol and relocation information if
+        it is present,  regardless of whether the file is executable or
+        linkable,  and regardless of whether it has continuous or split
+        I/D space;
+
+             (b)  Automatic generation of synthetic labels when no sym-
+        bol table is available; and
+
+             (c)  Optional  output of address and object-code  informa-
+        tion as assembler comment text.
+
+             Limitations of the current release are:
+
+             (a)  Numeric co-processor  (i.e., 8087)  mnemonics are not
+        supported.  Instructions  for the co-processor are disassembled
+        as CPU escape  sequences,  or as  interrupts,  depending on how
+        they were assembled in the first place. This limitation will be
+        addressed in a future release.
+
+             (b)  Symbolic  references  within the object  file's  data
+        segment are not supported. Thus, for example, if a data segment
+        location is initialized to point to a text segment address,  no
+        reference to a text segment symbol will be detected. This limi-
+        tation is likely to remain in future  releases,  because object
+        code does not, in most cases, contain sufficient information to
+        allow meaningful interpretation of pure data.  (Note,  however,
+        that  symbolic  references  to the data segment from within the
+        text segment are always supported.)
+
+             As a final caveat,  be aware that the PC/IX assembler does
+        not recognize the  "esc"  mnemonic,  even though it refers to a
+        completely  valid CPU operation  which is documented in all the
+        Intel literature. Thus, the corresponding opcodes (0xd8 through
+        0xdf) are disassembled as .byte directives. For reference, how-
+        ever,  the syntactically-correct "esc" instruction is output as
+        a comment.
+
+             To build the disassembler program, transfer all the source
+        files,  together with the Makefile,  to a suitable  (preferably
+        empty) PC/IX directory. Then, simply type "make".
+
+             To use dis88,  place it in a  directory  which  appears in
+        your $PATH list.  It may then be invoked by name from  whatever
+        directory you happen to be in.  As a minimum,  the program must
+        be invoked with one command-line argument:  the name of the ob-
+        ject file to be disassembled.  (Dis88 will complain if the file
+        specified is not an object file.)  Optionally,  you may specify
+        an output file; stdout is the default.  One command-line switch
+        is available:  "-o",  which makes the program display addresses
+        and object code along with its mnemonic disassembly.
+
+             The "-o" option is useful primarily for verifying the cor-
+        rectness of the program's output. In particular, it may be used
+        to check the accuracy of local  relative  jump  opcodes.  These
+        jumps often  target  local  labels,  which are lost at assembly
+        time;  thus,  the disassembly may contain cryptic  instructions
+        like "jnz .+39".  As a user convenience,  all relative jump and
+        call  opcodes are output with a comment  which  identifies  the
+        physical target address.
+
+             By convention, the release level of the program as a whole
+        is the SID of the file disrel.c, and this SID string appears in
+        each disassembly.  Release 2.1 of the program is the first beta
+        release to be distributed on Usenet.

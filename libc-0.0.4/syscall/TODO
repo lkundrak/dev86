@@ -1,0 +1,7 @@
+It appears that a 386 version of the syscall libs is also wanted ...
+
+SYSV IPC, there's and __ipc syscall and the hardware can manage messages and
+semaphores.
+
+Idea, for RPC syscall, seperate all the FD related calls from the system ones
+IIRC all the single FD related ones have the FD in arg0

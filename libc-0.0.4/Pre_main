@@ -1,0 +1,55 @@
+
+There is now support for calling functions before main and from inside the
+exit() function.
+
+The exit processing uses the standard 'atexit' and 'on_exit' functions
+see the normal man pages.
+
+Execution of code before main is Linux-8086 specific; the method
+is similar to this:
+
+/**********************/
+int global_var_that_needs_init;
+
+#asm
+  loc	1		! Make sure the pointer is in the correct segment
+auto_func:		! Label for bcc -M to work.
+  .word	_init_vars	! Pointer to the autorun function
+  .word no_op		! Space filler cause segs are padded to 4 bytes.
+  .text			! So the function after is also in the correct seg.
+#endasm
+
+static void init_vars()
+{
+   global_var_that_needs_init = getuid();
+}
+/**********************/
+
+The most important part is that the asm code _MUST_ be compiled into the
+same object file as the variable that is being initialised.
+
+If this is not so the init_vars function will not be linked in and will
+not be executed.
+
+Also do note that the init functions are called in essentially random order
+(It's actually the order that they appear in the executable) so you must be
+careful not to call any routines tht have their own autostart from inside
+your autostart. Nevertheless you should try to ensure that your routines
+will fail gracefully if they are called before the initilisation routine.
+
+If you do not know if a routine has an autostart create a test program
+calling the routine and compile with:
+
+   bcc -0 [other_stuff] -M test.c | sort +2 | more
+
+Look down the list for lines like this:
+
+                crt0             ZP_safety  1  00000000  R
+                crt0            auto_start  1  00000008  R
+             objname             auto_func  1  00000008  R      <<****
+                crt0            data_start  2  00000010  R
+                crt0              _environ  3  00000010  R
+
+The line marked is an autostart function call.
+
+Robert.

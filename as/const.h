@@ -41,7 +41,7 @@
 #define FORWARD		static
 #define PRIVATE		static
 #define PUBLIC
-#define NULL		0
+#define NUL_PTR		((void*)0)
 
 /* O/S constants */
 

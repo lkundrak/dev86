@@ -1,0 +1,19 @@
+Copyright (C) 1996 Robert de Bath <robert@mayday.compulink.co.uk>
+This file is part of the Linux-8086 C library and is distributed
+under the GNU Library General Public License.
+
+These are user level tools, they're being used to test libc routines.
+
+env.c	Prints the environment and arguments (Plus some junk)
+compr.c	Mini compression program (rather slow at times)
+ucomp.c	Mini uncompression program (Very fast)
+ft.c	Multiple simple file tools.
+hd.c	Hex dump.
+line2.c	Print lines from /etc/passwd (stdio)
+lines.c	Print lines from /etc/passwd
+ouch.c	Signal test
+size.c	Size of executables and object files.
+sync.c	:-)
+wc.c	Word count.
+
+-Robert

@@ -1,0 +1,37 @@
+
+KERNEL SYSTEM CALL INTERFACE:
+The kernel system calls are all done through interrupt 0x80
+All parameters are passed in the 'AX,BX,CX,DX,DI,SI' registers.
+The AX register contains the system call number.
+The BX,CX,DX,DI,SI registers contain the first 5 arguments from the stack.
+(NB If the syscall is know to have less than 5 args the rest are not loaded)
+On return from the syscall AX has the return value.
+If AX is -ve then errno= -AX and return val = -1;
+
+The system calls are named in syscall/syscall.dat.
+There is a script syscall/mksyscall which generates the assembler for the
+system calls, near the top there is a line:
+  COMPACT=1
+If this is changed to
+  COMPACT=0
+the code generated will be slightly faster and larger.
+
+-RDB
+
+KERNEL SIGNAL INTERFACE:
+  It is assumed the kernel will never pass a signal to the userspace
+  routine unless it's _explicitly_ asked for!
+
+The Kernel need only save space for _one_ function pointer
+(to system_signal) and must deal with SIG_DFL and SIG_IGN
+in kernel space.
+
+When a signal is required the kernel must set all the registers as if
+returning from a interrupt normally then push the number of the signal
+to be generated, push the current pc value, then set the pc to the
+address of the 'system_signal' function.
+
+This is in syscall/signal.c
+
+-RDB
+

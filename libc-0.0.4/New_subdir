@@ -1,0 +1,67 @@
+#!/bin/sh -
+# Copyright (C) 1995,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
+# This file is part of the Linux-8086 C library and is distributed
+# under the GNU Library General Public License.
+
+cat <<!
+This is a shell script to create the bare bones for a new part of the
+libc package.  To use it you just invoke it with the directory name
+you want to create as it's argument, it'll then create that directory
+and put a few files in it.
+
+!
+if [ "$1" = "" ] ; then exit 1 ; fi
+if [ -e "$1" ]
+then echo "There is already something called '$1' in the current directory"
+     echo "You'll have to remove it or rename it first"
+     exit 1
+fi
+
+YEAR=`date +%Y`
+NAME="`finger -s $LOGNAME | head -2 | tail -1 | cut -b10-30 | sed 's/ *$//'`"
+EMAIL="$LOGNAME@`hostname -f`"
+FNAME="`echo $NAME | cut -d\  -f1`"
+
+mkdir $1
+cat <<! > $1/Makefile
+# Copyright (C) $YEAR $NAME <$EMAIL>
+# This file is part of the Linux-8086 C library and is distributed
+# under the GNU Library General Public License.
+
+TOP=..
+include \$(TOP)/Make.defs
+
+OBJ=$1.o
+
+all: \$(OBJ)
+
+libc.a: \$(OBJ)
+	ar r ../libc.a \$(OBJ)
+	@touch libc.a
+
+clean:
+	rm -f \$(OBJ) libc.a
+!
+cat <<! > $1/README
+Copyright (C) $YEAR $NAME <$EMAIL>
+This file is part of the Linux-8086 C library and is distributed
+under the GNU Library General Public License.
+
+There's currently nothing special about $1.
+
+-$FNAME
+!
+cat <<! > $1/$1.c
+/* Copyright (C) $YEAR $NAME <$EMAIL>
+ * This file is part of the Linux-8086 C library and is distributed
+ * under the GNU Library General Public License.
+ */
+
+$1()
+{
+   /* FIXME :-) */
+}
+!
+
+echo "Ok, the directory $1 has now been created ..."
+exit 0

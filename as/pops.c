@@ -72,7 +72,7 @@ PUBLIC bool_pt checksegrel(symptr)
 register struct sym_s *symptr;
 {
     if ((symptr->type & LABIT ||
-	 symptr->data & IMPBIT && !(symptr->data & UNDBIT)) &&
+	(symptr->data & IMPBIT && !(symptr->data & UNDBIT))) &&
 	((symptr->data ^ lcdata) & (RELBIT | SEGM)))
     {
 	error(SEGREL);
@@ -220,7 +220,7 @@ unsigned char impbits;
 
     while (TRUE)
     {
-	if ((symptr = needlabel()) != NULL)
+	if ((symptr = needlabel()) != NUL_PTR)
 	{
 	    if (symptr->type & COMMBIT)
 		error(ALREADY);
@@ -428,7 +428,7 @@ error_pt errnum;
     lineptr = oldlineptr;
     sym = oldsym;
     symname = oldsymname;
-    label = NULL;
+    label = NUL_PTR;
 }
 
 PRIVATE struct sym_s *needlabel()
@@ -439,7 +439,7 @@ PRIVATE struct sym_s *needlabel()
 	(symptr = gsymptr)->type & (MACBIT | MNREGBIT | VARBIT))
     {
 	error(LABEXP);
-	return NULL;
+	return NUL_PTR;
     }
     return symptr;
 }
@@ -506,7 +506,7 @@ PUBLIC void pbss()
 
 PUBLIC void pcomm()
 {
-    if (label == NULL)
+    if (label == NUL_PTR)
 	labelerror(MISLAB);
     else if (label->type & VARBIT)
 	labelerror(VARLAB);	/* variable cannot be COMM'd */
@@ -520,11 +520,11 @@ PUBLIC void pcomm1()
 {
     unsigned oldseg;
 
-    if (label != NULL)
+    if (label != NUL_PTR)
 	labelerror(ILLAB);
     oldseg = lcdata & SEGM;
     setloc(BSSLOC);
-    if ((label = needlabel()) != NULL && checksegrel(label))
+    if ((label = needlabel()) != NUL_PTR && checksegrel(label))
     {
 	/* Like import. */
 	if (label->type & (EXPBIT | LABIT))
@@ -583,7 +583,7 @@ PUBLIC void pelsifc()
 
 PUBLIC void pendb()
 {
-    if (label != NULL)
+    if (label != NUL_PTR)
 	labelerror(ILLAB);
     if (blocklevel == 0)
 	error(ENDBBAD);
@@ -645,7 +645,7 @@ PUBLIC void pequ()
 {
     register struct sym_s *labptr;
 
-    if ((labptr = label) == NULL)
+    if ((labptr = label) == NUL_PTR)
 	labelerror(MISLAB);
     else if (labptr->type & COMMBIT)
 	showredefinedlabel();	/* common cannot be EQU'd */
@@ -812,7 +812,7 @@ PUBLIC void pimport()
 	error(NOIMPORT);
     while (TRUE)
     {
-	if ((symptr = needlabel()) != NULL && checksegrel(symptr))
+	if ((symptr = needlabel()) != NUL_PTR && checksegrel(symptr))
 	{
 	    if (symptr->type & (COMMBIT | EXPBIT | LABIT))
 		/* IMPORT is null if label (to be) declared */
@@ -855,7 +855,7 @@ PUBLIC void plist()
 
 PUBLIC void ploc()
 {
-    if (label != NULL)
+    if (label != NUL_PTR)
 	labelerror(ILLAB);
     absexpres();
     if (!(lastexp.data & UNDBIT))
@@ -892,7 +892,7 @@ PUBLIC void pmap()
 
 PUBLIC void porg()
 {
-    if (label != NULL)
+    if (label != NUL_PTR)
 	labelerror(ILLAB);
     absexpres();
     if (!((lcdata = lastexp.data) & UNDBIT))
@@ -914,7 +914,7 @@ PUBLIC void prmb()
 
 PUBLIC void psect()
 {
-    if (label != NULL)
+    if (label != NUL_PTR)
 	labelerror(ILLAB);
     while (sym == IDENT)
     {
@@ -947,7 +947,7 @@ PUBLIC void pset()
 {
     register struct sym_s *labptr;
 
-    if ((labptr = label) == NULL)
+    if ((labptr = label) == NUL_PTR)
 	labelerror(MISLAB);
     else if (labptr->type & COMMBIT)
 	labelerror(RELAB);	/* common cannot be SET'd */
@@ -1024,7 +1024,7 @@ PUBLIC void showlabel()
     lastexp.data = labptr->data;
     lastexp.offset = labptr->value_reg_or_op.value;
     popflags = POPLONG | POPHI | POPLO;
-    label = NULL;		/* show handled by COMM, EQU or SET */
+    label = NUL_PTR;		/* show handled by COMM, EQU or SET */
 }
 
 /* set location segment */

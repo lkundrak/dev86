@@ -1,0 +1,10 @@
+Copyright (C) 1996 Robert de Bath <robert@debath.thenet.co.uk>
+This file is part of the Linux-8086 C library and is distributed
+under the GNU Library General Public License.
+
+These routines assume the existance of a file /usr/lib/liberror.txt,
+this file contains the actual error messages. One useful feature,
+the language of the error messages can be easily changed.
+
+
+-Robert

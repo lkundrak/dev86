@@ -1,0 +1,50 @@
+Newsgroups: comp.sources.misc
+From: wietse@wzv.win.tue.nl (Wietse Venema)
+Subject:  v26i094:  unproto - compile ANSI C with old C compiler, Part01/02
+Message-ID: <csm-v26i094=unproto.083344@sparky.IMD.Sterling.COM>
+X-Md4-Signature: 69685c0673793ce6c539657a3d1de2ab
+Date: Sun, 1 Dec 1991 14:35:08 GMT
+Approved: kent@sparky.imd.sterling.com
+
+Submitted-by: wietse@wzv.win.tue.nl (Wietse Venema)
+Posting-number: Volume 26, Issue 94
+Archive-name: unproto/part01
+Environment: SYSV2, SunOS
+Supersedes: unproto: Volume 23, Issue 12-13
+
+This is a filter that sits in between the C preprocessor and the next C
+compiler stage, and that on the fly rewrites ANSI C to old C. Its
+primary application is to compile ANSI C software in UNIX environments
+that do not (yet) have an ANSI C compiler and that cannot run GCC
+because of technical or political problems.
+
+Problems solved with this release:
+
+Minor: the program was originally intended for the compilation of
+already tested ANSI C source, so that diagnostics from the native C
+compiler would be sufficient. The present release produces better
+diagnostics, so that it can also be used for program development.
+
+Major: the template Makefile suggested that all #pragma directives be
+filtered out. This turns out to be a bad idea because some non-ANSI
+compilers (SunOS) rely on #pragmas to correctly handle the unusual flow
+control caused by vfork(2), setjmp(3) etcetera. A warning to this
+effect has been added to the Makefile.
+
+No changes were made to the actual filter logic; output should be
+identical to that of the previous release.
+
+Newsgroups: comp.sources.misc
+From: wietse@wzv.win.tue.nl (Wietse Venema)
+Subject:  v26i095:  unproto - compile ANSI C with old C compiler, Part02/02
+Message-ID: <1991Dec1.143532.21763@sparky.imd.sterling.com>
+X-Md4-Signature: e41270a11de3ed19fd262a273924fc94
+Date: Sun, 1 Dec 1991 14:35:32 GMT
+Approved: kent@sparky.imd.sterling.com
+
+Submitted-by: wietse@wzv.win.tue.nl (Wietse Venema)
+Posting-number: Volume 26, Issue 95
+Archive-name: unproto/part02
+Environment: SYSV2, SunOS
+Supersedes: unproto: Volume 23, Issue 12-13
+

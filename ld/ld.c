@@ -12,7 +12,6 @@ extern int errno;
 char *strcat P((char *dest, const char *src));
 unsigned long strtoul P((const char *s, char **endptr, int base));
 #else
-#undef NULL
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,23 +21,23 @@ unsigned long strtoul P((const char *s, char **endptr, int base));
 #define R_OK	0
 int access P((const char *path, int amode));
 #else
-#undef NULL
 #include <unistd.h>
 #endif
 
 #define MAX_LIBS	(NR_STDLIBS + 5)
+#ifdef MC6809
 #define NR_STDLIBS	1
+#else
+#define NR_STDLIBS	0
+#endif
 
 PUBLIC long text_base_address;	/* XXX */
+PUBLIC int doscomfile = 0;
 
 PRIVATE bool_t flag[128];
 PRIVATE char *libs[MAX_LIBS] = {
 #ifdef MC6809
     "/usr/local/lib/m09/",
-#else
-    /* One of the following values will be inserted at run time. */
-#   define std386lib	"/usr/local/lib/i386/"
-#   define std86lib	"/usr/local/lib/i86/"
 #endif
     0
 };
@@ -67,10 +66,6 @@ char *fn;
     char *path;
     int i;
 
-#ifndef MC6809
-    libs[0] = flag['3'] ? std386lib : std86lib;
-#endif
-
     for (i = lastlib - 1; i >= 0; --i)
     {
 	path = ourmalloc(strlen(libs[i]) + strlen(fn) + 1);
@@ -80,7 +75,7 @@ char *fn;
 	    return path;
 	ourfree(path);
     }
-    return NULL;
+    return NUL_PTR;
 }
 
 PUBLIC int main(argc, argv)
@@ -104,7 +99,7 @@ char **argv;
 #ifndef MC6809
     flag['z'] = flag['3'] = sizeof(char *) >= 4;
 #endif
-    outfilename = NULL;
+    outfilename = NUL_PTR;
     for (argn = 1; argn < argc; ++argn)
     {
 	arg = argv[argn];
@@ -133,9 +128,17 @@ char **argv;
 		if (arg[1] == '0')	/* flag 0 is negative logic flag 3 */
 		    flag['3'] = !flag['0'];
 		break;
+	    case 'd':		/* Make DOS com file */
+	        flag['3'] = FALSE;
+	        flag['z'] = FALSE;
+	        flag['0'] = TRUE;
+	        flag['s'] = TRUE;
+	        flag['d'] = TRUE;
+		text_base_address = 0x100;
+		break;
 	    case 'C':		/* startfile name */
 		tfn = buildname(crtprefix, arg + 2, crtsuffix);
-		if ((infilename = expandlib(tfn)) == NULL)
+		if ((infilename = expandlib(tfn)) == NUL_PTR)
 		    fatalerror(tfn);	/* XXX - need to describe failure */
 		readsyms(infilename, flag['t']);
 		break;
@@ -146,7 +149,7 @@ char **argv;
 		    fatalerror("too many library paths");
 		break;
 	    case 'O':		/* library file name */
-		if ((infilename = expandlib(arg + 2)) == NULL)
+		if ((infilename = expandlib(arg + 2)) == NUL_PTR)
 		    fatalerror(arg);	/* XXX */
 		readsyms(infilename, flag['t']);
 		break;
@@ -154,18 +157,18 @@ char **argv;
 		if (arg[2] != 0 || ++argn >= argc)
 		    usage();
 		errno = 0;    
-		text_base_address = strtoul(argv[argn], (char **) NULL, 16);
+		text_base_address = strtoul(argv[argn], (char **) NUL_PTR, 16);
 		if (errno != 0)
 		    use_error("invalid text address");
 		break;
 	    case 'l':		/* library name */
 		tfn = buildname(libprefix, arg + 2, libsuffix);
-		if ((infilename = expandlib(tfn)) == NULL)
+		if ((infilename = expandlib(tfn)) == NUL_PTR)
 		    fatalerror(tfn);	/* XXX */
 		readsyms(infilename, flag['t']);
 		break;
 	    case 'o':		/* output file name */
-		if (arg[2] != 0 || ++argn >= argc || outfilename != NULL)
+		if (arg[2] != 0 || ++argn >= argc || outfilename != NUL_PTR)
 		    usage();
 		outfilename = argv[argn];
 		break;
@@ -173,8 +176,9 @@ char **argv;
 		usage();
 	    }
     }
+    doscomfile = flag['d'];
     linksyms(flag['r']);
-    if (outfilename == NULL)
+    if (outfilename == NUL_PTR)
 	outfilename = "a.out";
     writebin(outfilename, flag['i'], flag['3'], flag['s'],
 	     flag['z'] & flag['3']);

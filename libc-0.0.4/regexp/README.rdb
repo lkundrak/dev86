@@ -1,0 +1,6 @@
+
+I've applied the four bugfix patches I've found and made a couple of
+very small changes (added malloc.h) and put in a new Makefile.
+Otherwise this is as it was posted on by Henry Spencer to mod.sources.
+
+-Robert

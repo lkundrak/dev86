@@ -1,0 +1,16 @@
+
+# WALL  =-Wall -Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
+#        -Wcast-qual -Wcast-align -Wconversion -Waggregate-return \
+#        -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls \
+#        -Wnested-externs -Winline 
+
+# unproto is yukky
+WALL=-Wno-comment
+CCFLAGS	=-Wall $(WALL) -O2 -fno-strength-reduce
+LDFLAGS	=-s
+
+BCCHOME =/usr/bcc
+LIBDIR	=$(BCCHOME)/lib/bcc
+BINDIR	=/usr/bin
+CC	=gcc
+CFLAGS  =$(CCFLAGS)

@@ -1,0 +1,173 @@
+# 1 "example.c" 
+ 
+
+
+
+
+
+ 
+
+
+
+
+x
+
+
+
+(baz)
+# 16 "example.c"
+struct {    struct {	int (*(*foo)())();    } foo;} baz;
+# 16 "example.c"
+{/*1*/
+    /* end dcls */return (0);
+}/*1*/
+
+ 
+
+
+
+
+
+foo
+(bar)int     (*(*bar)())();
+{/*1*/
+    int     (*baz)() = (int (*)()) 0,
+	    y = (y * (*baz)(y)),
+	    *(*z)() = (int *(*)()) 0;
+
+    struct {/*2*/ int (*foo)(); }/*2*/ *(*s)() = 
+	(struct { int (*foo)(); } *(*)()) 0;
+
+    /* end dcls */{/*2*/
+	y /* end dcls */= (y * (*baz)(y));
+    }/*2*/
+    {/*2*/
+	z /* end dcls */= (int *(*)()) 0;
+    }/*2*/
+    {/*2*/
+	s /* end dcls */= (struct { int (*foo)(); } *(*)()) 0;
+    }/*2*/
+
+    return (0);
+}/*1*/
+
+
+
+test1
+()
+# 52 "example.c"
+{/*1*/
+	int foo2,*(*(*bar)())(),*baz();
+}/*1*/
+
+
+
+test2
+(y)
+# 59 "example.c"
+char *y;
+# 59 "example.c"
+{/*1*/
+	int foo = 5,atoi();
+
+	foo /* end dcls */= 5,atoi(y);
+}/*1*/
+
+
+
+test3,test4();
+
+test5
+(y)
+# 70 "example.c"
+int y;
+# 70 "example.c"
+{/*1*/
+	/* end dcls */{/*2*/
+		test3/* end dcls */;
+	}/*2*/
+	{/*2*/
+		test4/* end dcls */(y);
+	}/*2*/
+}/*1*/
+
+test6[1],test7();
+
+test7
+(x)
+# 82 "example.c"
+int x;
+# 82 "example.c"
+{/*1*/
+	/* end dcls */{/*2*/
+		test6/* end dcls */[1];
+	}/*2*/
+	{/*2*/
+		test7/* end dcls */(x);
+	}/*2*/
+}/*1*/
+
+
+
+struct {/*1*/
+    struct {/*2*/
+	int (*f)(), o;
+    }/*2*/ bar;
+}/*1*/ (*baz2)() = (struct { struct { int (*f)(), o; } bar; } (*)()) 0;
+
+
+
+test8
+(x)
+# 102 "example.c"
+{/*1*/
+    /* end dcls */{/*2*/
+	struct {/*3*/
+	    int     foo;
+	}/*3*/ bar();
+    }/*2*/
+    {/*2*/
+	/* end dcls */do {/*3*/
+	    int     foo;
+	}/*3*/ while (x);
+    }/*2*/
+}/*1*/
+
+
+
+test9
+(bar)
+# 118 "example.c"
+char *bar;
+# 118 "example.c"
+{/*1*/
+    foo/* end dcls */(*bar);
+}/*1*/
+
+
+
+test10
+(x)
+# 125 "example.c"
+int x;
+# 125 "example.c"
+{/*1*/
+    /* end dcls */{/*2*/
+	int test10();
+	/* end dcls */do  test10(x);
+	while (x);
+    }/*2*/
+    {/*2*/
+	/* end dcls */return test10(x);
+    }/*2*/
+}/*1*/
+
+test11
+(x)
+# 137 "example.c"
+int *x;
+# 137 "example.c"
+{/*1*/
+	/* end dcls */while (*x)
+	    (putchar(*x++));
+}/*1*/

@@ -1,0 +1,65 @@
+Path: uunet!rs
+From: rs@uunet.UU.NET (Rich Salz)
+Newsgroups: comp.sources.unix
+Subject: v10i097:  Bug-fix for regexp() library
+Message-ID: <789@uunet.UU.NET>
+Date: 7 Aug 87 11:20:15 GMT
+Organization: UUNET Communications Services, Arlington, VA
+Lines: 46
+Approved: rs@uunet.UU.NET
+
+Submitted-by: seismo!ai.toronto.edu!utzoo!henry
+Posting-number: Volume 10, Issue 97
+Archive-name: regexp.pch
+
+FURTHER NOTE by Rich $alz on Tue Apr 26 20:02:59 EDT 1988:
+	This is a patch for Henry's regexp posting that appeared in
+	volume 3 (first patch was volume3/regexp2; the naming
+	convention used by my predecessor).  There is another
+	regexp library in volume 7 -- they're unreleated.
+
+	The "fastgrep" posting appeards in volume 9.  It also includes
+	Henry's volume3 posting and both sets of patches.
+
+[  Regexp was published by itself in volume 6, and also as part of the
+   "fastest grep around" earlier in this volume.  --r$  ]
+
+Jeff Mc Carrell at Berkeley has found (gasp! choke! the horror! the horror!)
+another bug in my regexp functions.  One thing my test set did not include
+was very large regular expressions.  The bug is in the NEXT macro, which
+digs out the offset to the next node of the regexp:  a parenthesization
+botch makes trouble if the offset is ever larger than 255.  How humiliating.
+Here is the fix to regexp.c:
+
+116c116
+< #define	NEXT(p)	(((*((p)+1)&0377)<<8) + *((p)+2)&0377)
+---
+> #define	NEXT(p)	(((*((p)+1)&0377)<<8) + (*((p)+2)&0377))
+
+and here are some more lines for the "tests" file:
+
+[ -~]*	abc	y	&	abc
+[ -~ -~]*	abc	y	&	abc
+[ -~ -~ -~]*	abc	y	&	abc
+[ -~ -~ -~ -~]*	abc	y	&	abc
+[ -~ -~ -~ -~ -~]*	abc	y	&	abc
+[ -~ -~ -~ -~ -~ -~]*	abc	y	&	abc
+[ -~ -~ -~ -~ -~ -~ -~]*	abc	y	&	abc
+
+
+Just to let people know:  there is some prospect of me coming out with
+a second edition of my regexp stuff, including a number of improvements
+that various people have suggested/contributed.  However, it will not be
+soon, because I'm very busy right now.  I can't spare the time to sort
+it all out, decide what belongs and what doesn't, write the missing bits
+of code, and integrate it all.  Sometime later this year, maybe.
+
+				Henry Spencer @ U of Toronto Zoology
+				{allegra,ihnp4,decvax,pyramid}!utzoo!henry
+
+
+-- 
+
+Rich $alz			"Anger is an energy"
+Cronus Project, BBN Labs	rsalz@bbn.com
+Moderator, comp.sources.unix	sources@uunet.uu.net

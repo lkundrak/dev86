@@ -1,0 +1,32 @@
+Subject: bug in regexp(3), and fix
+Newsgroups: mod.sources
+Approved: jpn@panda.UUCP
+
+Mod.sources:  Volume 3, Issue 105
+Submitted by: genrad!decvax!utzoo!henry
+
+Drat!  Chris Siebenmann at CSRI just found a bug in my regexp(3) routines.
+The problem is that the code for character classes does not check properly
+for the possibility that it might be looking at the end of the string.  By
+simple bad luck none of my test cases hit this.  To fix it, make the
+following two changes to regexp.c:
+
+848c848
+< 			if (strchr(OPERAND(scan), *reginput) == NULL)
+---
+> 			if (*reginput == '\0' || strchr(OPERAND(scan), *reginput) == NULL)
+853c853
+< 			if (strchr(OPERAND(scan), *reginput) != NULL)
+---
+> 			if (*reginput == '\0' || strchr(OPERAND(scan), *reginput) != NULL)
+
+and recompile.  Also, add the following line to the "tests" file:
+
+[k]	ab	n	-	-
+
+My thanks to Chris for finding this.
+
+				Henry Spencer @ U of Toronto Zoology
+				{allegra,ihnp4,linus,decvax}!utzoo!henry
+
+

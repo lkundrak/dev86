@@ -1,14 +1,32 @@
-CFLAGS		=-O
-LDFLAGS		=
+
+ifneq ($(TOPDIR),)
+include $(TOPDIR)/Make.defs
+else
+CC=bcc
+LDFLAGS=-s
+endif
 
 OBJS		=as.o assemble.o error.o express.o \
 		 genbin.o genlist.o genobj.o gensym.o \
 		 macro.o mops.o pops.o readsrc.o \
 		 scan.o table.o typeconv.o
 
-as: $(OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) -o as
-	chmem =182000 as
+all: as86
+
+as86: $(OBJS)
+	$(CC) $(LDFLAGS) $(OBJS) -o as86
+
+install: all
+	install -d $(LIBDIR)
+	install -m 755 as86 $(LIBDIR)
+
+typeconv.o: dummy
+	-cp -p ../ld/typeconv.o .
+
+dummy:
+
+clean:
+	rm -f *.o as86
 
 as.o: const.h type.h byteord.h macro.h file.h flag.h globvar.h
 assemble.o: const.h type.h address.h globvar.h opcode.h scan.h
@@ -25,3 +43,4 @@ pops.o: const.h type.h address.h flag.h globvar.h opcode.h scan.h
 readsrc.o: const.h type.h flag.h file.h globvar.h macro.h scan.h source.h
 scan.o: const.h type.h globvar.h scan.h 
 table.o: const.h type.h globvar.h opcode.h scan.h
+

@@ -6,20 +6,19 @@
 #include "obj.h"		/* needed for LONG_OFFSETS and offset_t */
 #include "type.h"
 #include "globvar.h"
+#include <fcntl.h>
 
 #ifdef STDC_HEADERS_MISSING
 void exit P((int status));
 void *malloc P((unsigned size));
 #else
-#undef NULL
 #include <stdlib.h>
 #endif
 
 #ifdef POSIX_HEADERS_MISSING
-#define O_RDONLY	0
-#define O_WRONLY	1
 #define SEEK_SET	0
 #define STDOUT_FILENO	0
+#include <sys/types.h>
 #include <sys/stat.h>
 #define mode_t		unsigned short
 #define off_t		long
@@ -33,7 +32,6 @@ int read P((int fd, void *buf, unsigned nbytes));
 mode_t umask P((int oldmask));
 int write P((int fd, const void *buf, unsigned nbytes));
 #else
-#undef NULL
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -46,6 +44,9 @@ int write P((int fd, const void *buf, unsigned nbytes));
 #define INBUFSIZE	1024
 #define OUTBUFSIZE	2048
 #define TRELBUFSIZE	1024
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 #ifdef BSD_A_OUT
 PRIVATE char *drelbuf;		/* extra output buffer for data relocations */
@@ -197,7 +198,7 @@ char *filename;
     {
 	closein();
 	inputname = filename;	/* this relies on filename being static */
-	if ((infd = open(filename, O_RDONLY)) < 0)
+	if ((infd = open(filename, O_BINARY|O_RDONLY)) < 0)
 	    inputerror("cannot open");
 	inbufptr = inbufend = inbuf;
     }
@@ -209,7 +210,7 @@ char *filename;
     struct stat statbuf;
 
     outputname = filename;
-    if ((outfd = creat(filename, CREAT_PERMS)) == ERR)
+    if ((outfd = open(filename, O_BINARY|O_RDWR|O_CREAT|O_TRUNC, CREAT_PERMS)) == ERR)
 	outputerror("cannot open");
     if (fstat(outfd, &statbuf) != 0) 
 	outputerror("cannot stat");
@@ -220,7 +221,7 @@ char *filename;
 #endif
     outbufptr = outbuf;
 #ifdef BSD_A_OUT
-    if ((trelfd = open(filename, O_WRONLY)) == ERR)
+    if ((trelfd = open(filename, O_BINARY|O_WRONLY|O_CREAT|O_TRUNC, CREAT_PERMS)) == ERR)
 	outputerror("cannot reopen");
     trelbufptr = trelbuf;
 #endif
@@ -528,7 +529,7 @@ char *defarchentry;
     putstr(message);
     putstr(" in file ");
     putstr(inputname);
-    if (archentry != NULL)
+    if (archentry != NUL_PTR)
     {
 	putbyte('(');
 	putstr(archentry);
@@ -536,7 +537,7 @@ char *defarchentry;
     }
     putstr("; using definition in ");
     putstr(deffilename);
-    if (defarchentry != NULL)
+    if (defarchentry != NUL_PTR)
     {
 	putbyte('(');
 	putstr(defarchentry);
@@ -560,7 +561,7 @@ char *name;
 }
 
 PUBLIC void size_error(seg, count, size)
-char seg;
+int seg;
 offset_t count;
 offset_t size;
 {

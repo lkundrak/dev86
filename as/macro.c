@@ -11,7 +11,6 @@
 #ifdef STDC_HEADERS_MISSING
 int strncmp P((const char *s1, const char *s2, unsigned n));
 #else
-#undef NULL
 #include <string.h>
 #endif
 
@@ -39,7 +38,7 @@ struct sym_s *symptr;
 	++maclevel;
 	(--macstak)->text = (char *) symptr->value_reg_or_op.value;
 	macstak->parameters = param1 = macpar;
-	param1->next = NULL;
+	param1->next = NUL_PTR;
 	*(stringptr = build_number(++macnum, 3, param1->string)) = 0;
 	macpar = (struct schain_s *) (stringptr + 1);
 				/* TODO: alignment */
@@ -70,7 +69,7 @@ struct sym_s *symptr;
 		}
 		*stringptr = 0;
 		param1->next = macpar;	/* ptr from previous */
-		(param1 = macpar)->next = NULL;
+		(param1 = macpar)->next = NUL_PTR;
 					/* this goes nowhere */
 		macpar = (struct schain_s *) (stringptr + 1);
 					/* but is finished OK - TODO align */
@@ -95,12 +94,12 @@ PUBLIC void pmacro()
 {
     bool_t saving;
     bool_t savingc;
-    struct sym_s *symptr;
+    struct sym_s *symptr=0;
 
     saving =			/* prepare for bad macro */
 	savingc = FALSE;	/* normally don't save comments */
     macload = TRUE;		/* show loading */
-    if (label != NULL)
+    if (label != NUL_PTR)
 	error(ILLAB);
     else if (sym != IDENT)
 	error(LABEXP);

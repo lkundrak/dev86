@@ -1,0 +1,19 @@
+
+This kernel patch allows you to run Linux-8086 executables transparently
+on a Linux-i386 system. It requires V0.0.2 of elksemu in "/lib/elksemu".
+
+--- orig-13/fs/exec.c	Sun Sep 24 13:22:37 1995
++++ linux/fs/exec.c	Sun Feb 11 20:11:47 1996
+@@ -615,6 +615,12 @@
+ 	set_fs(old_fs);
+ 	if (retval < 0)
+ 		goto exec_error2;
++#ifndef NO_ELKSEMU
++	/* What a horrible hack! :-) */
++	if ((bprm.buf[0] == 1)    && (bprm.buf[1] == 3) && 
++	    (bprm.buf[2] == 0x20) && (bprm.buf[3] == 4))
++		memcpy(bprm.buf, "#!/lib/elksemu\n", 16);
++#endif
+ 	if ((bprm.buf[0] == '#') && (bprm.buf[1] == '!') && (!sh_bang)) {
+ 		/*
+ 		 * This section does the #! interpretation.

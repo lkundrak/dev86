@@ -27,7 +27,11 @@ static long bdataoffset;
 #  define n_was_strx n_un.n_strx
 #  define n_was_type n_desc
 # else /* not BSD_A_OUT */
-#  include "a.out.h"		/* maybe local copy of <a.out.h> for X-link */
+#  ifdef MSDOS
+#   include "a_out.h"
+#  else
+#   include "a.out.h"		/* maybe local copy of <a.out.h> for X-link */
+#  endif
 #  define n_was_name n_name
 #  define n_was_numaux n_numaux
 #  define n_was_other n_other
@@ -46,7 +50,6 @@ static long bdataoffset;
 #ifdef STDC_HEADERS_MISSING
 void *memset P((void *s, int c, unsigned n));
 #else
-#undef NULL
 #include <string.h>
 #endif
 
@@ -58,10 +61,10 @@ void *memset P((void *s, int c, unsigned n));
 #  ifdef STANDARD_GNU_A_OUT
 #   define FILEHEADERLENGTH 32
 #  else
-#   define FILEHEADERLENGTH 48
+#   define FILEHEADERLENGTH (doscomfile?0:48)
 #  endif
 # else
-#  define FILEHEADERLENGTH A_MINHDR
+#  define FILEHEADERLENGTH (doscomfile?0:A_MINHDR)
 				/* part of header not counted in offsets */
 # endif
 #endif
@@ -139,6 +142,8 @@ FORWARD void writeheader P((void));
 #endif
 FORWARD void writenulls P((offset_t count));
 
+extern int doscomfile;
+
 /* link all symbols connected to entry symbols */
 
 PUBLIC void linksyms(argreloc_output)
@@ -153,31 +158,31 @@ bool_pt argreloc_output;
     reloc_output = argreloc_output;
     if (argreloc_output)
     {
-	if (modfirst->modnext != NULL)
+	if (modfirst->modnext != NUL_PTR)
 	    fatalerror("relocatable output only works for one input file");
-	for (modptr = modfirst; modptr != NULL; modptr = modptr->modnext)
+	for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	    modptr->loadflag = TRUE;
 	return;
     }
 #endif
-    if ((symptr = findsym("_main")) != NULL)
+    if ((symptr = findsym("_main")) != NUL_PTR)
 	entrysym(symptr);
     do
     {
-	if ((elptr = entryfirst) == NULL)
+	if ((elptr = entryfirst) == NUL_PTR)
 	    fatalerror("no start symbol");
-	for (modptr = modfirst; modptr != NULL; modptr = modptr->modnext)
+	for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	    modptr->loadflag = FALSE;
-	for (; elptr != NULL; elptr = elptr->elnext)
+	for (; elptr != NUL_PTR; elptr = elptr->elnext)
 	    linkrefs(elptr->elsymptr->modptr);
-	if ((symptr = findsym("start")) != NULL)
+	if ((symptr = findsym("start")) != NUL_PTR)
 	    linkrefs(symptr->modptr);
 	needlink = FALSE;
 	{
-	    struct redlist *prlptr;
+	    struct redlist *prlptr = 0;
 	    struct redlist *rlptr;
 
-	    for (rlptr = redfirst; rlptr != NULL;
+	    for (rlptr = redfirst; rlptr != NUL_PTR;
 		 rlptr = (prlptr = rlptr)->rlnext)
 		if (rlptr->rlmodptr->loadflag &&
 		    rlptr->rlmodptr->class > rlptr->rlsymptr->modptr->class)
@@ -233,9 +238,9 @@ bool_pt arguzp;
     }
 #ifdef EDOS
     commandname = stralloc(outfilename);
-    if ((cptr = strchr(commandname, ':')) != NULL)
+    if ((cptr = strchr(commandname, ':')) != NUL_PTR)
 	commandname = cptr + 1;
-    if ((cptr = strrchr(commandname, '.')) != NULL)
+    if ((cptr = strrchr(commandname, '.')) != NUL_PTR)
 	*cptr = 0;
 #endif
 
@@ -261,18 +266,19 @@ bool_pt arguzp;
     symres("__end");
     curseg = 0;			/* text seg, s.b. variable */
     symres("__etext");
+    symres("__segoff");
 
     /* calculate segment and common sizes (sum over loaded modules) */
     /* use zero init of segsz[] */
     /* also relocate symbols relative to starts of their segments */
-    for (modptr = modfirst; modptr != NULL; modptr = modptr->modnext)
+    for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	if (modptr->loadflag)
 	{
 	    register struct symstruct **symparray;
 	    register struct symstruct *symptr;
 
 	    for (symparray = modptr->symparray;
-		 (symptr = *symparray) != NULL; ++symparray)
+		 (symptr = *symparray) != NUL_PTR; ++symparray)
 		if (symptr->modptr == modptr && !(symptr->flags & A_MASK))
 		{
 		    if (!(symptr->flags & (I_MASK | SA_MASK)))
@@ -363,14 +369,14 @@ bool_pt arguzp;
     }
 
     /* relocate symbols by offsets of segments in memory */
-    for (modptr = modfirst; modptr != NULL; modptr = modptr->modnext)
+    for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	if (modptr->loadflag)
 	{
 	    register struct symstruct **symparray;
 	    register struct symstruct *symptr;
 
 	    for (symparray = modptr->symparray;
-		 (symptr = *symparray) != NULL; ++symparray)
+		 (symptr = *symparray) != NUL_PTR; ++symparray)
 		if (symptr->modptr == modptr && !(symptr->flags & A_MASK))
 		{
 		    if (symptr->flags & (C_MASK | SA_MASK))
@@ -414,6 +420,7 @@ bool_pt arguzp;
     setsym("__etext", etextoffset);
     setsym("__edata", edataoffset);
     setsym("__end", endoffset = combase[NSEG - 1] + comsz[NSEG - 1]);
+    setsym("__segoff", (offset_t)(segadj[1]-segadj[0])/0x10);
 
     openout(outfilename);
 #ifdef BSD_A_OUT
@@ -427,7 +434,7 @@ bool_pt arguzp;
 #else
     writeheader();
 #endif
-    for (modptr = modfirst; modptr != NULL; modptr = modptr->modnext)
+    for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	if (modptr->loadflag)
 	{
 	    linkmod(modptr);
@@ -453,21 +460,21 @@ bool_pt arguzp;
 #ifdef BSD_A_OUT
 	stringoff = 4;
 #endif
-	for (modptr = modfirst; modptr != NULL; modptr = modptr->modnext)
+	for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	    if (modptr->loadflag)
 	    {
 		register struct symstruct **symparray;
 		register struct symstruct *symptr;
 
 		for (symparray = modptr->symparray;
-		     (symptr = *symparray) != NULL; ++symparray)
+		     (symptr = *symparray) != NUL_PTR; ++symparray)
 		    if (symptr->modptr == modptr)
 		    {
 #ifdef BSD_A_OUT
 			offtocn((char *) &extsym.n_was_strx,
 				(offset_t) stringoff, 4);
 #else
-			strncpy((char *) &extsym.n_was_name, symptr->name,
+			strncpy((char *) extsym.n_was_name, symptr->name,
 				sizeof extsym.n_was_name);
 #endif
 			u4cn((char *) &extsym.n_value, (u4_t) symptr->value,
@@ -506,14 +513,14 @@ bool_pt arguzp;
 #ifdef BSD_A_OUT
 	offtocn((char *) &extsym.n_was_strx, (offset_t) stringoff, 4);
 	writeout((char *) &extsym.n_was_strx, 4);
-	for (modptr = modfirst; modptr != NULL; modptr = modptr->modnext)
+	for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	    if (modptr->loadflag)
 	    {
 		register struct symstruct **symparray;
 		register struct symstruct *symptr;
 
 		for (symparray = modptr->symparray;
-		     (symptr = *symparray) != NULL; ++symparray)
+		     (symptr = *symparray) != NUL_PTR; ++symparray)
 		    if (symptr->modptr == modptr)
 			writeout(symptr->name, strlen(symptr->name) + 1);
 	    }
@@ -553,12 +560,12 @@ char *commandname;
 
     count = 2 + 2 + 1;		/* len len nul */
     startptr = findsym("start");
-    for (elptr = entryfirst; elptr != NULL; elptr = elptr->elnext)
+    for (elptr = entryfirst; elptr != NUL_PTR; elptr = elptr->elnext)
     {
 	name = idconvert(elptr, commandname);
 	count += strlen(name) + 1 + 2 + 1;	/* nul off flg */
 	ourfree(name);
-	if (startptr != NULL)
+	if (startptr != NUL_PTR)
 	    count += 6;		/* LBSR $xxxx and LBRA $xxxx */
     }
     return count;
@@ -772,7 +779,7 @@ struct modstruct *modptr;
 
     modptr->loadflag = TRUE;
     for (symparray = modptr->symparray;
-	 (symptr = *symparray) != NULL; ++symparray)
+	 (symptr = *symparray) != NUL_PTR; ++symparray)
 	if (symptr->modptr->loadflag == FALSE)
 	    linkrefs(symptr->modptr);
 }
@@ -815,7 +822,7 @@ offset_t value;
 #ifdef BSD_A_OUT
     if (!reloc_output)
 #endif
-	if ((symptr = findsym(name)) != NULL)
+	if ((symptr = findsym(name)) != NUL_PTR)
 	    symptr->value = value;
 }
 
@@ -824,7 +831,7 @@ register char *name;
 {
     register struct symstruct *symptr;
 
-    if ((symptr = findsym(name)) != NULL)
+    if ((symptr = findsym(name)) != NUL_PTR)
     {
 	if ((symptr->flags & SEGM_MASK) == SEGM_MASK)
 	    symptr->flags &= ~SEGM_MASK | curseg;
@@ -870,7 +877,7 @@ char *commandname;
     struct symstruct *startptr;
 
     headlength = binheaderlength(commandname);
-    for (elptr = entryfirst; elptr != NULL; elptr = elptr->elnext)
+    for (elptr = entryfirst; elptr != NUL_PTR; elptr = elptr->elnext)
 	headlength -= 6;
     offset = headlength;
     startptr = findsym("start");
@@ -878,21 +885,21 @@ char *commandname;
     writeout(buf, 2);
     writechar(0xFF);		/* dummy data length 0xFFFF takes everything */
     writechar(0xFF);
-    for (elptr = entryfirst; elptr != NULL; elptr = elptr->elnext)
+    for (elptr = entryfirst; elptr != NUL_PTR; elptr = elptr->elnext)
     {
 	name = idconvert(elptr, commandname);
 	writeout(name, (unsigned) strlen(name) + 1);
 	ourfree(name);
-	offtocn(buf, startptr == NULL ? elptr->elsymptr->value : offset, 2);
+	offtocn(buf, startptr == NUL_PTR ? elptr->elsymptr->value : offset, 2);
 	writeout(buf, 2);
 	writechar(0x82);	/* 8 = set flags from here, 2 = cmd line */
 	offset += 6;		/* LBSR $xxxx and LBRA $xxxx */
     }
     writechar(0);
-    if (startptr != NULL)
+    if (startptr != NUL_PTR)
     {
 	offset = headlength + 3;	/* over 1st LBSR */
-	for (elptr = entryfirst; elptr != NULL; elptr = elptr->elnext)
+	for (elptr = entryfirst; elptr != NUL_PTR; elptr = elptr->elnext)
 	{
 	    writechar(0x17);	/* LBSR */
 	    offtocn(buf, startptr->value - offset, 2);
@@ -975,7 +982,8 @@ PRIVATE void writeheader()
 		sizeof header.a_total);
 #endif
     }
-    writeout((char *) &header, FILEHEADERLENGTH);
+    if( FILEHEADERLENGTH )
+       writeout((char *) &header, FILEHEADERLENGTH);
 }
 
 #endif /* MINIX */
