@@ -40,7 +40,7 @@ FORWARD void outvaldigs P((uvalue_t num));
 PUBLIC void bugerror(message)
 char *message;
 {
-    error2error("compiler bug - ", message);
+    error2error("compiler bug? - ", message);
 }
 
 PUBLIC void closeout()

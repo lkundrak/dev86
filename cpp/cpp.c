@@ -7,7 +7,7 @@
 #endif
 #include "cc.h"
 
-#define CPP_DEBUG 0	/* LOTS of junk to stdout. */
+#define CPP_DEBUG 0	/* LOTS of junk to stderr. */
 
 /*
  * This file comprises the 'guts' of a C preprocessor.
@@ -22,14 +22,23 @@
  *   c_fname  Name of file being parsed
  *   c_lineno Current line number in file being parsed.
  *
- *   in_asm   Control flag for the kind of tokens you want (C or assembler)
- *   ansi_c   Control flag to change the preprocessor for Ansi C.
+ *   alltok   Control flag for the kind of tokens you want (C or generic)
+ *   dislect  Control flag to change the preprocessor for Ansi C.
  *
+ * TODO:
+ *    #asm -> asm("...") translation.
+ *    ?: in #if expressions
  */
 
+#define KEEP_SPACE	0
+#define SKIP_SPACE	1
+
+#define EOT	4
+#define SYN	22
+
 char curword[WORDSIZE];
-int  in_asm = 0;
-int  ansi_c = 0;
+int  alltok = 0;
+int  dialect = 0;
 
 FILE * curfile;
 char * c_fname;
@@ -73,9 +82,10 @@ struct arg_store {
 };
 
 static int  chget _P((void));
+static int  chget_raw _P((void));
 static void unchget _P((int));
 static int  gettok_nosub _P((void));
-static int  get_onetok _P((void));
+static int  get_onetok _P((int));
 static int  pgetc _P((void));
 static int  do_preproc _P((void));
 static int  do_proc_copy_hashline _P((void));
@@ -89,7 +99,7 @@ static void do_proc_tail _P((void));
 static int  get_if_expression _P((void));
 static int_type get_expression _P((int));
 static int_type get_exp_value _P((void));
-static int  gen_substrings _P((char *, char *, int));
+static void gen_substrings _P((char *, char *, int));
 static char * insert_substrings _P((char *, struct arg_store *, int));
 
 int
@@ -99,58 +109,25 @@ gettok()
 
    for(;;) 
    {
-      /* Normal C Preprocessor decoding */
-      if (in_asm) {
-	 *curword = 0;
-	 if (quoted_str) ch = chget();
-	 else            ch = pgetc();
-	 if (ch > 0xFF || ch == EOF) return ch;
-
-	 if(!quoted_str && 
-	       ( (ch >= 'A' && ch <= 'Z')
-	       || (ch >= 'a' && ch <= 'z')
-	       || ch == '_' || ch == '$' ) ) {
-	    unchget(ch);
-	 }
-	 else
-	 {
-	    curword[0] = ch;
-	    curword[1] = 0;
-	    if (quoted_str==2)
-	       quoted_str=1;
-	    else {
-	       if (ch == '"') {
-		  quoted_str = !quoted_str;
-		  return '"';
-	       }
-	       if (quoted_str == 1 && ch == '\\')
-		  quoted_str = 2;
-	       else if (quoted_str && ch == '\n') {
-		  quoted_str = 0;
-		  unchget(ch);
-		  return '\n';
-	       }
-	    }
-
-	    if (ch == '\n') continue;
-	    return TK_STR;
-	 }
-      }
-
       /* Tokenised C-Preprocessing */
       if (!quoted_str)
       {
-	 ch = get_onetok();
+	 if (alltok)
+	    ch = get_onetok(KEEP_SPACE);
+	 else
+	    ch = get_onetok(SKIP_SPACE);
 
-	 /* Erase meaningless backslashes */
-	 if( ch == '\\' ) {
-	    int ch1 = chget();
-	    if (ch1 == '\n') continue;
-	    unchget(ch1);
+	 if( ch == '"' || ch == '\'' )
+	    quoted_str = ch;
+
+	 if( ch == TK_WORD )
+	 {
+	    struct token_trans *p;
+	    if( p=is_ckey(curword, strlen(curword)) )
+	       return p->token;
 	 }
 
-	 if( ch == '"' )
-	    quoted_str = 1;
+	 if (ch == '\n') continue;
 	 return ch;
       }
 
@@ -162,43 +139,46 @@ gettok()
       *curword = ch;
       curword[1] = '\0';
 
-      if( quoted_str == 2 ) {
-	 quoted_str = 1;
-	 return TK_STR;
-      }
+      if( ch == quoted_str ) {
+	 if( ch == '"' )
+	 {
+	    if (dialect == DI_ANSI) {
+	       /* Found a terminator '"' check for ansi continuation */
+	       while( (ch = pgetc()) <= ' ' && ch != EOF) ;
+	       if( ch == '"' ) continue;
+	       unchget(ch);
+	       *curword = '"';
+	       curword[1] = '\0';
+	    }
 
-      if( ch == '"' )
-      {
-	 /* Found a terminator '"' check for ansi continuation */
-	 while( (ch = pgetc()) <= ' ' && ch != EOF) ;
-	 if( ch == '"' ) continue;
-	 quoted_str = 0;
-	 unchget(ch);
-
-	 *curword = '"';
-	 curword[1] = '\0';
-	 return '"';
+	    quoted_str = 0;
+	    return '"';
+	 } else {
+	    quoted_str = 0;
+	    return ch;
+	 }
       }
       if( ch == '\n' ) {
 	 quoted_str = 0;
-	 unchget(ch);
+	 unchget(ch);	/* Make sure error line is right */
 	 return ch;
       }
-      if( ch != '\\' ) return TK_STR;
-
-      /* Deal with backslash; NB this could interpret all the \X codes */
-      ch = chget();
-
-      if( ch != '\n' ) { quoted_str++; unchget(ch); return TK_STR; }
+      if( ch == '\\' ) {
+	 unchget(ch);
+	 ch = get_onetok(KEEP_SPACE);
+	 return ch;
+      }
+      return TK_STR;
    }
 }
 
 static int
 gettok_nosub()
-{ int rv; dont_subst++; rv=get_onetok(); dont_subst--; return rv; }
+{ int rv; dont_subst++; rv=get_onetok(SKIP_SPACE); dont_subst--; return rv; }
 
 static int
-get_onetok()
+get_onetok(keep)
+int keep;
 {
    char * p;
    int state;
@@ -208,13 +188,23 @@ Try_again:
    *(p=curword) = '\0';
    state=cc=ch=0;
 
-   while( (ch = pgetc()) != EOF)
+   /* First skip whitespace, if the arg says so then we need to keep it */
+   while( (ch = pgetc()) == ' ' || ch == '\t' )
    {
-      if( ch > ' ' ) break;
-      if( in_preproc && ch == '\n') break;
-      if( (!in_preproc) && in_asm && (ch == ' ' || ch == '\t') ) break;
+      if (keep == KEEP_SPACE) {
+	 if( p < curword + WORDSIZE-1 ) {
+	    *p++ = ch;	/* Clip to WORDSIZE */
+	    *p = '\0';
+	 }
+      }
    }
+
    if( ch > 0xFF ) return ch;
+   if( p != curword ) { unchget(ch); return TK_WSPACE; }
+   if( ch == '\n') return ch;
+   if( ch == EOF ) return ch;
+   if( ch >= 0 && ch < ' ' ) goto Try_again;
+
    for(;;)
    {
       switch(state)
@@ -275,55 +265,11 @@ Try_again:
       }
       if( cc < WORDSIZE-1 ) *p++ = ch;	/* Clip to WORDSIZE */
       *p = '\0'; cc++;
-      ch = pgetc();
+      ch = chget();
+      if (ch == 1) ch = chget();
    }
 break_break:
-   if( state == 1 )
-   {
-      struct define_item * ptr;
-      unchget(ch);
-      if( !dont_subst
-         && (ptr = read_entry(0, curword)) != 0
-	 && !ptr->in_use
-	 )
-      {
-	 if ( def_count >= MAX_DEFINE ) {
-	    cerror("Preprocessor recursion overflow");
-	    goto oops_keep_going;
-	 } else
-         /* Add in the arguments if they're there */
-	 if( ptr->arg_count >= 0 )
-	 {
-	    /* We have arguments to process so lets do so. */
-	    if( !gen_substrings(ptr->name, ptr->value, ptr->arg_count) )
-	       goto oops_keep_going;
-	    def_ref = ptr;
-	    ptr->in_use = 1;
-	 }
-	 else if (ptr->value[0])
-	 {
-            saved_ref[def_count] = def_ref;
-            saved_def[def_count] = def_ptr;
-            saved_start[def_count] = def_start;
-            saved_unputc[def_count] = unputc;
-            def_count++;
-            unputc = 0;
-	    def_ref = ptr;
-            def_ptr = ptr->value;
-	    def_start = 0;
-	    ptr->in_use = 1;
-	 }
-         goto Try_again;
-      }
-oops_keep_going:
-      if( !in_preproc )
-      {
-         struct token_trans *p;
-	 if( p=is_ckey(curword, cc) )
-	    return p->token;
-      }
-      return TK_WORD;
-   }
+   /* Numbers */
    if( state >= 2 )
    {
       if( state < 6 )
@@ -340,50 +286,147 @@ oops_keep_going:
       return TK_FLT;
    }
 
-   /* More tokeniser for C like stuff */
-   if(!in_asm || in_preproc)
+   /* Words */
+   if( state == 1 )
    {
-      /* Quoted char (NOT strings!) */
-      if (ch == '\'' )
+      struct define_item * ptr;
+      unchget(ch);
+      if( !dont_subst
+         && (ptr = read_entry(0, curword)) != 0
+	 && !ptr->in_use
+	 )
       {
-	 *p++ = ch; ch = chget();
-	 for(;;)
+	 if ( def_count >= MAX_DEFINE ) {
+	    cwarn("Preprocessor recursion overflow");
+	    return TK_WORD;
+	 } else if( ptr->arg_count >= 0 )
 	 {
+	    /* An open bracket must follow the word */
+	    int ch1 = 0;
+	    while ((ch = chget()) == ' ' || ch == '\t' ) ch1 = ch;
+	    if (ch != '(') {
+	       unchget(ch);
+	       if (ch1) unchget(ch1);
+	       return TK_WORD;
+	    }
+
+	    /* We have arguments to process so lets do so. */
+	    gen_substrings(ptr->name, ptr->value, ptr->arg_count);
+
+	    /* Don't mark macros with arguments as in use, it's very 
+	     * difficult to say what the correct result would be so
+	     * I'm letting the error happen. Also if I do block
+	     * recursion then it'll also block 'pseudo' recursion
+	     * where the arguments have a call to this macro.
+	     *
+	    def_ref = ptr;
+	    ptr->in_use = 1;
+	    */
+	 }
+	 else if (ptr->value[0])
+	 {
+	    /* Simple direct substitution; note the shortcut (above) for
+	     * macros that are defined as null */
+            saved_ref[def_count] = def_ref;
+            saved_def[def_count] = def_ptr;
+            saved_start[def_count] = def_start;
+            saved_unputc[def_count] = unputc;
+            def_count++;
+            unputc = 0;
+	    def_ref = ptr;
+            def_ptr = ptr->value;
+	    def_start = 0;
+	    ptr->in_use = 1;
+	 }
+         goto Try_again;
+      }
+      return TK_WORD;
+   }
+
+   /* Quoted char for preprocessor expressions */
+   if(in_preproc && ch == '\'' )
+   {
+      *p++ = ch; ch = chget();
+      for(;;)
+      {
+	 if( cc < WORDSIZE-1 ) *p++ = ch;	/* Clip to WORDSIZE */
+	 *p = '\0'; cc++;
+	 if( ch == '\'' || ch == '\n' ) break;
+
+	 if( ch == '\\' )
+	 {
+	    ch = chget();
 	    if( cc < WORDSIZE-1 ) *p++ = ch;	/* Clip to WORDSIZE */
 	    *p = '\0'; cc++;
-	    if( ch == '\'' || ch == '\n' ) break;
-
-	    if( ch == '\\' )
-	    {
-	       ch = chget();
-	       if( cc < WORDSIZE-1 ) *p++ = ch;	/* Clip to WORDSIZE */
-	       *p = '\0'; cc++;
-	    }
-	    ch = chget();
 	 }
-	 ch = TK_QUOT;
+	 ch = chget();
       }
-      /* Composite tokens */
-      if( ch > ' ' && ch <= '~' )
+      ch = TK_QUOT;
+   }
+
+   /* Collect and translate \xyx strings, (should probably translate these
+    * all to some standard form (eg \ooo plus \N )
+    *
+    * ___________________________________________________________________
+    * | new-line          NL (LF)   \n|  audible alert        BEL   \a  |
+    * | horizontal tab    HT        \t|  question mark        ?     \?  |
+    * | vertical tab      VT        \v|  double quote         "     \"  |
+    * | backspace         BS        \b|  octal escape         ooo   \ooo|
+    * | carriage return   CR        \r|  hexadecimal escape   hh    \xhh|
+    * | formfeed          FF        \f|  backslash            \     \\  |
+    * | single quote      '         \'|                                 |
+    * |_______________________________|_________________________________|
+    */
+
+   if( ch == '\\' )
+   {
+      int i;
+
+      *p++ = ch; ch = chget();
+      if (ch >= '0' && ch <= '7' ) {
+	 for(i=0; i<3; i++) {
+	    if (ch >= '0' && ch <= '7' ) {
+	       *p++ = ch; ch = chget();
+	    }
+	 }
+	 unchget(ch);
+      } else if (ch == 'x' || ch == 'X') {
+	 *p++ = ch; ch = chget();
+	 for(i=0; i<2; i++) {
+	    if ( (ch >= '0' && ch <= '9' ) ||
+	         (ch >= 'A' && ch <= 'F' ) ||
+	         (ch >= 'a' && ch <= 'f' ) ) {
+	       *p++ = ch; ch = chget();
+	    }
+	 }
+	 unchget(ch);
+      } else if (ch == '?') {
+	 p[-1] = '?';
+      } else if (ch != '\n' && ch != EOF) {
+	 *p++ = ch;
+      } else
+	 unchget(ch);
+      *p = 0;
+      return TK_STR;
+   }
+
+   /* Possible composite tokens */
+   if( ch > ' ' && ch <= '~' )
+   {
+      struct token_trans *p;
+      *curword = cc = ch;
+
+      for(state=1; ; state++)
       {
-	 struct token_trans *p;
-	 *curword = cc = ch;
-
-	 for(state=1; ; state++)
+	 curword[state] = ch = chget();
+	 if( !(p=is_ctok(curword, state+1)) )
 	 {
-	    curword[state] = ch = chget();
-	    if( !(p=is_ctok(curword, state+1)) )
-	    {
-	       unchget(ch);
-	       curword[state] = '\0';
-	       return cc;
-	    }
-	    cc=p->token;
+	    unchget(ch);
+	    curword[state] = '\0';
+	    return cc;
 	 }
+	 cc=p->token;
       }
-   } else {
-      *curword = ch;
-      curword[1] = 0;
    }
    return ch;
 }
@@ -395,47 +438,16 @@ pgetc()
 
    for(;;)
    {
-      /* This loop is repeated if the current char is not suitable
-	 either because of a comment or a false #if condition
-       */
-
-      ch = chget();
-
-      if( ch == EOF ) return ch;
-      if( in_preproc && ch == '\\' )
-      {
-	 ch1 = chget();
-	 if( ch1 == '\n' ) ch = chget();
-	 else              unchget(ch1);
-      }
-
-      /* Ansi trigraphs -- Ewww, anyway this doesn't work, it needs lots
-       * of 'unchget' space too. */
-      if (ansi_c && ch == '?') {
-	 ch1 = chget();
-	 if (ch1 != '?')
-	    unchget(ch1);
-	 else {
-	    static char trig1[] = "()<>/!'-=";
-	    static char trig2[] = "[]{}\\|^~#";
-	    char * s;
-	    ch1 = chget();
-	    s = strchr(trig1, ch1);
-	    if (s) ch = trig2[s-trig1];
-	    else {
-	       unchget(ch1);
-	       unchget('?');
-	    }
-	 }
-      }
+      if ((ch = chget()) == EOF) return ch;
 
       if( !in_preproc && last_char == '\n' && ch == '#' )
       {
 	 in_preproc = 1;
 	 ch = do_preproc();
 	 in_preproc = 0;
+	 if(if_false || ch == 0) continue;
+
 	 last_char = '\n';
-	 if(if_false) continue;
 	 return ch;
       }
       if( last_char != '\n' || (ch != ' ' && ch != '\t') )
@@ -444,21 +456,12 @@ pgetc()
       /* Remove comments ... */
       if( ch != '/' )
          { if(if_false && !in_preproc) continue; return ch; }
-      ch1 = chget();
+      ch1 = chget(); /* Allow "/\\\n*" as comment start too!? */
 
       if( ch1 == '/' ) /* Double slash style comments */
       {
-	 do
-	 {
-	    ch = chget();
-	    if( ch == EOF ) return EOF;
-	    if( ch == '\\' ) {
-	       ch1 = chget();
-	       if( ch1 == EOF ) return EOF;
-	    }
-	 }
-	 while(ch != '\n');
-	 continue;
+	 do { ch = chget(); } while(ch != '\n' && ch != EOF);
+	 return ch;	/* Keep the return. */
       }
 
       if( ch1 != '*' )
@@ -478,10 +481,48 @@ pgetc()
 	 }
 	 else ch = chget();
       }
-      if (ansi_c)
-	 return ' ';	/* If comments become " " */
+      if (dialect == DI_ANSI)
+	   return ' ';	/* If comments become " " */
+      else return SYN;  /* Comments become nulls, but we need a
+			 * marker so I can do token concat properly. */
+   }
+}
 
-      /* Comments become nulls */
+/* This function handles the first and second translation phases of Ansi-C */
+static int 
+chget()
+{
+   int ch, ch1;
+   for(;;) {
+      ch = chget_raw();
+      if (ch == '\\') {
+	 ch1 = chget_raw();
+	 if (ch1 == '\n') continue;
+	 unchget(ch1);
+      }
+
+      /* Ansi trigraphs -- Ewww, it needs lots of 'unchget' space too. */
+      if (dialect == DI_ANSI && ch == '?') {
+	 ch1 = chget_raw();
+	 if (ch1 != '?')
+	    unchget(ch1);
+	 else {
+	    static char trig1[] = "()<>/!'-=";
+	    static char trig2[] = "[]{}\\|^~#";
+	    char * s;
+	    ch1 = chget_raw();
+	    s = strchr(trig1, ch1);
+	    if (s) {
+	       unchget(trig2[s-trig1]);	/* Unchget so that ??/ can be used as */
+	       continue;		/* a real backslash at EOL. */
+	    } else {
+	       unchget(ch1);
+	       unchget('?');
+	    }
+	 }
+      }
+
+      return ch;
    }
 }
 
@@ -491,7 +532,8 @@ unchget(ch)
 #if CPP_DEBUG
    fprintf(stderr, "\b", ch);
 #endif
-   if(ch == EOF) ch=26; /* EOF is pushed back as ^Z */
+   if(ch == 0) return;  /* Hummm */
+   if(ch == EOF) ch=EOT; /* EOF is pushed back as ^Z */
    ch &= 0xFF;
 
    if(unputc&0xFF000000) 
@@ -501,7 +543,7 @@ unchget(ch)
 }
 
 static int 
-chget()
+chget_raw()
 #if CPP_DEBUG
 {
    int ch;
@@ -530,9 +572,9 @@ realchget()
    {
       if( unputc )
       {
-	 if((unputc&0xFF)==26 && in_preproc) return '\n';
+	 if((unputc&0xFF)==EOT && in_preproc) return '\n';
 	 ch=(unputc&0xFF); unputc>>=8;
-	 if( ch == 26 ) ch = EOF;
+	 if( ch == EOT ) ch = EOF;
 	 if( ch == '\n' ) c_lineno++;
 	 return ch;
       }
@@ -579,7 +621,7 @@ do_preproc()
 {
    int val, no_match=0;
 
-   if( (val=get_onetok()) == TK_WORD )
+   if( (val=get_onetok(SKIP_SPACE)) == TK_WORD )
    {
       if( strcmp(curword, "ifdef") == 0 )
          do_proc_if(0);
@@ -603,24 +645,26 @@ do_preproc()
             do_proc_define();
          else if( strcmp(curword, "undef") == 0 )
             do_proc_undef();
-         else if( strcmp(curword, "error") == 0 )
-            return do_proc_copy_hashline();
-         else if( strcmp(curword, "warning") == 0 )
-            return do_proc_copy_hashline();
-         else if( strcmp(curword, "asm") == 0 ) {
-	    in_asm |= 1;
+         else if( strcmp(curword, "error") == 0 ) {
+	    strcpy(curword, "#error");
+            do_proc_copy_hashline(); pgetc();
+	    cerror(curword);
+	 } else if( strcmp(curword, "warning") == 0 ) {
+	    strcpy(curword, "#warning");
+            do_proc_copy_hashline(); pgetc();
+	    cwarn(curword);
+	 } else if( strcmp(curword, "pragma") == 0 ) {
+            do_proc_copy_hashline(); pgetc();
+	    /* Ignore #pragma */
+	 } else if( strcmp(curword, "asm") == 0 ) {
+	    alltok |= 0x100;
             return do_proc_copy_hashline();
 	 } else if( strcmp(curword, "endasm") == 0 ) {
-	    in_asm &= ~1;
+	    alltok &= ~0x100;
             return do_proc_copy_hashline();
 	 } else 
 	    no_match=1;
       }
-   }
-   else if( val == '#' )  /* This is a comment, it's used as a marker */
-                          /* for compiler specific header files */
-   {
-      while((val = pgetc()) != '\n');
    }
    else no_match=1;
    
@@ -630,8 +674,8 @@ do_preproc()
       while( val != '\n' ) val = pgetc();
    }
 
-   strcpy(curword, "\n");
-   return '\n';
+   *curword = 0; /* Just in case */
+   return 0;
 }
 
 static int
@@ -657,18 +701,19 @@ do_proc_copy_hashline()
    return TK_COPY;
 }
 
-static void do_proc_include()
+static void
+do_proc_include()
 {
    int ch, ch1;
    char * p;
    FILE * fd;
 
-   ch = get_onetok();
+   ch = get_onetok(SKIP_SPACE);
    if( ch == '<' || ch == '"' )
    {
       if( ch == '"' ) ch1 = ch; else ch1 = '>';
       p = curword;
-      while(p< curword+sizeof(curword)-1)
+      while(p< curword+WORDSIZE-1)
       {
          ch = pgetc();
          if( ch == '\n' ) break;
@@ -705,12 +750,13 @@ static void do_proc_include()
    return;
 }
 
-static void do_proc_define()
+static void
+do_proc_define()
 {
    int ch, ch1;
    struct define_item * ptr, * old_value = 0;
    int  cc, len;
-   char name[sizeof(curword)];
+   char name[WORDSIZE];
 
    if( (ch=gettok_nosub()) == TK_WORD )
    {
@@ -720,32 +766,15 @@ static void do_proc_define()
       {
          set_entry(0, name, (void*)0); /* Unset var */
          if (ptr->in_use) 
-	    ; /* Eeeek! This shouldn't happen; so just let it leak. */
+	    /* Eeeek! This shouldn't happen; so just let it leak. */
+	    cwarn("macro redefined while it was in use!?");
 	 else
 	    old_value = ptr;
       }
+
+      /* Skip blanks */
       for(ch=ch1=pgetc(); ch == ' ' || ch == '\t' ; ch=pgetc()) ;
 
-      /* If #define with no substitute */
-      if( ch == '\n' )
-      {
-#if CPP_DEBUG
-	 fprintf(stderr, "\n### Define '%s' as null\n", name);
-#endif
-         ptr = malloc(sizeof(struct define_item));
-         if(ptr==0) cfatal("Preprocessor out of memory");
-         ptr->name = set_entry(0, name, ptr);
-         ptr->value[0] = '\0';
-	 ptr->arg_count = -1;
-	 ptr->in_use = 0;
-         ptr->next = 0;
-	 if (old_value) {
-	    if (strcmp(old_value->value, ptr->value) != 0)
-	       cwarn("#define redefined macro");
-	    free(old_value);
-	 }
-         return;
-      }
       len = WORDSIZE; 
       ptr = malloc(sizeof(struct define_item) + WORDSIZE);
       if(ptr==0) cfatal("Preprocessor out of memory");
@@ -801,11 +830,14 @@ static void do_proc_define()
          ptr->value[cc++] = ch;
          ch = pgetc();
       }
-      ptr->value[cc++] = ' ';	/* Byte of lookahead for recursive macros */
+      if (cc)
+	 ptr->value[cc++] = ' ';/* Byte of lookahead for recursive macros */
       ptr->value[cc++] = 0;
 
 #if CPP_DEBUG
-      if (ptr->arg_count<0)
+      if (cc == 1)
+	 fprintf(stderr, "\n### Define '%s' as null\n", name);
+      else if (ptr->arg_count<0)
 	 fprintf(stderr, "\n### Define '%s' as '%s'\n", 
 		 name, ptr->value);
       else
@@ -829,7 +861,8 @@ static void do_proc_define()
    while(ch != '\n') ch = pgetc();
 }
 
-static void do_proc_undef()
+static void
+do_proc_undef()
 {
    int ch;
    struct define_item * ptr;
@@ -840,7 +873,8 @@ static void do_proc_undef()
       {
          set_entry(0, curword, (void*)0); /* Unset var */
          if (ptr->in_use) 
-	    ; /* Eeeek! This shouldn't happen; so just let it leak. */
+	    /* Eeeek! This shouldn't happen; so just let it leak. */
+	    cwarn("macro undefined while it was in use!?");
 	 else
 	    free(ptr);
       }
@@ -853,7 +887,8 @@ static void do_proc_undef()
    }
 }
 
-static int do_proc_if(type)
+static int
+do_proc_if(type)
 int type;
 {
    int ch = 0;
@@ -914,7 +949,8 @@ int type;
    return 0;
 }
 
-static void do_proc_else()
+static void 
+do_proc_else()
 {
    if( if_hidden == 0 )
    {
@@ -929,7 +965,8 @@ static void do_proc_else()
    do_proc_tail();
 }
 
-static void do_proc_endif()
+static void 
+do_proc_endif()
 {
    if( if_hidden )
       if_hidden--;
@@ -979,7 +1016,7 @@ int prio;
    int_type rvalue;
    int no_op = 0;
 
-   curtok = get_onetok();
+   curtok = get_onetok(SKIP_SPACE);
    lvalue = get_exp_value();
 
    do
@@ -1112,22 +1149,22 @@ get_exp_value()
    int sign = 1;
 
    if (curtok == '!') {
-      curtok = get_onetok();
+      curtok = get_onetok(SKIP_SPACE);
       return !get_exp_value();
    }
    if (curtok == '~') {
-      curtok = get_onetok();
+      curtok = get_onetok(SKIP_SPACE);
       return ~get_exp_value();
    }
 
    while (curtok == '+' || curtok == '-') {
       if (curtok == '-') sign = -sign;
-      curtok = get_onetok();
+      curtok = get_onetok(SKIP_SPACE);
    }
 
    if (curtok == TK_NUM) {
       value = strtoul(curword, (void*)0, 0);
-      curtok = get_onetok();
+      curtok = get_onetok(SKIP_SPACE);
    } else if (curtok == TK_QUOT) {
       value = curword[1];
       if (value == '\\') {
@@ -1153,7 +1190,7 @@ get_exp_value()
 #else
       value = (unsigned char) value;
 #endif
-      curtok = get_onetok();
+      curtok = get_onetok(SKIP_SPACE);
    } else if (curtok == TK_WORD) {
       value = 0;
       if (strcmp("defined", curword) == 0) {
@@ -1165,16 +1202,16 @@ get_exp_value()
 	    if (curtok == '(' && gettok_nosub() != ')')
 	       cerror("'defined' keyword requires closing ')'");
 	    else
-	       curtok = get_onetok();
+	       curtok = get_onetok(SKIP_SPACE);
 	 }
       }
       else
-	 curtok = get_onetok();
+	 curtok = get_onetok(SKIP_SPACE);
 
    } else if (curtok == '(') {
       value = get_expression(0);
       if (curtok == ')')
-	 curtok = get_onetok();
+	 curtok = get_onetok(SKIP_SPACE);
       else
 	 curtok = '$';
    }
@@ -1182,7 +1219,7 @@ get_exp_value()
    return sign<0 ? -value: value;
 }
 
-static int 
+void
 gen_substrings(macname, data_str, arg_count)
 char * macname;
 char * data_str;
@@ -1191,10 +1228,12 @@ int arg_count;
    char * mac_text = 0;
    struct arg_store *arg_list;
    int ac, ch, cc, len;
-   int args_found = 1;	/* An empty arg still counts as one. */
 
    int paren_count = 0;
    int in_quote = 0;
+   int quote_char = 0;
+   int commas_found = 0;
+   int args_found = 0;
 
    arg_list = malloc(sizeof(struct arg_store) * arg_count);
    memset(arg_list, 0, sizeof(struct arg_store) * arg_count);
@@ -1212,38 +1251,28 @@ int arg_count;
       arg_list[ac].name[cc] = 0;
    }
 
-   while((ch = chget()) <= ' ' && ch != EOF ) ;
-
-   if( ch != '(' )
-   {
-      /* Macro name used without arguments, ignore substitution */
-      unchget(ch);
-      /* unchget(' '); 	.* This is needed incase the next thing is a word */
-      			/* to stop these two words being stuck together. */
-      return 0;
-   }
-
    for(;;) {
       if ((ch = chget()) == EOF) break;
       if(in_quote == 2) {
 	 in_quote = 1;
       } else if (in_quote) {
-	 if ( ch == '"' ) in_quote = 0;
+	 if ( ch == quote_char ) in_quote = 0;
 	 if ( ch == '\\') in_quote = 2;
       } else {
 	 if ( ch == '(' ) paren_count++;
-	 if ( ch == '"' ) in_quote = 1;
+	 if ( ch == '"' || ch == '\'' ) { in_quote = 1; quote_char = ch; }
 	 if (paren_count == 0 && ch == ',' ) {
-	    args_found++; continue;
+	    commas_found++; continue;
 	 }
 	 if ( ch == ')' ) {
 	    if (paren_count == 0) break;
 	    paren_count--;
 	 }
       }
+      args_found = 1;
       /* Too many args; ignore rest */
-      if (args_found > arg_count ) continue;
-      ac = args_found-1;
+      if (commas_found >= arg_count ) continue;
+      ac = commas_found;
       if (arg_list[ac].value == 0) {
 	 cc = len = 0;
 	 arg_list[ac].in_define = def_count;
@@ -1253,26 +1282,37 @@ int arg_count;
 	 len += 20;
 	 arg_list[ac].value = realloc(arg_list[ac].value, len);
       }
-      if (ch == '\n' && cc>0 && arg_list[ac].value[cc-1] == '\\' ) {
-	 /* Humm, ok */
-	 arg_list[ac].value[--cc] = 0;
-	 ch = ' ';
-	 if (!ansi_c) continue;
-      }
 
+#if 0
       if (ch == '\n' && cc>0 && arg_list[ac].value[cc-1] == '\n' ) {
-	 cerror("Unquoted newline in macro arguments");
-	 break;
+	 ... ?
       }
+#endif
 
       arg_list[ac].value[cc++] = ch;
       arg_list[ac].value[cc] = 0;
    }
 
+   if (commas_found || args_found) args_found = commas_found+1;
+
    if( arg_count != args_found )
       cerror("Incorrect number of macro arguments");
 
    mac_text = insert_substrings(data_str, arg_list, arg_count);
+
+   /* 
+    * At this point 'mac_text' contains the full expansion of the macro.
+    *
+    * So we could scan this for calls to this macro and if we find one
+    * that _exactly_ matches this call (including arguments) then we mark
+    * this call's in_use flag.
+    * 
+    * OTOH, it would probably be best to throw away this expansion and 
+    * pretend we never noticed this macro expansion in the first place.
+    *
+    * Still this is mostly academic as the error trapping works and
+    * recursive macros _with_arguments_ are both rare and unpredictable.
+    */
 
    if (arg_list) {
       for (ac=0; ac<arg_count; ac++) {
@@ -1290,10 +1330,10 @@ int arg_count;
    unputc = 0;
    def_ptr = mac_text;
    def_start = mac_text;
+   def_ref = 0;
 #if CPP_DEBUG
    fprintf(stderr, "\n### <DEF%d='%s'>\n", def_count, mac_text);
 #endif
-   return 1;
 }
 
 static char * 
@@ -1308,6 +1348,7 @@ int arg_count;
    int    len = 0;
    int    cc = 0;
    int    in_quote = 0;
+   int    quote_char = 0;
    int    ansi_stringize = 0;
 
 #if CPP_DEBUG
@@ -1323,14 +1364,15 @@ int arg_count;
    while(*data_str) {
       p = curword;
 
-      if (ansi_c) {
+      if (dialect != DI_KNR) {
 	 if (in_quote == 2)
 	    in_quote = 1;
 	 else if (in_quote) {
-	    if (*data_str == '"') in_quote = 0;
+	    if (*data_str == quote_char) in_quote = 0;
 	    if (*data_str == '\\') in_quote = 2;
 	 } else {
-	    if (*data_str == '"') in_quote = 1;
+	    if (*data_str == '"' || *data_str == '\'')
+	    { in_quote = 1; quote_char = *data_str; }
 	 }
       }
 
@@ -1347,7 +1389,7 @@ int arg_count;
 
       if (p == curword) {
 	 /* Ansi Stringize and concat */
-	 if (*data_str == '#' && ansi_c) {
+	 if (*data_str == '#' && dialect != DI_KNR) {
 	    if (data_str[1] == '#') {
 	       while(cc>0 && (rv[cc-1] == ' ' || rv[cc-1] == '\t'))
 		  cc--;
@@ -1381,6 +1423,7 @@ int arg_count;
 	     strcmp(curword, arg_list[ac].name) == 0)
 	 {
 	    s = arg_list[ac].value;
+	    if (!s) s = ""; else
 
 	    /* Ansi stringize operation, this is very messy! */
 	    if (ansi_stringize) {

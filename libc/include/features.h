@@ -7,8 +7,8 @@
 #define __P(x) x
 #define __const const
 
-/* Almost ansi */
-#if __STDC__ != 1
+/* Not really ansi */
+#ifdef __BCC__
 #define const
 #define volatile
 #endif

@@ -23,4 +23,3 @@ struct token_trans { char * name; int token; };
 ==,	TK_EQ_OP
 !=,	TK_NE_OP
 ..,	TK_WORD
-//,	TK_WORD

@@ -220,6 +220,7 @@ char ** argv;
          fprintf(stderr, "%s:\n", next_file->file);
 
       /* Assembler that's not to be optimised. */
+      if (do_preproc && next_file->filetype == 'x') run_aspreproc(next_file);
       if (do_preproc && next_file->filetype == 'S') run_aspreproc(next_file);
       if (do_as      && next_file->filetype == 's') run_as(next_file);
 
@@ -727,8 +728,7 @@ char ** argv;
       case 'a':
 	 if(strcmp(argv[ar], "-ansi") == 0) {
 	    do_unproto = 1;
-	    opt_e = 1;
-#if 1
+#if 0
 	    /* NOTE I'm setting this to zero, this isn't a _real_ Ansi cpp. */
 	    prepend_option("-D__STDC__=0", 'p');
 #else
@@ -815,7 +815,6 @@ char ** argv;
       case 'E':
 	 control_count++;
          do_compile = do_link = do_as = 0;
-	 opt_e = 1;
 	 break;
       case 'S':
 	 control_count++;
@@ -874,6 +873,9 @@ char ** argv;
    if (exe_count && file_count != 1 && !do_link)
       fatal("only one input file for each non-linked output");
 
+   opt_e = !opt_e;
+   if (do_unproto || !do_compile) opt_e = 1;
+
    add_prefix(getenv("BCC_EXEC_PREFIX"));
 
 #ifdef MC6809
@@ -898,12 +900,18 @@ char ** argv;
       prepend_option("-D__ELKS__", 'p');
       append_option("-c", 'p');
       append_option("-f", 'p');
+      if (opt_e) {
+	 append_option("-c", 'c');
+	 append_option("-f", 'c');
+      }
       libc="-lc_f";
       break;
    case 'c': 		/* Caller saves Elks */
       prepend_option("-D__unix__", 'p');
       prepend_option("-D__ELKS__", 'p');
       append_option("-c", 'p');
+      if (opt_e)
+	 append_option("-c", 'c');
       libc="-lc";
       break;
    case 's': 		/* Standalone 8086 */
@@ -947,7 +955,7 @@ char ** argv;
       append_option("/lib/crt0.o", 'l');
       break;
    default:
-      fatal("Unknown model specifier for -M");
+      fatal("Unknown model specifier for -M valid are: n,f,c,s,d,l,g,8,9,0");
    }
 
    if (do_optim)

@@ -357,9 +357,9 @@ bool_pt argxsym;
 				sizeof extsym.n_name);
 			else
 			{
-			  memcpy((char *) extsym.n_name, "__", 2);
-			  strncpy((char *) extsym.n_name+2, symptr->name,
-				sizeof(extsym.n_name)-2);
+			  memcpy((char *) extsym.n_name, "$", 1);
+			  strncpy((char *) extsym.n_name+1, symptr->name,
+				sizeof(extsym.n_name)-1);
 			}
 #else
 			strncpy((char *) extsym.n_name, symptr->name,

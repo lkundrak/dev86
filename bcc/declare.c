@@ -461,6 +461,15 @@ PRIVATE bool_pt declspec()
 		    && (gsymptr->type == stype || gsymptr->type == ltype))
 		    ntype = 0;
 
+		/* Allow long double and long float */
+		if (gvartype == ltype 
+		    && (gsymptr->type == fltype || gsymptr->type == dtype))
+		{
+		    gvartype = dtype;
+		    nextsym();
+		    break;
+		}
+
 		/* allow int short and int long, blech */
 		if (gsymptr->type == itype
 		    && (gvartype == stype || gvartype == ltype))

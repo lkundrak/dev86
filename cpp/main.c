@@ -2,6 +2,7 @@
 #include <stdio.h>
 #if __STDC__
 #include <stdlib.h>
+#include <locale.h>
 #endif
 #include <ctype.h>
 #include <string.h>
@@ -11,16 +12,22 @@
 
 #define MAXINCPATH	5
 
+int main _P((int argc, char ** argv));
+void undefine_macro _P((char * name));
+void define_macro _P((char * name));
 void print_toks_cpp _P((void));
 void print_toks_raw _P((void));
 void define_macro _P((char *));
 void undefine_macro _P((char *));
+void cmsg _P((char * mtype, char * str));
+char * token_txn _P((int));
 
 char * include_paths[MAXINCPATH];
 
 char last_name[512] = "";
 int last_line = -1;
 int debug_mode = 0;
+int p_flag = 0;
 
 char * outfile = 0;
 FILE * ofd = 0;
@@ -34,16 +41,21 @@ char ** argv;
    char * p;
 static char Usage[] = "Usage: cpp -E -0 -Dxxx -Uxxx -Ixxx infile -o outfile";
 
-   in_asm = 2;	/* Always in assembler mode */
+#ifdef LC_CTYPE
+   setlocale(LC_CTYPE, "");
+#endif
+
+   alltok = 1;	/* Get all tokens from the cpp. */
 
    for(ar=1; ar<argc; ar++) if( argv[ar][0] == '-') switch(argv[ar][1])
    {
-   case 'd': debug_mode = 1; break;
-   case 'T': in_asm = 0; break;
-   case 'E': /* in_asm = 0; */ break;
-   case 'A': ansi_c = 1; break;
+   case 'd': debug_mode++; break;
+   case 'T': alltok = 0; break;
+   case 'A': dialect = DI_ANSI; break;
+   case 'K': dialect = DI_KNR; break;
 
-	     /* Some options for the code generator. */
+	     /* Some options for describing the code generator. */
+   case 'E': break;
    case '0': define_macro("__BCC__");
 	     define_macro("__AS386_16__");
 	     define_macro("__8086__");
@@ -60,10 +72,9 @@ static char Usage[] = "Usage: cpp -E -0 -Dxxx -Uxxx -Ixxx infile -o outfile";
 	     break;
 
    case 'C': /* Keep comments. */
-	     cfatal("-C not implemented");
+	     cwarn("-C not implemented");
 	     break;
-   case 'P': /* Supress #line lines. */
-	     cfatal("-P not implemented");
+   case 'P': p_flag++;
 	     break;
 
    case 'I':
@@ -116,7 +127,12 @@ static char Usage[] = "Usage: cpp -E -0 -Dxxx -Uxxx -Ixxx infile -o outfile";
       /* Input file */
       curfile = fopen(argv[ar], "r");
       c_fname = argv[ar]; c_lineno = 1;
+      if (!curfile)
+	 cfatal("Cannot open input file");
    } else
+      cfatal(Usage);
+
+   if (!curfile)
       cfatal(Usage);
 
    if (outfile) ofd = fopen(outfile, "w");
@@ -205,12 +221,12 @@ cmsg(mtype, str)
 char * mtype;
 char * str;
 {
-   if (mtype) {
-      if (c_fname && (*c_fname || c_lineno))
-	 fprintf(stderr, "%s %s(%d): %s\n", mtype, c_fname, c_lineno, str);
-      else
-	 fprintf(stderr, "%s %s\n", mtype, str);
-   } else
+   if (c_fname && (*c_fname || c_lineno))
+      fprintf(stderr, "%s:%d: ", c_fname, c_lineno);
+
+   if (mtype && *mtype)
+      fprintf(stderr, "%s: %s\n", mtype, str);
+   else
       fprintf(stderr, "%s\n", str);
 }
 
@@ -226,14 +242,14 @@ void
 cerror(str)
 char * str;
 {
-   cmsg("CPP error", str);
+   cmsg("error", str);
 }
 
 void
 cwarn(str)
 char * str;
 {
-   cmsg("CPP warning", str);
+   cmsg("warning", str);
 }
 
 void
@@ -255,22 +271,22 @@ hash_line()
 	 if (last_line > 0) last_line++;
       }
       while( c_lineno > last_line && 
-             c_lineno < last_line+2 &&  /* XXX: Change to 10 */
+             (p_flag || c_lineno < last_line+4) &&
 	     last_line > 0 && 
 	    !debug_mode )
       {
 	 fputc('\n', ofd); last_line++;
       }
 
-      if( c_lineno != last_line || last_line <= 0 )
+      if( !p_flag && (c_lineno != last_line || last_line <= 0 ))
       {
 	 fprintf(ofd, "# %d", c_lineno);
 	 if( last_line <= 0 ) fprintf(ofd, " \"%s\"", c_fname);
-	 /* if( last_line > 0 ) fprintf(ofd, " // From line %d", last_line); */
 	 fprintf(ofd, "\n");
-	 strcpy(last_name, c_fname);
-	 last_line = c_lineno;
       }
+
+      strcpy(last_name, c_fname);
+      last_line = c_lineno;
    }
 }
 
@@ -288,12 +304,11 @@ print_toks_cpp()
       switch(i)
       {
       case '\n': 
-	 cwarn("Newline!?");
+	 cwarn("newline received from tokeniser!");
 	 break;
 
       case TK_STR:
-	 outpos += strlen(curword);
-	 fprintf(ofd, "%s", curword);
+	 outpos += fprintf(ofd, "%s", curword);
 	 break;
 
       case TK_COPY:
@@ -304,9 +319,10 @@ print_toks_cpp()
 
       case TK_FILE: sprintf(curword, "\"%s\"", c_fname); if(0) {
       case TK_LINE: sprintf(curword, "%d", c_lineno);
-      default: ; }
-
-	 if (!in_asm) {
+		    }
+		    /*FALLTHROUGH*/
+      default: 
+	 if (!alltok) {
 	    if(i == '}' || i == TK_CASE || i == TK_DEFAULT ) indent--;
 	    if(i ==')') paren--;
 
@@ -318,23 +334,15 @@ print_toks_cpp()
 	    if(i =='(') paren++;
 	 }
 
-	 fprintf(ofd, "%s", curword);
-	 outpos += strlen(curword);
+	 outpos += fprintf(ofd, "%s", curword);
 
-	 if ( i == '"' )
+	 if ( i == '"' || i == '\'' )
 	 {
 	    while((i=gettok()) == TK_STR) {
-	       outpos += strlen(curword);
-	       fprintf(ofd, "%s", curword);
+	       outpos += fprintf(ofd, "%s", curword);
 	    }
-	    if (i != '\n') {
-	       outpos += strlen(curword);
-	       fprintf(ofd, "%s", curword);
-	    } else {
-	       outpos++;
-	       fputc('"', ofd);
-	       cerror("Unterminated string");
-	    }
+	    if (i != '\n')
+	       outpos += fprintf(ofd, "%s", curword);
 	 }
 	 break;
       }
@@ -355,36 +363,133 @@ print_toks_raw()
       hash_line();
       switch(i)
       {
-      default:       fprintf(ofd, "%04x: '", i);
+      case '"': case '\'':
+		     if (debug_mode < 2) {
+			fprintf(ofd, "%-16s: %s", "Quoted string", curword);
+			while((i=gettok()) == TK_STR)
+			   outpos+= fprintf(ofd, "%s", curword);
+			if ( i == '\n' ) fprintf(ofd, " --> EOL!!\n");
+			else    outpos+= fprintf(ofd, "%s\n", curword);
+			break;
+		     }
+		     /*FALLTHROUGH*/
+      default:       fprintf(ofd, "%-16s: '", token_txn(i));
 		     {
 			char *p;
 			for(p=curword; *p; p++)
-			   if(isprint(*p) && *p != '\'')
+			   if(isprint(*p) && *p != '\'' && *p != '\\')
 			      fputc(*p, ofd);
+			   else if (*p == '\n') fprintf(ofd, "\\n");
+			   else if (*p == '\t') fprintf(ofd, "\\t");
+			   else if (*p == '\v') fprintf(ofd, "\\v");
+			   else if (*p == '\b') fprintf(ofd, "\\b");
+			   else if (*p == '\r') fprintf(ofd, "\\r");
+			   else if (*p == '\f') fprintf(ofd, "\\f");
+			   else if (*p == '\a') fprintf(ofd, "\\a");
 			   else
 			      fprintf(ofd, "\\x%02x", (unsigned char)*p);
 		     }
 		     fprintf(ofd, "'\n");
 		     break;
-      case '"':
-		     fprintf(ofd, "QSTR: \"");
-		     while((i=gettok()) == TK_STR) {
-			if (i == '\n')
-			   fprintf(ofd, "\\N");
-			else
-			   fputc(*curword, ofd), outpos++;
-		     }
-		     if ( i == '\n' ) fprintf(ofd, "\" --> No terminator\n");
-		     else             fprintf(ofd, "\"\n");
-		     break;
       case TK_NUM:
 		     val = strtoul(curword, (void*)0, 0);
-		     fprintf(ofd, "NUMB: %s => %ld\n", curword, val);
+		     fprintf(ofd, "%-16s: ", token_txn(i));
+		     fprintf(ofd, "%s => %ld\n", curword, val);
 		     break;
       case TK_COPY: 
-		     fprintf(ofd, "AMSG: #%s\n", curword);
+		     fprintf(ofd, "%-16s: ", token_txn(i));
+		     fprintf(ofd, "#%s\n", curword);
+		     break;
+      case '\n':
+		     fprintf(ofd, "%-16s:\n", "Newline char");
 		     break;
       }
    }
 }
 
+char *
+token_txn(token)
+int token;
+{
+   char * s = "UNKNOWN";
+   static char buf[17];
+
+   if (token> ' ' && token <= '~')
+   {
+      sprintf(buf, "TK_CHAR('%c')", token);
+      return buf;
+   }
+   if (token >= 0 && token < 0x100) 
+   {
+      sprintf(buf, "TK_CHAR(%d)", token);
+      return buf;
+   }
+
+   switch(token)
+   {
+   case TK_WSPACE       : s="TK_WSPACE"; break;
+   case TK_WORD         : s="TK_WORD"; break;
+   case TK_NUM          : s="TK_NUM"; break;
+   case TK_FLT          : s="TK_FLT"; break;
+   case TK_QUOT         : s="TK_QUOT"; break;
+   case TK_STR          : s="TK_STR"; break;
+   case TK_FILE         : s="TK_FILE"; break;
+   case TK_LINE         : s="TK_LINE"; break;
+   case TK_COPY         : s="TK_COPY"; break;
+   case TK_NE_OP        : s="TK_NE_OP"; break;
+   case TK_MOD_ASSIGN   : s="TK_MOD_ASSIGN"; break;
+   case TK_AND_OP       : s="TK_AND_OP"; break;
+   case TK_AND_ASSIGN   : s="TK_AND_ASSIGN"; break;
+   case TK_MUL_ASSIGN   : s="TK_MUL_ASSIGN"; break;
+   case TK_INC_OP       : s="TK_INC_OP"; break;
+   case TK_ADD_ASSIGN   : s="TK_ADD_ASSIGN"; break;
+   case TK_DEC_OP       : s="TK_DEC_OP"; break;
+   case TK_SUB_ASSIGN   : s="TK_SUB_ASSIGN"; break;
+   case TK_PTR_OP       : s="TK_PTR_OP"; break;
+   case TK_ELLIPSIS     : s="TK_ELLIPSIS"; break;
+   case TK_DIV_ASSIGN   : s="TK_DIV_ASSIGN"; break;
+   case TK_LEFT_OP      : s="TK_LEFT_OP"; break;
+   case TK_LEFT_ASSIGN  : s="TK_LEFT_ASSIGN"; break;
+   case TK_LE_OP        : s="TK_LE_OP"; break;
+   case TK_EQ_OP        : s="TK_EQ_OP"; break;
+   case TK_GE_OP        : s="TK_GE_OP"; break;
+   case TK_RIGHT_OP     : s="TK_RIGHT_OP"; break;
+   case TK_RIGHT_ASSIGN : s="TK_RIGHT_ASSIGN"; break;
+   case TK_XOR_ASSIGN   : s="TK_XOR_ASSIGN"; break;
+   case TK_OR_ASSIGN    : s="TK_OR_ASSIGN"; break;
+   case TK_OR_OP        : s="TK_OR_OP"; break;
+   case TK_AUTO         : s="TK_AUTO"; break;
+   case TK_BREAK        : s="TK_BREAK"; break;
+   case TK_CASE         : s="TK_CASE"; break;
+   case TK_CHAR         : s="TK_CHAR"; break;
+   case TK_CONST        : s="TK_CONST"; break;
+   case TK_CONTINUE     : s="TK_CONTINUE"; break;
+   case TK_DEFAULT      : s="TK_DEFAULT"; break;
+   case TK_DO           : s="TK_DO"; break;
+   case TK_DOUBLE       : s="TK_DOUBLE"; break;
+   case TK_ELSE         : s="TK_ELSE"; break;
+   case TK_ENUM         : s="TK_ENUM"; break;
+   case TK_EXTERN       : s="TK_EXTERN"; break;
+   case TK_FLOAT        : s="TK_FLOAT"; break;
+   case TK_FOR          : s="TK_FOR"; break;
+   case TK_GOTO         : s="TK_GOTO"; break;
+   case TK_IF           : s="TK_IF"; break;
+   case TK_INT          : s="TK_INT"; break;
+   case TK_LONG         : s="TK_LONG"; break;
+   case TK_REGISTER     : s="TK_REGISTER"; break;
+   case TK_RETURN       : s="TK_RETURN"; break;
+   case TK_SHORT        : s="TK_SHORT"; break;
+   case TK_SIGNED       : s="TK_SIGNED"; break;
+   case TK_SIZEOF       : s="TK_SIZEOF"; break;
+   case TK_STATIC       : s="TK_STATIC"; break;
+   case TK_STRUCT       : s="TK_STRUCT"; break;
+   case TK_SWITCH       : s="TK_SWITCH"; break;
+   case TK_TYPEDEF      : s="TK_TYPEDEF"; break;
+   case TK_UNION        : s="TK_UNION"; break;
+   case TK_UNSIGNED     : s="TK_UNSIGNED"; break;
+   case TK_VOID         : s="TK_VOID"; break;
+   case TK_VOLATILE     : s="TK_VOLATILE"; break;
+   case TK_WHILE        : s="TK_WHILE"; break;
+   }
+   return s;
+}

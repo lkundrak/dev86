@@ -16,8 +16,11 @@ extern FILE * curfile;
 extern char   curword[];
 extern char * c_fname;
 extern int    c_lineno;
-extern int    in_asm;
-extern int    ansi_c;
+extern int    alltok;
+extern int    dialect;
+
+#define DI_KNR	1
+#define DI_ANSI	2
 
 extern int gettok _P((void));
 
@@ -25,77 +28,78 @@ struct token_trans { char * name; int token; };
 struct token_trans * is_ctok _P((const char *str, unsigned int len));
 struct token_trans * is_ckey _P((const char *str, unsigned int len));
 
-#define WORDSIZE 128
-#define TK_WORD  256
-#define TK_NUM   257
-#define TK_FLT   258
-#define TK_QUOT  259
-#define TK_STR   260
-#define TK_FILE  261
-#define TK_LINE  262
-#define TK_COPY  263
+#define WORDSIZE	128
+#define TK_WSPACE	256
+#define TK_WORD 	257
+#define TK_NUM  	258
+#define TK_FLT  	259
+#define TK_QUOT 	260
+#define TK_STR  	261
+#define TK_FILE 	262
+#define TK_LINE 	263
+#define TK_COPY 	264
 
-#define TK_CTOK  0x200
-#define TK_CKEY  0x300
+#define TKS_CTOK  0x200
+#define TKS_CKEY  0x300
 
-#define TK_NE_OP	(TK_CTOK+ 0)
-#define TK_MOD_ASSIGN	(TK_CTOK+ 1)
-#define TK_AND_OP	(TK_CTOK+ 2)
-#define TK_AND_ASSIGN	(TK_CTOK+ 3)
-#define TK_MUL_ASSIGN	(TK_CTOK+ 4)
-#define TK_INC_OP	(TK_CTOK+ 5)
-#define TK_ADD_ASSIGN	(TK_CTOK+ 6)
-#define TK_DEC_OP	(TK_CTOK+ 7)
-#define TK_SUB_ASSIGN	(TK_CTOK+ 8)
-#define TK_PTR_OP	(TK_CTOK+ 9)
-#define TK_ELLIPSIS	(TK_CTOK+10)
-#define TK_DIV_ASSIGN	(TK_CTOK+11)
-#define TK_LEFT_OP	(TK_CTOK+12)
-#define TK_LEFT_ASSIGN	(TK_CTOK+13)
-#define TK_LE_OP	(TK_CTOK+14)
-#define TK_EQ_OP	(TK_CTOK+15)
-#define TK_GE_OP	(TK_CTOK+16)
-#define TK_RIGHT_OP	(TK_CTOK+17)
-#define TK_RIGHT_ASSIGN	(TK_CTOK+18)
-#define TK_XOR_ASSIGN	(TK_CTOK+19)
-#define TK_OR_ASSIGN	(TK_CTOK+20)
-#define TK_OR_OP	(TK_CTOK+21)
+#define TK_NE_OP	(TKS_CTOK+ 0)
+#define TK_MOD_ASSIGN	(TKS_CTOK+ 1)
+#define TK_AND_OP	(TKS_CTOK+ 2)
+#define TK_AND_ASSIGN	(TKS_CTOK+ 3)
+#define TK_MUL_ASSIGN	(TKS_CTOK+ 4)
+#define TK_INC_OP	(TKS_CTOK+ 5)
+#define TK_ADD_ASSIGN	(TKS_CTOK+ 6)
+#define TK_DEC_OP	(TKS_CTOK+ 7)
+#define TK_SUB_ASSIGN	(TKS_CTOK+ 8)
+#define TK_PTR_OP	(TKS_CTOK+ 9)
+#define TK_ELLIPSIS	(TKS_CTOK+10)
+#define TK_DIV_ASSIGN	(TKS_CTOK+11)
+#define TK_LEFT_OP	(TKS_CTOK+12)
+#define TK_LEFT_ASSIGN	(TKS_CTOK+13)
+#define TK_LE_OP	(TKS_CTOK+14)
+#define TK_EQ_OP	(TKS_CTOK+15)
+#define TK_GE_OP	(TKS_CTOK+16)
+#define TK_RIGHT_OP	(TKS_CTOK+17)
+#define TK_RIGHT_ASSIGN	(TKS_CTOK+18)
+#define TK_XOR_ASSIGN	(TKS_CTOK+19)
+#define TK_OR_ASSIGN	(TKS_CTOK+20)
+#define TK_OR_OP	(TKS_CTOK+21)
 
-#define TK_AUTO		(TK_CKEY+ 0)
-#define TK_BREAK	(TK_CKEY+ 1)
-#define TK_CASE		(TK_CKEY+ 2)
-#define TK_CHAR		(TK_CKEY+ 3)
-#define TK_CONST	(TK_CKEY+ 4)
-#define TK_CONTINUE	(TK_CKEY+ 5)
-#define TK_DEFAULT	(TK_CKEY+ 6)
-#define TK_DO		(TK_CKEY+ 7)
-#define TK_DOUBLE	(TK_CKEY+ 8)
-#define TK_ELSE		(TK_CKEY+ 9)
-#define TK_ENUM		(TK_CKEY+10)
-#define TK_EXTERN	(TK_CKEY+11)
-#define TK_FLOAT	(TK_CKEY+12)
-#define TK_FOR		(TK_CKEY+13)
-#define TK_GOTO		(TK_CKEY+14)
-#define TK_IF		(TK_CKEY+15)
-#define TK_INT		(TK_CKEY+16)
-#define TK_LONG		(TK_CKEY+17)
-#define TK_REGISTER	(TK_CKEY+18)
-#define TK_RETURN	(TK_CKEY+19)
-#define TK_SHORT	(TK_CKEY+20)
-#define TK_SIGNED	(TK_CKEY+21)
-#define TK_SIZEOF	(TK_CKEY+22)
-#define TK_STATIC	(TK_CKEY+23)
-#define TK_STRUCT	(TK_CKEY+24)
-#define TK_SWITCH	(TK_CKEY+25)
-#define TK_TYPEDEF	(TK_CKEY+26)
-#define TK_UNION	(TK_CKEY+27)
-#define TK_UNSIGNED	(TK_CKEY+28)
-#define TK_VOID		(TK_CKEY+29)
-#define TK_VOLATILE	(TK_CKEY+30)
-#define TK_WHILE	(TK_CKEY+31)
+#define TK_AUTO		(TKS_CKEY+ 0)
+#define TK_BREAK	(TKS_CKEY+ 1)
+#define TK_CASE		(TKS_CKEY+ 2)
+#define TK_CHAR		(TKS_CKEY+ 3)
+#define TK_CONST	(TKS_CKEY+ 4)
+#define TK_CONTINUE	(TKS_CKEY+ 5)
+#define TK_DEFAULT	(TKS_CKEY+ 6)
+#define TK_DO		(TKS_CKEY+ 7)
+#define TK_DOUBLE	(TKS_CKEY+ 8)
+#define TK_ELSE		(TKS_CKEY+ 9)
+#define TK_ENUM		(TKS_CKEY+10)
+#define TK_EXTERN	(TKS_CKEY+11)
+#define TK_FLOAT	(TKS_CKEY+12)
+#define TK_FOR		(TKS_CKEY+13)
+#define TK_GOTO		(TKS_CKEY+14)
+#define TK_IF		(TKS_CKEY+15)
+#define TK_INT		(TKS_CKEY+16)
+#define TK_LONG		(TKS_CKEY+17)
+#define TK_REGISTER	(TKS_CKEY+18)
+#define TK_RETURN	(TKS_CKEY+19)
+#define TK_SHORT	(TKS_CKEY+20)
+#define TK_SIGNED	(TKS_CKEY+21)
+#define TK_SIZEOF	(TKS_CKEY+22)
+#define TK_STATIC	(TKS_CKEY+23)
+#define TK_STRUCT	(TKS_CKEY+24)
+#define TK_SWITCH	(TKS_CKEY+25)
+#define TK_TYPEDEF	(TKS_CKEY+26)
+#define TK_UNION	(TKS_CKEY+27)
+#define TK_UNSIGNED	(TKS_CKEY+28)
+#define TK_VOID		(TKS_CKEY+29)
+#define TK_VOLATILE	(TKS_CKEY+30)
+#define TK_WHILE	(TKS_CKEY+31)
 
-#define MAX_INCLUDE 16	/* Nested includes */
-#define MAX_DEFINE  32	/* Nested defines */
+#define MAX_INCLUDE 64	/* Nested includes */
+#define MAX_DEFINE  64	/* Nested defines */
 
 extern char * set_entry _P((int,char*,void*));
 extern void * read_entry _P((int,char*));

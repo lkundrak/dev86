@@ -3,7 +3,7 @@
 #define __SYS_CDEFS_H
 #include <features.h>
 
-#if defined (__STDC__) && __STDC__
+#if __STDC__
 
 #define	__CONCAT(x,y)	x ## y
 #define	__STRING(x)	#x
