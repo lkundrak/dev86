@@ -9,6 +9,7 @@ LIBDIR=$(PREFIX)/lib
 MANDIR=$(PREFIX)/man/man1
 SUF=86
 
+INSTALL_OPT=-m 755
 INSTALL_OPTS=-m 755 -s
 MAN_OPTS    =-m 644
 
@@ -26,7 +27,7 @@ all:
 
 install: all
 	install $(INSTALL_OPTS) as/as86       $(BINDIR)/as$(SUF)
-	install $(INSTALL_OPTS) as/as86_encap $(BINDIR)/as$(SUF)_encap
+	install $(INSTALL_OPT)  as/as86_encap $(BINDIR)/as$(SUF)_encap
 	install $(INSTALL_OPTS) ld/ld86       $(BINDIR)/ld$(SUF)
 	install $(INSTALL_OPTS) ld/objdump86  $(BINDIR)/objdump$(SUF)
 	install $(MAN_OPTS)     man/*.1       $(MANDIR)

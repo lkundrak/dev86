@@ -70,50 +70,5 @@ Uninstall:
 	@# TO HERE
 
 distribution:
-	@[ `id -u` -eq 0 ] || fakeroot -- $(MAKE) do_dist
-	@[ `id -u` -ne 0 ] || $(MAKE) do_dist
-
-do_dist:
-	@rm -f /tmp/linux-86 || true
-	@[ ! -f Copy_dist ] || sh Copy_dist
-	mkdir -p -m 0777 /tmp/Dist
-	[ -d /tmp/linux-86 ] || ln -s `pwd` /tmp/linux-86
-	cd /tmp 							&&\
-	$(MAKE) -C linux-86 realclean					&&\
-	$(MAKE) -C linux-86/libc Libc_version				&&\
-	VER=`cat linux-86/Libc_version`					&&\
-	tar cf Dist/Dev86src-$$VER.tar linux-86/*
-	gzip -f9 /tmp/Dist/Dev86src-*.tar &
-
-	cd /tmp 							&&\
-	VER=`cat linux-86/Libc_version`					&&\
-	ln -s linux-86/as as86						&&\
-	cp -p linux-86/man/as86.1 as86/as86.1				&&\
-	cp -p linux-86/COPYING as86/COPYING				&&\
-	tar cf Dist/as86-$$VER.tar `find as86/* -prune -type f`		&&\
-	rm as86/as86.1 as86
-	gzip -f9 /tmp/Dist/as86-*.tar &
-
-	cd /tmp/linux-86						&&\
-	VER=`cat Libc_version`						&&\
-	make -C bin86 grab						&&\
-	tar cf /tmp/Dist/bin86-$$VER.tar bin86				&&\
-	make -C bin86 ungrab
-	gzip -f9 /tmp/Dist/bin86-*.tar &
-
-	cd /tmp 							&&\
-	VER=`cat linux-86/Libc_version`					&&\
-	$(MAKE) -C /tmp/linux-86 install 				\
-		ARFLAGS=q DIST=/tmp/linux-86-dist ELKSSRC=/dev/null	&&\
-	$(MAKE) -C /tmp/linux-86 other					&&\
-	tar cf /tmp/Dist/Dev86bin-$$VER.tar -C /tmp/linux-86-dist .	&&\
-	rm -f /tmp/Dist/Dev86clb-$$VER.zip Bcc				&&\
-	ln -s /tmp/linux-86 Bcc						&&\
-	zip -9rpk /tmp/Dist/Dev86clb-$$VER.zip \
-		Bcc/lib/crt0.o Bcc/lib/libc.a Bcc/lib/libbsd.a \
-		Bcc/lib/libdos.a Bcc/lib/libc_f.a Bcc/lib/libc_s.a \
-		Bcc/lib/i386/crt0.o Bcc/lib/i386/libc.a			&&\
-	rm Bcc
-
-	gzip -v9f /tmp/Dist/Dev86bin-*.tar
-	@rm /tmp/linux-86 || true
+	@[ `id -u` -eq 0 ] || fakeroot -- sh ./Mk_dist
+	@[ `id -u` -ne 0 ] || sh ./Mk_dist

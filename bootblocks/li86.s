@@ -3,7 +3,8 @@
 ! This is a skeleton for creating an impure Linux-8086 executable without
 ! using the linker. The .text and .data areas are correctly positioned.
 !
-! This file needs to be compiled using the 3 pass mode (-j)
+! This file needs to be compiled using the 3 pass mode (-O)
+! eg: as86 -O li86.s -s li86.sym -b li86.bin
 !
 !----------------------------------------------------------------------------
 .text

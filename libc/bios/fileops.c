@@ -11,9 +11,19 @@ static int op_close();
 static int op_read();
 static int op_write();
 static long op_lseek();
+static int fileops();
 
 int
-__fileops(cmd, fd, buf, len)
+open(name, flags, mode)
+char * name;
+int flags, mode;
+{
+   __files = fileops;
+   return (*__files)(CMD_OPEN, flags, name, mode);
+}
+
+static int
+fileops(cmd, fd, buf, len)
 int cmd, fd, len;
 char * buf;
 { 
@@ -48,7 +58,7 @@ char * buf;
    int amount_left_in_buffer;
    int amount_to_copy;
 
-   if (fd >= MAX_OPEN_FILES || _iob[fd].block_read == 0)
+   if (fd < 0 || fd >= MAX_OPEN_FILES || _iob[fd].block_read == 0)
    {
       errno = EBADF;
       return -1;
@@ -147,7 +157,7 @@ static int
 op_close(fd)
 int fd;
 {
-   if (fd >= MAX_OPEN_FILES || _iob[0].flags == 0)
+   if (fd < 0 || fd >= MAX_OPEN_FILES || _iob[0].flags == 0)
    {
       errno = EBADF;
       return -1;

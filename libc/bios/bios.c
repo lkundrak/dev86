@@ -211,21 +211,6 @@ int fd;
 
 /****************************************************************************/
 
-#ifdef L_bios_open
-extern int __fileops();
-
-open(name, flags, mode)
-char * name;
-int flags, mode;
-{
-   __files = __fileops;
-   return (*__files)(CMD_OPEN, flags, name, mode);
-}
-
-#endif
-
-/****************************************************************************/
-
 #endif
 #endif
 #endif

@@ -12,15 +12,17 @@ MONDEFS=
 # LST=-l $*.lst
 # CLST=-A-l -A$*.lst
 
-default: makeboot makeboot.com monitor.out minix_elks.bin
+default: makeboot makeboot.com monitor.out minix_elks.bin lsys.com
 
-all: default tgz bin  minix_elks.bin
+all: bootbin bootsys default tgz
+
+bootsys: bootfile.sys boottar.sys bootminix.sys
 
 CSRC=minix.c
 SSRC=sysboot.s tarboot.s skip.s com_bcc.s tich.s mbr.s msdos.s noboot.s
 
 encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v msdos16.v
-bin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin msdos16.bin
+bootbin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin msdos16.bin minix_elks.bin
 
 MOBJ=monitor.o commands.o i86_funcs.o relocate.o help.o bzimage.o \
      trk_buf.o min_buf.o unix.o fs.o fs_tar.o fs_min.o fs_dos.o cprintf.o
@@ -94,6 +96,7 @@ version.h:
 	sed 's/\(.*\)/#define VERSION "\1"/' > version.h
 
 clean realclean:
+	rm -f bootfile.sys boottar.sys bootminix.sys
 	rm -f monitor makeboot bootblocks.tar.gz
 	rm -f minix.s minixhd.s minix_elks.s version.h msdos16.s
 	rm -f *.com *.o *.bin *.out *.lst *.sym *.v *.tmp

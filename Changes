@@ -3,10 +3,22 @@ For version 0.16.0.
 > Seperated the multi-pass optimisation from the jump extension. We now have
   the -j back to it's old meaning and -O added to help shorten instructions.
 
-> Fix for nested conditionals.
+> Fix for nested conditionals in the assembler.
 
 > Fix for listing to unusual locations; assembler tried to list non-existant 
   lines.
+
+> Removed lots of warning from the ar86 code. (__STDC__ flags too)
+
+> Stop trying to strip scripts on install.
+
+> Remove non-working versions of malloc and stdio from libc directories.
+
+> Lots of changes in the 'bootblocks' example code.
+
+> Updated 'make distribution' to be all in the distribution.
+
+> bin86 Makefile adjusted so that the as86 script isn't installed with -s.
 
 For version 0.15.0.
 
