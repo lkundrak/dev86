@@ -188,6 +188,7 @@ PUBLIC void compound()		/* have just seen "{" */
 #endif
     spmark = sp;
     newlevel();
+    expect_statement++;
     decllist();
     softsp &= alignmask;
     if (sym != RBRACE)		/* no need for locals if empty compound */
@@ -195,6 +196,7 @@ PUBLIC void compound()		/* have just seen "{" */
     returnflag = FALSE;
     while (sym != RBRACE && sym != EOFSYM)
 	statement();
+    expect_statement--;
     oldlevel();
     if (!returnflag)
     {
@@ -233,17 +235,27 @@ PUBLIC void compound()		/* have just seen "{" */
 
 PRIVATE void doasm()
 {
-    lparen();
+    if (sym == LPAREN) nextsym();
     if (sym!=STRINGCONST)
     	error("string const expected");
     else {
-	nextsym();
-	constant.value.s[charptr-constant.value.s]='\0';
 	outnstr("!BCC_ASM");
-	outbyte('\t');
-	outnstr(constant.value.s);
+	for(;;) 
+	{
+	    constant.value.s[charptr-constant.value.s]='\0';
+	    outbyte('\t');
+	    outnstr(constant.value.s);
+	    /* XXX: Need to investigate: wasting memory?
+	     *
+	     * charptr = constant.value.s;
+	     */
+
+	    nextsym();
+	    if (sym == COMMA) nextsym();
+	    if (sym!=STRINGCONST) break;
+	}
 	outnstr("!BCC_ENDASM");
-	rparen();
+        if (sym == RPAREN) nextsym();
 	semicolon();
     }
 }
@@ -717,6 +729,10 @@ more:
     case IFSYM:
 	nextsym();
 	doif();
+	break;
+    case ELSESYM:
+	error("unexpected else");
+	nextsym();
 	break;
     case WHILESYM:
 	nextsym();

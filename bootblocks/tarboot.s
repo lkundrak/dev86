@@ -463,28 +463,20 @@ bad_rt: xor ah,ah
 
 if DEBUG
 pboot:
-  mov	si,#mesg
+  mov	si,#blk_load
 nextc:
   lodsb
   call	putc
   cmp	al,#0
   jnz	nextc
   ret
-
-locn(512-16)
-mesg:
-.ascii	"Tarboot loading "
 endif
 
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-! This isn't a hard disk boot sector so don't give it an HD magic
-! locn(510)
-!  .word 0xAA55
-if DEBUG = 0
+! This isn't a hard disk boot sector but give it an HD magic anyway.
 locn(510)
-  .word	0
-endif
+  .word 0xAA55
 
 ! From here down is where we load stuff.
 locn(512)

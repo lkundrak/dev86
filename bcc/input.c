@@ -509,6 +509,7 @@ char *argv[];
 #endif
 	    case 't':		/* print source code in asm output */
 	    case 'w':		/* watch location counter */
+	    case 'O':		/* Optimisation. */
 		if (arg[2] == 0)
 		    flag[(int)arg[1]] = TRUE;
 		else if (arg[2] == '-' && arg[3] == 0)
@@ -597,6 +598,11 @@ ts_s_includelist += sizeof *incnew;
 	definestring("__POS_INDEPENDENT__");
     }
 #endif
+    if (flag['O'])
+    {
+	optimise = TRUE;
+	definestring("__OPTIMISED__");
+    }
 #ifdef NOFLOAT
     definestring("__HAS_NO_FLOATS__");
 #endif

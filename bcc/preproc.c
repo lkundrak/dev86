@@ -68,8 +68,11 @@ PRIVATE void asmcontrol()
 #endif
 
     asmmode = TRUE;
+    if (expect_statement)
+       return;
+
     if (orig_cppmode)
-	outstr("#asm\n");
+	outnstr("#asm");
     else
     {
 	outnstr("!BCC_ASM");
@@ -126,9 +129,9 @@ PRIVATE void asmcontrol()
     }
 #endif
     if (orig_cppmode)
-	outstr("#endasm");	/* nl is done by skipeol */
+	outnstr("#endasm");
     else
-	outstr("!BCC_ENDASM\n");
+	outnstr("!BCC_ENDASM");
 }
 
 /* blanksident() - return nonzero if at blanks followed by an identifier */
@@ -158,6 +161,13 @@ PRIVATE void control()
     char sname[NAMESIZE + 1];
     sym_t ctlcase;
     struct symstruct *symptr;
+    if (ctext && asmmode)
+    {
+        comment();
+        outudec(input.linenumber);
+        outbyte(' ');
+        outline(lineptr);
+    }
 
     sname[0] = '#';		/* prepare for bad control */
     sname[1] = 0;
@@ -188,7 +198,13 @@ PRIVATE void control()
     switch (ctlcase)
     {
     case ASMCNTL:
-	asmcontrol();
+        if (asmmode) 
+	{
+	   if (ifstate.ifflag)
+	      error(" bad control");
+	}
+	else
+	   asmcontrol();
 	break;
     case DEFINECNTL:
 	define();
@@ -197,6 +213,11 @@ PRIVATE void control()
 	elsecontrol();
 	break;
     case ENDASMCNTL:
+        if (!asmmode) 
+	{
+	   if (ifstate.ifflag)
+	      error(" bad control");
+	}
 	asmmode = FALSE;
 	break;
     case ENDIFCNTL:

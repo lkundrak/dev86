@@ -409,7 +409,7 @@ FORWARD void getimmed P((struct ea_s *eap, count_t immed_count));
 FORWARD void getindirect P((struct ea_s *eap));
 FORWARD void getshift P((struct ea_s *eap));
 FORWARD reg_pt indregchk P((reg_pt matchreg));
-FORWARD void kgerror P((error_pt errnum));
+FORWARD void kgerror P((char * err_str));
 FORWARD void lbranch P((int backamount));
 FORWARD void notbytesize P((struct ea_s *eap));
 FORWARD void notimmed P((struct ea_s *eap));
@@ -1050,10 +1050,10 @@ reg_pt matchreg;
     return reg;
 }
 
-PRIVATE void kgerror(errnum)
-error_pt errnum;
+PRIVATE void kgerror(err_str)
+char * err_str;
 {
-    error(errnum);
+    error(err_str);
     sprefix = oprefix = aprefix = mcount = 0x0;
 }
 
@@ -1071,7 +1071,7 @@ int backamount;
 	    if ( last_pass<2 && backamount != 0x0 && 
 	        !(lastexp.data & IMPBIT) &&
 		lastexp.offset + backamount < 0x80 + backamount)
-		error(SHORTB);	/* -0x8? to 0x7F, warning */
+		warning(SHORTB);	/* -0x8? to 0x7F, warning */
 	}
     }
 }
@@ -2427,7 +2427,7 @@ FORWARD void doaltind P((void));
 FORWARD void do1altind P((void));
 FORWARD void fixupind P((void));
 FORWARD void getindexnopost P((void));
-FORWARD void inderror P((error_pt errnum));
+FORWARD void inderror P((char * err_str));
 FORWARD reg_pt indreg P((reg_pt maxindex));
 FORWARD void predec1 P((void));
 FORWARD void sustack P((reg_pt stackreg));
@@ -2617,8 +2617,8 @@ PRIVATE void do1altind()
 	inderror(ILLMOD);	/* e.g. LEAX	 $10 */
     else
     {
-	if (byteflag || !wordflag && !(lastexp.data & (FORBIT | RELBIT)) &&
-	    (lastexp.offset >> 0x8) == dirpag)
+	if (byteflag || (!wordflag && !(lastexp.data & (FORBIT | RELBIT)) &&
+	    (lastexp.offset >> 0x8) == dirpag))
 	{			/* direct addressing */
 	    if (opcode >= 0x80)
 		opcode |= 0x10;
@@ -2634,7 +2634,7 @@ PRIVATE void do1altind()
 		!(lastexp.data & IMPBIT) &&
 		lastexp.offset + (0x81 - 0x3) < 0x101)
 				/* JSR or JMP could be done with BSR or BRA */
-		error(SHORTB);
+		warning(SHORTB);
 	}
     }
 }
@@ -2657,10 +2657,10 @@ PRIVATE void getindexnopost()
 	fixupind();
 }
 
-PRIVATE void inderror(errnum)
-error_pt errnum;
+PRIVATE void inderror(err_str)
+char * err_str;
 {
-    error(errnum);
+    error(err_str);
     if (postb & INDIRECTBIT)
 	sym = RBRACKET;		/* fake right bracket to kill further errors */
     fixupind();
@@ -2754,7 +2754,7 @@ PUBLIC void mlong()
 	    lastexp.offset = lastexp.offset - lc - lcjump;
 	    if ( last_pass<2 && !(lastexp.data & IMPBIT) &&
 		lastexp.offset + 0x81 < 0x101)
-		error(SHORTB);	/* -0x81 to 0x7F, warning */
+		warning(SHORTB);	/* -0x81 to 0x7F, warning */
 	}
     }
 }

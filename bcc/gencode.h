@@ -52,6 +52,7 @@ EXTERN bool_t stackarg;		/* nonzero to show function has arg on stack */
 #endif
 EXTERN struct switchstruct *switchnow;	/* currently active switch */
 				/* depends on NULL init */
+EXTERN bool_t optimise;		/* nonzero to add optimisation code */
 
 /* variables to be initialised to nonzero */
 

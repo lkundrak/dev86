@@ -17,7 +17,7 @@
 
 struct error_s			/* to record error info */
 {
-    unsigned char errnum;
+    char * err_str;
     unsigned char position;
 };
 
@@ -131,36 +131,39 @@ register char *where;
 
 /* record number and position of error (or error buffer overflow) */
 
-PUBLIC void error(errnum)
-error_pt errnum;
+PUBLIC void warning(err_str)
+char * err_str;
+{
+    if (!as_warn.current) return;
+    ++totwarn;
+    --toterr;
+    error(err_str);
+}
+
+PUBLIC void error(err_str)
+char * err_str;
 {
     register struct error_s *errptr;
     register struct error_s *errptrlow;
     unsigned char position;
 
-    if ((unsigned) errnum < MINWARN || as_warn.current)
+    if (errcount >= MAXERR)
+	erroverflow = TRUE;
+    else
     {
-	if (errcount >= MAXERR)
-	    erroverflow = TRUE;
-	else
+	position = symname - linebuf;
+	for (errptr = errbuf + errcount;
+	     errptr > errbuf && errptr->position > position;
+	     errptr = errptrlow)
 	{
-	    position = symname - linebuf;
-	    for (errptr = errbuf + errcount;
-		 errptr > errbuf && errptr->position > position;
-		 errptr = errptrlow)
-	    {
-		errptrlow = errptr - 1;
-		errptr->errnum = errptrlow->errnum;
-		errptr->position = errptrlow->position;
-	    }
-	    errptr->errnum = errnum;
-	    errptr->position = position;
-	    ++errcount;
-	    if ((unsigned)errnum >= MINWARN)
-		++totwarn;
-	    else
-		++toterr;
+	    errptrlow = errptr - 1;
+	    errptr->err_str = errptrlow->err_str;
+	    errptr->position = errptrlow->position;
 	}
+	errptr->err_str = err_str;
+	errptr->position = position;
+	++errcount;
+	++toterr;
     }
 }
 
@@ -208,7 +211,7 @@ PRIVATE void listcode()
     unsigned numlength;
     char *numptr;
 
-    listptr = (struct code_listing_s *) heapptr;
+    listptr = (struct code_listing_s *) temp_buf();
     memset((char *) listptr, ' ', sizeof *listptr);
     listptr->nullterm = 0;
     if (macflag)
@@ -354,7 +357,7 @@ PRIVATE void listerrors()
 	{
 	    writenl(); paderrorline(1);
 	}
-	writes(errmsg = build_error_message(errptr->errnum, heapptr));
+	writes(errmsg = errptr->err_str);
 	errcol = strlen(errmsg)+LINUM_LEN+1;
 	column = 0; linep = linebuf;
         errcolw = CODE_LIST_LENGTH;
@@ -390,7 +393,7 @@ PRIVATE void listerrors()
 	    paderrorline((unsigned) errcolw - LINUM_LEN);
 	}
 	writec('^');
-	writes(errmsg = build_error_message(errptr->errnum, heapptr));
+	writes(errmsg = errptr->err_str);
 	errcol += strlen(errmsg);
 #endif
 	++errptr;
@@ -404,7 +407,7 @@ PRIVATE void listerrors()
 #else
 	paderrorline(CODE_LIST_LENGTH - LINUM_LEN);
 #endif
-	writesn(build_error_message(FURTHER, heapptr));
+	writesn(FURTHER);
     }
 }
 

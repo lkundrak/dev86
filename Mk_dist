@@ -13,9 +13,8 @@ TMPSRC=linux86
 ARCDIR="$DIR"/dev86arc
 
 SRCDIRS='bcc unproto as ar ld copt man elksemu dis88 tests libbsd bin86'
-DISTFILES='Libc_version Makefile README COPYING MAGIC Changes Contributors
-           mkcompile mkcompile2 later.c GNUmakefile libcompat
-	   ifdef.c makefile.in Mk_dist'
+DISTFILES='Libc_version Makefile README COPYING Changes Contributors
+           mkcompile GNUmakefile libcompat ifdef.c makefile.in Mk_dist'
 
 TMPDIST=$TMPDIR/$TMPSRC
 rm -rf ${TMPDIR}

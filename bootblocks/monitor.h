@@ -59,7 +59,7 @@ extern union REGS __argr;
 
 #ifdef __STANDALONE__
 #undef  putchar
-#define putchar   cputchar
+#define putchar   putch
 #define printf    cprintf
 #define fflush(x)
 #endif

@@ -39,7 +39,7 @@ WALL  =-Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
 WALL  =-Wstrict-prototypes
 
 CC	=gcc
-CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O6 -g
+CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O2 -g
 #endif
 
 #ifndef GNUMAKE
@@ -324,10 +324,10 @@ install-other:
 		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) install || exit 1 ; \
 	done
 
-other: $(OTHERS)
-
-$(OTHERS):
-	$(MAKEC) $@ BCC=ncc
+other:
+	@for i in $(OTHERS) ; do \
+		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) || exit 1; \
+	done
 
 clean:
 	-@for i in $(CLEANLIST) ; do $(MAKEC) $$i $@ ; true ; done

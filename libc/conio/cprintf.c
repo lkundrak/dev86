@@ -1,16 +1,9 @@
-
 #include <stdarg.h>
+#include <conio.h>
 
 static unsigned char * __numout(long i, int base);
 
-cputchar(ch)
-int ch;
-{
-   if(ch == '\n') bios_putc('\r');
-   return bios_putc(ch);
-}
-
-cprintf(char * fmt, ...)
+int cprintf(char * fmt, ...)
 {
    register int c;
    int count = 0;
@@ -27,7 +20,7 @@ cprintf(char * fmt, ...)
    {
       count++;
       if(c!='%')
-	 cputchar(c);
+	 putch(c);
       else
       {
 	 type=1;
@@ -52,7 +45,7 @@ cprintf(char * fmt, ...)
 
 	 if( padch == '-' ) minsize = -minsize;
 	 else
-	 if( padch == '0' ) padch='0'; else padch=' ';
+	 if( padch != '0' ) padch=' ';
 
 	 if( c == 0 ) break;
 	 if(c=='h')
@@ -71,7 +64,7 @@ cprintf(char * fmt, ...)
 	    case 'x': base=16; type |= 4;   if(0) {
 	    case 'o': base= 8; type |= 4; } if(0) {
 	    case 'u': base=10; type |= 4; } if(0) {
-	    case 'd': base=10; }
+	    case 'd': base=-10; }
 	       switch(type)
 	       {
 		  case 0: val=va_arg(ap, short); break; 
@@ -93,22 +86,22 @@ cprintf(char * fmt, ...)
 	       if( minsize > 0 )
 	       {
 		  minsize -= c;
-		  while(minsize>0) { cputchar(padch); count++; minsize--; }
+		  while(minsize>0) { putch(padch); count++; minsize--; }
 		  minsize=0;
 	       }
 	       if( minsize < 0 ) minsize= -minsize-c;
 	       while(*cp && maxsize-->0 )
 	       {
-		  cputchar(*cp++);
+		  putch(*cp++);
 		  count++;
 	       }
-	       while(minsize>0) { cputchar(' '); count++; minsize--; }
+	       while(minsize>0) { putch(' '); count++; minsize--; }
 	       break;
 	    case 'c':
-	       cputchar(va_arg(ap, int));
+	       putch(va_arg(ap, int));
 	       break;
 	    default:
-	       cputchar(c);
+	       putch(c);
 	       break;
 	 }
       }
@@ -119,32 +112,110 @@ cprintf(char * fmt, ...)
 
 static char nstring[]="0123456789ABCDEF";
 
+#ifndef __AS386_16__
+#define NUMLTH 11
+
 static unsigned char *
 __numout(long i, int base)
 {
-   static unsigned char out[16];
+   static unsigned char out[NUMLTH+1];
    int n;
    int flg = 0;
    unsigned long val;
 
-   if (i<0 && base==10)
+   if (base<0)
    {
-      flg = 1;
-      i = -i;
+      base = -base;
+      if (i<0)
+      {
+	 flg = 1;
+	 i = -i;
+      }
    }
    val = i;
 
-   for (n = 0; n < 15; n++)
-      out[n] = ' ';
-   out[15] = '\0';
-   n = 14;
+   out[NUMLTH] = '\0';
+   n = NUMLTH-1;
    do
    {
-      out[n] = nstring[val % base];
-      n--;
+      out[n--] = nstring[val % base];
       val /= base;
    }
    while(val);
    if(flg) out[n--] = '-';
    return &out[n+1];
 }
+
+#else
+
+#asm
+! numout.s
+!
+.bss
+___out	lcomm	$C
+
+.text
+___numout:
+push	bp
+mov	bp,sp
+push	di
+push	si
+add	sp,*-4
+mov	byte ptr -8[bp],*$0	! flg = 0
+mov	si,4[bp]	; i or val.lo
+mov	di,6[bp]	; i or val.hi
+mov	cx,8[bp]	; base
+test	cx,cx			! base < 0 ?
+jge 	.3num
+neg  cx				! base = -base
+or	di,di			! i < 0 ?
+jns	.5num
+mov	byte ptr -8[bp],*1	! flg = 1
+neg	di			! i = -i
+neg	si
+sbb	di,0
+.5num:
+.3num:
+mov	byte ptr [___out+$B],*$0	! out[11] = nul
+mov	-6[bp],*$A		! n = 10
+
+.9num:
+!!!         out[n--] = nstring[val % base];
+xor  dx,dx
+xchg ax,di
+div  cx
+xchg ax,di
+xchg ax,si
+div  cx
+xchg ax,si			! val(new) = val / base
+
+mov  bx,dx			! dx = val % base
+
+mov	al,_nstring[bx]
+mov	bx,-6[bp]
+dec	word ptr -6[bp]
+mov	___out[bx],al
+
+mov  ax,si
+or   ax,di			! while (val)
+jne	.9num
+
+cmp	byte ptr -8[bp],*$0	! flg == 0 ?
+je  	.Dnum
+
+mov	bx,-6[bp]
+dec	word ptr -6[bp]
+mov	byte ptr ___out[bx],*$2D	! out[n--] = minus
+
+.Dnum:
+mov	ax,-6[bp]
+add	ax,#___out+1
+
+add	sp,*4
+pop	si
+pop	di
+pop	bp
+ret
+#endasm
+
+#endif

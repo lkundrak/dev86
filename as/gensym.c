@@ -29,35 +29,34 @@ PUBLIC void gensym()
 #ifdef BINSYM
     unsigned label_stringptr;	/* offset of label str from start of file */
 #endif
+    int symcount = 0;
 
     labels_length = label_count = 0;
 
     /* make copy of all relavant symbol ptrs on heap */
     /* original ptrs can now be modified, but need to be an array for sort */
 
-    align(heapptr);
-    for (hashptr = spt, symlptr = copyptr = (struct sym_s **) heapptr;
-	 hashptr < spt_top;)
+    for (hashptr = spt; hashptr < spt_top;)
+	if ((symptr = *hashptr++) != NUL_PTR)
+	    do
+		if (!(symptr->type & (MACBIT | MNREGBIT | VARBIT)))
+		   symcount++;
+	    while ((symptr = symptr->next) != NUL_PTR);
+    symlptr = copyptr = asalloc( sizeof(struct sym_s *) * symcount);
+
+    for (hashptr = spt; hashptr < spt_top;)
 	if ((symptr = *hashptr++) != NUL_PTR)
 	    do
 		if (!(symptr->type & (MACBIT | MNREGBIT | VARBIT)))
 		{
-		    if (copyptr >= (struct sym_s **) heapend)
-		    {
-			heapptr = (char *) copyptr;
-			error(SYMOUTOV);	/* avoid recursive fatalerror */
-			listline();	/* the main job is OK if here */
-			goto sort_symbols;
-		    }
 		    *copyptr++ = symptr;
 		    ++label_count;
 		    labels_length += symptr->length + 3; /* 3 for type, value */
 		}
 	    while ((symptr = symptr->next) != NUL_PTR);
 
-sort_symbols:
     sort(symlptr, copyptr, TRUE);	/* sort on name */
-    heapptr = (char *) (copytop = copyptr);
+    copytop = copyptr;
     if (list.global)
     {
 	outfd = lstfil;
@@ -147,7 +146,7 @@ unsigned column;
     char *outname;
     char *symname;
 
-    listptr = (struct sym_listing_s *) heapptr;
+    listptr = (struct sym_listing_s *) temp_buf();
     memset((char *) listptr, ' ', SYMLIS_LEN);
     listptr->nullterm = 0;
     if ((length = symptr->length) > SYMLIS_NAMELEN)

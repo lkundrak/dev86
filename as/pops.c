@@ -420,10 +420,10 @@ pfv func;
     }
 }
 
-PUBLIC void fatalerror(errnum)
-error_pt errnum;
+PUBLIC void fatalerror(err_str)
+char * err_str;
 {
-    error(errnum);
+    error(err_str);
     skipline();
     listline();
     finishup();
@@ -432,8 +432,8 @@ error_pt errnum;
 /* swap position with label position, do error, put back posn */
 /* also clear label ptr */
 
-PUBLIC void labelerror(errnum)
-error_pt errnum;
+PUBLIC void labelerror(err_str)
+char * err_str;
 {
     struct sym_s *oldgsymptr;
     char *oldlineptr;
@@ -447,7 +447,7 @@ error_pt errnum;
     lineptr = linebuf;
     getsym();			/* 1st symbol is label or symbol after
 				 * missing one */
-    error(errnum);
+    error(err_str);
     gsymptr = oldgsymptr;
     lineptr = oldlineptr;
     sym = oldsym;

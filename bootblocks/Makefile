@@ -25,9 +25,9 @@ encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v msdos16.v
 bootbin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin msdos16.bin minix_elks.bin
 
 MOBJ=monitor.o commands.o i86_funcs.o relocate.o help.o bzimage.o \
-     trk_buf.o min_buf.o unix.o fs.o fs_tar.o fs_min.o fs_dos.o cprintf.o
+     trk_buf.o min_buf.o unix.o fs.o fs_tar.o fs_min.o fs_dos.o
 MSRC=monitor.c commands.c i86_funcs.c relocate.c help.c bzimage.c \
-     trk_buf.c min_buf.c unix.c fs.c fs_tar.c fs_min.c fs_dos.c cprintf.c
+     trk_buf.c min_buf.c unix.c fs.c fs_tar.c fs_min.c fs_dos.c
 MINC=i86_funcs.h readfs.h monitor.h
 
 BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v msdos16.v \
@@ -46,19 +46,19 @@ fs_min.o: minix.h
 
 bootfile.sys: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DDOSFLOPPY -i-' monitor.out
+	make 'CFLAGS=$(CFLAGS) -DDOSFLOPPY -i' monitor.out
 	mv monitor.out bootfile.sys
 	@rm -f $(MOBJ)
 
 boottar.sys: $(MSRC) $(MINC) tarboot.bin
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DTARFLOPPY -i-' monitor.out
+	make 'CFLAGS=$(CFLAGS) -DTARFLOPPY -i' monitor.out
 	mv monitor.out boottar.sys
 	@rm -f $(MOBJ)
 
 bootminix.sys: $(MSRC) $(MINC) tarboot.bin
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DMINFLOPPY -i-' monitor.out
+	make 'CFLAGS=$(CFLAGS) -DMINFLOPPY -i' monitor.out
 	mv monitor.out bootminix.sys
 	@rm -f $(MOBJ)
 

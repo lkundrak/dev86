@@ -33,12 +33,22 @@ loop_save:
   .text
 export ___cstartup	! Crt0 startup
 ___cstartup:
-  mov	___argr+0,ax
-  mov	___argr+2,bx
-  mov	___argr+4,cx
-  mov	___argr+6,dx
-  mov	___argr+8,si
-  mov	___argr+10,di
+  cli
+  mov	sp,cs
+  add   sp,#__segoff
+  mov	ds,sp
+  mov	ss,sp
+  mov	sp,#___argr+12
+  push	di
+  push	si
+  push	dx
+  push	cx
+  push	bx
+  push	ax
+  xor	bp,bp
+  mov	sp,bp
+  push	bp
+  sti
 
 zap_bss:		! Clear the BSS
   mov	ax,ds

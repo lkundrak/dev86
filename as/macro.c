@@ -38,9 +38,12 @@ struct sym_s *symptr;
 	macpar = (struct schain_s *) (stringptr + 1);
 				/* TODO: alignment */
 	getsym();
-	if (sym != LPAREN)
+	if (sym == EOLSYM)
 	    return;		/* no other params */
-	reglineptr = lineptr;
+	if (sym != LPAREN)
+	    reglineptr = symname;
+	else
+	    reglineptr = lineptr;
 	stringptr = macpar->string;
 	while (TRUE)
 	{
@@ -51,10 +54,11 @@ struct sym_s *symptr;
 		return;
 	    }
 	    ch = *reglineptr++;
-	    if (ch == '/')
+	    if (ch == '\\')
 		/* escaped means no special meaning for slash, comma, paren */
 		ch = *reglineptr++;
-	    else if (ch == ',' || ch == ')')
+	    else if (ch == ',' || ch == ')' || ch == '!' || ch == ';' 
+		  || ch == '\n' || ch == 0)
 	    {
 		if (stringptr >= (char *) macptop)
 		{
@@ -69,7 +73,7 @@ struct sym_s *symptr;
 		macpar = (struct schain_s *) (stringptr + 1);
 					/* but is finished OK - TODO align */
 		stringptr = macpar->string;
-		if (ch == ')')
+		if (ch != ',')
 		    return;
 		continue;
 	    }
@@ -90,6 +94,9 @@ PUBLIC void pmacro()
     bool_t saving;
     bool_t savingc;
     struct sym_s *symptr=0;
+    int    maclen = 8;
+    int    macoff = 0;
+    char * macbuf = asalloc(8);
 
     saving =			/* prepare for bad macro */
 	savingc = FALSE;	/* normally don't save comments */
@@ -114,9 +121,7 @@ PUBLIC void pmacro()
 	    else
 		symptr->type |= MACBIT;
 	    symptr->data = UNDBIT;	/* undefined till end */
-	    symptr->value_reg_or_op.value = (offset_t) heapptr;
-					/* beginning of store for macro */
-					/* value s.b. (char *) */
+	    symptr->value_reg_or_op.value = (offset_t) macbuf;
 	    getsym_nolookup();		/* test for "C" */
 	    if (sym == IDENT && lineptr == symname + 1 && *symname == 'C')
 		savingc = TRUE;
@@ -147,27 +152,24 @@ PUBLIC void pmacro()
 	if (!saving)
 	    continue;
 	{
-	    register char *reglineptr;
-	    register char *regheapptr;
+	    char * p = strchr(linebuf, EOLCHAR);
+	    int len = (p-linebuf+1);
 
-	    reglineptr = linebuf;
-	    regheapptr = heapptr;
-	    do
+	    if ( macoff + len > maclen-4 )
 	    {
-		if (regheapptr >= heapend)
-		{
-		    heapptr = regheapptr;
-		    fatalerror(SYMOV);	/* won't fit */
-		}
+	        maclen = maclen * 2 + len;
+	        macbuf = asrealloc(macbuf, maclen);
 	    }
-	    while ((*regheapptr++ = *reglineptr++) != EOLCHAR);
-	    heapptr = regheapptr;
+	    memcpy(macbuf+macoff, linebuf, len);
+	    macoff += len;
+
 	}
     }
     macload = FALSE;
     if (saving)
     {
-	*heapptr++ = ETB;
+	macbuf[macoff] = ETB;
+        symptr->value_reg_or_op.value = (offset_t) macbuf;
 	symptr->data = 0;
     }
 }

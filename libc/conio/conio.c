@@ -3,11 +3,17 @@
  * under the GNU Library General Public License.
  */
 
+#include <conio.h>
+
 /* 
  * I'm not sure if these should be BIOS or dos calls, so I'll assume they're
  * BIOS calls but I may have to do something about Ctrl-C.
+ *
+ * These functions are also compiled for __STANDALONE__ so if ^C or DOS
+ * versions are made this will have to be addressed.
  */
 
+#ifdef L_getch
 getch()
 {
 #asm
@@ -15,14 +21,18 @@ getch()
   int   $16
 #endasm
 }
+#endif
 
+#ifdef L_getche
 getche()
 {
    int i = getch();
-   if( i & 0xFF) putch(i);
+   if( i & 0xFF ) putch(i);
    return i;
 }
+#endif
 
+#ifdef L_kbhit
 kbhit()
 {
 #asm
@@ -38,7 +48,9 @@ nokey:
   xor   ax,ax
 #endasm
 }
+#endif
 
+#ifdef L_putch
 putch()
 {
 #asm
@@ -46,25 +58,31 @@ putch()
   mov   bx,sp
   mov   ax,[bx+2]
 #endif
+  cmp	al,#$0A
+  jne	not_nl
+  mov	ax,#$0E0D
+  mov   bx,#7
+  int   $10
+  mov	al,#$0A
+not_nl:
   mov   ah,#$0E
   mov   bx,#7
   int   $10
 #endasm
 }
+#endif
 
+#ifdef L_cputs
 cputs(str)
 char * str;
 {
    while(*str) putch(*str++);
 }
+#endif
 
 #if 0
 
 cgets()
-{
-}
-
-cprintf()
 {
 }
 

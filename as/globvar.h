@@ -35,8 +35,6 @@ EXTERN char *linebuf;		/* buffer */
 
 /* for symbol table routines */
 
-EXTERN char *heapend;		/* end of free space for symbol list */
-EXTERN char *heapptr;		/* next free space in symbol list */
 EXTERN unsigned char inidata;	/* init sym entry data governed by "u" flag */
 EXTERN struct sym_s **spt;	/* symbol pointer table */
 EXTERN struct sym_s **spt_top;	/* top of symbol ptr table */
@@ -112,7 +110,7 @@ extern char hexdigit[];
 #ifdef I80386
 #ifndef __AS386_16__
 #define iscpu(x) (cpuid>=(x))
-#define needcpu(x) do{ if(cpuid<(x)) {error(CPUCLASH); cpuid|=0x10;} }while(0)
+#define needcpu(x) do{ if(cpuid<(x)) {warning(CPUCLASH); cpuid|=0x10;} }while(0)
 #define setcpu(x) (cpuid=(x))
 #define cpuwarn() (cpuid&=0xF)
 #endif

@@ -138,9 +138,12 @@ char *name;
 	   for(;;)
 	   {
 	       if( filelength >= memsize )
-		   mem_start = realloc(mem_start, (memsize+=16000)+4);
-	       if(mem_start == 0)
-	           as_abort("Cannot allocate memory for BIG buffer");
+	       {
+		   if (memsize > 16000)
+		       mem_start = asrealloc(mem_start, (memsize+=16384)+4);
+		   else
+		       mem_start = asrealloc(mem_start, (memsize+=memsize+32)+4);
+	       }
 	       cc = read(fd, mem_start+filelength,
 	                     (size_t)(memsize-filelength));
 	       if( cc <= 0 ) break;

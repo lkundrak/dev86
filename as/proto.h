@@ -10,9 +10,6 @@ void line_zero P((void));
 /* assemble.c */
 void assemble P((void));
 
-/* error.c */
-char *build_error_message P((error_pt errnum, char *buf));
-
 /* express.c */
 void absexpres P((void));
 void chkabs P((void));
@@ -34,7 +31,8 @@ void putbin P((int ch));
 /* genlist.c */
 char *build_2hex_number P((unsigned num, char *where));
 char *build_number P((unsigned num, unsigned width, char *where));
-void error P((error_pt errnum));
+void warning P((char * errorstr));
+void error P((char * errorstr));
 void listline P((void));
 void writec P((int ch));
 void writenl P((void));
@@ -139,8 +137,8 @@ void mshort P((void));
 bool_pt checksegrel P((struct sym_s *symptr));
 void checkdatabounds P((void));
 void datatoobig P((void));
-void fatalerror P((error_pt errnum));
-void labelerror P((error_pt errnum));
+void fatalerror P((char * errorstr));
+void labelerror P((char * errorstr));
 void palign P((void));
 void pasciz P((void));
 void pblkw P((void));
@@ -163,7 +161,9 @@ void pfail P((void));
 void pfcb P((void));
 void pfcc P((void));
 void pfdb P((void));
+#if SIZEOF_OFFSET_T > 2
 void pfqb P((void));
+#endif
 void pglobl P((void));
 void pident P((void));
 void pif P((void));
@@ -216,3 +216,10 @@ void u4c4 P((char *buf, u32_T offset));
 void u2cn P((char *buf, u16_pt offset, unsigned count));
 void u4cn P((char *buf, u32_T offset, unsigned count));
 bool_pt typeconv_init P((bool_pt big_endian, bool_pt long_big_endian));
+
+/* alloc.c */
+void * asalloc P((unsigned int size));
+void * asrealloc P((void * oldptr, unsigned int size));
+void * temp_buf P((void));
+void init_heap P((void));
+

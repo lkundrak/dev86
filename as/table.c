@@ -168,24 +168,18 @@ PUBLIC struct sym_s *lookup()
     }
     if (!ifflag)
 	return NUL_PTR;
-    align(heapptr);
-    if (heapptr >= heapend)
-	fatalerror(SYMOV);
 #ifdef DEBUG
     ++nsym;
     if (hashptr >= spt && hashptr < spt + SPTSIZ)
 	++nhash;
 #endif
-    *hashptr = symptr = (struct sym_s *) heapptr;
+    *hashptr = symptr = asalloc(sizeof(struct sym_s) + length);
     symptr->type = 0;
     symptr->data = inidata;
     symptr->length = length;
     symptr->value_reg_or_op.value = (offset_t) (symptr->next = NUL_PTR);
-    heapptr = symptr->name;
-    do
-	*heapptr++ = *nameptr++;
-    while (--length != 0);
-    *heapptr++ = 0;
+    memcpy(symptr->name, nameptr, length);
+    symptr->name[length] = 0;
     return symptr;
 }
 
@@ -220,6 +214,6 @@ PUBLIC void statistics()
 	weight += nx[i] * i;
     }
     printf("\n");
-    printf("weight = %d%d\n", w;
+    printf("weight = %d%d\n", w);
 #endif
 }

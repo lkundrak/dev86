@@ -135,9 +135,13 @@ PUBLIC char ops[] =
     5, '.', 'D', 'A', 'T', 'A', DATAOP, 0,
     6, '.', 'D', 'A', 'T', 'A', '1', FCBOP, 0,
     6, '.', 'D', 'A', 'T', 'A', '2', FDBOP, 0,
+#if SIZEOF_OFFSET_T > 2
     6, '.', 'D', 'A', 'T', 'A', '4', FQBOP, 0,
+#endif
     2, 'D', 'B', FCBOP, 0,
+#if SIZEOF_OFFSET_T > 2
     2, 'D', 'D', FQBOP, 0,
+#endif
     7, '.', 'D', 'E', 'F', 'I', 'N', 'E', EXPORTOP, 0,
     2, 'D', 'W', FDBOP, 0,
     3, 'E', 'N', 'D', PROCEOFOP, 0,
@@ -165,7 +169,9 @@ PUBLIC char ops[] =
     6, '.', 'L', 'C', 'O', 'M', 'M', LCOMMOP1, 0,
     5, '.', 'L', 'I', 'S', 'T', LISTOP, 0,
     3, 'L', 'O', 'C', LOCOP, 0,
+#if SIZEOF_OFFSET_T > 2
     5, '.', 'L', 'O', 'N', 'G', FQBOP, 0,
+#endif
     8, '.', 'M', 'A', 'C', 'L', 'I', 'S', 'T', MACLISTOP, 0,
     5, 'M', 'A', 'C', 'R', 'O', MACROOP, 0,
     4, '.', 'M', 'A', 'P', MAPOP, 0,
@@ -180,8 +186,10 @@ PUBLIC char ops[] =
     6, '.', 'S', 'H', 'O', 'R', 'T', FDBOP, 0,
     6, '.', 'S', 'P', 'A', 'C', 'E', RMBOP, 0,
     5, '.', 'T', 'E', 'X', 'T', TEXTOP, 0,
+#ifndef MC6809
     5, 'U', 'S', 'E', '1', '6', USE16OP, 0,
     5, 'U', 'S', 'E', '3', '2', USE32OP, 0,
+#endif
     5, '.', 'W', 'A', 'R', 'N', WARNOP, 0,
     5, '.', 'W', 'O', 'R', 'D', FDBOP, 0,
     6, '.', 'Z', 'E', 'R', 'O', 'W', BLKWOP, 0,

@@ -8,7 +8,7 @@
 #include "scan.h"
 #include "source.h"
 
-FORWARD void experror P((error_pt errnum));
+FORWARD void experror P((char * err_str));
 FORWARD void expundefined P((void));
 FORWARD void simple2 P((void));
 FORWARD void simple P((void));
@@ -33,10 +33,10 @@ PUBLIC void chkabs()
     }
 }
 
-PRIVATE void experror(errnum)
-error_pt errnum;
+PRIVATE void experror(err_str)
+char * err_str;
 {
-    error(errnum);
+    error(err_str);
     expundefined();
 }
 
@@ -312,6 +312,7 @@ PUBLIC void factor()
 	    getsym();
 	    return;
 	}
+#ifndef MC6809
     case LBRACKET:
 	if (!asld_compatible)
 	    break;		/* error, LPAREN is the grouping symbol */
@@ -322,9 +323,12 @@ PUBLIC void factor()
 	else
 	    getsym();
 	return;
+#endif
     case LPAREN:
+#ifndef MC6809
 	if (asld_compatible)
 	    break;		/* error, LBRACKET is the grouping symbol */
+#endif
 	getsym();
 	expres();
 	if (sym != RPAREN)

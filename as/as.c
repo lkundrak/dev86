@@ -32,30 +32,11 @@ FORWARD void summary P((fd_t fd));
 FORWARD void summ_number P((unsigned num));
 FORWARD void usage P((void));
 
-#ifndef USERMEM
-#define USERMEM (sizeof(int) <= 2 ? (unsigned) 0xAC00 : (unsigned) 0x28000L)
-#endif
-
 PUBLIC int main(argc, argv)
 int argc;
 char **argv;
 {
-#ifdef __AS386_16__
-    heapptr = sbrk(0);
-    heapend = ((char*)&argc) - STAKSIZ - 16;
-    brk(heapend);
-    if(sbrk(0) != heapend)
-       as_abort("Cannot allocate memory");
-#else
-#ifdef SOS_EDOS
-    heapend = stackreg() - STAKSIZ;
-#else
-    heapptr = malloc(USERMEM);
-    heapend = heapptr + USERMEM;
-    if (heapptr == 0)
-	as_abort("cannot allocate memory");
-#endif
-#endif
+    init_heap();
     initp1();
     initp1p2();
     inst_keywords();
@@ -321,9 +302,10 @@ int fd;
 PRIVATE void summ_number(num)
 unsigned num;
 {
-    /* format number like line numbers, build it at free spot heapptr */
-    *build_number(num, LINUM_LEN, heapptr) = 0;
-    writes(heapptr);
+    /* format number like line numbers */
+    char buf[16];
+    *build_number(num, LINUM_LEN, buf) = 0;
+    writes(buf);
 }
 
 PRIVATE void usage()

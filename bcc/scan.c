@@ -182,7 +182,10 @@ int asm_only;
 	    else
 	    {
 		docontrol();
-		break;
+#ifndef ASM_BARE
+	        virtual_nl = 1;
+#endif
+		continue;
 	    }
 	case SLASH:
 	    gch1();
@@ -431,7 +434,14 @@ PUBLIC void nextsym()
     static char lastch;
     register char *reglineptr;
 
-    while (TRUE)		/* exit with short, fast returns */
+    if (expect_statement && asmmode)
+    {
+       outnstr("!BCC_ASM");
+       dumplocs();
+       cppscan(1);
+       outnstr("!BCC_ENDASM");
+    }
+    else while (TRUE)		/* exit with short, fast returns */
     {
 	reglineptr = lineptr;
 	while ((sym = SYMOFCHAR(*reglineptr)) == WHITESPACE)
@@ -470,7 +480,13 @@ PUBLIC void nextsym()
 	    }
 	    else
 	    {
+		int old_asmmode = asmmode;
 		docontrol();
+		if (asmmode && !old_asmmode)
+		{
+		    sym = SEMICOLON;
+		    return;
+		}
 		break;
 	    }
 	case FLOATCONST:

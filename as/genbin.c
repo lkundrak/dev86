@@ -7,9 +7,11 @@
 #include "file.h"
 #include "globvar.h"
 
+#ifdef USE_FIXED_HEAP
 PRIVATE char *asmbeg;		/* beginning of assembler code */
 				/* for overwrite check */
 				/* bss-init to zero = NULL and not changed */
+#endif
 
 /* Sneaky stuff, the start of a binary file can be _negative_ for the I80386
    assembler. The -ve addresses are ones over 2GB (or "org -32") */
@@ -234,17 +236,19 @@ static PT zapptr = 0;
 	    }
 	}
     }
+#ifdef USE_FIXED_HEAP
     else if (binaryc && !(lcdata & UNDBIT))
 	/* memory output, and enabled */
     {
 	register char *bufptr;
 
-	if ((bufptr = (char *) binmbuf) >= asmbeg && bufptr < heapptr)
+	if ((bufptr = (char *) binmbuf) >= asmbeg && bufptr < temp_buf())
 	    error(OWRITE);
 	else
 	    *bufptr = ch;
 	++binmbuf;
     }
+#endif
 }
 
 /* write sized offset to binary file or directly to memory */

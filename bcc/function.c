@@ -270,7 +270,12 @@ PRIVATE void out_callstring()
 
 PUBLIC void popframe()
 {
+#ifdef STUPIDFRAME
+    poplist(callee1mask);	/*XXX: Add if round this */
+    poplist(FRAMEREG);
+#else
     poplist(frame1list);
+#endif
 }
 
 #endif
@@ -308,7 +313,7 @@ PUBLIC void reslocals()
 	pushreg(FRAMEREG);
 	regtransfer(STACKREG, FRAMEREG);
 	framep = sp;
-	pushlist(callee1mask);
+	pushlist(callee1mask);		/*XXX: Add if round this */
 # else /* not STUPIDFRAME */
 #  ifdef CANHANDLENOFRAME
 	if (stackarg || softsp != -frameregsize)	/* args or locals */

@@ -233,6 +233,7 @@ PRIVATE void intconst()
 
 PUBLIC void initscan()
 {
+#ifndef MC6809
     if (asld_compatible)
     {
 	lindirect = LPAREN;
@@ -241,8 +242,11 @@ PUBLIC void initscan()
     }
     else
     {
+#endif
 	lindirect = LBRACKET;
 	rindexp = RBEXP;
 	rindirect = RBRACKET;
+#ifndef MC6809
     }
+#endif
 }

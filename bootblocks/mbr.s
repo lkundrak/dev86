@@ -16,7 +16,7 @@
 ORGADDR=$0500
 preboot=0	! Include the pre-boot loader.
 mbrkey=0	! Option to choose the boot record base on keystroke
-message=0	! Display boot message
+message=1	! Display boot message
 diskman=0	! Disk manager partitions, allows 16 partitions but
 		! don't overwrite this with a LILO BB.
 

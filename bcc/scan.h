@@ -200,3 +200,6 @@ EXTERN struct symstruct *gsymptr;	/* symbol ptr for last identifier */
 EXTERN bool_t incppexpr;	/* nonzero while scanning cpp expression */
 EXTERN sym_t sym;		/* current symbol */
 extern sym_t symofchar[];	/* table to convert chars to their symbols */
+EXTERN bool_t expect_statement; /* If set #asm needs to clear the recursive
+				 * pending operations. ie: if stmts. */
+

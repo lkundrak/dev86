@@ -7,14 +7,14 @@
 #define S_ALIGNMENT	sizeof(long)
 #endif
 
-#include "align.h"
-
 /* const.h - constants for assembler */
 
 /* major switches */
 
+/* #define MC6809 */		/* generate 6809 code */
+#ifndef MC6809
 #define I80386			/* generate 80386 code */
-#undef MC6809			/* generate 6809 code */
+#endif
 #define MNSIZE			/* allow byte size in mnemonic, e.g. "movb" */
 #undef SOS_EDOS			/* source OS is EDOS */
 
@@ -215,116 +215,6 @@ enum
     COLON
 };
 
-enum
-{
-/* Error codes. */
-
-/* Syntax errors. */
-    COMEXP,
-    DELEXP,
-    FACEXP,
-    IREGEXP,
-    LABEXP,
-    LPEXP,
-    OPEXP,
-    RBEXP,
-    REGEXP,
-    RPEXP,
-    SPEXP,
-
-/* Expression errors. */
-    ABSREQ,
-    NONIMPREQ,
-    RELBAD,
-
-/* Label errors. */
-    ILLAB,
-    MACUID,
-    MISLAB,
-    MNUID,
-    REGUID,
-    RELAB,
-    UNBLAB,
-    UNLAB,
-    VARLAB,
-
-/* Addressing errors. */
-    ABOUNDS,
-    DBOUNDS,
-    ILLMOD,
-    ILLREG,
-
-/* Control structure errors. */
-    ELSEBAD,
-#define ELSEIFBAD	ELSEBAD
-    ENDBBAD,
-#define ENDIFBAD	ELSEBAD
-    EOFBLOCK,
-    EOFIF,
-    EOFLC,
-    EOFMAC,
-    FAILERR,
-
-/* Overflow errors. */
-    BLOCKOV,
-    BWRAP,
-    COUNTOV,
-    COUNTUN,
-    GETOV,
-    IFOV,
-
-    LINLONG,
-    MACOV,
-    OBJSYMOV,
-    OWRITE,
-    PAROV,
-    SYMOV,
-    SYMOUTOV,
-
-/* I/O errors. */
-    OBJOUT,
-
-/* Miscellaneous errors. */
-    AL_AX_EAX_EXP,
-    CTLINS,
-    FURTHER,
-    ILL_IMM_MODE,
-    ILL_IND_TO_IND,
-    ILL_IND,
-    ILL_IND_PTR,
-    ILL_SCALE,
-    ILL_SECTION,
-    ILL_SEG_REG,
-    ILL_SOURCE_EA,
-    ILL_SIZE,
-    IMM_REQ,
-    INDEX_REG_EXP,
-    IND_REQ,
-    MISMATCHED_SIZE,
-    NOIMPORT,
-    REENTER,
-    REL_REQ,
-    REPEATED_DISPL,
-    SEGREL,
-    SEG_REG_REQ,
-    SIZE_UNK,
-    UNKNOWN_ESCAPE_SEQUENCE,
-
-    FP_REG_REQ,
-    FP_REG_NOT_ALLOWED,
-    ILL_FP_REG,
-    ILL_FP_REG_PAIR,
-    JUNK_AFTER_OPERANDS,
-
-    ALREADY,
-    UNSTABLE_LABEL,
-
-/* Warnings. */
-#define MINWARN		CPUCLASH
-    CPUCLASH,
-    SHORTB
-};
-
 /* symbol table entry */
 
 				/* type entry contains following flags */
@@ -423,3 +313,6 @@ oops - ENTBIT misplaced
 #define DPLOC		2
 #define STRLOC		1
 #define TEXTLOC		0
+
+#include "errors.h"
+

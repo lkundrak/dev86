@@ -31,7 +31,9 @@ enum
     FCBOP,
     FCCOP,
     FDBOP,
+#if SIZEOF_OFFSET_T > 2
     FQBOP,
+#endif
     GETOP,
     GLOBLOP,
     IDENTOP,

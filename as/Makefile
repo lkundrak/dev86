@@ -4,10 +4,10 @@ LDFLAGS=-s
 LIBDIR=/usr/bin
 BINDIR=/usr/bin
 
-OBJS		=as.o assemble.o error.o express.o \
+OBJS		=as.o assemble.o errors.o express.o \
 		 genbin.o genlist.o genobj.o gensym.o \
 		 keywords.o macro.o mops.o pops.o readsrc.o \
-		 scan.o table.o typeconv.o
+		 scan.o table.o typeconv.o alloc.o
 
 all: as86 as86_encap
 

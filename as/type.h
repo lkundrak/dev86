@@ -22,7 +22,6 @@ typedef unsigned long u4_pt;
 typedef unsigned char bool_t;
 typedef int bool_pt;
 typedef unsigned count_t;
-typedef int error_pt;
 typedef int fd_t;
 typedef unsigned char indcount_t;
 #ifdef I80386

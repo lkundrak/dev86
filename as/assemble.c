@@ -38,7 +38,9 @@ PRIVATE pfv rout_table[] =
     pfcb,
     pfcc,
     pfdb,
+#if SIZEOF_OFFSET_T > 2
     pfqb,
+#endif
     pget,
     pglobl,
     pident,

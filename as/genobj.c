@@ -345,6 +345,7 @@ PUBLIC void objheader()
     unsigned symosiz;		/* size of object symbol table */
     register struct sym_s *symptr;
     u32_T textlength;
+    int symcount = 0;
 
     if ((objectc = objectg) == 0)
 	return;
@@ -362,9 +363,8 @@ PUBLIC void objheader()
     if ((nameptr = strrchr(module_name, '.')) != NUL_PTR)
 	*nameptr = 0;
     strsiz = strlen(module_name) + 1;
-    align(heapptr);
-    for (hashptr = spt, arrext = copyptr = (struct sym_s **) heapptr;
-	 hashptr < spt_top;)
+    
+    for (hashptr = spt; hashptr < spt_top;)
 	if ((symptr = *hashptr++) != NUL_PTR)
 	    do
 	    {
@@ -372,11 +372,20 @@ PUBLIC void objheader()
 		    (!globals_only_in_obj && symptr->name[0] != '.' &&
 		    !(symptr->type & (MNREGBIT | MACBIT | VARBIT))))
 		{
-		    if (copyptr >= (struct sym_s **) heapend)
-		    {
-			heapptr = (char *) copyptr;
-			fatalerror(OBJSYMOV);
-		    }
+		    symcount ++;
+		}
+	    }
+	    while ((symptr = symptr->next) != NUL_PTR);
+    arrext = copyptr = asalloc( sizeof(struct sym_s *) * symcount);
+
+    for (hashptr = spt; hashptr < spt_top;)
+	if ((symptr = *hashptr++) != NUL_PTR)
+	    do
+	    {
+		if ((symptr->type & EXPBIT || symptr->data & IMPBIT) ||
+		    (!globals_only_in_obj && symptr->name[0] != '.' &&
+		    !(symptr->type & (MNREGBIT | MACBIT | VARBIT))))
+		{
 		    *copyptr++ = symptr;
 		    strsiz += symptr->length + 1;
 		    if (textseg>=0 && (symptr->data & SEGM) == textseg)
@@ -399,7 +408,7 @@ PUBLIC void objheader()
 		}
 	    }
 	    while ((symptr = symptr->next) != NUL_PTR);
-    heapptr = (char *) (copytop = copyptr);
+    copytop = copyptr;
 
     /* calculate length of text, and number of seg size bytes in header */
 

@@ -1,26 +1,67 @@
-/* bcc.c - driver for Bruce's C compiler (bcc) and for CvW's C compiler */
-
-/* Copyright (C) 1992 Bruce Evans */
-
-#define _POSIX_SOURCE 1
-
+/*
+ * bcc.c Version 2001.1
+ *       Complete rewrite because the old one was just too confusing!
+ *
+ *       There are no significant compile time options (MC6809 and CCC
+ *       just change defaults) but you should set LOCALPREFIX.
+ *
+ *       Personality flags are:
+ *
+ *	-Mn	Normal ELKS
+ *	-Md	MSDOS
+ *	-Ms	PC Standalone.
+ *	-Ml	i386 Linux
+ *	-M8	CvW's c386
+ *	-M9	MC6809 with bcc
+ */
+#include <stdio.h>
+#ifdef __STDC__
+#include <stdlib.h>
+#include <unistd.h>
+#endif
+#include <string.h>
+#include <memory.h>
+#include <malloc.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifndef MSDOS
 #include <sys/wait.h>
-#include <unistd.h>
-#endif
 #include <signal.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
+#endif
 
-#define FALSE	0
-#define FORWARD	static
-#define NUL_PTR	((void*)0)
-#define PRIVATE	static
-#define PUBLIC
-#define TRUE	1
+#ifdef MSDOS
+#define LOCALPREFIX     /linux86
+#define EXESUF		".exe"
+#define R_OK	4		/* Test for read permission.  */
+#define W_OK	2		/* Test for write permission.  */
+#define X_OK	1		/* Test for execute permission.	 */
+#define F_OK	0		/* Test for existence.	*/
+#define L_TREE	1		/* Use different tree style */
+#define DEFARCH 0		/* Default to 8086 code */
+#else
+#define EXESUF
+#endif
+
+#define AS	"as" EXESUF
+#define LD	"ld" EXESUF
+#define CPP	"cpp" EXESUF
+#define CC1	"cc1" EXESUF
+#define OPT	"opt" EXESUF
+
+#define CC1C386 "c386" EXESUF
+
+#define AS09	"as09" EXESUF
+#define LD09	"ld09" EXESUF
+
+#define CPPBCC	"bcc-cc1" EXESUF
+#define CC1BCC	"bcc-cc1" EXESUF
+#define AS86	"as86" EXESUF
+#define LD86	"ld86" EXESUF
+
+#define GCC	"gcc"
+#define UNPROTO "unproto" EXESUF
+#define OPTIM	"copt" EXESUF
 
 #if __STDC__ == 1
 #define P(x)	x
@@ -32,932 +73,951 @@
 #define QUOT(x) "x"
 #endif
 
+struct command {
+   char * cmd;
+   char * fullpath;
+   int  numargs;
+   int  maxargs;
+   char ** arglist;
+} command = { 0,0,0,0,0 };
+
+struct file_list {
+   struct file_list * next;
+   char * file;
+   char * oldfile;
+   char * name;
+   int    filetype;	/* Char, notional extention of file. */
+} * files;
+
+struct opt_list {
+   struct opt_list * next;
+   char * opt;
+   int    opttype;	/* Where the option should go */
+} * options;
+
+int opt_v, opt_V, opt_e, opt_x, opt_I, opt_L, opt_W, opt_i,
+    opt_O, opt_M;
+
+#ifdef DEFARCH
+int opt_arch = (DEFARCH != 0);
+#else
+int opt_arch = sizeof (char *) >= 4;
+#endif
+
+int do_preproc = 1;	/* c -> i */
+int do_unproto = 0;	/* i -> i */
+int do_compile = 1;	/* i -> s */
+int do_optim   = 0;	/* s -> s */
+int do_as      = 1;	/* s -> o */
+int do_link    = 1;	/* o -> done */
+char * executable_name = 0;
+
+int file_count = 0;
+int dyn_count = 0;
+int error_count = 0;
+char * progname = "C";
 #ifdef MSDOS
-#define LOCALPREFIX	/linux86
-#define EXESUF          ".exe"
-#define	R_OK	4		/* Test for read permission.  */
-#define	W_OK	2		/* Test for write permission.  */
-#define	X_OK	1		/* Test for execute permission.  */
-#define	F_OK	0		/* Test for existence.  */
-#define L_TREE	1		/* Use different tree style */
-#define DEFARCH 0		/* Default to 8086 code */
+char * tmpdir = "";
 #else
-#define EXESUF
-#endif
-
-#if defined(__minix) || defined(__BCC__)
-#define realpath(x,y) 0
-#endif
-
-#define BAS86
-#define BCC86
-
-#define AS			"as86" EXESUF
-#define CC1			"bcc-cc1" EXESUF
-#define CC1_MINUS_O_BROKEN	FALSE
-#define CPP			"bcc-cc1" EXESUF
-#define CPPFLAGS		"-E"
-#define GCC			"gcc"
-#define LD			"ld86" EXESUF
-#define UNPROTO 		"unproto" EXESUF
-#define OPTIM	 		"copt" EXESUF
-
-#ifdef L_TREE
-#define STANDARD_CRT0_0_PREFIX	"~/lib/"
-#define STANDARD_CRT0_3_PREFIX	"~/lib/i386/"
-#define STANDARD_EXEC_PREFIX	"~/lib/"
-#define STANDARD_EXEC_PREFIX_2	"~/bin/"
-#define DEFAULT_INCLUDE 	"-I~/include"
-#define DEFAULT_LIBDIR0		"-L~/lib/"
-#define DEFAULT_LIBDIR3		"-L~/lib/i386/"
-#define OPTIM_RULES    		"-d~/lib"
-#else
-#define STANDARD_CRT0_0_PREFIX	"~/lib/bcc/i86/"
-#define STANDARD_CRT0_3_PREFIX	"~/lib/bcc/i386/"
-#define STANDARD_EXEC_PREFIX	"~/lib/bcc/"
-#ifdef BINDIR
-#define STANDARD_EXEC_PREFIX_2	QUOT(BINDIR) "/"
-#else
-#define STANDARD_EXEC_PREFIX_2	"/usr/bin/"
-#endif
-#define DEFAULT_INCLUDE         "-I~/include"
-#define DEFAULT_LIBDIR0         "-L~/lib/bcc/i86/"
-#define DEFAULT_LIBDIR3         "-L~/lib/bcc/i386/"
-#define OPTIM_RULES    		"-d~/lib/bcc/i86"
-#endif
-
-#ifdef CCC
-#undef BCC86
-#undef CC1
-#define CC1	"c386"
-#undef CC1_MINUS_O_BROKEN
-#define CC1_MINUS_O_BROKEN	TRUE
-#undef STANDARD_CRT0_0_PREFIX
-#undef STANDARD_CRT0_3_PREFIX
-#define STANDARD_CRT0_PREFIX	"~/lib/i386/"
-#endif /* CCC */
-
-#ifdef MC6809
-#undef BAS86
-#undef BCC86
-#undef CRT0
-#undef GCC
-#undef STANDARD_CRT0_0_PREFIX
-#undef STANDARD_CRT0_3_PREFIX
-#undef STANDARD_EXEC_PREFIX
-#define STANDARD_EXEC_PREFIX	"~/lib/bcc/m09/"
-#endif /* MC6809 */
-
-#define ALLOC_UNIT	16	/* allocation unit for arg arrays */
-#define DIRCHAR	'/'
-#define START_ARGS	4	/* number of reserved args */
-
-typedef unsigned char bool_T;	/* boolean: TRUE if nonzero */
-
-struct arg_s
-{
-    char *prog;
-    bool_T minus_O_broken;
-    int argc;
-    char **argv;
-    unsigned nr_allocated;
-};
-
-struct prefix_s
-{
-    char *name;
-    struct prefix_s *next;
-};
-
-PRIVATE struct arg_s asargs = { AS, };
-PRIVATE struct arg_s ccargs = { CC1, CC1_MINUS_O_BROKEN, };
-PRIVATE struct arg_s cppargs = { CPP, };
-PRIVATE struct arg_s unprotoargs = { UNPROTO, TRUE };
-PRIVATE struct arg_s optargs =     { OPTIM };
-PRIVATE struct prefix_s exec_prefix;
-PRIVATE struct arg_s ldargs = { LD, };
-#ifdef BAS86
-PRIVATE struct arg_s ldrargs = { LD, };
-#endif
-PRIVATE char *progname;
-PRIVATE bool_T runerror;	/* = FALSE */
-PRIVATE struct arg_s tmpargs;	/* = empty */
-PRIVATE char *tmpdir;
-PRIVATE unsigned verbosity;	/* = 0 */
-
-PRIVATE char * localprefix = QUOT(LOCALPREFIX);
-
-#ifdef REDECLARE_STDC_FUNCTIONS
-void exit P((int status));
-char *getenv P((const char *name));
-void *malloc P((size_t size));
-void *realloc P((void *ptr, size_t size));
-void (*signal P((int sig, void (*func) P((int sig))))) P((int sig));
-char *strcpy P((char *dest, const char *src));
-size_t strlen P((const char *s));
-char *strrchr P((const char *s, int c));
-#endif
-
-#ifdef REDECLARE_POSIX_FUNCTIONS
-int access P((const char *path, int amode));
-int execv P((const char *path, char * const *argv));
-int execve P((const char *path, char * const *argv, char * const envp));
-pid_t fork P((void));
-pid_t getpid P((void));
-int unlink P((const char *path));
-pid_t wait P((int *status));
-ssize_t write P((int fd, const void *buf, size_t nbytes));
+char * tmpdir = "/tmp/";
 #endif
 
 int main P((int argc, char **argv));
-
-FORWARD void addarg P((struct arg_s *argp, char *arg));
-FORWARD void adddefine P((char *arg));
-FORWARD void addprefix P((struct prefix_s *prefix, char *name));
-FORWARD char *expand_tilde P((char * str, int canfree));
-FORWARD void fatal P((char *message));
-FORWARD char *fixpath P((char *path, struct prefix_s *prefix, int mode));
-FORWARD void killtemps P((void));
-FORWARD void *my_malloc P((unsigned size, char *where));
-FORWARD char *my_mktemp P((void));
-FORWARD void my_unlink P((char *name));
-FORWARD void outofmemory P((char *where));
-FORWARD int run P((char *in_name, char *out_name, struct arg_s *argp));
+void getargs P((int argc, char **argv));
+void add_prefix P((char * path));
+void run_aspreproc P((struct file_list * file));
+void run_preproc P((struct file_list * file));
+void run_unproto P((struct file_list * file));
+void run_compile P((struct file_list * file));
+void run_optim P((struct file_list * file));
+void run_as P((struct file_list * file));
+void run_link P((void));
+void command_reset P((void));
+void command_opt P((char * option));
+void command_arch P((void));
+void command_opts P((int opykey));
+void newfilename P((struct file_list * file, int last_stage, int new_extn, int use_o));
+void run_unlink P((void));
+void append_file P((char * filename, int ftype));
+void append_option P((char * option, int otype));
+char * expand_tilde P((char * str));
+void * xalloc P((int size));
+void Usage P((void));
+void fatal P((char * why));
+char * copystr P((char * str));
+char * catstr P((char * str, char * str2));
 #ifdef L_TREE
-FORWARD void reset_localprefix P((void));
+void reset_localprefix P((void));
 #endif
-FORWARD void set_trap P((void));
-FORWARD void show_who P((char *message));
-FORWARD void startarg P((struct arg_s *argp));
-FORWARD char *stralloc P((char *s));
-FORWARD char *stralloc2 P((char *s1, char *s2));
-FORWARD void trap P((int signum));
-FORWARD void writen P((void));
-FORWARD void writes P((char *s));
-FORWARD void writesn P((char *s));
-FORWARD void linux_patch P((char * fname));
+void run_command P((struct file_list * file));
 
-#ifdef __BCC__
-char ** minienviron[] = {
-   "PATH=/bin:/usr/bin",
-   "SHELL=/bin/sh",
+#ifndef LOCALPREFIX
+#define LOCALPREFIX     	/usr
+#endif
+char * localprefix = QUOT(LOCALPREFIX);
+#ifndef L_TREE
+char * default_include = "-I~/include";
+char * default_libdir0 = "-L~/lib/bcc/i86/";
+char * default_libdir3 = "-L~/lib/bcc/i386/";
+char * optim_rules     = "-d~/lib/bcc/i86";
+#else
+char * default_include = "-I~/include";
+char * default_libdir0 = "-L~/lib/";
+char * default_libdir3 = "-L~/lib/i386/";
+char * optim_rules     = "-d~/lib";
+#endif
+
+char devnull[] = "/dev/null";
+char * exec_prefixs[] = {
+
+   /* Place fillers for dynamic fill */
+   devnull, devnull, devnull, devnull, devnull,
+
+   "~/lib/bcc/",
+#ifdef BINDIR
+   QUOT(BINDIR) "/",
+#endif
+   "~/lib/",
+   "~/bin/",
+   "/usr/bin/",
    0
 };
-#endif
 
-PUBLIC int main(argc, argv)
+char * libc = "-lc";
+
+int
+main(argc, argv)
 int argc;
-char **argv;
+char ** argv;
 {
-    char *arg;
-    int add_default_inc = 1;
-    int add_default_lib = 1;
-    int argcount = argc;
-    bool_T *argdone = my_malloc((unsigned) argc * sizeof *argdone, "argdone");
-    bool_T as_only = FALSE;
-    char *basename;
-#ifdef BCC86
-#ifdef DEFARCH
-    bool_T bits32 = (DEFARCH != 0);
-#else
-    bool_T bits32 = sizeof (char *) >= 4;
-#endif
-    char *bits_arg;
-#endif
-    bool_T cc_only = FALSE;
-    bool_T ansi_pass = FALSE;
-#ifdef CCC
-    bool_T cpp_pass = TRUE;
-#else
-    bool_T cpp_pass = FALSE;
-#endif
-    char *libc = "-lc";
-#ifdef MSDOS
-    char major_mode = 'd';
-#else
-    char major_mode = 0;
-#endif
-    bool_T has_crt0 = TRUE;
-    bool_T debug = FALSE;
-    bool_T echo = FALSE;
-    unsigned errcount = 0;
-    char ext;
-    char *f_out = NUL_PTR;
-#ifdef BAS86
-    bool_T gnu_objects = FALSE;
-#endif
-    bool_T aswarn = FALSE;
-    char *in_name;
-    int length;
-    unsigned ncisfiles = 0;
-    unsigned nifiles = 0;
-    unsigned npass_specs;
-    bool_T optimize = FALSE;
-    char *optflags = 0;
-    char *out_name;
-    bool_T profile = FALSE;
-    bool_T prep_only = FALSE;
-    bool_T prep_line_numbers = FALSE;
-    bool_T compiler_warnings = TRUE;
-    int status;
-    char *temp;
-    bool_T patch_exe = FALSE; /* Hackish patch to convert minix i386->OMAGIC */
+   struct file_list * next_file;
 
-    progname = argv[0];
-    addarg(&cppargs, CPPFLAGS);
-#ifdef CCC
-    addarg(&asargs, "-j");
-#endif
-    addarg(&asargs, "-u");
-#ifdef BAS86
-    addarg(&ldrargs, "-r");
-    addarg(&ldrargs, "-N");	/* GCC uses native objects */
-    				/* GCC also uses 386 how to add -3 too ? */
-    addarg(&optargs, "-c!");
-    optflags = stralloc("start");
-#endif
-
+   progname = argv[0];
 #ifdef L_TREE
-    reset_localprefix();
+   reset_localprefix();
 #endif
-    /* Pass 1 over argv to gather compile options. */
-    for (; --argc != 0;)
-    {
-	arg = *++argv;
-	*++argdone = TRUE;
-	if (arg[0] == '-' && arg[1] != 0 && arg[2] == 0)
-	    switch (arg[1])
-	    {
-#ifdef BCC86
-	    case '0':
-		bits32 = FALSE;
-		break;
-	    case '3':
-		bits32 = TRUE;
-		break;
-#endif
-	    case 'E':
-		prep_only = prep_line_numbers = cpp_pass = TRUE;
-		break;
-#ifdef BAS86
-	    case 'G':
-		gnu_objects = TRUE;
-		add_default_lib = 0;
-		break;
-#endif
-	    case 'P':
-		prep_only = cpp_pass = TRUE;
-		prep_line_numbers = FALSE;
-		break;
-	    case 'O':
-		optimize = TRUE;
-		temp = optflags;
-		optflags=stralloc2(optflags,",86");
-		free(temp);
-		break;
-	    case 'S':
-		cc_only = TRUE;
-#ifndef CCC
-		addarg(&ccargs, "-t");
-#endif
-		break;
-	    case 'V':
-		echo = TRUE;
-		break;
-	    case 'c':
-		as_only = TRUE;
-		break;
-	    case 'e':
-		cpp_pass = TRUE;
-		break;
-	    case 'g':
-		debug = TRUE;	/* unsupported */
-		break;
-	    case 'o':
-		if (argc <= 1)
-		{
-		    ++errcount;
-		    show_who("output file missing after -o\n");
-		}
-		else
-		{
-		    argc--;
-		    if (f_out != NUL_PTR)
-			show_who("more than one output file\n");
-		    f_out = *++argv;
-		    *++argdone = TRUE;
-		}
-		break;
-	    case 'p':
-		profile = TRUE;
-		break;
-	    case 'v':
-		++verbosity;
-		break;
-	    case 'w':
-		compiler_warnings = FALSE;
-		aswarn = FALSE;
-		break;
-	    case 'W':
-		aswarn = TRUE;
-		break;
-	    case 'x':
-		has_crt0 = FALSE;
-		break;
-	    case 'I':
-		add_default_inc = 0;
-		break;
-	    case 'L':
-		add_default_lib = 0;
-		break;
+   getargs(argc, argv);
 
-	    default:
-		*argdone = FALSE;
-		break;
-	    }
-	else if (arg[0] == '-')
-	    switch (arg[1])
-	    {
-	    case 'a':
-	      if (!strcmp(arg, "-ansi"))
-	      {
-		ansi_pass=TRUE;
-		cpp_pass=TRUE;
-		/* NOTE I'm setting this to zero, this isn't a _real_ STDC */
-		adddefine("-D__STDC__=0");
-	      }
-	      break;
-	    case 't':
-		addarg(&asargs, "-t");
-		addarg(&asargs, arg+2);
-		break;
-	    case 'A':
-		addarg(&asargs, arg + 2);
-		break;
-	    case 'B':
-		addprefix(&exec_prefix, arg + 2);
-		break;
-	    case 'C':
-		addarg(&ccargs, arg + 2);
-		break;
-	    case 'D':
-	    case 'I':
-	    case 'U':
-		adddefine(arg);
-		break;
-	    case 'X':
-		addarg(&ldargs, arg + 2);
-		break;
-	    case 'L':
-		addarg(&ldargs, arg);
-		break;
-	    case 'M':
-		major_mode=arg[2];
-		break;
+   default_include = expand_tilde(default_include);
+   default_libdir0 = expand_tilde(default_libdir0);
+   default_libdir3 = expand_tilde(default_libdir3);
+   optim_rules     = expand_tilde(optim_rules);
 
-	    case 'O':
-		optimize = TRUE;
-		temp=optflags; optflags=stralloc2(optflags,","); free(temp);
-		temp=optflags; optflags=stralloc2(optflags,arg+2); free(temp);
-		if( arg[3] == 0 && ( arg[2] >= '1' && arg[2] <= '3' ))
-		{
-		   temp=optflags;
-		   optflags=stralloc2(optflags,"86,86");
-		   free(temp);
-		   switch(arg[2])
-		   {
-		   case '1': addarg(&optargs, "-huse16 186"); break;
-		   case '2': addarg(&optargs, "-huse16 286"); break;
-		   case '3': addarg(&optargs, "-huse16 386"); break;
-		   }
-		}
-		break;
-	    case 'P':
-		addarg(&cppargs, arg + 2);
-		break;
-	    case 'Q':
-		addarg(&ccargs, arg);
-		break;
-	    case 'T':
-		tmpdir = arg + 2;
-		break;
-	    default:
-		*argdone = FALSE;
-		break;
-	    }
-	else
-	{
-	    ++nifiles;
-	    *argdone = FALSE;
-	    length = strlen(arg);
-	    if (length >= 2 && arg[length - 2] == '.'
-		&& ((ext = arg[length - 1]) == 'c' || ext == 'i' || ext == 'S'
-		    || ext == 's'))
-		++ncisfiles;
-	}
-    }
-    npass_specs = prep_only + cc_only + as_only;
-    if (npass_specs != 0)
-    {
-	if (npass_specs > 1)
-	{
-	    ++errcount;
-	    show_who("more than 1 option from -E -P -S -c\n");
-	}
-	if (f_out != NUL_PTR && ncisfiles > 1)
-	{
-	    ++errcount;
-	    show_who("cannot have more than 1 input with non-linked output\n");
-	}
-    }
-    if (nifiles == 0)
-    {
-	++errcount;
-	show_who("no input files\n");
-    }
-    if (errcount != 0)
-	exit(1);
+   if (opt_v>1) { command.cmd = ""; command_reset(); }
+   
+   for(next_file = files; next_file && !error_count; next_file = next_file->next) 
+   {
+      if (next_file->filetype == 'o') continue;
 
-#ifdef BCC86
-    if(!major_mode && !bits32) major_mode='n';
-    switch(major_mode)
-    {
-    case 'd': /* DOS compile */
-       bits32 = FALSE;
-       libc= "-ldos";
-       adddefine("-D__MSDOS__");
-       addarg(&ldargs, "-d");
-       addarg(&ldargs, "-T100");
-       break;
+      if (opt_V)
+         fprintf(stderr, "%s:\n", next_file->file);
 
-    case 'n': /* Normal Linux-86 */
-       bits32 = FALSE;
-       libc= "-lc";
-       adddefine("-D__ELKS__");
-       adddefine("-D__unix__");
-       break;
+      /* Assembler that's not to be optimised. */
+      if (do_preproc && next_file->filetype == 'S') run_aspreproc(next_file);
+      if (do_as      && next_file->filetype == 's') run_as(next_file);
 
-    case 'f': /* Caller saves+ax is first arg */
-       bits32 = FALSE;
-       libc= "-lc_f";
-       adddefine("-D__ELKS__");
-       adddefine("-D__unix__");
-       addarg(&ccargs, "-f");
-       addarg(&ccargs, "-c");
-       break;
+      /* C source */
+      if (do_preproc && next_file->filetype == 'c') run_preproc(next_file);
+      if (do_unproto && next_file->filetype == 'i') run_unproto(next_file);
+      if (do_compile && next_file->filetype == 'i') run_compile(next_file);
+      if (do_optim   && next_file->filetype == 's') run_optim(next_file);
+      if (do_as      && next_file->filetype == 's') run_as(next_file);
 
-    case 'c': /* Just caller saves, normal C-lib is ok */
-       bits32 = FALSE;
-       libc= "-lc";
-       adddefine("-D__ELKS__");
-       adddefine("-D__unix__");
-       addarg(&ccargs, "-c");
-       break;
+      if (next_file->filetype == '~') error_count++;
+   }
 
-    case 's': /* Standalone executable */
-       bits32 = FALSE;
-       libc= "-lc_s";
-       adddefine("-D__STANDALONE__");
-       break;
+   if (do_link && !error_count)
+      run_link();
 
-    case 'l': /* Large Linux compile */
-       bits32 = TRUE;
-       libc= "-lc";
-       adddefine("-D__linux__");
-       adddefine("-D__unix__");
-#ifdef __linux__
-       addarg(&ldargs, "-N"); /* Make OMAGIC */
-#else
-       patch_exe = TRUE;
-#endif
-       break;
-
-    case '?':
-    case 0:
-       break;
-
-    default:
-       fatal("Fatal error: illegal -M option given");
-    }
-#endif
-
-    if( aswarn )
-       addarg(&asargs, "-w-");
-    else
-       addarg(&asargs, "-w");
-    if( patch_exe )
-       addarg(&ldargs, "-s");
-#ifdef BCC86
-    else if( !bits32 )
-       addarg(&ldargs, "-i");
-#endif
-    if (verbosity > 2)
-    {
-       show_who("localprefix set to ");
-       writesn(localprefix);
-    }
-    if ((temp = getenv("BCC_EXEC_PREFIX")) != NUL_PTR)
-	addprefix(&exec_prefix, temp);
-    if( add_default_inc )
-       adddefine(DEFAULT_INCLUDE);
-    if( add_default_lib )
-    {
-#ifdef BCC86
-#ifdef DEFAULT_LIBDIR3
-        if( bits32 )
-	    addarg(&ldargs, DEFAULT_LIBDIR3);
-        else
-#endif
-#endif
-	    addarg(&ldargs, DEFAULT_LIBDIR0);
-    }
-
-    if (optimize)
-       addarg(&asargs, "-O");
-    addarg(&optargs, OPTIM_RULES);
-    temp=optflags; optflags=stralloc2(optflags,",end"); free(temp);
-    for(temp=strtok(optflags,","); temp; temp=strtok((char*)0,","))
-    {
-       temp = stralloc2("rules.", temp);
-       addarg(&optargs, temp);
-    }
-    addprefix(&exec_prefix, STANDARD_EXEC_PREFIX);
-    addprefix(&exec_prefix, STANDARD_EXEC_PREFIX_2);
-    cppargs.prog = fixpath(cppargs.prog, &exec_prefix, X_OK);
-    ccargs.prog = fixpath(ccargs.prog, &exec_prefix, X_OK);
-    asargs.prog = fixpath(asargs.prog, &exec_prefix, X_OK);
-    ldargs.prog = fixpath(ldargs.prog, &exec_prefix, X_OK);
-#ifdef BAS86
-    ldrargs.prog = fixpath(ldrargs.prog, &exec_prefix, X_OK);
-#endif
-    unprotoargs.prog=fixpath(unprotoargs.prog, &exec_prefix, X_OK);
-    optargs.prog = fixpath(optargs.prog, &exec_prefix, X_OK);
-    if (tmpdir == NUL_PTR && (tmpdir = getenv("TMPDIR")) == NUL_PTR)
-#ifdef MSDOS
-	tmpdir = ".";
-#else
-	tmpdir = "/tmp";
-#endif
-
-    if (prep_only && !prep_line_numbers)
-	addarg(&cppargs, "-P");
-#ifdef BCC86
-#ifdef STANDARD_CRT0_3_PREFIX
-    if (bits32)
-	bits_arg = "-3";
-    else
-#endif
-	bits_arg = "-0";
-    addarg(&ccargs, bits_arg);
-    addarg(&cppargs, bits_arg);
-    addarg(&asargs, bits_arg);
-#ifdef BAS86
-    if (!gnu_objects)
-    {
-	addarg(&ldargs, bits_arg);
-	addarg(&ldrargs, bits_arg);
-	if( has_crt0 )
-	   addarg(&ldargs, "-C0");
-    }
-#endif /* BAS86 */
-#endif /* BCC86 */
-    set_trap();
-
-    /* Pass 2 over argv to compile and assemble .c, .i, .S and .s files and
-     * gather arguments for linker.
-     */
-    for (argv -= (argc = argcount) - 1, argdone -= argcount - 1; --argc != 0;)
-    {
-	arg = *++argv;
-	if (!*++argdone)
-	{
-	    length = strlen(arg);
-	    if (length >= 2 && arg[length - 2] == '.'
-		&& ((ext = arg[length - 1]) == 'c' || ext == 'i' || ext == 'S'
-		    || ext == 's'))
-	    {
-		if (echo || verbosity != 0)
-		{
-		    writes(arg);
-		    writesn(":");
-		}
-		if ((basename = strrchr(arg, DIRCHAR)) == NUL_PTR)
-		    basename = arg;
-		else
-		    ++basename;
-		in_name = arg;
-		if (ext == 'c')
-		{
-		    if (cpp_pass)
-		    {
-			if (prep_only && !ansi_pass)
-			    out_name = f_out;
-			else
-			    out_name = my_mktemp();
-			if (run(in_name, out_name, &cppargs) != 0)
-			    continue;
-			in_name = out_name;
-		        if (ansi_pass)
-		        {
-			    if (prep_only)
-			        out_name = f_out;
-			    else
-			        out_name = my_mktemp();
-
-			    if (run(in_name, out_name, &unprotoargs) != 0)
-			       continue;
-			    in_name=out_name;
-		        }
-		    }
-		    ext = 'i';
-		}
-		if (ext == 'i')
-		{
-		    if (prep_only)
-			continue;
-		    if (cc_only && !optimize)
-		    {
-			if (f_out != NUL_PTR)
-			    out_name = f_out;
-			else
-			{
-			    out_name = stralloc(basename);
-			    out_name[strlen(out_name) - 1] = 's';
-			}
-		    }
-		    else
-			out_name = my_mktemp();
-		    if (run(in_name, out_name, &ccargs) != 0)
-			continue;
-		    in_name = out_name;
-		    if( optimize )
-		    {
-		        if (cc_only)
-		        {
-			    if (f_out != NUL_PTR)
-			        out_name = f_out;
-			    else
-			    {
-			        out_name = stralloc(basename);
-			        out_name[strlen(out_name) - 1] = 's';
-			    }
-		        }
-		        else
-			    out_name = my_mktemp();
-
-		        if (run(in_name, out_name, &optargs) != 0)
-			    continue;
-		        in_name = out_name;
-		    }
-		    ext = 's';
-		}
-		if (ext == 'S')
-		{
-		    if (prep_only)
-			out_name = f_out;
-		    else if (cc_only)
-		    {
-			if (f_out != NUL_PTR)
-			    out_name = f_out;
-			else
-			{
-			    out_name = stralloc(basename);
-			    out_name[strlen(out_name) - 1] = 's';
-			}
-		    }
-		    else
-			out_name = my_mktemp();
-		    if (run(in_name, out_name, &cppargs) != 0)
-			continue;
-		    in_name = out_name;
-		    ext = 's';
-		}
-		if (ext == 's')
-		{
-		    if (prep_only || cc_only)
-			continue;
-		    out_name = stralloc(basename);
-		    out_name[strlen(out_name) - 1] = 'o';
-		    if (as_only)
-		    {
-			if (f_out != NUL_PTR)
-			    out_name = f_out;
-			else
-			{
-			    out_name = stralloc(basename);
-			    out_name[strlen(out_name) - 1] = 'o';
-			}
-		    }
-		    else
-			out_name = my_mktemp();
-		    addarg(&asargs, "-n");
-		    arg[length - 1] = 's';
-		    addarg(&asargs, arg);
-#ifdef BAS86
-		    if (gnu_objects)
-		    {
-			char *tmp_out_name;
-
-			tmp_out_name = my_mktemp();
-			status = run(in_name, tmp_out_name, &asargs);
-			asargs.argc -= 2;
-			if (status != 0)
-			    continue;
-			if (run(tmp_out_name, out_name, &ldrargs) != 0)
-			    continue;
-		    }
-		    else
-#endif
-		    {
-			status = run(in_name, out_name, &asargs);
-			asargs.argc -= 2;
-			if (status != 0)
-			    continue;
-		    }
-		    ext = 'o';
-		    in_name = out_name;
-		}
-		if (ext == 'o')
-		{
-		    if (prep_only || cc_only || as_only)
-			continue;
-		    addarg(&ldargs, in_name);
-		}
-	    }
-	    else
-		addarg(&ldargs, arg);
-	}
-    }
-
-    if (!prep_only && !cc_only && !as_only && !runerror)
-    {
-        int link_st;
-
-	if (f_out == NUL_PTR)
-	    f_out = "a.out";
-#ifdef BAS86
-	if (gnu_objects)
-	{
-	    /* Remove -i and -i-. */
-	    for (argc = ldargs.argc - 1; argc >= START_ARGS; --argc)
-	    {
-		arg = ldargs.argv[argc];
-		if (arg[0] == '-' && arg[1] == 'i'
-		    && (arg[2] == 0 || (arg[2] == '-' && arg[3] == 0)))
-		{
-		    --ldargs.argc;
-		    memmove(ldargs.argv + argc, ldargs.argv + argc + 1,
-			    (ldargs.argc - argc) * sizeof ldargs.argv[0]);
-		    ldargs.argv[ldargs.argc] = NUL_PTR;
-		}
-	    }
-
-	    ldargs.prog = fixpath(GCC, &exec_prefix, X_OK);
-	    link_st = run((char *) NUL_PTR, f_out, &ldargs);
-	}
-	else
-#endif
-	{
-	    addarg(&ldargs, libc);
-	    link_st = run((char *) NUL_PTR, f_out, &ldargs);
-	}
-	if( patch_exe && link_st == 0 )
-	   linux_patch(f_out);
-    }
-    if( runerror && f_out != NUL_PTR )
-       my_unlink(f_out);
-    killtemps();
-    return runerror ? 1 : 0;
+   run_unlink();
+   exit(error_count>0);
 }
 
-PRIVATE void linux_patch(fname)
-char * fname;
+char *
+copystr(str)
+char * str;
 {
-/* OMAGIC */
+   return strcpy(xalloc(strlen(str)+1), str);
+}
 
-#define AOUT_MAG	"\x07\x01\x64\x00" /* 0x640107L */
-#define ELKS_MAG1	0x10
-#define ELKS_MAG2	0x11	/* -z */
-#define ELKS_MAG3	0x20	/* -i */
-#define ELKS_MAG4	0x21	/* -i -z */
+char *
+catstr(str, str2)
+char * str, * str2;
+{
+   return strcat(strcpy(xalloc(strlen(str)+strlen(str2)+1), str), str2);
+}
 
-static struct	ELKS_exec {	/* ELKS a.out header */
-  char		a_magic1;	/* magic number */
-  char		a_magic2;	/* magic number */
-  char		a_magic3;	/* magic number */
-  char		a_magic4;	/* magic number */
-  char		a_hdrlen;	/* length, etc of header */
-  char		a_hdrlen3[3];
-  long		a_text;		/* size of text segement in bytes */
-  long		a_data;		/* size of data segment in bytes */
-  long		a_bss;		/* size of bss segment in bytes */
-  long		a_entry;	/* entry point */
-  long		a_total;	/* total memory allocated */
-  long		a_syms;		/* size of symbol table */
-}  instr;
+void
+run_aspreproc(file)
+struct file_list * file;
+{
+   if (opt_arch<5) command.cmd = CPPBCC;
+   else            command.cmd = CPP;
+   command_reset();
+   newfilename(file, !do_as, 's', (opt_arch<5));
+   if (opt_arch<5)
+      command_opt("-E");
+   command_opts('p');
+   command_opt("-D__ASSEMBLER__");
+#if 0
+   if (!opt_I)
+      command_opt(default_include);
+#endif
+   command_arch();
+   run_command(file);
+}
 
+void
+run_preproc(file)
+struct file_list * file;
+{
+   int last_stage = 0;;
 
-static struct  aout_exec {
-  char     a_info[4];	/* Use macros N_MAGIC, etc for access */
-  unsigned a_text;	/* length of text, in bytes */
-  unsigned a_data;	/* length of data, in bytes */
-  unsigned a_bss;	/* length of uninitialized data area, in bytes */
-  unsigned a_syms;	/* length of symbol table data in file, in bytes */
-  unsigned a_entry;	/* start address */
-  unsigned a_trsize;	/* length of relocation info for text, in bytes */
-  unsigned a_drsize;	/* length of relocation info for data, in bytes */
-} outstr;
+   if (opt_arch<5) command.cmd = CPPBCC;
+   else            command.cmd = CPP;
+   command_reset();
 
-   int fd;
+   if (!opt_e && !do_optim && !do_as )        last_stage =1;
+   if (opt_e && !do_unproto && !do_compile )  last_stage =1;
 
-   fd = open(fname, O_RDWR);
-   if( fd<0 ) return;
+   newfilename(file, last_stage, (opt_e?'i':'s'), (opt_arch<5));
 
-   if( read(fd, &instr, sizeof(instr)) != sizeof(instr) )
+   if (opt_e && opt_arch<5) command_opt("-E");
+
+   command_opts('p');
+   if (!opt_e)
    {
-      writesn("Cannot re-read executable header");
-      return;
+      command_opts('c');
+      if (opt_arch<5 && !do_as)
+	 command_opt("-t");
    }
 
-   if( instr.a_hdrlen != 0x20 || instr.a_magic1 != 0x01 ||
-       instr.a_magic2 != 0x03 || instr.a_magic4 != 0x10 )
+   if (!opt_I)
+      command_opt(default_include);
+
+   command_arch();
+
+   run_command(file);
+}
+
+void
+run_unproto(file)
+struct file_list * file;
+{
+   command.cmd = UNPROTO;
+   command_reset();
+   newfilename(file, !do_compile, 'i', 0);
+   command_opts('u');
+
+   run_command(file);
+}
+
+void
+run_compile(file)
+struct file_list * file;
+{
+   if (opt_arch == 3)   command.cmd = CC1C386;
+   else if (opt_arch<5) command.cmd = CC1BCC;
+   else                 command.cmd = CC1;
+   command_reset();
+   newfilename(file, !(do_optim || do_as), 's', (opt_arch != 3 && opt_arch<5));
+
+   command_opts('c');
+
+   command_arch();
+
+   run_command(file);
+}
+
+void
+run_optim(file)
+struct file_list * file;
+{
+   char buf[32];
+   if (opt_arch<5) command.cmd = OPTIM;
+   else            command.cmd = OPT;
+   command_reset();
+   newfilename(file, !do_as, 's', 1);
+   command_opt("-c!");
+   if (opt_O)
    {
-      writesn("Executable cannot be converted to OMAGIC - bad magics");
-      return;
+      sprintf(buf, "-huse16 %c86", opt_O);
+      command_opt(buf);
+   }
+   command_opt(optim_rules);
+
+   command_opt("rules.start");
+   command_opts('o');
+   if (opt_O)
+   {
+      sprintf(buf, "rules.%c86", opt_O);
+      command_opt(buf);
+   }
+   command_opt("rules.86");
+   command_opt("rules.end");
+
+   run_command(file);
+}
+
+void
+run_as(file)
+struct file_list * file;
+{
+   char * buf;
+   switch(opt_arch)
+   {
+   case 0: case 1: case 2:
+            command.cmd = AS86; break;
+   case 4:  command.cmd = AS09; break;
+   default: command.cmd = AS; break;
+   }
+   command_reset();
+   newfilename(file, (!do_link && opt_arch!=2), 'o', 1);
+   if (opt_arch==3)
+      command_opt("-j");
+   if (opt_arch<5)
+      command_opt("-u");
+   command_opts('a');
+   if (opt_W)
+      command_opt("-w-");
+   else
+      command_opt("-w");
+   command_arch();
+   command_opt("-n");
+   buf = catstr(file->name, ".s");
+   command_opt(buf);
+   free(buf);
+
+   run_command(file);
+
+   if (opt_arch == 2)
+   {
+      command.cmd = LD86;
+      command_reset();
+      newfilename(file, !do_link, 'o', 1);
+      command_opt("-r");
+      run_command(file);
+   }
+}
+
+void
+run_link()
+{
+   struct file_list * next_file;
+
+   switch(opt_arch)
+   {
+   case 0: case 1:
+            command.cmd = LD86; break;
+   case 2:  command.cmd = GCC; break;
+   case 4:  command.cmd = LD09; break;
+   default: command.cmd = LD; break;
+   }
+   command_reset();
+   if (executable_name == 0) executable_name = "a.out";
+
+   command_opt("-o");
+   command_opt(executable_name);
+
+   command_opts('l');
+   if (opt_arch != 2) 
+   {
+      if (opt_arch == 0 && !opt_i)
+	 command_opt("-i");
+
+      if (!opt_L)
+      {
+	 if (opt_arch==1) command_opt(default_libdir3);
+	 else             command_opt(default_libdir0);
+      }
+      command_arch();
+
+      if (!opt_x)
+	 command_opt("-C0");
    }
 
-   switch((int)(instr.a_magic3))
+   for(next_file = files; next_file; next_file = next_file->next) 
+      command_opt(next_file->file);
+
+   if (opt_arch != 2) 
+      command_opt(libc);
+   run_command(0);
+}
+
+void
+command_reset()
+{
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 1024
+#endif
+   char buf[MAXPATHLEN];
+   char ** prefix;
+
+   if (command.arglist) 
    {
-   case ELKS_MAG1:
+      int i;
+      for(i=0; i<command.maxargs; i++)
+         if(command.arglist[i])
+	    free(command.arglist[i]);
+      free(command.arglist);
+   }
+   command.arglist = 0;
+   command.numargs = 1;
+   command.maxargs = 20;
+
+   command.arglist = xalloc(command.maxargs*sizeof(char**));
+   command.arglist[0] = copystr(command.cmd);
+
+   if (command.fullpath) free(command.fullpath);
+   command.fullpath = 0;
+
+   /* Search for the exe, nb as this will probably be called from 'make'
+    * there's not much point saving this.
+    */
+   for(prefix=exec_prefixs; *prefix; prefix++) 
+   {
+      char * p;
+      if (*prefix == devnull) continue;
+
+      p = strchr(*prefix, '~');
+      if (!p) strcpy(buf, *prefix);
+      else 
+      {
+         memcpy(buf, *prefix, p-*prefix);
+	 buf[p-*prefix] = 0;
+
+	 strcat(buf, localprefix);
+	 strcat(buf, p+1);
+      }
+      strcat(buf, command.cmd);
+
+      if (!*command.cmd)
+	 fprintf(stderr, "PATH+=%s\n", buf);
+      else if (access(buf, X_OK) == 0)
+      {
+         command.fullpath = copystr(buf);
+	 break;
+      }
+   }
+   if (!command.fullpath)
+      command.fullpath = copystr(command.cmd);
+}
+
+void
+command_opt(option)
+char * option;
+{
+   if (command.maxargs <= command.numargs+1) {
+      char ** newbuf = xalloc(command.maxargs*2*sizeof(char**));
+      memcpy(newbuf, command.arglist, command.maxargs*sizeof(char**));
+      command.maxargs *= 2;
+      free(command.arglist);
+      command.arglist = newbuf;
+   }
+
+   command.arglist[command.numargs++] = copystr(option);
+}
+
+void
+command_arch()
+{
+   if (opt_arch==0) command_opt("-0");
+   if (opt_arch==1) command_opt("-3");
+   if (opt_arch==2) command_opt("-3");
+}
+
+void
+command_opts(optkey)
+int optkey;
+{
+   struct opt_list * ol;
+   for(ol=options; ol; ol=ol->next)
+      if (ol->opttype == optkey)
+	 command_opt(ol->opt);
+}
+
+void newfilename(file, last_stage, new_extn, use_o)
+struct file_list * file;
+int last_stage;
+int new_extn;
+int use_o;
+{
+   file->filetype = new_extn;
+   if (file->oldfile) free(file->oldfile);
+   file->oldfile = file->file;
+   file->file = 0;
+
+   if (last_stage) {
+      if (executable_name)
+         file->file = copystr(executable_name);
+      else
+      {
+         char buf[4];
+	 buf[0] = '.';
+	 buf[1] = file->filetype;
+	 buf[2] = 0;
+	 file->file = catstr(file->name, buf);
+      }
+   }
+   else
+   {
+      char buf[16];
+#ifdef MSDOS
+      sprintf(buf, "$$%05d$", dyn_count++);
+#else
+      sprintf(buf, "$$%04d%05d", dyn_count++, getpid());
+#endif
+      file->file = catstr(tmpdir, buf);
+   }
+
+   command_opt(file->oldfile);
+   /* *.i files go to the stdout */
+   if (last_stage && file->filetype == 'i') return;
+   if (use_o) command_opt("-o");
+   command_opt(file->file);
+}
+
+void
+run_unlink()
+{
+   int i;
+   for(i=0; i<dyn_count; i++)
+   {
+      char buf[16];
+      char * p;
+#ifdef MSDOS
+      sprintf(buf, "$$%05d$", i);
+#else
+      sprintf(buf, "$$%04d%05d", i, getpid());
+#endif
+      p = catstr(tmpdir, buf);
+      if (opt_v>1)
+	 fprintf(stderr, "rm %s\n", p);
+      if (opt_v>2)
+	 continue;
+      if (unlink(p) < 0)
+      {
+	 if (error_count==0 || opt_v>1)
+	    fprintf(stderr, "Error unlinking %s\n", p);
+	 error_count++;
+      }
+      free(p);
+   }
+}
+
+void
+getargs(argc, argv)
+int argc;
+char ** argv;
+{
+   int ar;
+   char * pflag = 0;
+   int control_count = 0;
+   int exe_count = 0;
+
+   for(ar=1; ar<argc; ) if (argv[ar][0] != '-')
+   {
+      append_file(argv[ar++], 0);
+      file_count++;
+   }
+   else
+   {
+      int opt;
+      int used_arg = 1, inc_ar=0;
+      char * opt_arg;
+
+      if (argv[ar][2]) opt_arg = argv[ar]+2;
+      else
+      {
+         inc_ar++;
+         if (argv[ar+1]) opt_arg = argv[ar+1];
+	 else
+	 {
+	    inc_ar++;
+	    opt_arg = "ERROR";
+	 }
+      }
+      /* Special case -? is different from -?abcdef */
+      if(!pflag && argv[ar][2] == 0) switch(argv[ar][1])
+      {
+      case 'a': case 'L': case 'M': case 'O': case 'P': case 'Q': 
+	 pflag = argv[ar]+1;
+	 used_arg = 0;
+	 break;
+      }
+      /* Options that need an argument */
+      if(!pflag) switch(argv[ar][1])
+      {
+      case 'a':
+	 if(strcmp(argv[ar], "-ansi") == 0) {
+	    do_unproto = 1;
+	    opt_e = 1;
+	    /* NOTE I'm setting this to zero, this isn't a _real_ STDC */
+	    append_option("-D__STDC__=0", 'p');
+	 }
+	 else 
+	    Usage();
+	 break;
+
+      case 't':
+         append_option("-t", 'a');
+	 /*FALLTHROUGH*/
+      case 'A':
+         append_option(opt_arg, 'a');
+	 break;
+      case 'C':
+         append_option(opt_arg, 'c');
+	 break;
+      case 'P':
+	 append_option(opt_arg, 'p');
+	 break;
+      case 'X':
+         append_option(opt_arg, 'l');
+	 break;
+
+      case 'L':
+         append_option(argv[ar], 'l');
+	 break;
+
+      case 'Q':
+         append_option(argv[ar], 'c');
+	 break;
+
+      case 'O':
+         do_optim=1;
+	 if (!opt_arg[1] && ( opt_arg[0] >= '1' && opt_arg[0] <= '3' ))
+	    opt_O = opt_arg[0];
+	 else
+	 {
+	    char * p = xalloc(strlen(opt_arg)+8);
+	    strcpy(p, "rules.");
+	    strcat(p, opt_arg);
+	    append_option(p, 'o');
+	    free(p);
+	 }
+	 break;
+
+      case 'o':
+	 exe_count++;
+	 executable_name = opt_arg;
+	 break;
+
+      case 'B':
+	 add_prefix(opt_arg);
+         break;
+
+      case 'I':
+      case 'D':
+      case 'U':
+         append_option(argv[ar], 'p');
+         break;
+
+      case 'T':
+	 tmpdir = catstr(opt_arg, "/");
+         break;
+
+      case 'M':
+	 if (opt_arg[1]) Usage();
+	 opt_M    = *opt_arg;
+	 break;
+
+      default:
+	 pflag = argv[ar]+1;
+	 used_arg = 0;
+	 break;
+      }
+      /* Singleton flags */
+      if(pflag) switch(opt = *pflag++)
+      {
+      case 'P':
+         append_option("-P", 'p');
+	 /*FALLTHROUGH*/
+      case 'E':
+	 control_count++;
+         do_compile = do_link = do_as = 0;
+	 opt_e = 1;
+	 break;
+      case 'S':
+	 control_count++;
+         do_as = do_link = 0;
+	 break;
+      case 'c':
+	 control_count++;
+         do_link = 0;
+	 break;
+      case 'O':
+         do_optim=1;
+	 break;
+
+      case 'G': opt_M = 'G'; break;
+
+      case 'v': opt_v++; break;
+      case 'V': opt_V++; break;
+      case 'e': opt_e++; break;
+      case 'x': opt_x++; break;
+      case 'I': opt_I++; break;
+      case 'L': opt_L++; break;
+      case 'i': opt_i++; break;
+
+      case 'W': opt_W++; break;
+
+      case '0': opt_arch=0; opt_M='x'; break;
+      case '3': opt_arch=1; opt_M='x'; break;
+         
+      case 'w': /*IGNORED*/ break;
+      case 'g': /*IGNORED*/ break;
+      case 'f': /*IGNORED*/ break;
+      case 'p': /*IGNORED*/ break;
+
+      default: 
+	if (pflag == argv[ar]+2) {
+	   /* Special; unknown options saved as flags for the linker */
+	   append_file(argv[ar], 'o');
+	   pflag = 0;
+	}
+	else
+	   Usage();
+      }
+      if (!pflag || !*pflag)  { ar++; pflag = 0; } 
+      if (used_arg && inc_ar) ar++;
+      if (used_arg && inc_ar==2)
+         fatal("Last option requires an argument");
+   }
+
+   if (control_count>1)
+      fatal("only one option from -E -P -S -c allowed");
+   if (exe_count>1)
+      fatal("only one -o option allowed");
+
+   if (file_count==0) Usage();
+
+   if (exe_count && file_count != 1 && !do_link)
+      fatal("only one input file for each non-linked output");
+
+   add_prefix(getenv("BCC_EXEC_PREFIX"));
+
+#ifdef MC6809
+   if (opt_M==0) opt_M = '9';
+#endif
+#ifdef CCC
+   if (opt_M==0) opt_M = '8';
+#endif
+#ifdef MSDOS
+   if (opt_M==0) opt_M = 'd';
+#endif
+   if (opt_M==0) opt_M = (opt_arch==1 ?'l':'n');
+   switch(opt_M)
+   {
+   case 'n': 
+      append_option("-D__ELKS__", 'p');
+      append_option("-D__unix__", 'p');
+      libc="-lc";
       break;
-   case ELKS_MAG2:
-      writesn("Executable cannot be converted to OMAGIC (compiled with -z)");
-      return;
-   case ELKS_MAG3:
-   case ELKS_MAG4:
-      writesn("Executable file is split I/D, data overlaps text");
-      return;
-   default:
-      writesn("Executable cannot be converted to OMAGIC (unknown type)");
-      return;
+   case 'f': 
+      append_option("-D__ELKS__", 'p');
+      append_option("-D__unix__", 'p');
+      append_option("-c", 'p');
+      append_option("-f", 'p');
+      libc="-lc_f";
+      break;
+   case 'c': 
+      append_option("-D__ELKS__", 'p');
+      append_option("-D__unix__", 'p');
+      append_option("-c", 'p');
+      libc="-lc";
+      break;
+   case 's': 
+      append_option("-D__STANDALONE__", 'p');
+      libc="-lc_s";
+      break;
+   case 'd': 
+      append_option("-D__MSDOS__", 'p');
+      libc="-ldos";
+      append_option("-d", 'l');
+      append_option("-T100", 'l');
+      break;
+   case 'l': 
+      opt_arch=1;
+      append_option("-D__linux__", 'p');
+      append_option("-D__unix__", 'p');
+      libc="-lc";
+      append_option("-N", 'l');
+      break;
+   case 'G':
+      opt_arch = 2;
+      break;
+   case '8':
+      opt_arch = 3;
+      opt_e = 1;
+      break;
+   case '9':
+      opt_arch = 4;
+      default_libdir0 = "-L~/lib/bcc/m09/";
+      optim_rules     = "-d~/lib/bcc/m09";
+      add_prefix("~/lib/bcc/m09/");
+      break;
+   case '0':
+      opt_arch = 5;
+      opt_e = 1;
+      opt_I = 1;
+      opt_L = 1;
+      opt_x = 1;
+      append_option("/lib/crt0.o", 'l');
+      break;
    }
 
-   if( instr.a_syms != 0 )
-      writesn("Warning: executable file isn't stripped");
-
-   memcpy(outstr.a_info, AOUT_MAG, 4);
-   outstr.a_text = instr.a_text;
-   outstr.a_data = instr.a_data;
-   outstr.a_bss  = instr.a_bss;
-   outstr.a_entry= instr.a_entry;
-
-   lseek(fd, 0L, 0);
-
-   if( write(fd, &outstr, sizeof(outstr)) != sizeof(outstr) )
+   if (do_optim)
    {
-      writesn("Cannot re-write executable header");
-      return;
+      if (opt_e) 
+	 append_option("-O", 'c');
+      append_option("-O", 'p');
+      append_option("-O", 'a');
    }
+}
 
-   close(fd);
+void
+add_prefix(path)
+char * path;
+{
+   char ** p; 
+   if (!path || !*path) return;
+
+   for(p=exec_prefixs; *p; p++) {
+      if( *p == devnull )
+      {
+	 *p = path;
+	 break;
+      }
+   }
+   if (!*p) fatal("Too many -B options");
+}
+
+void append_file (filename, ftype)
+char * filename;
+int ftype;
+{
+   struct file_list * newfile = xalloc(sizeof(struct file_list));
+   char * s;
+   char * name;
+
+   newfile->file = copystr(filename);
+   name = copystr(filename);
+
+   s = strrchr(name, '.');
+
+   if (ftype) 
+   {
+      newfile->name = copystr(name);
+      newfile->filetype = ftype;
+   }
+   else if (s && s == name + strlen(name) - 2) {
+      newfile->filetype = s[1];
+      *s = 0;
+      newfile->name = copystr(name);
+   }
+   else
+      newfile->name = copystr(name);
+   free(name);
+
+   if (newfile->filetype == 0)   newfile->filetype = 'o'; /* Objects */
+
+   if (files==0)
+      files = newfile;
+   else
+   {
+      struct file_list * fptr;
+      for(fptr=files; fptr->next; fptr=fptr->next);
+      fptr->next = newfile;
+   }
+}
+
+void 
+append_option (option, otype)
+char * option;
+int otype;
+{
+   struct opt_list * newopt = xalloc(sizeof(struct opt_list));
+
+   newopt->opt = copystr(option);
+   newopt->opttype = otype;
+
+   if (options==0)
+      options = newopt;
+   else
+   {
+      struct opt_list * optr;
+      for(optr=options; optr->next; optr=optr->next);
+      optr->next = newopt;
+   }
+}
+
+char * expand_tilde(str)
+char * str;
+{
+   char * newstr;
+   char * ptr = strchr(str, '~');
+   if( ptr == 0 ) return copystr(str);
+
+   newstr = xalloc(strlen(str)+strlen(localprefix));
+   if( ptr!=str ) memcpy(newstr, str, ptr-str);
+   strcpy(newstr+(ptr-str), localprefix);
+   strcat(newstr, ptr+1);
+   return newstr;
+}
+
+void *
+xalloc (size)
+int size;
+{
+   void * p = malloc(size);
+   if (!p) fatal("Out of memory");
+   memset(p, '\0', size);
+   return p;
+}
+
+void Usage()
+{
+   fatal("Usage: bcc [-ansi] [-options] [-o output] file [files]");
+}
+
+void fatal(str)
+char * str;
+{
+   fprintf(stderr, "%s: Fatal error: %s.\n", progname, str);
+   exit(1);
 }
 
 #ifdef L_TREE
 #ifdef MSDOS
-PRIVATE void reset_localprefix()
+void reset_localprefix()
 {
    char *ptr, *temp;
 
-   temp = stralloc(progname);
+   temp = copystr(progname);
    if( (ptr = strrchr(temp, '\\')) != 0
          && temp<ptr-4 && strncmp(ptr-4, "\\BIN", 4) == 0 )
    {
       ptr[-4] = 0;
       localprefix = temp;
-      if (verbosity > 2)
-      {
-         show_who("localprefix is now ");
-	 writesn(localprefix);
-      }
    }
    else
       free(temp);
 }
 #else
 
-PRIVATE void reset_localprefix()
+void reset_localprefix()
 {
    char *ptr, *temp;
 
    if( *progname == '/' )
-      temp = stralloc(progname);
+      temp = copystr(progname);
    else
    {
       char * s, * d;
       ptr = getenv("PATH");
       if( ptr==0 || *ptr == 0 ) return;
-      ptr = stralloc(ptr);
-      temp = stralloc("");
+      ptr = copystr(ptr);
+      temp = copystr("");
 
       for(d=s=ptr; d && *s; s=d)
       {
@@ -970,14 +1030,14 @@ PRIVATE void reset_localprefix()
 	 free(temp);
          d=strchr(s, ':');
 	 if( d ) *d='\0';
-	 temp = my_malloc(strlen(progname)+strlen(s)+2, "prefixing");
+	 temp = xalloc(strlen(progname)+strlen(s)+2);
 	 strcpy(temp, s);
 	 strcat(temp, "/");
 	 strcat(temp, progname);
          if( realpath(temp, buf) != 0 )
 	 {
 	    free(temp);
-	    temp = stralloc(buf);
+	    temp = copystr(buf);
          }
 	 if( access(temp, X_OK) == 0 ) break;
 	 d++;
@@ -985,7 +1045,7 @@ PRIVATE void reset_localprefix()
       if( s == 0 )
       {
          free(temp);
-	 temp = stralloc(progname);
+	 temp = copystr(progname);
       }
       free(ptr);
    }
@@ -995,11 +1055,6 @@ PRIVATE void reset_localprefix()
    {
       ptr[-4] = 0;
       localprefix = temp;
-      if (verbosity > 2)
-      {
-         show_who("localprefix is now ");
-	 writesn(localprefix);
-      }
    }
    else
       free(temp);
@@ -1007,355 +1062,71 @@ PRIVATE void reset_localprefix()
 #endif
 #endif
 
-PRIVATE char * expand_tilde(str, canfree)
-char * str;
-int canfree;
+
+void
+run_command(file)
+struct file_list * file;
 {
-   char * newstr;
-   char * ptr = strchr(str, '~');
-   if( ptr == 0 ) return str;
-
-   newstr = my_malloc(strlen(str)+strlen(localprefix), "expand tilde");
-   if( ptr!=str ) memcpy(newstr, str, ptr-str);
-   strcpy(newstr+(ptr-str), localprefix);
-   strcat(newstr, ptr+1);
-   if( canfree ) free(str);
-   return newstr;
-}
-
-PRIVATE void adddefine(arg)
-char *arg;
-{
-#ifndef CCC
-   addarg(&ccargs, arg);
-#endif
-   addarg(&cppargs, arg);
-}
-
-PRIVATE void addarg(argp, arg)
-register struct arg_s *argp;
-char *arg;
-{
-    int new_argc;
-    char **new_argv;
-
-    if (argp->nr_allocated == 0)
-	startarg(argp);
-    new_argc = argp->argc + 1;
-    if (new_argc >= argp->nr_allocated)
-    {
-	argp->nr_allocated += ALLOC_UNIT;
-	new_argv = realloc(argp->argv, argp->nr_allocated * sizeof *argp->argv);
-	if (new_argv == NUL_PTR)
-	    outofmemory("addarg");
-	argp->argv = new_argv;
-    }
-    argp->argv[argp->argc] = expand_tilde(arg, 0);
-    argp->argv[argp->argc = new_argc] = NUL_PTR;
-}
-
-PRIVATE void addprefix(prefix, name)
-struct prefix_s *prefix;
-char *name;
-{
-    struct prefix_s *new_prefix;
-
-    if (prefix->name == NUL_PTR)
-	prefix->name = name;
-    else
-    {
-	new_prefix = my_malloc(sizeof *new_prefix, "addprefix");
-	new_prefix->name = expand_tilde(name, 0);
-	new_prefix->next = NUL_PTR;
-	while (prefix->next != NUL_PTR)
-	    prefix = prefix->next;
-	prefix->next = new_prefix;
-    }
-}
-
-PRIVATE void fatal(message)
-char *message;
-{
-    writesn(message);
-    killtemps();
-    exit(1);
-}
-
-PRIVATE char *fixpath(path, prefix, mode)
-char *path;
-struct prefix_s *prefix;
-int mode;
-{
-    char *ppath;
-
-    for (; prefix != NUL_PTR; prefix = prefix->next)
-    {
-	if (verbosity > 2)
-	{
-	    show_who("searching for ");
-	    if (mode == R_OK)
-		writes("readable file ");
-	    else
-		writes("executable file ");
-	}
-	ppath = expand_tilde(stralloc2(prefix->name, path), 1);
-	if (verbosity > 2)
-	    writes(ppath);
-	if (access(ppath, mode) == 0)
-	{
-	    if (verbosity > 2)
-	        writesn(" - found.");
-	    return ppath;
-	}
-	if (verbosity > 2)
-	    writesn(" - nope.");
-	free(ppath);
-    }
-    return path;
-}
-
-PRIVATE void killtemps()
-{
-    while (tmpargs.argc > START_ARGS)
-	my_unlink(tmpargs.argv[--tmpargs.argc]);
-}
-
-PRIVATE void *my_malloc(size, where)
-unsigned size;
-char *where;
-{
-    void *block;
-
-    if ((block = malloc(size)) == NUL_PTR)
-	outofmemory(where);
-    return block;
-}
-
-PRIVATE char *my_mktemp()
-{
-    char *p;
-    unsigned digit;
-    unsigned digits;
-    char *template;
-    static unsigned tmpnum;
-
-#ifdef MSDOS
-    digits = 42;
-    p = template = stralloc2(tmpdir, "/$$YYYYXX");
-#else
-    digits = getpid();
-    p = template = stralloc2(tmpdir, "/bccYYYYXXXX");
-#endif
-    p += strlen(p);
-
-    while (*--p == 'X')
-    {
-	if ((digit = digits % 16) > 9)
-	    digit += 'A' - ('9' + 1);
-	*p = digit + '0';
-	digits /= 16;
-    }
-    digits = tmpnum;
-    while (*p == 'Y')
-    {
-	if ((digit = digits % 16) > 9)
-	    digit += 'A' - ('9' + 1);
-	*p-- = digit + '0';
-	digits /= 16;
-    }
-    ++tmpnum;
-    addarg(&tmpargs, template);
-    return template;
-}
-
-PRIVATE void my_unlink(name)
-char *name;
-{
-    if (verbosity > 1)
-    {
-	show_who("unlinking ");
-	writesn(name);
-    }
-    if (verbosity > 4) return;
-    if (unlink(name) < 0)
-    {
-        if( !runerror || verbosity > 1)
-	{
-	   show_who("error unlinking ");
-	   writesn(name);
-	   runerror = TRUE;
-	}
-    }
-}
-
-PRIVATE void outofmemory(where)
-char *where;
-{
-    show_who("out of memory in ");
-    fatal(where);
-}
-
-PRIVATE int run(in_name, out_name, argp)
-char *in_name;
-char *out_name;
-struct arg_s *argp;
-{
-    int arg0;
-    int i;
-    int status;
-
-    arg0 = 0;
-    if (in_name == NUL_PTR)
-	++arg0;
-    if (out_name == NUL_PTR)
-	arg0 += 2;
-    else if (argp->minus_O_broken)
-	++arg0;
-    if (argp->nr_allocated == 0)
-	startarg(argp);
-    argp->argv[arg0] = argp->prog;
-    i = arg0 + 1;
-    if (in_name != NUL_PTR)
-	argp->argv[i++] = in_name;
-    if (out_name != NUL_PTR)
-    {
-	if (!argp->minus_O_broken)
-	    argp->argv[i++] = "-o";
-	argp->argv[i++] = out_name;
-    }
-    if (verbosity != 0)
-    {
-	for (i = arg0; i < argp->argc; ++i)
-	{
-	    writes(argp->argv[i]);
-	    writes(" ");
-	}
-	writen();
-    }
-    if (verbosity > 4 ) return 0;
-#ifdef MSDOS
-    status = spawnv(0, argp->prog, argp->argv+arg0);
-    if( status<0 )
-    {
-	show_who("spawn of ");
-	writes(argp->prog);
-	writesn(" failed");
-    }
-#else
-    switch (fork())
-    {
-    case -1:
-	show_who("fork failed");
-	fatal("");
-    case 0:
 #ifdef __BCC__
-	execve(argp->prog, argp->argv + arg0, minienviron);
-#else
-	execv(argp->prog, argp->argv + arg0);
+static char ** minienviron[] = {
+   "PATH=/bin:/usr/bin",
+   "SHELL=/bin/sh",
+   0
+};
 #endif
-	show_who("exec of ");
-	writes(argp->prog);
-	fatal(" failed");
-    default:
-	wait(&status);
-	if (status & 0xFF)
-	{
-	   writes(argp->prog);
-	   writesn(": killed by fatal signal");
-        }
-    }
+   int i, status;
+#ifndef MSDOS
+   void *oqsig, *oisig, *otsig, *ocsig;
 #endif
-    for (i = tmpargs.argc - 1; i >= START_ARGS; --i)
-	if (in_name == tmpargs.argv[i])
-	{
-	    my_unlink(in_name);
-	    --tmpargs.argc;
-	    memmove(tmpargs.argv + i, tmpargs.argv + i + 1,
-		    (tmpargs.argc - i) * sizeof tmpargs.argv[0]);
-	    tmpargs.argv[tmpargs.argc] = NUL_PTR;
-	    break;
-	}
-    if (status != 0)
-    {
-	runerror = TRUE;
-	killtemps();
-    }
-    return status;
-}
 
-PRIVATE void set_trap()
-{
-#ifdef SIGINT
-   signal(SIGINT, trap);
-#endif
-#ifdef SIGQUIT
-   signal(SIGQUIT, trap);
-#endif
-#ifdef SIGTERM
-   signal(SIGTERM, trap);
-#endif
-}
 
-PRIVATE void show_who(message)
-char *message;
-{
+   if (opt_v)
+   {
+      fprintf(stderr, "%s", command.fullpath);
+      for(i=1; command.arglist[i]; i++)
+	 fprintf(stderr, " %s", command.arglist[i]);
+      fprintf(stderr, "\n");
+      if (opt_v>2) return;
+   }
+
 #ifdef MSDOS
-    char * ptr;
-    ptr = strrchr(progname, '\\');
-    if(ptr) ptr++; else ptr = progname;
-    writes(ptr);
+   status = spawnv(0, command.fullpath, command.arglist);
+   if (status<0)
+   {
+      fprintf(stderr, "Unable to execute %s\n", command.fullpath);
+   }
 #else
-    writes(progname);
+   oqsig = signal(SIGQUIT, SIG_IGN);
+   oisig = signal(SIGINT,  SIG_IGN);
+   otsig = signal(SIGTERM,  SIG_IGN);
+   ocsig = signal(SIGCHLD, SIG_DFL);
+
+   switch(fork())
+   {
+   case -1:
+      fatal("Forking failure");
+   case 0:
+#ifdef __BCC__
+      execve(command.fullpath, command.arglist, minienviron);
+#else
+      execv(command.fullpath, command.arglist);
 #endif
-    writes(": ");
-    writes(message);
+      fprintf(stderr, "Unable to execute %s.\n", command.fullpath);
+      exit(1);
+   default:
+      wait(&status);
+      if (status&0xFF)
+      {
+	 fprintf(stderr, "%s: killed by signal %d\n", command.fullpath, (status&0xFF));
+      }
+   }
+
+   (void) signal(SIGQUIT, oqsig);
+   (void) signal(SIGINT,  oisig);
+   (void) signal(SIGTERM, otsig);
+   (void) signal(SIGCHLD, ocsig);
+#endif
+   if (status)
+      file->filetype = '~';
 }
 
-PRIVATE void startarg(argp)
-struct arg_s *argp;
-{
-    argp->argv = my_malloc((argp->nr_allocated = ALLOC_UNIT)
-			   * sizeof *argp->argv, "startarg");
-    argp->argc = START_ARGS;
-    argp->argv[START_ARGS] = NUL_PTR;
-}
-
-PRIVATE char *stralloc(s)
-char *s;
-{
-    return strcpy(my_malloc(strlen(s) + 1, "stralloc"), s);
-}
-
-PRIVATE char *stralloc2(s1, s2)
-char *s1;
-char *s2;
-{
-    return strcat(strcpy(my_malloc(
-	strlen(s1) + strlen(s2) + 1, "stralloc2"), s1), s2);
-}
-
-PRIVATE void trap(signum)
-int signum;
-{
-    signal(signum, SIG_IGN);
-    show_who("caught signal");
-    fatal("");
-}
-
-PRIVATE void writen()
-{
-    writes("\n");
-}
-
-PRIVATE void writes(s)
-char *s;
-{
-    write(2, s, strlen(s));
-}
-
-PRIVATE void writesn(s)
-char *s;
-{
-    writes(s);
-    writen();
-}

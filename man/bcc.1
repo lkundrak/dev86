@@ -88,7 +88,7 @@ don't add default library to search list
 .B -Md
 alters the arguments for all passes to produce MSDOS executable COM files.
 These are small model executables, use
-.B -i-
+.B -i
 to get tiny model.
 .TP
 .B -Mf
@@ -189,9 +189,13 @@ assembler warning messages.
 .TP
 .B -x
 don't include crt0.o in the link.
+.TP
+.B -i
+don't pass
+.B -i
+to the linker so that it will create an impure executable.
 .P
-Other options are passed to the linker, in particular -i-, -lx, -M, -m, -s, -H.
-The -i option is always passed to the linker but can be cancelled using -i-.
+Other options are passed to the linker, in particular -lx, -M, -m, -s, -H.
 
 .SH CODE GENERATOR OPTIONS
 These are all options that the code generator pass
