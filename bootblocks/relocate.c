@@ -29,13 +29,17 @@ unsigned newseg;
    /* Where do we start */
    if(memseg == 0)
    {
+      extern int _heap_top;
       memseg = __get_cs();
       codelen = __get_ds()-memseg;
       __set_es(memseg-2);
-      if (__deek_es(0) == 0x0301 ) {
-	 memlen = __deek_es( 24 );
-	 memlen >>=4;
-      }
+
+      memlen = (((int)&_heap_top) >> 4);
+
+      /*
+      if (__deek_es(0) == 0x0301 ) memlen = (__deek_es(24) >> 4);
+      */
+
       if( memlen == 0 ) memlen = 0x1000;
       memlen += codelen;
       __set_es(es);

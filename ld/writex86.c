@@ -153,10 +153,10 @@ bool_pt argxsym;
     curseg = 3;
     symres("__edata");
     symres("__end");
+    symres("__heap_top");
     curseg = 0;			/* text seg, s.b. variable */
     symres("__etext");
     symres("__segoff");
-    symres("__heap_top");
 
     /* calculate segment and common sizes (sum over loaded modules) */
     /* use zero init of segsz[] */

@@ -257,6 +257,19 @@ int fd;
 
 /****************************************************************************/
 
+#ifdef L_bios_abort
+abort()
+{
+   static const char msg[] = "Program aborted, press return:";
+   write(2, msg, sizeof(msg)-1);
+   getch();
+   _exit(255);
+}
+
+#endif
+
+/****************************************************************************/
+
 #endif
 #endif
 #endif

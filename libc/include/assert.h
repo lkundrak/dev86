@@ -1,4 +1,4 @@
-#ifdef	__ASSERT_H
+#ifndef	__ASSERT_H
 #define	__ASSERT_H
 #include <features.h>
 

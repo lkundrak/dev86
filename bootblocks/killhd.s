@@ -20,23 +20,45 @@ org dos_sysid
    mov	sp,ax
 
    mov	di,#$8000
-   mov	cx,#$0400
+   mov	cx,#$0800
    rep
     stosw		! Zap a space.
 
    mov	dx,#$0080
    mov	cx,#$0001
    mov	bx,#$8000
-   mov	ax,#$0301
-   int	$13		! Zap the MBR
+   mov	ax,#$0308
+   int	$13		! Zap the MBR (and a disk manager?)
 
    mov	dx,#$0180
    mov	cx,#$0001
    mov	bx,#$8000
-   mov	ax,#$0304
+   mov	ax,#$0308
    int	$13		! Zap the first partition boot and super.
 
-   xor	ax,ax		! Wait for key
-   int	$16
-   jmpi	$0,$FFFF        ! Reboot
+!----------------------------------------------------------------
+
+prtmsg:		! SI = pointer to error message
+  mov	si,#boot_message
+
+nextc:
+  lodsb
+  cmp	al,#0
+  jz	eos
+  mov	bx,#7
+  mov	ah,#$E		! Can't use $13 cause that's AT+ only!
+  int	$10
+  jmp	nextc
+
+!----------------------------------------------------------------
+
+eos:			! Wait for a key then reboot
+reboot:
+  xor	ax,ax
+  int	$16
+  jmpi	$0,$FFFF	! Wam! Try or die!
+
+export boot_message
+boot_message:
+  .asciz	"PANIC! OS Destroyed!\r\n"
 

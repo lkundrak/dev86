@@ -61,14 +61,40 @@ struct bblist {
 	   2, minixhd_bootfile-minixhd_start,		FS_ZERO},
 { "killhd", "Deletes MBR from hard disk when booted",  
            killhd_data, killhd_size,  
-	   0, 0,					FS_ADOS},
+	   2, killhd_boot_message-killhd_start, 	FS_ADOS},
+#if __STDC__
+{ "mbr",  "Master boot record for HD"
+#if defined(mbr_Banner) || mbr_diskman || mbr_linear || mbr_mbrkey || mbr_preboot
+   ", Options:"
 #ifdef mbr_Banner
-{ "mbr",  "Master boot record for HD (with optional message)",             
+   " Banner"
+#endif
+#if mbr_diskman
+   " DiskMan"
+#endif
+#if mbr_linear
+   " LBA"
+#if !mbr_useCHS
+   "-Only"
+#endif
+#endif
+#if mbr_mbrkey
+   " BootKeys"
+#endif
+#if mbr_preboot
+   " PreBoot"
+#endif
+#endif
+	   ,             
            mbr_data,mbr_size, 
+#ifdef mbr_Banner
 	   2, mbr_Banner-mbr_start, 			FS_MBR},
 #else
-{ "mbr",  "Master boot record for HD",             
-           mbr_data,mbr_size, 0, 0, 			FS_MBR},
+           0, 0, 					FS_MBR},
+#endif
+#else
+{ "mbr",  "Master boot record for HD",
+	   mbr_data,mbr_size, 0, 0,                     FS_MBR},
 #endif
 { "stat", "Display dosfs superblock",                          
            0, 0, 0, 0, 					FS_STAT},
@@ -761,6 +787,14 @@ struct bootfields {
    { 0x30, 2, 0},
    { 0x32, 2, 0},
 
+   { 0x40, 1, 0},
+   { 0x43, 4, 0},
+   { 0x47, 11, 0},
+   { 0x52, 8, 0},
+
+   { 0x3e8, 4, 0},
+   { 0x3ec, 4, 0},
+
    { -1,0,0}
 };
 
@@ -781,19 +815,27 @@ static char * fieldnames[] = {
    "Heads",
    "Hidden sectors (Partition offset)",
 
-   "Large FS sector count",
+   "Large Filesystem sector count",
    "Phys drive",
    "Serial number",
    "Disk Label (DOS 4+)",
    "FAT type",
 
-   "FAT32 FS sector count",
+   "Large Filesystem sector count",
    "FAT32 FAT length",
    "FAT32 Flags",
    "FAT32 version",
    "FAT32 Root Cluster",
    "FAT32 Info Sector",
    "FAT32 Backup Boot",
+
+   "FAT32 Phys Drive",
+   "FAT32 Serial number",
+   "FAT32 Disk Label",
+   "FAT32 FAT Type",
+
+   "FAT32 Free clusters",
+   "FAT32 Next free cluster",
 
    0
 };
@@ -1087,9 +1129,10 @@ check_mbr()
          break;
 
    /* Check for Disk Manager partition tables */
-   if( buffer[252] == 0xAA && buffer[253] == 0x55 )
+   if( buffer[252] == 0x55 && buffer[253] == 0xAA )
    {
-      if( (unsigned char)mbr_data[252] != 0xAA || mbr_data[253] != 0x55 )
+      if( (unsigned char)mbr_data[252] != 0x55 || 
+	  (unsigned char)mbr_data[253] != 0xAA )
 	 i = 252;
    }
 

@@ -6,17 +6,18 @@ AS86=as86
 
 DEFS=
 CC=$(BCC)
-CFLAGS=-ansi -Ms -Oi -O -s $(DEFS)
-# CFLAGS=-ansi -Ms -s $(DEFS)
+CFLAGS=-ansi -Ms -Oi -O $(DEFS)
+LDFLAGS=-s -i -H0x10000 
 ASFLAGS=-0 -w
 MINIXDEFS=-DDOTS
+# CFLAGS=-ansi -Ms $(DEFS)
 # LST=-l $*.lst
 
-default: makeboot makeboot.com monitor.out minix_elks.bin lsys.com
+default: makeboot makeboot.com monitor.sys minix_elks.bin lsys.com
 
 all: bootbin bootsys default tgz
 
-bootsys: bootfile.sys boottar.sys bootminix.sys monitor.sys
+bootsys: bootfile.sys boottar.sys bootminix.sys monitor.sys boot_win.sys
 
 CSRC=minix.c
 SSRC=sysboot.s tarboot.s skip.s mbr.s msdos.s noboot.s \
@@ -34,46 +35,46 @@ MINC=i86_funcs.h readfs.h monitor.h
 BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v msdos16.v \
            tarboot.v minix.v minixhd.v mbr.v killhd.v
 
-EXTRAS=minix.h zimage.s minix_elks.c lsys.c
+EXTRAS=minix.h zimage.s minix_elks.c lsys.c boot_win.c
 
 install:
 
 monitor.com: $(MOBJ)
-	$(CC) $(CFLAGS) $(MONDEFS) -H0x10000 -d $(MOBJ) -o monitor.com -M > monitor.sym
+	$(CC) $(CFLAGS) $(LDFLAGS) $(MONDEFS) -d $(MOBJ) -o monitor.com -M > monitor.sym
 
 monitor.out: $(MOBJ)
-	$(CC) $(CFLAGS) $(MONDEFS) -H0x10000 $(MOBJ) -o monitor.out -M > monitor.sym
+	$(CC) $(CFLAGS) $(LDFLAGS) $(MONDEFS) $(MOBJ) -o monitor.out -M > monitor.sym
 
 $(MOBJ): $(MINC)
 fs_min.o: minix.h
 
 bootfile.sys: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -i -DDOSFLOPPY -d' monitor.out
+	make 'CFLAGS=$(CFLAGS) -DDOSFLOPPY' monitor.out
 	mv monitor.out bootfile.sys
 	@rm -f $(MOBJ)
 
 boottar.sys: $(MSRC) $(MINC) tarboot.bin
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -i -DTARFLOPPY' monitor.out
+	make 'CFLAGS=$(CFLAGS) -DTARFLOPPY' monitor.out
 	mv monitor.out boottar.sys
 	@rm -f $(MOBJ)
 
 bootminix.sys: $(MSRC) $(MINC) minix.bin
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -i -DMINFLOPPY' monitor.out
+	make 'CFLAGS=$(CFLAGS) -DMINFLOPPY' monitor.out
 	mv monitor.out bootminix.sys
 	@rm -f $(MOBJ)
 
 monitor.sys: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DNOMONITOR' monitor.out
+	make monitor.out
 	mv monitor.out monitor.sys
 	@rm -f $(MOBJ)
 
 monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=-ansi -H0x8000' monitor.out
+	make 'CFLAGS=-ansi $(DEFS)' monitor.out
 	mv monitor.out monitor
 	@rm -f $(MOBJ)
 
@@ -91,6 +92,16 @@ minixhd.s: minix.c Makefile
 msdos16.s: msdos.s
 	sed 's/^fatbits=12/fatbits=16/' < msdos.s > msdos16.s
 
+mbr_dm.s: mbr.s
+	sed -e 's/^diskman=0/diskman=1/' \
+	    -e 's/^message=1/message=0/' \
+	    -e 's/^mbrkey=1/mbrkey=0/' \
+	    -e 's/^preboot=1/preboot=0/' \
+	     < mbr.s > mbr_dm.s
+
+boot_win.sys: boot_win.c
+	$(CC) -Ms -H0x6000 -s boot_win.c -o boot_win.sys
+
 makeboot:	makeboot.c $(BOOTBLOCKS)
 	$(HOSTCC) $(HOSTCCFLAGS) -o makeboot makeboot.c
 
@@ -101,13 +112,13 @@ lsys.com:	lsys.c msdos.v msdos16.v
 	$(CC) -Md -O -o lsys.com lsys.c
 
 clean realclean:
-	rm -f bootfile.sys boottar.sys bootminix.sys monitor.sys
+	rm -f bootfile.sys boottar.sys bootminix.sys monitor.sys boot_win.sys
 	rm -f monitor makeboot bootblocks.tar.gz
-	rm -f minix.s minixhd.s minix_elks.s msdos16.s
+	rm -f minix.s minixhd.s minix_elks.s msdos16.s mbr_dm.s
 	rm -f *.com *.o *.bin *.out *.lst *.sym *.v *.tmp
 
-tgz: minix.bin monitor.out makeboot.com makeboot
-	tar cfV bootblocks.tar ENIAC monitor.out \
+tgz: minix.bin monitor.sys makeboot.com makeboot
+	tar cfV bootblocks.tar ENIAC monitor.sys \
 	        README Makefile \
 		$(MSRC) \
 		$(MINC) \

@@ -14,7 +14,7 @@
 ! of the msdos files system:
 !
 ! 1) All of the first 12 bit FAT must be on the first track.
-! 2) The FAT must be 12 bit
+! 2) The FAT must be 12 bit or 16 bit. (known at install time)
 ! 3) The value of the hidden sectors field must be zero
 !
 ! All these are true for mtools created floppies on normal PC drives.
@@ -340,11 +340,9 @@ got_fsect:
 !---------------------------------------------------------------------------
 ! File is now loaded, execute it.
 maincode:
- if harddisk=0
   mov	bx,#7
-  mov	ax,#$0E3E
+  mov	ax,#$0E + ':
   int	$10		! Marker printed to say bootblock succeeded.
- endif
 
   xor	dx,dx		! DX=0 => floppy drive
  if harddisk
@@ -387,13 +385,8 @@ bad_magic:
 fatsect:
   .word	0
 
-! if fatbits =16
 error_msg:
   .asciz "\r\nError during initial boot\r\nPress a key:"
-! else
-! error_msg:
-!   .asciz "\r\nBoot error:"
-! endif
 
 export boot_name
 boot_name:

@@ -4,7 +4,7 @@
 
 ifeq ($(LIB_OS),BIOS)
 ASRC=bios.c
-AOBJ=bios_start.o bios_isatty.o bios_nofiles.o \
+AOBJ=bios_start.o bios_isatty.o bios_abort.o bios_nofiles.o \
      bios_read.o bios_write.o bios_lseek.o bios_close.o
 
 BSRC=bios_vid.c
@@ -12,7 +12,7 @@ BOBJ=bios_putch.o bios_getch.o bios_getche.o bios_cputs.o bios_kbhit.o \
      bios_rdline.o
 
 CSRC=bios_min.c
-COBJ=bios_putc.o bios_getc.o
+COBJ=bios_putc.o bios_getc.o bios_khit.o
 
 DSRC=bios_disk.c
 DOBJ=bios_disk_rd.o bios_disk_wr.o bios_disk_rs.o bios_get_dpt.o

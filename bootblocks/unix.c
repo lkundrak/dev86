@@ -8,22 +8,22 @@ kbhit() {
 }
 
 getch() {
-   return 0;
+   return 3;
 }
 
 static int phy_fd = -1;
 
 static open_fd()
 {
-   phy_fd = open("/dev/fd0", 0);
+   phy_fd = open("/tmp/ramdisk", 0);
    if( phy_fd < 0 )
    {
-      fprintf(stderr, "Cannot open /dev/fd0\n");
+      fprintf(stderr, "Cannot open /dev/ramdisk\n");
       phy_fd= -2;
    }
 }
 
-phy_read(drive, cyl, head, sect, len, buffer)
+_bios_disk_read(drive, cyl, head, sect, len, buffer)
 int drive, cyl, head, sect, len;
 char *buffer;
 {
@@ -61,7 +61,7 @@ extern int disk_spt;
    return 0;
 }
 
-phy_reset()
+_bios_disk_reset()
 {
 }
 
@@ -70,6 +70,7 @@ motor_running()
    return 1;
 }
 
+#if 0
 putsect(buffer, address)
 char * buffer;
 int address;
@@ -78,6 +79,7 @@ int address;
                     buffer, address);
    return 0;
 }
+#endif
 #endif
 
 /* crctab calculated by Mark G. Mendel, Network Systems Corporation */

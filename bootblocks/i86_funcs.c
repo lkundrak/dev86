@@ -164,26 +164,40 @@ static struct {
   ""
 };
 
-ext_put(from, to, length)
-unsigned int from, to, length;
+mem_write(buffer, baseaddr, sectno, sectcount)
+void * buffer;
+long baseaddr;
+unsigned  sectno, sectcount;
 {
-   if(x86_test) return 3;
-   GDT.src_seg = RIGHTS + from + ((long)__get_ds()<<4);
-   GDT.dst_seg = RIGHTS + ((long)to<<8);
-   if( length == 0xFFFF ) length = 0x8000;
-   else                   length = ((length+1)>>1);
-   return asm_copy(length);
+   if(x86_test) return 0;
+   /* In an EMU we can't write to high mem but
+      we'll pretend we can for debuggering */
+
+   baseaddr += ((long)sectno<<9);
+   if( baseaddr < 0xA0000L )
+   {
+      __movedata(__get_ds(), buffer, 
+	         (unsigned)(baseaddr>>4), (unsigned)(baseaddr&0xF),
+		 sectcount * 512);
+      return 0;
+   }
+
+   GDT.src_seg = RIGHTS + (unsigned)buffer + ((long)__get_ds()<<4);
+   GDT.dst_seg = RIGHTS + baseaddr;
+   return asm_copy(sectcount << 8);
 }
 
-ext_get(from, to, length)
-unsigned int from, to, length;
+mem_read(buffer, baseaddr, sectno)
+void * buffer;
+long baseaddr;
+int  sectno;
 {
    if(x86_test) return 3;
-   GDT.src_seg = RIGHTS + ((long)from<<8);
-   GDT.dst_seg = RIGHTS + to + ((long)__get_ds()<<4);
-   if( length == 0xFFFF ) length = 0x8000;
-   else                   length = ((length+1)>>1);
-   return asm_copy(length);
+   baseaddr += ((long)sectno<<9);
+
+   GDT.dst_seg = RIGHTS + (unsigned)buffer + ((long)__get_ds()<<4);
+   GDT.src_seg = RIGHTS + baseaddr;
+   return asm_copy(256);
 }
 
 static asm_copy(length)

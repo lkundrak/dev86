@@ -87,12 +87,12 @@ Contents
    bootable floppy image. The boot sector loads and executes the first
    item in the tar file after the label:
 
-   $ tar cvfV the_file.tar ENIAC monitor.out item2 item3
+   $ tar cvfV the_file.tar ENIAC monitor.sys item2 item3
    $ makeboot tar the_file.tar
    $ cp the_file.tar /dev/fd0
 
    This sequence makes a bootable floppy that tar sees as a normal labeled
-   tar file but when booted from will load and execute 'monitor.out' at
+   tar file but when booted from will load and execute 'monitor.sys' at
    location $00800  (Yes thats 2k!)
 
    Warning: the tar boot sector moves the BPB to the location $666.
@@ -127,12 +127,12 @@ Contents
 2.3 ) Booting Linux-i386 [b]zImage
 
    None of the boot blocks can _directly_ boot a Linux-i386 kernel the
-   program 'monitor.out' must loaded by the boot sector and this can
+   program 'monitor.sys' must loaded by the boot sector and this can
    load a zimage or bzimage from an MSDOS, Minix or Tar floppy. It can
    also load the image from a minix hard disk filesystem.
 
    This example is for and MSDOS floppy, Tar is very similar except that
-   'monitor.out' must be the first file in the tar and can have any name.
+   'monitor.sys' must be the first file in the tar and can have any name.
 
    Note also for a tar file the 'ramdisk.gz' file must start on the first
    disk but can extend across as many floppies as is needed.
@@ -140,15 +140,18 @@ Contents
    $ mformat a:
    $ makeboot dos /dev/fd0
    $ mount -t msdos /dev/fd0 /mnt
-   $ cp monitor.out /mnt/bootfile.sys
+   $ cp monitor.sys /mnt/bootfile.sys
 
    $ cp /usr/src/linux/arch/i386/boot/zImage /mnt/vmlinuz
    $ echo 'root=/dev/ram ramdisk_file=ramdisk.gz mem=80M' > /mnt/vmlinuz.cfg
    $ cp /archive/ramdisk.gz /mnt/ramdisk.gz
    $ umount /dev/fd0
 
-   The stuff about ramdisk is only if you want an init ramdisk, if the ramdisk
-   name begins with a '+' the program will ask for another disk first.
+   The stuff about ramdisk is only if you want an init ramdisk. If
+   the ramdisk isn't on this floppy monitor.sys will ask for the
+   right floppy. If you specify multiple ramdisk files then will be
+   concatenated and passed to the kernel as one ramdisk, each file 
+   can be on a different floppy.
 
    If the file isn't called 'vmlinuz' you can still boot it by typing "=linux"
    at the prompt '>' where 'linux' is the name of the bzImage file.
@@ -162,4 +165,4 @@ Contents
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Robert de Bath <rdebath@poboxes.com> 31	Dec 1998
+Robert de Bath <robert@mayday.cix.co.uk>

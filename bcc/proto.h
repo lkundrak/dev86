@@ -276,8 +276,10 @@ void outshex P((offset_T num));
 void outstr P((char *s));
 void outtab P((void));
 void outudec P((unsigned num));
+#ifndef I8088
 void outuvalue P((uvalue_t num));
 void outvalue P((value_t num));
+#endif
 char *pushudec P((char *s, unsigned num));
 void setoutbufs P((void));
 

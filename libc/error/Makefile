@@ -6,13 +6,12 @@ CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 ifeq ($(LIB_OS),ELKS)
 OBJ=error.o sys_errlist.o perror.o sys_siglist.o __assert.o
+else
+OBJ=__assert.o
+endif
 
 all: $(LIBC)($(OBJ))
 	@$(RM) $(OBJ)
-else
-all:
-	@:
-endif
 
 clean:
 	rm -f *.o libc.a

@@ -2,27 +2,32 @@
 ! This is a 'Master Boot Record' following the MSDOS 'standards'.
 ! This BB successfully boots MSDOS or Linux.
 !
-! In addition it has the facility to load and execute a small program
-! before the boot blocks are checked.
+! In addition it can:
+!   Display a message configure at install time.
+!   Load and execute a small program before the boot blocks are checked.
 !
 ! Or
 !
-! Space for 12 extra partitions in the 'DiskManager' form that Linux 
-! _does_ understand.
+! Space for 12 extra partitions in the 'Old Disk Manager' form that Linux 
+! _does_ understand (unfortunatly there doesn't appear to be an fdisk that
+! understands them.)
 !
-! NB: This needs as86 0.15.2 or later
+! NB: This needs as86 0.16.0 or later
 
 ! Lowest available is $0500, MSDOS appears to use $0600 ... I wonder why?
 ORGADDR=$0500
+copyright=1	! Add in the copyright message; if room.
 preboot=0	! Include the pre-boot loader.
-mbrkey=0	! Option to choose the boot record base on keystroke
+mbrkey=0	! Option to choose the boot record based on keystroke
 message=1	! Display boot message
 use512=0	! Put the end marker at byte 510..512
+markptab=1	! Put an end marker just below the partition table.
 
 diskman=0	! Disk manager partitions, allows 16 partitions but
 		! don't overwrite this with a LILO BB.
 
-linear=0	! Use the linear addresses not the CHS ones
+linear=1	! Use the linear addresses not the CHS ones (if available)
+useCHS=1	! Disable CHS if you need space.
 
 partition_start=ORGADDR+0x1BE
 partition_size=0x10
@@ -35,6 +40,12 @@ partition_end=ORGADDR+0x1FE
  else
   table_start=partition_start
  endif
+
+export linear
+export diskman
+export useCHS
+export mbrkey
+export preboot
 
 org ORGADDR
   cli			! Assume _nothing_!
@@ -54,7 +65,7 @@ org ORGADDR
 cont:
   sti			! Let the interrupts back in.
 
-! Next check for a pre-boot load or a keypress
+! Next check for a pre-boot message, load or keypress
  if message
   call disp_message
  endif
@@ -65,23 +76,39 @@ cont:
   call 	key_wait
  endif
 
+ if (linear|useCHS)
+
 ! Now check the partition table, must use SI as pointer cause that's what the
 ! partition boot blocks expect.
 
+! If we're using diskman and we're short of space check the partitions in
+! physical order. (Order. 4,3,2,1,5,6,7,8,9,10,11,12,13,14,15,16)
+
+ if (diskman&linear&useCHS)
+
+  mov	si,#partition_end
+check_next:
+  sub	si,#partition_size
+  cmp	byte [si],#$80			! Flag for activated partition
+  jz	found_active
+  cmp	si,#low_partition
+  jnz	check_next
+
+ else
+
+! Normal active partition check, (Order: 1,2,3,4)
   mov	si,#partition_start
 check_active:
   cmp	byte [si],#$80			! Flag for activated partition
   jz	found_active
- if mbrkey=0
-bad_boot:
- endif
+try_next_part:
   add	si,#partition_size
   cmp	si,#partition_end
   jnz	check_active
 
-  ! Check for Disk manager partitions in the order that Linux numbers them.
- if diskman
-  cmp	word ptr diskman_magic,#$55AA
+! Check for Disk manager partitions in the order that Linux numbers them.
+ if diskman&~(linear&useCHS)
+  cmp	word ptr diskman_magic,#$AA55
   jnz	no_diskman
   mov	si,#partition_start
 check_next:
@@ -93,26 +120,78 @@ check_next:
 
 no_diskman:
  endif
+ endif
 
+ if mbrkey=0
+bad_boot:
+ endif
   mov	si,#no_bootpart		! Message & boot
   jmp	no_boot
 
+! Active partition found, boot it.
 found_active:
+  mov	di,#6		! Max retries, int doc says 3 ... double it
+  movb	[$7DFE],#0	! Clear magic for dosemu
+retry:
+
+! If the BIOS has LBA extensions use them.
  if linear
-  call linearise
+ if useCHS
+  mov	ah,#$41
+  mov	bx,#$55AA
+  mov	dx,[si]		! dh = Drive head, dl = $80 ie HD drive 0
+  push	si		! Save SI on read.
+ if mbrkey
+  test	dl,#$80
+  jz	do_CHS
+ endif
+  int	$13
+  jc	do_CHS
+  cmp	bx,#$AA55
+  jnz	do_CHS
  else
-  mov	di,#6		! Max retries, int list says 3 ... double it
+  mov	dx,[si]		! dh = Drive head, dl = $80 ie HD drive 0
+  push	si		! Save SI
+ endif
+  mov	bx,#disk_address
+  mov	ax,[si+8]
+  mov	[bx],ax
+  mov	ax,[si+10]
+  mov	[bx+2],ax
+  mov	si,#disk_packet
+  mov	ah,#$42
+  int	$13
+  pop	si
+  jc	retry_error
+  j	sector_loaded
+disk_packet:
+  .byte	$10
+  .byte	0
+  .word	1
+  .word	$7C00
+  .word	0
+disk_address:
+  .long 0
+  .long 0
+
+ if useCHS
+do_CHS:
+  pop	si
+ endif
+ endif
+
+if useCHS
   mov	dx,[si]		! dh = Drive head, dl = $80 ie HD drive 0
   mov	cx,[si+2]	! cx = Sector & head encoded for int $13
   ! bx is correct at $7C00
- endif
-retry:
-  movb	[$7DFE],#0	! Clear magic for dosemu
+
   mov	ax,#$0201	! Read 1 sector
   int   $13		! Disk read.
   jnc	sector_loaded
+endif
 
 ! Error, reset and retry
+retry_error:
   xor	ax,ax
   int	$13		! Disk reset
 
@@ -125,10 +204,18 @@ retry:
 sector_loaded:
   mov	di,#$7DFE	! End of sector loaded
   cmp	[di],#$AA55	! Check for magic
-  jnz	bad_boot	! No? Try next partition.
+ if diskman
+  jnz	bad_boot	! Can't try again, two places to return to.
+ else
+  jnz	try_next_part	! No? Try next partition.
+ endif
 
   mov	bp,si		! LILO says some BBs use bp rather than si
   jmpi	#$7C00,#0	! Go!
+
+ else
+  mov	si,#no_bootpart		! Message & boot
+ endif !(linear|useCHS)
 
 ! Fatal errors ...........
  if mbrkey
@@ -138,9 +225,7 @@ no_boot:		! SI now has pointer to error message
   call	puts
   mov	si,#crlf
   call	puts
-tick:
-  call	key_pause
-  j	tick
+  j	key_pause
 
  else
 
@@ -169,36 +254,32 @@ press_end:
  endif
 
 no_bootpart:
-  .asciz	"No active partition"
+  .asciz	"Bad partition"
 disk_read_error:
-  .asciz	"Disk read error"
-
-!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-! Instead of loading using the CHS data in the ptbl use the linear addr
-!
- if linear
-linearise:
-  mov	di,#6		! Max retries, int list says 3 ... double it
-  mov	dx,[si]		! dh = Drive head, dl = $80 ie HD drive 0
-  mov	cx,[si+2]	! cx = Sector & head encoded for int $13
-  ! bx is correct at $7C00
-
-  fail! Todo ...
-  ret
- endif
+  .asciz	"Read error"
 
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ! Choose the partition based on a pressed key ...
 
  if mbrkey
-key_pause:
-  mov	si,#Pause
-  call	puts
-  j	wait_key
-
 key_wait:
   mov	si,#Prompt
   call	puts
+  call	wait_key
+  jnz	key_pause
+
+  mov	si,#Unprompt		! Nothing has happened, return.
+  call	puts
+  ret
+
+key_pause:
+  mov	si,#Pause
+  call	puts
+
+key_tick:
+  call	wait_key
+  jz	key_tick
+  j	Got_key
 
 wait_key:
   mov	di,#19			! Wait for 18-19 ticks
@@ -206,7 +287,7 @@ wait_key:
 next_loop:
   mov	ah,#1
   int	$16
-  jnz   Got_key
+  jnz   done_wait
   mov	ah,#0
   int	$1A			! Get current tick
   cmp	dx,si			! If changed DEC our counter.
@@ -215,43 +296,39 @@ next_loop:
   dec	di
   jnz	next_loop
 
-  mov	si,#Unprompt		! Nothing has happened, return.
-  call	puts
-
-bad_key:
+done_wait:
   ret
 
 Got_key:
   mov	ah,#0			! Clean the kbd buffer.
   int	$16
+  cmp	al,#0x20
+  jz	key_tick
 
-  cmp	al,#$20
-  jz	key_pause		! Recursion !?
-
+  push	ax
   mov	Showkey,al
   mov	si,#Showkey
   call	puts
-  mov	al,Showkey
+  pop	ax
 
   ! ... Now we use our key ...
   ! 0 		=> Floppy
   ! 1 .. 4	=> Hard disk partition.
 
-  mov	di,#-1
-  cmp	al,#$20
-  jz	next_loop
+ if useCHS
+  cmp	al,#'F
+  jz	is_floppy
+  cmp	al,#'f
+  jz	is_floppy
+ endif
 
-  and	ax,#0xF
+  cmp	al,#'1
+  jb	key_pause
+  cmp	al,#'4
+  ja	key_pause
 
-  jnz	not_floppy
-  mov	si,#floppy_part
-  br	found_active
-
-not_floppy:
+  and   ax,#0x7
   dec	ax
-  test	ax,#0xC
-  jnz	bad_key
-
   mov	cl,#4
   shl	ax,cl
   add	ax,#partition_start
@@ -259,8 +336,18 @@ not_floppy:
 
 ! Set active flag for disk interrupt.
   or	byte [si],#$80
-
   br	found_active
+
+ if useCHS
+is_floppy:
+  mov	si,#floppy_part
+  br	found_active
+ endif
+
+ if message
+disp_message:
+  mov	si,#Banner
+ endif
 
 puts:
   lodsb
@@ -276,11 +363,15 @@ EOS:
   ret
 
 Prompt:
-  .asciz	"\rMBR 0-4: "
+  .asciz	"\rMBR: "
 Unprompt:
-  .asciz	"\r        \r"
+  .asciz	"\r    \r"
 Pause:
-  .asciz	"\rMBR 0-4> "
+ if useCHS
+  .asciz	"\rMBR F1234> "
+ else
+  .asciz	"\rMBR 1234> "
+ endif
 Showkey:
   .ascii	" "
 crlf:
@@ -290,33 +381,6 @@ floppy_part:
 
  endif
 
-!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-!
- if message
-disp_message:
-  mov	si,#Banner
-
- if mbrkey
-  br	puts
- else
-
-puts:
-  lodsb
-  cmp	al,#0
-  jz	.EOS
-  push	bx
-  mov	bx,#7
-  mov	ah,#$E			! Can't use $13 cause that's AT+ only!
-  int	$10
-  pop	bx
-  jmp	puts
-.EOS:
-  ret
- endif
-export Banner
-Banner:
-  .asciz	""
- endif
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ! This is the pre-boot loader it uses CHS but that's ok for track 0
 !
@@ -372,7 +436,34 @@ pre_boot_table:
  endif
 
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+!
+ if message&~mbrkey
+disp_message:
+  mov	si,#Banner
+
+puts:
+  lodsb
+  cmp	al,#0
+  jz	.EOS
+  push	bx
+  mov	bx,#7
+  mov	ah,#$E			! Can't use $13 cause that's AT+ only!
+  int	$10
+  pop	bx
+  jmp	puts
+.EOS:
+  ret
+ endif
+
+ if message
+export Banner
+Banner:
+  .blkb	16	! 16 bytes for the message at least.
+ endif
+
+!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ! Now make sure this isn't too big!
+end_of_code:
   if *>table_start
    fail! Partition table overlaps
   endif
@@ -380,29 +471,43 @@ pre_boot_table:
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ! The diskman magic number and empty DM partitions.
  if diskman
-  org ORGADDR+0xFC
+  org table_start
 public diskman_magic
 diskman_magic:
   .word 0xAA55
   .blkb 12*partition_size-1
-  .byte 0
  endif
 
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-! And finally a copyright message if there's room.
+! And a copyright message if there's room.
+ if copyright
  if *<ORGADDR+0x180
   org ORGADDR+0x180
 .asciz "ELKS MBR       "
 .asciz "Robert de Bath,"
 .asciz "Copyright      "
-.asciz "1996-2002.  "
+.asciz "1996-2003.  "
   org partition_start-1
   .byte 0xFF
+ endif
+ endif
+
+!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+! Clear the sector to the bottom of the partition table.
+ if markptab
+  if *<partition_start-1
+  org partition_start-1
+  .byte 0xFF
+ endif
  endif
 
  if use512
   org ORGADDR+0x1FE
   .word 0xAA55
+ endif
+
+ if 1&~(useCHS|linear|preboot)
+  fail! Errm, you can't boot anything without 'linear' or 'useCHS'
  endif
 
 !THE END

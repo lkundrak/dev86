@@ -4,12 +4,13 @@ ORGADDR=0x0600
 entry start
 public start
 start:
+  cld
   xor	ax,ax
   mov	si,#$7C00
   mov	di,#ORGADDR
 
   mov	ss,ax
-  mov	sp,di	! Or ax or si
+  mov	sp,si	! ax, di or si
 
   push	ax
   pop	ds
@@ -17,7 +18,6 @@ start:
   pop	es
 
   mov	cx,#256
-  cld
   rep
    movsw
   jmpi	go,#0

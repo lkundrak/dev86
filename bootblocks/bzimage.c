@@ -6,9 +6,13 @@
 #define __MINI_MALLOC__
 #include "monitor.h"
 
+#define MAXRDPART	32
+
 int auto_flag = 1;
 
-static char * initrd_name = 0;	/* Name of init_ramdisk to load */
+/* Names of init_ramdisk files to load */
+static char *initrd_names[MAXRDPART];
+static int  initrd_count = 0;
 static long initrd_start = 0;
 static long initrd_length = 0;
 static int vga_mode = -1;	/* SVGA_MODE = normal */
@@ -21,7 +25,12 @@ static long image_size;		/* Length of image file in bytes */
 static char * read_cmdfile();
 static char * input_cmd();
 
-#define ZIMAGE_LOAD_SEG	 0x10000 /* Segment that zImage data is loaded */
+/* ZIMAGE_LOAD_SEG: Segment that zImage data is loaded 
+ * 0x10000  For largest possible zImage
+ * 0x1000   Normal load address, smallest monitor.sys
+ * 0x100    Largest zImage without using extended memory
+ */
+#define ZIMAGE_LOAD_SEG	 0x10000
 #define COMMAND_LINE_POS 0x4000 /* Offset in segment 0x9000 of command line */
 
 static char * linux_command_line = 0;
@@ -61,7 +70,7 @@ char * command_line;
    int low_sects;
    unsigned int address;
    
-   initrd_name = 0;
+   initrd_count = 0;
    initrd_start = initrd_length = 0;
    vga_mode = -1;
    is_zimage = 0;
@@ -115,6 +124,7 @@ char * command_line;
 
 #ifndef __ELKS__
 #if ZIMAGE_LOAD_SEG == 0x10000
+#if 0	/* Don't warn about this limit, the format is old. */
    if( is_zimage )
    {
       if( image_length > 0x7FF0/32 )
@@ -124,11 +134,10 @@ char * command_line;
          return -1;
       }
    }
+#endif
 #else
    if( is_zimage )
    {
-      relocator(8);	/* Need space in low memory */
-
       if( image_length > (__get_cs()>>5) - ZIMAGE_LOAD_SEG/32 )
       {
          printf("This zImage file is too large, maximum is %dk bytes\n",
@@ -171,8 +180,11 @@ char * command_line;
 #endif
       for(v=0; v<1024; v+=512)
       {
-         if( putsect(buffer+v, address) < 0 )
+	 int rv;
+	 if( (rv=mem_write(buffer+v, 0L, address/2, 1)) != 0 ) {
+	    printf("Error 0x%02x while copying to extended memory\n", rv);
 	    return -1;
+	 }
 
 	 address += 2;
 
@@ -202,7 +214,7 @@ char * command_line;
 
    printf("          \r"); fflush(stdout);
 
-   if( initrd_name )
+   if( initrd_count )
       if( load_initrd(address) < 0 )
          return -1;
 
@@ -260,7 +272,7 @@ char * command_line;
 #endif
 
    /* Tell the kernel where ramdisk is */
-   if( initrd_name )
+   if( initrd_count )
    {
       __set_es(0x9000);
 
@@ -272,7 +284,7 @@ char * command_line;
    }
 
 
-   if( !is_zimage || initrd_name )
+   if( !is_zimage || initrd_count )
       __poke_es(0x210, 0xFF); /* Patch setup to deactivate safety switch */
 
    /* Set SVGA_MODE if not 'normal' */
@@ -349,59 +361,12 @@ register char * image_buf;
 
    is_zimage = 1;
    printf("File %s is an old Image file\n", fname);
-#if ZIMAGE_LOAD_SEG == 0x10000
+#if ZIMAGE_LOAD_SEG == 0x10000 || ZIMAGE_LOAD_SEG == 0x1000
    return 0;
 #else
    return -1;
 #endif
 }
-
-#ifndef __ELKS__
-putsect(put_buf, address)
-char * put_buf;
-unsigned int address;
-{
-   int rv, tc=3;
-   /* In real mode memory, just put it directly */
-   if( address < 0xA00 )
-   {
-      __movedata(__get_ds(), put_buf, address*16, 0, 512);
-      return 0;
-   }
-
-retry:
-   tc--;
-
-   if( x86_test )
-      return 0;	/* In an EMU we can't write to high mem but
-                   we'll pretend we can for debuggering */
-
-   if( (rv=ext_put(put_buf, address, 512)) != 0 )
-   {
-      switch(rv)
-      {
-      case 1:
-	 printf("Parity error while copying to extended memory\n");
-	 break;
-      case 2:
-	 printf("Interrupt error while copying to extended memory\n");
-	 if ( tc>0 ) goto retry;
-	 break;
-      case 3:
-	 printf("BIOS cannot open A20 Gate\n");
-	 break;
-      case 0x80: case 0x86:
-	 printf("BIOS has no extended memory support\n");
-	 break;
-      default:
-	 printf("Error %d while copying to extended memory\n", rv);
-	 break;
-      }
-      return -1;
-   }
-   return 0;
-}
-#endif
 
 static char *
 read_cmdfile(iname)
@@ -568,11 +533,11 @@ static char * image_str = "BOOT_IMAGE=";
       }
       else if( strncasecmp(s, "ramdisk_file=", 13) == 0 )
       {
-	 if( initrd_name ) free(initrd_name);
-	 if( s[13] )
-            initrd_name = strdup(s+13);
-	 else
-	    initrd_name = 0;
+	 if (initrd_count >= MAXRDPART) {
+	    printf("Too many ramdisk files\n");
+	    return -1;
+	 }
+	 initrd_names[initrd_count++] = strdup(s+13);
       }
       else if( strncasecmp(s, image_str, 11) == 0 )
       {
@@ -629,79 +594,84 @@ static int burning = 0;
       printf("Yes, Ok%s\n", burning?"":", burn baby burn!");
       return burning=1;
    }
-#ifdef NOCOMMAND
-   printf("No, Ok press enter to reboot\n");
-#else
-   printf("No, Ok returning to monitor prompt\n");
-#endif
+   printf("No\n");
    return 0;
 }
 
 load_initrd(k_top)
 unsigned int k_top;
 {
-   unsigned int address, rd_start, rd_len;
+   char * fname;
+   long baseaddress;
    long file_len;
-   char * fname = initrd_name;
+   unsigned sectcount, sectno;
+   int fno;
 
-   /* Top of accessable memory */
-   if( main_mem_top >= 15360 ) address = 0xFFFF;
-   else                        address = 0x1000 + main_mem_top*4;
+   initrd_length = 0;
+   baseaddress = (long)k_top * 256;
 
-   if( *fname == '+' ) fname++;
-
-   while( open_file(fname) < 0 )
+   for(fno = 0; fno <initrd_count; fno++)
    {
-      char buf[2];
-      close_file();
-      printf("Cannot open %s, insert next disk and press return:", fname);
-      fflush(stdout);
-      if( read(0, buf, 2) <=0 ) return -1;
-   }
-   file_len = file_length();
-   rd_len = (file_len+1023)/1024;
+      fname = initrd_names[fno];
+      if( *fname == '+' ) fname++;
+      while( open_file(fname) < 0 )
+      {
+	 char buf[2];
+	 close_file();
+	 printf("Please insert disk containing '%s' and press return:", fname);
+	 fflush(stdout);
+	 if( read(0, buf, 2) <=0 ) return -1;
+      }
 
-   if( file_len > 15000000L || k_top + rd_len*4 > address )
-   {
-      printf("Ramdisk file %s is too large to load\n", fname);
-      return -1;
-   }
+      file_len = file_length();
+      sectcount = (file_len+511)/512;
 
-   rd_start = address - rd_len*4;
-   rd_start &= -16;	/* Page boundry */
-   address = rd_start;
+      printf("Loading %s\n", fname);
 
-   printf("Loading %s at 0x%x00\n", fname, rd_start);
-
-   for( ; rd_len>0 ; rd_len--)
-   {
+      for(sectno=0; sectno<sectcount; sectno+=2) {
 #ifndef NOCOMMAND
-      int v = (kbhit()&0x7F);
-      if( v == 3 || v == 27 )
-      {
-	 printf("User interrupt!\n");
-         getch();
-	 return -1;
-      }
+	 int v = (kbhit()&0x7F);
+	 if( v == 3 || v == 27 ) {
+	    printf("User interrupt!\n");
+	    getch();
+	    return -1;
+	 }
 #endif
+	 printf("%dk to go \r", (sectcount-sectno)/2); fflush(stdout);
+	 if( read_block(buffer) < 0 ) {
+	    printf("Read error loading ramdisk\n");
+	    return -1;
+	 }
+	 if( mem_write(buffer, baseaddress, sectno, 2) != 0 ) return -1;
+      }
+      close_file();
 
-      printf("%dk to go \r", rd_len); fflush(stdout);
-      if( read_block(buffer) < 0 )
+      baseaddress += file_len;
+      initrd_length += file_len;
+   }
+
+   /* Move ramdisk to top of accessable memory. */
+   baseaddress = (long)k_top * 256;
+
+   if( main_mem_top >= 15360 ) initrd_start = 0x1000000L;
+   else                        initrd_start = 0x100000 + main_mem_top*1024;
+
+   sectcount = (initrd_length+511)/512;
+   initrd_start -= (long)sectcount *512;
+   initrd_start &= -4096;
+
+   printf("Moving ramdisk to 0x%06lx..0x%06lx, (%ld)\n", 
+	  initrd_start, initrd_start + initrd_length, initrd_length);
+
+   while(sectcount>0) {
+      sectcount--;
+      if ( mem_read(buffer, baseaddress, sectcount) != 0 ||
+          mem_write(buffer, initrd_start, sectcount, 1) != 0)
       {
-         printf("Read error loading ramdisk\n");
+         printf("Error moving ramdisk\n");
 	 return -1;
       }
-      if( putsect(buffer, address) < 0 ) return -1;
-      address+=2;
-      if( putsect(buffer+512, address) < 0 ) return -1;
-      address+=2;
    }
-   printf("          \r"); fflush(stdout);
-
-   close_file();
-
-   initrd_start  = ((long) rd_start <<8);
-   initrd_length = file_len;
 
    return 0;
 }
@@ -722,16 +692,11 @@ check_crc()
 
    for(len=image_size; len>0; len-=512)
    {
-      if( address >= 0xA00 )
+      if (mem_read(buffer, 0L, address/2) != 0)
       {
-         if( ext_get(address, buffer, 512) != 0 )
-	 {
-	    printf("Unable to read back for CRC check\n");
-	    return;
-	 }
+	 printf("Unable to read back for CRC check\n");
+	 return;
       }
-      else
-         __movedata(address*16, 0, __get_ds(), buffer, 512);
 
       if( len > 512 ) addcrc(buffer, 512); else addcrc(buffer, (int)len);
       

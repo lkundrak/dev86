@@ -36,15 +36,15 @@ static char minibuf[2] = " ";
    {
 #ifdef __STANDALONE__
 #ifndef NOCOMMAND
-      if( __get_ds() != 0x1000 )
-      {
-	 /* First out of the way. */
-	 relocator(3);
-	 /* Then align DS to 64k boundry -> DMA is simple. */
-	 relocator(0x1000-__get_ds()+__get_cs());
-
-	 printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
-      }
+#if 0
+      /* First out of the way. */
+      relocator(3);
+      /* Then align DS to 64k boundry -> DMA is simple. */
+      relocator(0x1000-__get_ds()+__get_cs());
+#else
+      relocator(-1);	/* Top of available memory */
+#endif
+      printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
 #endif
 
       disk_drive = __argr.h.dl;
@@ -124,7 +124,7 @@ static char minibuf[2] = " ";
 
 void init_prog()
 {
-   int offt;
+   char offt;
 #ifdef COLOUR
    vt52_putch(0);
    printf("\033E\033Rg\033Sa\033J");
