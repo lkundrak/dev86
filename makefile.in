@@ -59,7 +59,7 @@ LDFLAGS	=-3 -s -N
 #else
 CFLAGS	=-0
 LDFLAGS	=-0 -s -H10000
-BCCARCH =-Mf
+BCCARCH =-Mf -O
 #endif
 #endif
 
@@ -120,7 +120,7 @@ bindir: $(MAKEX)
 phony:
 
 bcc: bindir
-	$(MAKEC) bcc $(MAKEARG) BCCARCH=$(BCCARCH) bcc ncc bcc-cc1
+	$(MAKEC) bcc $(MAKEARG) BCCARCH='$(BCCARCH)' bcc ncc bcc-cc1
 	cp -p bcc/bcc bin/Bcc
 	cp -p bcc/ncc bin/ncc
 	cp -p bcc/bcc-cc1 lib/bcc-cc1
@@ -152,6 +152,7 @@ objdump86: bindir
 	cp -p ld/objdump86 bin/objdump86
 
 elksemu: bindir
+#ifndef __AS386_16__
 #ifdef __i386__
 	$(MAKEC) elksemu \
 	CC='$(CC)' PREFIX=$(PREFIX) LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' \
@@ -160,6 +161,7 @@ elksemu: bindir
 	$(MAKEC) elksemu CC='ncc' elksemu
 #endif
 	cp -p elksemu/elksemu bin/elksemu
+#endif
 
 install-ln: bcc unproto copt as86 ld86 elksemu
 	install -d $(DISTBIN)
@@ -167,7 +169,9 @@ install-ln: bcc unproto copt as86 ld86 elksemu
 	ln -fs `pwd`/bin/as86_encap	$(DISTBIN)/as86_encap
 	ln -fs `pwd`/bin/as86 		$(DISTBIN)/as86
 	ln -fs `pwd`/bin/ld86 		$(DISTBIN)/ld86
+#ifndef __AS386_16__
 	ln -fs `pwd`/bin/elksemu 	$(DIST)/lib/elksemu
+#endif
 	install -d $(DIST)/usr/lib
 	install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
 
@@ -189,8 +193,10 @@ install-bcc: bcc unproto copt as86 ld86 objdump86
 
 # NB: This doesn't install as a suid root, that's ok though.
 install-emu: elksemu
+#ifndef __AS386_16__
 	install -d $(DIST)/lib
 	install $(INEXE) bin/elksemu 	$(DIST)/lib/elksemu
+#endif
 
 install-man:
 	-$(MAKEC) man MANDIR=$(DIST)/usr/man install
@@ -210,9 +216,11 @@ install-lib2: lib/lib1-done
 	install $(INDAT) lib/libc_s.a	$(DISTLIB)/i86/libc_s.a
 	install $(INDAT) lib/libdos.a	$(DISTLIB)/i86/libdos.a
 
+#ifndef __AS386_16__
 	install -d $(DISTLIB)/i386
 	install $(INDAT) lib/i386/crt0.o 	$(DISTLIB)/i386/crt0.o
 	install $(INDAT) lib/i386/libc.a 	$(DISTLIB)/i386/libc.a
+#endif
 
 lib/lib0-done:
 	$(MAKE) -f make.fil library
@@ -240,7 +248,11 @@ lib-bsd: bindir
 	sh libcompat lib/libbsd.a
 	@touch lib/lib2-done
 
+#ifdef __AS386_16__
+alt-libs: lib-stand lib-dos lib-fast 
+#else
 alt-libs: lib-stand lib-dos lib-386 lib-fast 
+#endif
 	@touch lib/lib1-done
 
 lib-fast: bindir
@@ -261,12 +273,14 @@ lib-dos: bindir
 	cp -p libc/libdos.a lib/libdos.a
 	sh libcompat lib/libdos.a
 
+#ifndef __AS386_16__
 lib-386: bindir
 	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i386-BCC
 	cp -p libc/crt3.o lib/i386/crt0.o
 	cp -p libc/libc3.a lib/i386/libc.a
 	sh libcompat lib/i386/libc.a
+#endif
 
 ##############################################################################
 
@@ -308,6 +322,6 @@ realclean:
 	rm -rf bin lib
 	rm -f include
 	rm -f makec
-	rm -f `find . -type l -print`
+	rm -f `find $(CLEANLIST) -type l -print`
 
 ##############################################################################

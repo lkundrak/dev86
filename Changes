@@ -19,6 +19,35 @@ For version 0.14.0.
 > Fixes for libc/misc/crypt.c, they do change the values of the encrypted
   password so beware.
 
+> as86_encap now uses a static array and #defines.
+
+> Added -t <digit> flag to as86 and bcc to move the text segment
+  for this object into another one.
+
+> Moved segments 4..14 so that instead of being attached above the
+  data segment they now sit between the text and data segments in
+  the final a.out, this is where they'd be needed for medium model.
+
+> Added -x option to bcc to prevent it linking in crt0.o.
+
+> Added various improvemnts to the optimiser, I don't think it'll generate
+  illegal code now for "-O", "-O1", or "-Oi". the last inlines the functions
+  __get_es(), __seg_es(), __poke_es(), __peek_es() etc.
+
+> Code generator improvement for integer multiply and shifts. (Including
+  making it far less keen to do multiple shifts instead of a multiply.
+
+> Code generator fix to remove incorrect (but accepted by the assembler)
+  addressing modes like:  mov ax,#_ar[bx]
+
+> Been messing with boot block stuff again, still can't get it to load
+  zImages (bzImages ok tho). Minix.c can't load an ELKS kernel either,
+  it's looking like there isn't actually enough room :-(
+
+> Fix to elksemu for breakages caused by glibc.
+
+> Other fixes to elksemu for execve(), dup(), readdir() etc functions.
+
 For version 0.13.0.
 
 > Removed too eager 'typeconv.c' warning.

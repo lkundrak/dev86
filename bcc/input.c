@@ -800,7 +800,11 @@ PRIVATE void usage()
     fatalerror(
 #ifdef MC6809
 "usage: cc1 [-cdfptw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]");
-#else
+#else 
+#ifdef I80386
 "usage: cc1 [-03cdfltw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]");
+#else 
+"usage: cc1 [-cdfltw[-]] [-Ddefine] [-Iincdir] [-Uundef] [-o outfile] [infile]");
+#endif
 #endif
 }

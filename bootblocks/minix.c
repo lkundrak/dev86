@@ -1,5 +1,5 @@
 /*
- * This bootblock loads the linux-8086 executable in the file 'linux'
+ * This bootblock loads the linux-8086 executable in the file 'boot'
  * from the root directory of a minix filesystem.
  *
  * Copyright (C) 1990-1997 Robert de Bath, distributed under the GPL Version 2
@@ -10,13 +10,17 @@
 #include "minix.h"
 
 /* #define DOTS		/* define to have dots printed */
-/* #define ELKS_SETUP	/* Assume first SETUPSIZE bytes for SETUPSEG */
 /* #define HARDDISK	/* Define for hard disk version */
 /* #define TRY_FLOPPY	/* To do trial reads to find floppy size */
+
+/* These two are just too big! */
+/* Also they have the problem that they can't load an odd number of 
+   sectors into the setup area.
+ */
+/* #define ELKS_SETUP	/* Assume first SETUPSIZE bytes for SETUPSEG */
 /* #define IMAGE_MAGIC	/* Check for elks Image magic nos. */
 
 #ifdef IMAGE_MAGIC
-/* #undef DOTS */
 #define MIN_SPACE
 #endif
 
@@ -35,10 +39,14 @@
  * #define ORGADDR   (SETUPSEG*16+SETUPSEGSIZE)
  */
 #define SETUPSEG  (0x0120)
-#define SETUPSIZE (4*512/16)
+#define SETUPSIZE (4*512)
 #define ORGADDR   (0x0500)
 #else
 #define ORGADDR   (0x0500)
+#endif
+
+#ifdef IMAGE_MAGIC
+#define SETUPSEG  (0x0120)
 #endif
 
 #ifdef HARDDISK
@@ -154,6 +162,7 @@ extern unsigned n_sectors;
 
 #ifdef IMAGE_MAGIC
 extern unsigned checkflg;
+extern unsigned aout_flg;
 extern unsigned segend;
 #endif
 
@@ -178,8 +187,8 @@ _inode: .word	1		! ROOT_INODE
 export	bootfile		! File to boot, make this whatever you like,
 bootfile:			! 'boot' is good too.
 _bootfile:
-   .ascii	"linux"
-   .byte	0,0,0,0,0,0,0,0,0
+   .ascii	"boot"
+   .byte	0,0,0,0,0,0,0,0,0,0
 
 #ifdef HARDDISK
 bootpart:   .long	0
@@ -229,6 +238,7 @@ min_eos:		! Wait for a key then reboot
   jmpi	$0,$FFFF	! Wam! Try or die!
 
 fail_fs:
+  .byte		13,10
 #if defined(HARDDISK) && !defined(IMAGE_MAGIC)
   .asciz	"Initial boot failed, press return to reboot\r\n"
 #else
@@ -366,13 +376,9 @@ got_hd_sect:
 
 /* /* */
 /****************************************************************************/
-/* Section fd */
+/* Section fd_block */
 /****************************************************************************/
 #ifndef HARDDISK
-/*----------------------------------*/
-/* Floppy disk device driver        */
-/*----------------------------------*/
-
 static
 load_block(address, blkno)
 unsigned address, blkno;
@@ -386,62 +392,6 @@ unsigned address, blkno;
    sectno = (sect_nr)blkno * 2;
    load_sect(address,    sectno);
    load_sect(address+32, sectno+1);
-}
-
-static
-load_sect(address, sectno)
-unsigned address;
-sect_nr sectno;
-{
-   register sect_nr nsect;
-
-   nsect   =  sectno%n_sectors +1;
-   sectno /= n_sectors;
-   nsect  |= (sectno<<8);
-
-   if( loadcount )
-   {
-      lastsect++;
-      if( ( address & 4095 ) && nsect == lastsect )
-      {
-         loadcount++;
-         return;
-      }
-      get_now();
-   }
-
-   lastsect  = firstsect = nsect;
-   loadaddr  = address;
-   loadcount = 1;
-}
-
-static
-get_now()
-{
-#asm
-  mov	si,#5
-retry_get:
-  xor	dx,dx
-  mov	cx,[_firstsect]
-  shr	ch,#1
-  adc	dh,#0
-  mov	es,[_loadaddr]
-  xor	bx,bx
-  mov	ax,[_loadcount]
-  test	ax,ax
-  jz	no_load
-  mov	ah,#2
-  int	$13		! Try fetch
-  jnc	no_load
-  xor	ax,ax		! Bad, retry.
-  int	$13
-  dec	si
-  jnz	retry_get
-  br	_nogood
-no_load:
-  xor	ax,ax
-  mov	[_loadcount],ax
-#endasm
 }
 #endif
 
@@ -510,6 +460,112 @@ _unset_bpb:
   ret
 
 #endasm
+#endif
+
+/****************************************************************************/
+/* Section fd_get_now */
+/****************************************************************************/
+#ifndef HARDDISK
+static
+get_now()
+{
+#asm
+  mov	si,#5
+retry_get:
+  xor	dx,dx
+  mov	cx,[_firstsect]
+  shr	ch,#1
+  adc	dh,#0
+  mov	es,[_loadaddr]
+  xor	bx,bx
+  mov	ax,[_loadcount]
+  test	ax,ax
+  jz	no_load
+  mov	ah,#2
+  int	$13		! Try fetch
+  jnc	no_load
+  xor	ax,ax		! Bad, retry.
+  int	$13
+  dec	si
+  jnz	retry_get
+  br	_nogood
+no_load:
+  xor	ax,ax
+  mov	[_loadcount],ax
+#endasm
+}
+#endif
+
+/****************************************************************************/
+/* Section fd_probe */
+/****************************************************************************/
+#ifndef HARDDISK
+#ifdef TRY_FLOPPY
+#asm
+!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+!
+! These are the number of sectors per track that will be scanned for.
+! For 3.5 inch floppies 36 is 2.88 Mb, 18 is 1.44Mb, 21 is 1.68Mb on
+! a 1.44Mb floppy drive. 15 and 9 are for 5.25 inch floppies.
+
+disksizes: .byte 36,21,18,15,9
+
+! It seems that there is no BIOS call to get the number of sectors.  Guess
+! 36 sectors if sector 36 can be read, 18 sectors if sector 18 can be read,
+! 15 if sector 15 can be read.  Otherwise guess 9.
+
+_probe_sectors:
+	mov	si,#disksizes		! table of sizes to try
+
+probe_loop:
+	lodsb
+	cbw				! extend to word
+	mov	_n_sectors, ax
+	cmp	al,#9
+	je	got_sectors		! if all else fails, try 9
+	xchg	ax, cx			! cx = track and sector
+	xor	dx, dx			! drive 0, head 0
+	mov	bx,#probe_buf 		! address after setup (es = cs)
+	mov	ax,#0x0201		! service 2, 1 sector
+	int	0x13
+	jc	probe_loop		! try next value
+got_sectors:
+
+	ret
+#endasm
+#endif
+#endif
+
+/****************************************************************************/
+/* Section fd_sect */
+/****************************************************************************/
+#ifndef HARDDISK
+static
+load_sect(address, sectno)
+unsigned address;
+sect_nr sectno;
+{
+   register sect_nr nsect;
+
+   nsect   =  sectno%n_sectors +1;
+   sectno /= n_sectors;
+   nsect  |= (sectno<<8);
+
+   if( loadcount )
+   {
+      lastsect++;
+      if( ( address & 4095 ) && nsect == lastsect )
+      {
+         loadcount++;
+         return;
+      }
+      get_now();
+   }
+
+   lastsect  = firstsect = nsect;
+   loadaddr  = address;
+   loadcount = 1;
+}
 #endif
 
 /****************************************************************************/
@@ -593,6 +649,58 @@ real_block:
 #endif
 
 /****************************************************************************/
+/* Section main */
+/****************************************************************************/
+#asm
+code:
+  call	_loadprog
+  call	_runprog
+  br	_nogood
+
+#endasm
+
+/****************************************************************************/
+/* Section prog_magic */
+/****************************************************************************/
+
+#ifdef IMAGE_MAGIC
+#asm
+; mfetch(0) != 0x301 && mfetch(486) == 'E'+'L'*256 && mfetch(488) == 'K'+'S'*256 )
+.text
+export	_mcheck
+_mcheck:
+  mov	ax,#LOADSEG
+  mov	es,ax
+  xor	ax,ax
+  mov	bx,ax
+  cmp	[bx],#0x301
+  jz	doret
+  cmp	[bx+486],#'E+'L*256
+  jnz	doret
+  cmp	[bx+488],#'K+'S*256
+  jnz	doret
+  inc	ax
+doret:
+  ret
+
+.text
+export	_mfetch
+_mfetch:
+#if __FIRST_ARG_IN_AX__
+  mov	bx,ax
+#else
+  mov	bx,sp
+  mov	bx,2[bx]
+#endif
+  mov	ax,#LOADSEG
+  mov	es,ax
+  seg	es
+  mov	ax,[bx]
+  ret
+#endasm
+#endif
+
+/****************************************************************************/
 /* Section prt_dots */
 /****************************************************************************/
 #ifdef DOTS
@@ -613,56 +721,32 @@ outch:
 #endif
 
 /****************************************************************************/
-/* Section sys_libs */
+/* Section bbcopy */
 /****************************************************************************/
-#asm
-! These functions are pulled from the C library.
-libstuff:
-imodu:
-	xor	dx,dx
-	div	bx
-	mov	ax,dx		! instruction queue full so xchg slower
-	ret
-idiv_u:
-	xor	dx,dx
-	div	bx
-	ret
-#ifndef zone_shift
-isl:
-islu:
-	mov	cl,bl
-	shl	ax,cl
-	ret
-#endif
-libend:
-#endasm
-
-/****************************************************************************/
-/* Section sys_vars */
-/****************************************************************************/
-#asm
-#ifdef MIN_SPACE
-  block	temp_space+64
-#endif
-vars:
-#ifndef HARDDISK
-_n_sectors:	.blkw 1
-#endif
-_next_zone:	.blkw 1
-_end_zone:	.blkw 1
-_indirect:	.blkw 1
-_ldaddr:	.blkw 1
-_dirptr:	.blkw 1
-_flength:	.blkw 1
 #ifdef IMAGE_MAGIC
-_checkflg:	.blkw 1
-_segend:	.blkw 1
-#endif
-varend:
-#ifdef MIN_SPACE
-  endb
-#endif
+bbcopy()
+{
+#asm
+  push	ds
+
+  mov	ax,_ldaddr
+  sub	ax,#512/16
+  mov	es,ax
+
+  mov	ax,#LOADSEG
+  mov	ds,ax
+
+  xor	di,di
+  xor	si,si
+  mov	cx,#$100
+
+  rep
+   movsw
+
+  pop	ds
 #endasm
+}
+#endif
 
 /****************************************************************************/
 /* Section end_1 */
@@ -680,57 +764,6 @@ end_of_part1:
   .blkb	0x200+start-*
 #endasm
 #endif
-
-/****************************************************************************/
-/* Section fd_probe */
-/****************************************************************************/
-#ifndef HARDDISK
-#ifdef TRY_FLOPPY
-#asm
-!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-!
-! These are the number of sectors per track that will be scanned for.
-! For 3.5 inch floppies 36 is 2.88 Mb, 18 is 1.44Mb, 21 is 1.68Mb on
-! a 1.44Mb floppy drive. 15 and 9 are for 5.25 inch floppies.
-
-disksizes: .byte 36,21,18,15,9
-
-! It seems that there is no BIOS call to get the number of sectors.  Guess
-! 36 sectors if sector 36 can be read, 18 sectors if sector 18 can be read,
-! 15 if sector 15 can be read.  Otherwise guess 9.
-
-_probe_sectors:
-	mov	si,#disksizes		! table of sizes to try
-
-probe_loop:
-	lodsb
-	cbw				! extend to word
-	mov	_n_sectors, ax
-	cmp	al,#9
-	je	got_sectors		! if all else fails, try 9
-	xchg	ax, cx			! cx = track and sector
-	xor	dx, dx			! drive 0, head 0
-	mov	bx,#probe_buf 		! address after setup (es = cs)
-	mov	ax,#0x0201		! service 2, 1 sector
-	int	0x13
-	jc	probe_loop		! try next value
-got_sectors:
-
-	ret
-#endasm
-#endif
-#endif
-
-/****************************************************************************/
-/* Section main */
-/****************************************************************************/
-#asm
-code:
-  call	_loadprog
-  call	_runprog
-  br	_nogood
-
-#endasm
 
 /****************************************************************************/
 /* Section prog_load */
@@ -767,13 +800,13 @@ try_again:;
                           + 2);
    get_now();
 
-#ifdef ELKS_SETUP
-   ldaddr = SETUPSEG;		/* Load at $02200, where setup expects to be */
-#else
+#ifndef ELKS_SETUP
    ldaddr = LOADSEG;		/* Load at 64k mark */
+#else
+   ldaddr = SETUPSEG;		/* Load where ELKS setup expects to be */
 #endif
 #ifdef IMAGE_MAGIC
-   checkflg = 1;
+   aout_flg = checkflg = 1;
 #endif
 
    {
@@ -818,7 +851,11 @@ try_again:;
          get_now();
 	 checkflg=0;
 	 if( mcheck() )
+	 {
 	     segend = (ldaddr = mfetch(495)) + mfetch(497)*(512/16);
+	     aout_flg = 0;
+	     bbcopy();
+         }
       }
       if (ldaddr == segend) ldaddr = LOADSEG;
 #endif
@@ -866,47 +903,6 @@ register char * p = dirptr->d_name;
 }
 
 /****************************************************************************/
-/* Section prog_magic */
-/****************************************************************************/
-
-#ifdef IMAGE_MAGIC
-#asm
-; mfetch(0) != 0x301 && mfetch(486) == 'E'+'L'*256 && mfetch(488) == 'K'+'S'*256 )
-.text
-export	_mcheck
-_mcheck:
-  mov	ax,#LOADSEG
-  mov	es,ax
-  xor	ax,ax
-  mov	bx,ax
-  cmp	[bx],#0x301
-  jz	doret
-  cmp	[bx+486],#'E+'L*256
-  jnz	doret
-  cmp	[bx+488],#'K+'S*256
-  jnz	doret
-  inc	ax
-doret:
-  ret
-
-.text
-export	_mfetch
-_mfetch:
-#if __FIRST_ARG_IN_AX__
-  mov	bx,ax
-#else
-  mov	bx,sp
-  mov	bx,2[bx]
-#endif
-  mov	ax,#LOADSEG
-  mov	es,ax
-  seg	es
-  mov	ax,[bx]
-  ret
-#endasm
-#endif
-
-/****************************************************************************/
 /* Section prog_run */
 /****************************************************************************/
 static
@@ -927,8 +923,19 @@ runprog()
 
 #ifdef ELKS_SETUP
   mov	bx,#SETUPSEG
+  mov	ds,bx		! DS = execute address
   xor	di,di
 #else
+#ifdef IMAGE_MAGIC
+  mov	ax,[_aout_flg]
+  test	ax,ax
+  jnz	load_aout
+  mov	ds,bx		! DS = execute address
+  xor	di,di
+  j	binfile
+  mov	bx,#SETUPSEG
+load_aout:
+#endif
   mov	bx,#LOADSEG
   mov	ds,bx		! DS = loadaddress
   xor	di,di		! Zero
@@ -957,6 +964,59 @@ binfile:
   retf
 #endasm
 }
+
+/****************************************************************************/
+/* Section sys_libs */
+/****************************************************************************/
+#asm
+! These functions are pulled from the C library.
+libstuff:
+imodu:
+	xor	dx,dx
+	div	bx
+	mov	ax,dx		! instruction queue full so xchg slower
+	ret
+idiv_u:
+	xor	dx,dx
+	div	bx
+	ret
+#ifndef zone_shift
+isl:
+islu:
+	mov	cl,bl
+	shl	ax,cl
+	ret
+#endif
+libend:
+#endasm
+
+/****************************************************************************/
+/* Section sys_vars */
+/****************************************************************************/
+#asm
+#ifdef MIN_SPACE
+  block	temp_space+64
+#endif
+vars:
+#ifndef HARDDISK
+_n_sectors:	.blkw 1
+#endif
+_next_zone:	.blkw 1
+_end_zone:	.blkw 1
+_indirect:	.blkw 1
+_ldaddr:	.blkw 1
+_dirptr:	.blkw 1
+_flength:	.blkw 1
+#ifdef IMAGE_MAGIC
+_checkflg:	.blkw 1
+_aout_flg:	.blkw 1
+_segend:	.blkw 1
+#endif
+varend:
+#ifdef MIN_SPACE
+  endb
+#endif
+#endasm
 
 /****************************************************************************/
 /* Section end_2 */

@@ -1,0 +1,30 @@
+# Enter and leave ...
+
+mov	sp,bp
+pop	bp
+=
+leave
+
+push	bp
+mov	bp,sp
+add	sp,#-%1
+=
+enter	%1,0
+
+push	bp
+mov	bp,sp
+dec	sp
+dec	sp
+=
+enter	2,0
+
+mov	ax,#%1
+push	ax
+=
+push	#%1
+
+mov	bx,#%1
+push	bx
+=
+push	#%1
+

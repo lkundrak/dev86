@@ -1325,6 +1325,12 @@ store_pt reg;
     fastin_t mulsp;
     int stackentry;		/* signed */
 
+#ifdef I8088
+    /* Now using imul directly so don't be so keen to shift */
+    if( factor > 16 && factor != 32 && factor != 64 && factor != 0xFFFFFFFFL )
+       return FALSE;
+#endif
+
     if (factor == 0)
     {
 	clr(reg);

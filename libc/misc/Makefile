@@ -3,7 +3,8 @@
 # under the GNU Library General Public License.
 
 MSRC=aliases.c
-MOBJ=abs.o raise.o bcopy.o bzero.o bcmp.o index.o rindex.o remove.o creat.o
+MOBJ=labs.o abs.o raise.o bcopy.o bzero.o bcmp.o index.o rindex.o \
+     remove.o creat.o
 
 ESRC=atexit.c
 EOBJ=on_exit.o atexit.o __do_exit.o

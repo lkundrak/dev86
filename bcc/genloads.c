@@ -29,6 +29,7 @@ struct symstruct *source;
 	outadd();
 	outregname(source->storage);
 	outcomma();
+        outimmed();
 	outnamoffset(source);
 	outnl();
 	if (source->storage & (AXREG | ALREG))
@@ -629,7 +630,6 @@ store_pt reg;
 PRIVATE void outnamoffset(adr)
 struct symstruct *adr;
 {
-    outimmed();
     if (adr->flags & LABELLED)
 	outlabel(adr->name.label);
     else
@@ -705,7 +705,13 @@ struct symstruct *adr;
     case INDREG1:
     case INDREG2:
 	if (adr->level == OFFKLUDGELEVEL)
+	{
+#ifdef I8088
+	    if (!indflag)
+#endif
+                outimmed();
 	    outnamoffset(adr);
+        }
 #ifndef MC6809
 	else if (adr->offset.offi != 0)
 #endif

@@ -319,6 +319,11 @@ call	l%3%[ul|l]*
 =
 %3	eax,[%2]
 
+mov	di,*%2
+call	lsll
+=
+lsl	eax,*%2
+
 lea	di,%2
 call	l%3%[ul|l]*
 =
@@ -425,3 +430,6 @@ com	%1
 =
 not	%1
 
+xor	bx,bx
+=
+and	eax,#$0000FFFF

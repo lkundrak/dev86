@@ -240,6 +240,7 @@ PRIVATE void doasm()
 	nextsym();
 	constant.value.s[charptr-constant.value.s]='\0';
 	outnstr("!BCC_ASM");
+	outbyte('\t');
 	outnstr(constant.value.s);
 	outnstr("!BCC_ENDASM");
 	rparen();

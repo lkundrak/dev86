@@ -188,21 +188,26 @@ struct symstruct *target;
 
     extend(target);
     load(target, DREG);
-#ifndef IN_FUNC		/* I8088 ? */
+#if defined(I8088)
     if ((op_t) op != DIVOP && (op_t) op != MODOP )
     {
        load(source, DATREG1);	/* CX */
        switch ((op_t) op)
        {
        case MULOP:
-	   outnop2str("imul\tcx");
+	   outop2str("imul\t");
+	   outnregname(DATREG1);
 	   break;
        case SLOP:
-	   outnop2str("shl\tax,cl");
+	   outop2str("shl\t");
+	   outregname(DREG);
+	   outnstr(",cl");
 	   break;
        case SROP:
-	   if (uflag) outnop2str("shr\tax,cl");
-	   else       outnop2str("sar\tax,cl");
+	   if (uflag) outop2str("shr\t");
+	   else       outop2str("sar\t");
+	   outregname(DREG);
+	   outnstr(",cl");
 	   break;
        }
     }

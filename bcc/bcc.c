@@ -161,6 +161,7 @@ char *strrchr P((const char *s, int c));
 #ifdef REDECLARE_POSIX_FUNCTIONS
 int access P((const char *path, int amode));
 int execv P((const char *path, char * const *argv));
+int execve P((const char *path, char * const *argv, char * const envp));
 pid_t fork P((void));
 pid_t getpid P((void));
 int unlink P((const char *path));
@@ -195,6 +196,14 @@ FORWARD void writen P((void));
 FORWARD void writes P((char *s));
 FORWARD void writesn P((char *s));
 FORWARD void linux_patch P((char * fname));
+
+#ifdef __BCC__
+char ** minienviron[] = {
+   "PATH=/bin:/usr/bin",
+   "SHELL=/bin/sh",
+   0
+};
+#endif
 
 PUBLIC int main(argc, argv)
 int argc;
@@ -415,7 +424,12 @@ char **argv;
 		   temp=optflags;
 		   optflags=stralloc2(optflags,"86,86");
 		   free(temp);
-		   addarg(&optargs, "-huse16 386");
+		   switch(arg[2])
+		   {
+		   case '1': addarg(&optargs, "-huse16 186"); break;
+		   case '2': addarg(&optargs, "-huse16 286"); break;
+		   case '3': addarg(&optargs, "-huse16 386"); break;
+		   }
 		}
 		break;
 	    case 'P':
@@ -1232,7 +1246,11 @@ struct arg_s *argp;
 	show_who("fork failed");
 	fatal("");
     case 0:
+#ifdef __BCC__
+	execve(argp->prog, argp->argv + arg0, minienviron);
+#else
 	execv(argp->prog, argp->argv + arg0);
+#endif
 	show_who("exec of ");
 	writes(argp->prog);
 	fatal(" failed");

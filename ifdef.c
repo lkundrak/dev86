@@ -329,7 +329,7 @@ manifest_constant()
       save_name("__SMALL_MEMORY__", 'D');
    if( sizeof(long) == 4 )
       save_name("__LONG_32_BIT__", 'D');
-   if( sizeof(int) == 8 )
+   if( sizeof(long) == 8 )
       save_name("__LONG_64_BIT__", 'D');
 
 /* MSDOS */

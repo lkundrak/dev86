@@ -40,6 +40,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#define KEEPCOMMENTS
+
 #define MAXLINE		1024
 #define HASHSIZE	107
 #define NOCHAR		'\177'
@@ -52,6 +54,9 @@ struct line_s {
 	char          *text;
 	struct line_s *prev;
 	struct line_s *next;
+#ifdef KEEPCOMMENTS
+	int 	       comment_flg;
+#endif
 };
 
 
@@ -191,13 +196,19 @@ static struct line_s *readlist(FILE *fp, char quit, char comment)
 	if (quit != NOCHAR && quit == *cp)
 		break;
 	if (comment != NOCHAR && comment == *cp)
-		continue;
+#ifdef KEEPCOMMENTS
+		if (quit != NOCHAR)
+#endif
+			continue;
 	if (*cp == '\0')
 		continue;
 	lp = mymalloc(sizeof(struct line_s));
 	lp->text = install(cp, -1);
 	lp->prev = last_line;
 	lp->next = NULL;
+#ifdef KEEPCOMMENTS
+	lp->comment_flg = (comment != NOCHAR && *cp == comment);
+#endif
 	if (first_line == NULL)
 		first_line = lp;
 	if (last_line != NULL)
@@ -436,12 +447,20 @@ static int match(char *ins, char *pat)
   int len;
 
   while (*ins && *pat)
-	if (pat[0] == '%' && pat[1] == '%') {
+  {
+  	if (pat[0] != '%')
+	{
+		if (*pat++ != *ins++)
+			return(0);
+		else
+			continue;
+	}
+	if (pat[1] == '%') {
 		/* '%%' actually means '%' */
 		if (*ins != '%')
 			return(0);
 		pat += 2;
-	} else if (pat[0] == '%' && (pat[1] == '*' || isdigit(pat[1]))) {
+	} else if ((pat[1] == '*' || isdigit(pat[1]))) {
 		/* Copy variable text into vars array */
 		pat += 2;
 		for (cp = ins; *ins && !match(ins, pat); ins++) ;
@@ -454,7 +473,7 @@ static int match(char *ins, char *pat)
 		else if (strlen(vars[varnum]) != len ||
 		           strncmp(vars[varnum], cp, len))
 			return(0);
-	} else if (pat[0] == '%' && pat[1] == '[') {
+	} else if (pat[1] == '[') {
 		/* Copy only specific variable text into vars array */
 		if ((cp = strchr(pat + 2, ']')) == NULL ||
 		    (*(cp + 1) != '*' && !isdigit(*(cp + 1)))) {
@@ -487,7 +506,7 @@ static int match(char *ins, char *pat)
 		else if (strlen(vars[varnum]) != len ||
 		           strncmp(vars[varnum], oldpat, len))
 			return(0);
-	} else if (pat[0] == '%' && pat[1] == '!') {
+	} else if (pat[1] == '!') {
 		/* Match only if the pattern string is not found */
 		if (pat[2] != '[' || (cp = strchr(pat + 3, ']')) == NULL) {
 			if (*ins != '!')
@@ -505,7 +524,7 @@ static int match(char *ins, char *pat)
 				return(0);
 			oldpat += len;
 		}
-	} else if (pat[0] == '%' && pat[1] == '(') {
+	} else if (pat[1] == '(') {
 		/* Match ins with expression */
 		if ((cp = strchr(pat + 2, ')')) == NULL) {
 			if (*ins != '(')
@@ -521,8 +540,10 @@ static int match(char *ins, char *pat)
 		len = ins - cp;
 		if (val != eval(cp, len))
 			return(0);
-	} else if (*pat++ != *ins++)
+	}
+	else /* Bad % format cannot match */
 		return(0);
+  }
 
   return(*ins == *pat);
 }
@@ -656,10 +677,23 @@ static struct line_s *optline(struct line_s *cur)
 	/* Scan through pattern texts and match them against the input file */
 	ins = cur;
 	pat = rp->old;
+#ifndef KEEPCOMMENTS
 	while (ins != NULL && pat != NULL && match(ins->text, pat->text)) {
 		ins = ins->next;
 		pat = pat->next;
 	}
+#else
+	while (ins != NULL
+	    && pat != NULL
+	    && ( ins->comment_flg ||
+	         ( /* (pat->text[0]=='%' || ins->text[0]==pat->text[0]) && */
+		  match(ins->text, pat->text)))) {
+
+		if (!ins->comment_flg)
+			pat = pat->next;
+		ins = ins->next;
+	}
+#endif
 
 	/* Current pattern matched input line, so replace input with new */
 	if (pat == NULL) {
@@ -667,9 +701,25 @@ static struct line_s *optline(struct line_s *cur)
 		lp1 = cur;
 		cur = cur->prev;
 		while (lp1 != ins) {
-			lp2 = lp1;
-			lp1 = lp1->next;
-			free(lp2);
+#ifdef KEEPCOMMENTS
+#if 0	/* I'd like to keep the comment lines but this doesn't work XXX */
+			if( lp1->comment_flg )
+			{
+				lp2 = lp1;
+				lp1 = lp1->next;
+				lp2->next = cur->next;
+				cur->next = lp2;
+				lp2->prev = cur;
+				cur=cur->next;
+			}
+			else
+#endif
+#endif
+			{
+				lp2 = lp1;
+				lp1 = lp1->next;
+				free(lp2);
+			}
 		}
 		/* Insert new lines into list */
 		pat = rp->new;
@@ -680,6 +730,9 @@ static struct line_s *optline(struct line_s *cur)
 			lp2->text = subst(pat->text);
 			lp2->next = NULL;
 			lp2->prev = lp1;
+#ifdef KEEPCOMMENTS
+			lp2->comment_flg = 0;
+#endif
 			if (lp1 != NULL)
 				lp1->next = lp2;
 			else
@@ -710,16 +763,28 @@ static void optimize(int backup)
 {
   struct line_s *cur, *lp;
   int i;
+#ifdef KEEPCOMMENTS
+  int in_asm = 0;
+#endif
 
   /* Scan through all lines in the input file */
   cur = infile;
   while (cur != NULL) {
-	if ((lp = optline(cur)) != NULL && lp != cur->next) {
-		for (i = 0; i < backup && lp != NULL; i++)
-			lp = lp->prev;
-		if (lp == NULL)
-			lp = infile;
+#ifdef KEEPCOMMENTS
+	if (cur->comment_flg || in_asm)
+	{
+		lp=cur->next;
+		if (memcmp(cur->text, "!BCC_", 5) == 0)
+			in_asm = (memcmp(cur->text+5, "ASM", 3) == 0);
 	}
+	else
+#endif
+	        if ((lp = optline(cur)) != NULL && lp != cur->next) {
+			for (i = 0; i < backup && lp != NULL; i++)
+				lp = lp->prev;
+			if (lp == NULL)
+				lp = infile;
+		}
 	cur = lp;
   }
 }

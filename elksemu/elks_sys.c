@@ -117,12 +117,14 @@ static int elks_read(int bx,int cx,int dx,int di,int si)
 #define sys_write elks_write
 static int elks_write(int bx,int cx,int dx,int di,int si)
 {
+#ifdef TESTING
 	if( dx > 1024 || dx < 0 )
 	{
 	   dx = 1024;
 	   dbprintf(("write(%d, %d, >%d)\n",bx,cx,dx));
 	}
 	else 
+#endif
 	{
 	   dbprintf(("write(%d, %d, %d)\n",bx,cx,dx));
 	}
@@ -449,8 +451,8 @@ static int elks_execve(int bx,int cx,int dx,int di,int si)
 	if( is_elks )
 	{
 	   argp[0]="/lib/elksemu";
-	   argp[1]=ELKS_PTR(char, bx);
-	   ct=2;
+	   /* argp[1]=ELKS_PTR(char, bx); */
+	   ct=1;
 	}
 	while(*bp)
 		argp[ct++]=ELKS_PTR(char, cx+ *bp++);
@@ -461,7 +463,10 @@ static int elks_execve(int bx,int cx,int dx,int di,int si)
 		envp[ct++]=ELKS_PTR(char, cx+ *bp++);
 	envp[ct]=0;
 	if( is_elks )
+	{
+	   argp[1]=ELKS_PTR(char, bx);
 	   execve(argp[0],argp,envp);
+	}
 	else
 	   execve(ELKS_PTR(char, bx),argp,envp);
 	if( errno == ENOEXEC || errno == EACCES ) return -1;

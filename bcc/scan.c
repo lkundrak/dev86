@@ -144,6 +144,7 @@ int asm_only;
     while (!asm_only || asmmode)
     {
         int sym = SYMOFCHAR(ch);
+
 	switch (sym)
 	{
 	case CONTROL:

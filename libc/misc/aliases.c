@@ -14,6 +14,15 @@ int arg1;
 }
 #endif
 
+#ifdef L_labs
+long
+labs(arg1)
+long arg1;
+{
+   return arg1>0?arg1:-arg1;
+}
+#endif
+
 #ifdef L_raise
 int
 raise(signo)

@@ -133,7 +133,7 @@ struct symstruct *target;
     struct symstruct worksource;
 
     oldtarget = *target;
-    if ((typesize = target->type->typesize) >= 16 * itypesize ||
+    if ((typesize = target->type->typesize) >= 8 * itypesize ||
 	source->indcount + target->indcount != 2)
     {
 	address(source);

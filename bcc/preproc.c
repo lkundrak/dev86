@@ -72,7 +72,7 @@ PRIVATE void asmcontrol()
 	outstr("#asm\n");
     else
     {
-	outstr("!BCC_ASM\n");
+	outnstr("!BCC_ASM");
 	dumplocs();
     }
 #ifndef ASM_BARE

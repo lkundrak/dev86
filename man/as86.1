@@ -11,6 +11,7 @@ as86 \- Assembler for 8086..80386 processors
 .RB [ -o\ obj ]
 .RB [ -b [ bin ]]
 .RB [ -s\ sym ]
+.RB [ -t\ textseg ]
 .B src
 
 .B as86_encap\ prog.s\ prog.v
@@ -124,6 +125,9 @@ assume undefined symbols are imported-with-unspecified segment.
 .TP
 .B -w-
 allow the assembler to print warning messages.
+.TP
+.B -t n
+move all text segment data in segment n+3.
 .P
 .SH AS86 SOURCE
 Special characters

@@ -4,9 +4,9 @@ HOSTCCFLAGS=-O
 BCC=bcc
 
 CC=$(BCC)
-CFLAGS=-ansi -Ms -H0x10000 -s
+CFLAGS=-ansi -Ms -Oi -O -s
 ASFLAGS=-0 -w
-MDEFS=
+MDEFS=-DDOTS
 # LST=-l $*.lst
 # CLST=-A-l -A$*.lst
 
@@ -30,12 +30,12 @@ MINC=i86_funcs.h readfs.h
 
 BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v tarboot.v minix.v minixhd.v
 
-EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s
+EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s bootelks.c
 
 install:
 
 monitor.out: $(MOBJ)
-	$(CC) $(CFLAGS) $(MOBJ) -o monitor.out
+	$(CC) $(CFLAGS) -H0x10000 $(MOBJ) -o monitor.out
 
 $(MOBJ): $(MINC) version.h
 
@@ -45,11 +45,14 @@ monitor: $(MSRC) $(MINC)
 	mv monitor.out monitor
 	@rm -f $(MOBJ)
 
-minix.s: minix.c
-	$(BCC) -Mf -DDOTS -DTRY_FLOPPY $(MDEFS) -S minix.c
+bootelks.out: bootelks.o relocate.o
+	$(CC) $(CFLAGS) -i- bootelks.o relocate.o -o bootelks.out
 
-minixhd.s: minix.c
-	$(BCC) -Mf -DDOTS -DHARDDISK $(MDEFS) -S minix.c -o minixhd.s
+minix.s: minix.c Makefile
+	$(BCC) -Mf -O -DTRY_FLOPPY $(MDEFS) -S minix.c
+
+minixhd.s: minix.c Makefile
+	$(BCC) -Mf -O -DHARDDISK $(MDEFS) -S minix.c -o minixhd.s
 
 makeboot:	makeboot.c $(BOOTBLOCKS)
 	$(HOSTCC) $(HOSTCCFLAGS) -o makeboot makeboot.c
