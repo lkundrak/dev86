@@ -245,7 +245,7 @@ PRIVATE void asline()
 		labelerror(RELAB);
 	    label = symptr;
 
-	    if (pass /* && last_pass>1 */)
+	    if (pass && !(symptr->type & VARBIT) /*&& last_pass>1*/)
 	    {
 	       label->data = (label->data & FORBIT) | lcdata;
 	       label->value_reg_or_op.value = lc;
