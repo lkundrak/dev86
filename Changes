@@ -1,5 +1,13 @@
 For version 0.16.*.
 
+> More changes so it compiles better on 'other' machines. 
+  Removed some GNU-Make'isms in the top header file.
+
+> Some changes for cygwin, it isn't quite as nasty as compiling for minix
+  but it doesn't miss by much!
+
+> Compiling for the 'tcc' complier, nice and easy.
+
 > Hitting bcc.c again, bcc-cpp now the default.
 
 > Some bugfixes for DEC Alpha -- 64 bit longs!

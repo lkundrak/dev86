@@ -1,5 +1,6 @@
 
 #include "monitor.h"
+#include "version.h"
 
 char command_buf[256];
 
@@ -143,9 +144,7 @@ void init_prog()
 #else
    printf(" boot monitor");
 #endif
-#ifdef VERSION
    printf(", Version %s", VERSION);
-#endif
    printf(".\n");
 
    cpu_check();

@@ -4,7 +4,11 @@
 #include <stdlib.h>
 #include <locale.h>
 #endif
+#ifndef __CYGWIN__
 #include <ctype.h>
+#else
+#include "cygwin.c"
+#endif
 #include <string.h>
 #include <malloc.h>
 #include <time.h>

@@ -495,4 +495,8 @@ manifest_constant()
 #ifdef __minix
    save_name("__minix", 'D');
 #endif
+/* This isn't much nicer */
+#ifdef __CYGWIN__
+   save_name("__CYGWIN__", 'D');
+#endif
 }

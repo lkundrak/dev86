@@ -15,6 +15,10 @@ DEFS=-D__LIBC__
 
 include Make.defs
 
+ifeq ($(VERSION),)
+include VERSION
+endif
+
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
 ############################################################################

@@ -83,13 +83,13 @@ OBJECTS	= tok_io.o tok_class.o tok_pool.o unproto.o vstring.o symbol.o error.o \
 
 CFLAGS	= -O
 LDFLAGS =
-CCFLAGS = $(CFLAGS) -w $(PIPE) $(SKIP) $(BELL) $(MAP) $(ALIAS) -DREOPEN
+CCFLAGS = $(CFLAGS) $(PIPE) $(SKIP) $(BELL) $(MAP) $(ALIAS) -DREOPEN
 
 #CFLAGS	= -O $(PIPE) $(SKIP) $(BELL) $(MAP) $(ALIAS) -p -Dstatic=
 #CFLAGS	= -g $(PIPE) $(SKIP) $(BELL) $(MAP) $(ALIAS) -DDEBUG
 
 $(PROG): $(OBJECTS)
-	$(CC) $(CCFLAGS) $(LDFLAGS) -o $@ $^ $(MALLOC)
+	$(CC) $(CCFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MALLOC)
 
 .c.o:
 	$(CC) $(CCFLAGS) -c $< -o $@

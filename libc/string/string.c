@@ -42,10 +42,11 @@ const char * str;
 
 #ifdef PARANOID
   push	es
-  push	ds	; Im not sure if this is needed, so just in case.
+  push	ds	! Im not sure if this is needed, so just in case.
   pop	es
   cld
-#endif		! This is almost the same as memchr, but it can
+#endif
+		! This is almost the same as memchr, but it can
 		! stay as a special.
 
 #if __FIRST_ARG_IN_AX__

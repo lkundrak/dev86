@@ -29,6 +29,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/errno.h>
 #include "ar.h"
 #include "rel_aout.h"
 
@@ -43,6 +44,7 @@ extern int sys_nerr;
 #define HAVE_RENAME
 #undef  HAVE_FSYNC
 #endif
+#define HAVE_TRAILING_SLASH_IN_NAME
 
 extern int errno;
 
@@ -53,8 +55,6 @@ extern int errno;
 #else
 # if defined(sparc) || defined(HAVE_ALLOCA_H)
 #  include <alloca.h>
-# else
-char *alloca ();
 # endif
 #endif
 

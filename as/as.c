@@ -15,6 +15,7 @@
 #include "file.h"
 #include "flag.h"
 #include "globvar.h"
+#include "version.h"
 
 PUBLIC char hexdigit[] = "0123456789ABCDEF";	/* XXX - ld uses lower case */
 

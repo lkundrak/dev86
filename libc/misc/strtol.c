@@ -66,8 +66,8 @@ strtoul(const char *nptr, char **endptr, int base)
 
   /* If base==0 and the string begins with "0x" then we're supposed
      to assume that it's hexadecimal (base 16). */
-  else
-    if (base==0 && *nptr=='0')
+  if (base==0 && *nptr=='0')
+    {
       if (toupper(*(nptr+1))=='X')
 	{
 	  base=16;
@@ -80,7 +80,7 @@ strtoul(const char *nptr, char **endptr, int base)
 	  base=8;
 	  nptr++;
 	}
-    
+    }
 
   /* If base is still 0 (it was 0 to begin with and the string didn't begin
      with "0"), then we are supposed to assume that it's base 10 */

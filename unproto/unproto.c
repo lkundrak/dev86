@@ -146,12 +146,12 @@ extern int getopt();
 
 /* Application-specific stuff */
 
-#include "vstring.h"
-#ifdef _AIX
+#ifdef __STDC__
 #include <stdarg.h>
 #else
 #include "stdarg.h"
 #endif
+#include "vstring.h"
 #include "token.h"
 #include "error.h"
 #include "symbol.h"

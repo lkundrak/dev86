@@ -34,6 +34,7 @@ fatal(str)
 main()
 {
    int i, rv;
+   int floppy_only = 0;
 
    reset_screen();
    cprintf("...\n");
@@ -46,20 +47,25 @@ main()
 
    if (rv != 0 || bs_buf[510] != 0x55 || bs_buf[511] != (char)0xAA) {
       cprintf("Hard disk not bootable.\n");
-      boot_floppy();
+      floppy_only = 1;
    }
 
-   for(rv=-1, i=0x1BE; i<0x1FE; i+= 16) {
-      if (bs_buf[i] == (char)0x80)
-	 rv = 0;
+   if (!floppy_only) {
+      for(rv=-1, i=0x1BE; i<0x1FE; i+= 16) {
+	 if (bs_buf[i] == (char)0x80)
+	    rv = 0;
+      }
+
+      if (rv) {
+	 cprintf("Hard disk has no active partition.\n");
+	 floppy_only = 1;
+      }
    }
 
-   if (rv) {
-      cprintf("Hard disk has no active partition.\n");
-      boot_floppy();
-   }
-
-   cprintf("Press return to skip hard disk boot: ");
+   if (floppy_only)
+      cprintf("Press return to wipe MBR: ");
+   else
+      cprintf("Press return to skip hard disk boot: ");
 
    __set_es(0x40);
    for(i=0; ; i++) {
@@ -67,14 +73,17 @@ main()
       while (tv == __deek_es(0x6c))
 	 if (kbhit()) {
 	    getch();
-	    cprintf(" Skipping HD.\n");
+	    cprintf("\n");
 	    goto break_break;
 	 }
       if (i%10 == 0) cprintf(".");
 
       if (i>= 18*5) {
-	 cprintf(" Booting HD.\n");
-	 boot_hd();
+	 cprintf(" Booting.\n");
+	 if(floppy_only)
+	    boot_floppy();
+	 else
+	    boot_hd();
       }
    }
 break_break:;

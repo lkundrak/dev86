@@ -32,6 +32,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #endif
+#include "version.h"
 
 #ifdef MSDOS
 #define LOCALPREFIX     /linux86
@@ -307,8 +308,8 @@ struct file_list * file;
 	           !do_unproto && 
 		   do_compile);
 
-   if (combined_cpp && !do_optim && !do_as )         last_stage =1;
-   if (!combined_cpp && !do_unproto && !do_compile ) last_stage =1;
+   if (combined_cpp && !do_optim && !do_as )    last_stage =1;
+   if (!combined_cpp && !do_compile ) 		last_stage =1;
 
    newfilename(file, last_stage, (combined_cpp?'s':'i'), (opt_arch<5));
 
@@ -455,10 +456,10 @@ run_link()
    default: command.cmd = LD; break;
    }
    command_reset();
-   if (executable_name == 0) executable_name = "a.out";
-
-   command_opt("-o");
-   command_opt(executable_name);
+   if (executable_name) {
+      command_opt("-o");
+      command_opt(executable_name);
+   }
 
    if (opt_arch < 2) 
       command_opt("-y");
@@ -742,6 +743,20 @@ char ** argv;
 
    for(ar=1; ar<argc; ) if (argv[ar][0] != '-')
    {
+#ifdef __CYGWIN__
+      if ( executable_name == 0 ) {
+	 char * p = strrchr(argv[ar], '.');
+	 if (p && p == argv[ar] + strlen(argv[ar]) - 2) 
+	 {
+	    /* This will actually create a COM file, but windows doesn't
+	     * care and cygwin will only do PATH searches for EXE files.
+	     */
+	    *p=0;
+	    executable_name = catstr(argv[ar], ".exe");
+	    *p = '.';
+	 }
+      }
+#endif
       append_file(argv[ar++], 0);
       file_count++;
    }
@@ -935,6 +950,9 @@ char ** argv;
    if (opt_M==0) opt_M = '8';
 #endif
 #ifdef MSDOS
+   if (opt_M==0) opt_M = 'd';
+#endif
+#ifdef __CYGWIN__
    if (opt_M==0) opt_M = 'd';
 #endif
    if (opt_M==0) opt_M = (opt_arch==1 ?'l':'n');

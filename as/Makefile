@@ -1,8 +1,4 @@
 
-ifeq ($(VERSION),)
-include Version
-endif
-
 CFLAGS=-O
 LDFLAGS=-s
 LIBDIR=/usr/bin
@@ -20,7 +16,7 @@ as86: $(OBJS)
 
 as86_encap: as86_encap.sh
 	sed -e "s:%%LIBDIR%%:$(LIBDIR):" -e "s:%%BINDIR%%:$(BINDIR):" \
-		< $^ > tmp
+		< as86_encap.sh > tmp
 	@mv -f tmp $@
 	chmod +x $@
 	
@@ -35,7 +31,7 @@ clean realclean clobber:
 	rm -f *.o as86 as86_encap
 
 .c.o:
-	$(CC) -DVERSION='"$(VERSION)"' $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $<
 
 as.o: const.h type.h byteord.h macro.h file.h flag.h globvar.h
 assemble.o: const.h type.h address.h globvar.h opcode.h scan.h
@@ -53,4 +49,3 @@ pops.o: const.h type.h address.h flag.h globvar.h opcode.h scan.h
 readsrc.o: const.h type.h flag.h file.h globvar.h macro.h scan.h source.h
 scan.o: const.h type.h globvar.h scan.h 
 table.o: const.h type.h globvar.h opcode.h scan.h
-

@@ -1,8 +1,4 @@
 
-ifeq ($(VERSION),)
-include Version
-endif
-
 LIBDIR	=/usr/bin
 CFLAGS	=-O
 LDFLAGS	=
@@ -13,7 +9,7 @@ LDFLAGS	=
 # -DSTANDARD_GNU_A_OUT		# a.out.h is like GNU normal.
 # -DNO_AOUT			# a.out.h is like nothing known!
 #
-DEFS	=-DREL_OUTPUT -DBUGCOMPAT -DVERSION='"$(VERSION)"'
+DEFS	=-DREL_OUTPUT -DBUGCOMPAT
 
 # An alternative file for a non-standard a.out.h (eg i386 linux on an Alpha)
 #
@@ -25,11 +21,11 @@ OBJS= dumps.o io.o ld.o readobj.o table.o typeconv.o linksyms.o \
 all: ld86 objchop catimage objdump86
 
 ld86: $(OBJS)
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 install: ld86
 	install -d $(LIBDIR)
-	install -m 755 $^ $(LIBDIR)
+	install -m 755 ld86 $(LIBDIR)
 
 clean realclean clobber:
 	rm -f *.o ld86 ld86r objchop catimage objdump86
@@ -38,7 +34,7 @@ $(OBJS): align.h ar.h bindef.h byteord.h config.h const.h globvar.h obj.h \
 	 syshead.h type.h x86_aout.h
 
 ar.h:
-	[ -f ar.h ] || \
+	test -f ar.h || \
 	{ rm -f ar.h ; ln -s ../libc/include/ar.h . ; } || \
 	ln ../libc/include/ar.h .
 

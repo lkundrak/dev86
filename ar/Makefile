@@ -6,12 +6,12 @@ LIBDIR	=/usr/bin
 CFLAGS	=-O
 LDFLAGS	=
 DEFS	=
-OBJS= ar.o
+OBJS= ar.o alloca.o
 
 all: ar86
 
 ar86: $(OBJS)
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 install: ar86
 	install -d $(LIBDIR)
@@ -23,12 +23,12 @@ clean realclean clobber:
 $(OBJS): ar.h rel_aout.h
 
 ar.h:
-	[ -f ar.h ] || \
+	test -f ar.h || \
 	{ rm -f ar.h ; ln -s ../libc/include/ar.h . ; } || \
 	ln ../libc/include/ar.h .
 
 rel_aout.h:
-	[ -f rel_aout.h ] || \
+	test -f rel_aout.h || \
 	{ rm -f rel_aout.h ; ln -s ../ld/rel_aout.h . ; } || \
 	ln ../ld/rel_aout.h .
 

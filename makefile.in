@@ -18,19 +18,20 @@ CFLAGS	=%CFLAGS%
 LDFLAGS	=
 MAKEARG	=CC='$(CC)' CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' \
 	 PREFIX=$(PREFIX) LIBPRE='$(LIBPRE)' LIBDIR='$(LIBDIR)' \
-	 BINDIR='$(BINDIR)' ANSI='$(ANSI)' VERSION='$(VERSION)'
+	 BINDIR='$(BINDIR)' ANSI='$(ANSI)'
 MAKEC=$(MAKE) -C
 MAKEX=
 
 # This is only allowed on Linux because make needs to know how to look
 # inside an archive to get the last modified times of the component .o
-# files. This should be fine for Linux, but it won't be for AIX.
+# files. This should be fine for Linux, but it won't be for AIX etc.
+# Unfortunatly it's even _required_ for linux because some versions
+# of Redhat have a broken standard ar command.
 #ifdef __linux__
 AR=ar86
 #endif
 
 #ifdef __GNUC__
-# unproto is yukky, I've included '-w' in the local makefile.
 
 WALL  =-Wall -Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
        -Wcast-qual -Wcast-align -Wconversion -Waggregate-return \
@@ -68,6 +69,11 @@ BCCARCH =-Mf -O
 #endif
 
 # Alter these if for some reason you don't want this done as root.
+#ifdef __CYGWIN__
+INDAT=-m 644
+INEXE=-m 755
+INSCR=-m 755
+#else
 #ifdef __BCC__
 INDAT=-o root -g root -m 644
 INEXE=-o root -g root -m 755
@@ -76,6 +82,13 @@ INSCR=-o root -g root -m 755
 INDAT=-o root -g root -m 644
 INEXE=-o root -g root -m 755 -s
 INSCR=-o root -g root -m 755
+#endif
+#endif
+
+#ifdef __CYGWIN__
+EXE=.exe
+#else
+EXE=
 #endif
 
 #ifdef GNUMAKE
@@ -130,44 +143,47 @@ bindir: $(MAKEX)
 #endif
 
 bcc: bindir
+	echo '#define VERSION "'"$(VERSION)"'"' > bcc/version.h
 	$(MAKEC) bcc $(MAKEARG) BCCARCH='$(BCCARCH)' bcc ncc bcc-cc1
-	cp -p bcc/bcc bin/Bcc
-	cp -p bcc/ncc bin/ncc
-	cp -p bcc/bcc-cc1 lib/bcc-cc1
+	cp -p bcc/bcc$(EXE) bin/Bcc$(EXE)
+	cp -p bcc/ncc$(EXE) bin/ncc$(EXE)
+	cp -p bcc/bcc-cc1$(EXE) lib/bcc-cc1$(EXE)
 
 cpp:  bindir
 	$(MAKEC) cpp $(MAKEARG) bcc-cpp
-	cp -p cpp/bcc-cpp lib/bcc-cpp
+	cp -p cpp/bcc-cpp$(EXE) lib/bcc-cpp$(EXE)
 
 unproto:  bindir
 	$(MAKEC) unproto $(MAKEARG) unproto
-	cp -p unproto/unproto lib/unproto
+	cp -p unproto/unproto$(EXE) lib/unproto$(EXE)
 
 copt:  bindir
 	$(MAKEC) copt $(MAKEARG) copt
-	cp -p copt/copt lib/copt
+	cp -p copt/copt$(EXE) lib/copt$(EXE)
 	cp -p copt/rules.* lib/.
 
 as86: bindir
+	echo '#define VERSION "'"$(VERSION)"'"' > as/version.h
 	$(MAKEC) as $(MAKEARG) all
-	cp -p as/as86 bin/as86
+	cp -p as/as86$(EXE) bin/as86$(EXE)
 	cp -p as/as86_encap bin/as86_encap
 
 ar86: bindir
 	$(MAKEC) ar $(MAKEARG) all
-	cp -p ar/ar86 bin/ar86
+	cp -p ar/ar86$(EXE) bin/ar86$(EXE)
 
 ld86: bindir
+	echo '#define VERSION "'"$(VERSION)"'"' > ld/version.h
 	$(MAKEC) ld $(MAKEARG) ld86
-	cp -p ld/ld86 bin/ld86
+	cp -p ld/ld86$(EXE) bin/ld86$(EXE)
 
 ld86r: bindir
 	$(MAKEC) ld $(MAKEARG) ld86r
-	cp -p ld/ld86r bin/ld86r
+	cp -p ld/ld86r$(EXE) bin/ld86r$(EXE)
 
 objdump86: bindir
 	$(MAKEC) ld $(MAKEARG) objdump86
-	cp -p ld/objdump86 bin/objdump86
+	cp -p ld/objdump86$(EXE) bin/objdump86$(EXE)
 
 elksemu: bindir
 #ifndef __AS386_16__
@@ -196,19 +212,19 @@ install-ln: bcc cpp unproto copt as86 ar86 ld86 elksemu
 
 install-bcc: bcc cpp unproto copt as86 ar86 ld86 objdump86
 	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
-	install $(INEXE) bin/Bcc 	$(DISTBIN)/bcc
-	install $(INSCR) bin/as86_encap	$(DISTBIN)/as86_encap
-	install $(INEXE) bin/as86 	$(DISTBIN)/as86
-	install $(INEXE) bin/ar86 	$(DISTBIN)/ar86
-	install $(INEXE) bin/ld86 	$(DISTBIN)/ld86
-	install $(INEXE) bin/objdump86 	$(DISTBIN)/objdump86
-	install $(INEXE) bin/objdump86 	$(DISTBIN)/nm86
-	install $(INEXE) bin/objdump86 	$(DISTBIN)/size86
-	install $(INEXE) lib/bcc-cc1 	$(DISTLIB)/bcc-cc1
-	install $(INEXE) lib/bcc-cpp 	$(DISTLIB)/bcc-cpp
-	install $(INEXE) lib/unproto 	$(DISTLIB)/unproto
-	install $(INEXE) lib/copt 	$(DISTLIB)/copt
-	install $(INDAT) lib/rules.* 	$(DISTLIB)/i86
+	install $(INEXE) bin/Bcc$(EXE) 		$(DISTBIN)/bcc$(EXE)
+	install $(INSCR) bin/as86_encap		$(DISTBIN)/as86_encap
+	install $(INEXE) bin/as86$(EXE) 	$(DISTBIN)/as86$(EXE)
+	install $(INEXE) bin/ar86$(EXE) 	$(DISTBIN)/ar86$(EXE)
+	install $(INEXE) bin/ld86$(EXE) 	$(DISTBIN)/ld86$(EXE)
+	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/objdump86$(EXE)
+	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/nm86$(EXE)
+	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/size86$(EXE)
+	install $(INEXE) lib/bcc-cc1$(EXE) 	$(DISTLIB)/bcc-cc1$(EXE)
+	install $(INEXE) lib/bcc-cpp$(EXE) 	$(DISTLIB)/bcc-cpp$(EXE)
+	install $(INEXE) lib/unproto$(EXE) 	$(DISTLIB)/unproto$(EXE)
+	install $(INEXE) lib/copt$(EXE) 	$(DISTLIB)/copt$(EXE)
+	install $(INDAT) lib/rules.* 		$(DISTLIB)/i86
 	@test ! -f $(DISTLIB)/as86 || rm -f $(DISTLIB)/as86
 	@test ! -f $(DISTLIB)/ld86 || rm -f $(DISTLIB)/ld86
 
@@ -325,12 +341,13 @@ makec:
 
 ##############################################################################
 
-install-other:
+install-other: other
 	@for i in $(OTHERS) ; do \
 		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) install || exit 1 ; \
 	done
 
 other:
+	echo '#define VERSION "'"$(VERSION)"'"' > bootblocks/version.h
 	@for i in $(OTHERS) ; do \
 		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) || exit 1; \
 	done
@@ -344,5 +361,9 @@ realclean:
 	rm -f include
 	rm -f makec
 	rm -f `find $(CLEANLIST) -type l -print`
+	rm -f bcc/version.h
+	rm -f as/version.h
+	rm -f ld/version.h
+	rm -f bootblocks/version.h
 
 ##############################################################################

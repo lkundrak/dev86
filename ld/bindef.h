@@ -1,4 +1,5 @@
 
+#if defined(__i386__) || defined(__8086__) || defined(__i386)
 #ifndef MSDOS
 #ifndef NO_AOUT
 /* Ok, I'm just gonna make it simple ... override this if you like. */
@@ -76,3 +77,4 @@
 
 #endif /* NO_AOUT */
 #endif /* MSDOS */
+#endif /* CPU type */

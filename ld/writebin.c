@@ -1053,7 +1053,11 @@ bin_off_t count;
 }
 #else
 
-PUBLIC void writebin(outfilename, argsepid, argbits32, argstripflag, arguzp)
+#ifndef FUNCNAME
+#define FUNCNAME writebin
+#endif
+
+PUBLIC void FUNCNAME(outfilename, argsepid, argbits32, argstripflag, arguzp)
 char *outfilename;
 bool_pt argsepid;
 bool_pt argbits32;

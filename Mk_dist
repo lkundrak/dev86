@@ -175,14 +175,14 @@ echo Creating as86 source archive.
 ln -s ${TMPSRC}/as as86-$VERSION
 cp -p ${TMPSRC}/man/as86.1 as86-$VERSION/as86.1
 cp -p ${TMPSRC}/COPYING as86-$VERSION/COPYING
-echo VERSION=$VERSION > as86-$VERSION/Version
+echo '#define VERSION "'"$VERSION"'"' > as86-$VERSION/version.h
 tar cf ${ARCDIR}/as86-$VERSION.tar `find as86-$VERSION/* -prune -type f`
 gzip -f9 ${ARCDIR}/as86-*.tar
 
 echo Creating bin86 source archive.
 make -s -C ${TMPSRC}/bin86 VERSION=${VERSION} grab 
 ln -s ${TMPSRC}/bin86 bin86-$VERSION
-echo VERSION=$VERSION > bin86-$VERSION/ld/Version
+echo '#define VERSION "'"$VERSION"'"' > bin86-$VERSION/ld/version.h
 tar chf ${ARCDIR}/bin86-$VERSION.tar bin86-$VERSION
 make -s -C ${TMPSRC}/bin86 ungrab
 gzip -f9 ${ARCDIR}/bin86-*.tar

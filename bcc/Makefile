@@ -12,7 +12,7 @@ BINDIR	=$(PREFIX)/bin
 LIBDIR	=$(LIBPRE)/lib/bcc
 BCCDEFS	=-DLOCALPREFIX=$(LIBPRE) -DBINDIR=$(BINDIR) -DDEFARCH=0
 
-BCFLAGS=$(ANSI) $(CFLAGS) $(LDFLAGS) -DVERSION='"$(VERSION)"'
+BCFLAGS=$(ANSI) $(CFLAGS) $(LDFLAGS)
 
 OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \
 	function.o gencode.o genloads.o glogcode.o hardop.o input.o label.o \
@@ -28,16 +28,16 @@ install: all
 	install -m 755 bcc-cc1 $(LIBDIR)/bcc-cc1
 
 bcc: bcc.c
-	$(CC) $(BCFLAGS) $(BCCDEFS) $^ -o $@
+	$(CC) $(BCFLAGS) $(BCCDEFS) bcc.c -o $@
 
 ncc: bcc.c
-	$(CC) $(BCFLAGS) -DL_TREE -DDEFARCH=0 $^ -o $@
+	$(CC) $(BCFLAGS) -DL_TREE -DDEFARCH=0 bcc.c -o $@
 
 bcc09: bcc.c
-	$(CC) $(BCFLAGS) -DMC6809 $(BCCDEFS) $^ -o $@
+	$(CC) $(BCFLAGS) -DMC6809 $(BCCDEFS) bcc.c -o $@
 
 ccc: bcc.c
-	$(CC) $(BCFLAGS) -DCCC $(BCCDEFS) $^ -o $@
+	$(CC) $(BCFLAGS) -DCCC $(BCCDEFS) bcc.c -o $@
 
 bcc-cc1: $(OBJS)
 	$(CC) $(BCCARCH) $(LDFLAGS) $(OBJS) -o bcc-cc1

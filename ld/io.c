@@ -6,6 +6,7 @@
 #include "const.h"
 #include "type.h"
 #include "globvar.h"
+#include "version.h"
 
 #define DRELBUFSIZE	3072
 #define ERR		(-1)
