@@ -3,7 +3,7 @@
 
 #include <features.h>
 #include <sys/types.h>
-#include <linuxmt/termios.h>
+#include __SYSINC__(termios.h)
 
 extern speed_t cfgetispeed __P ((struct termios *__termios_p));
 extern speed_t cfgetospeed __P ((struct termios *__termios_p));

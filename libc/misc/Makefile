@@ -14,9 +14,12 @@ GOBJ=atoi.o atol.o ltoa.o ltostr.o \
 
 UOBJ=getenv.o putenv.o popen.o system.o setenv.o getcwd.o
 
+SSRC=syslib.c
+SOBJ=time.o abort.o wait.o wait3.o waitpid.o killpg.o setpgrp.o sleep.o \
+     usleep.o mkfifo.o
 
 ifeq ($(LIB_OS),ELKS)
-OBJ=$(MOBJ) $(EOBJ) $(GOBJ) $(UOBJ)
+OBJ=$(MOBJ) $(EOBJ) $(GOBJ) $(UOBJ) $(SOBJ)
 else
 OBJ=$(MOBJ) $(EOBJ) $(GOBJ)
 endif
@@ -38,6 +41,10 @@ $(LIBC)($(MOBJ)): $(MSRC)
 	$(AR) $(ARFLAGS) $@ $*.o
 
 $(LIBC)($(EOBJ)): $(ESRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+
+$(LIBC)($(SOBJ)): $(SSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
 

@@ -22,8 +22,8 @@
 
 struct loopstruct
 {
-    label_t breaklab;		/* destination for break */
-    label_t contlab;		/* destination for continue */
+    label_no breaklab;		/* destination for break */
+    label_no contlab;		/* destination for continue */
     struct nodestruct *etmark;	/* expression tree built during loop */
     struct symstruct *exprmark;	/* expression symbols built during loop */
     struct symstruct *locmark;	/* local variables built during loop */
@@ -36,12 +36,12 @@ struct switchstruct
     struct casestruct *caseptr;	/* current spot in caselist */
     struct casestruct *casetop;	/* last in caselist + 1 */
     bool_t charselector;	/* tells if case selector is char */
-    label_t dfaultlab;		/* destination for default case (0 if none) */
+    label_no dfaultlab;		/* destination for default case (0 if none) */
     struct switchstruct *prevswitch;	/* previous active switch */
     struct casestruct
     {
 	value_t casevalue;	/* value giving this case */
-	label_t caselabel;	/* corresponding label */
+	label_no caselabel;	/* corresponding label */
     }
      caselist[INITIALCASES];	/* perhaps larger */
 };
@@ -50,7 +50,7 @@ PRIVATE struct loopstruct *loopnow;	/* currently active for/switch/while */
 					/* depends on NULL init */
 PRIVATE bool_t returnflag;	/* set if last effective statement */
 				/* was a return */
-PRIVATE label_t swstacklab;	/* label giving stack for switch statement */
+PRIVATE label_no swstacklab;	/* label giving stack for switch statement */
 
 FORWARD void addloop P((struct loopstruct *newloop));
 FORWARD void badloop P((void));
@@ -364,7 +364,7 @@ PRIVATE void dodefault()
 PRIVATE void dodowhile()
 {
     struct loopstruct dwhileloop;
-    label_t dolab;
+    label_no dolab;
 
     addloop(&dwhileloop);
     deflabel(dolab = getlabel());
@@ -385,8 +385,8 @@ PRIVATE void dodowhile()
 PRIVATE void dofor()
 {
     struct loopstruct forloop;
-    label_t forstatlab;
-    label_t fortestlab = 0; /* for -Wall */
+    label_no forstatlab;
+    label_no fortestlab = 0; /* for -Wall */
     struct nodestruct *testexp;
     struct nodestruct *loopexp;
 
@@ -446,8 +446,8 @@ PRIVATE void dogoto()
 PRIVATE void doif()
 {
     struct nodestruct *etmark;
-    label_t elselab;
-    label_t exitlab;
+    label_no elselab;
+    label_no exitlab;
     struct symstruct *exprmark;
 
     lparen();
@@ -486,7 +486,7 @@ PRIVATE void doswitch()
     struct switchstruct *sw;
     struct loopstruct switchloop;
     offset_t spmark = 0; /* for -Wall */
-    label_t sdecidelab;
+    label_no sdecidelab;
 
     sw = (struct switchstruct *) ourmalloc(sizeof *sw);
 #ifdef TS
@@ -532,7 +532,7 @@ PRIVATE void dowhile()
 {
     struct loopstruct whileloop;
     struct nodestruct *testexp;
-    label_t wstatlab;
+    label_no wstatlab;
 
     lparen();
     addloop(&whileloop);
@@ -557,11 +557,11 @@ PRIVATE void jumptocases()
     value_t caseval;
     bool_t charselector;
     bool_t dfaultflag;
-    label_t dfaultlab;
-    label_t jtablelab;
+    label_no dfaultlab;
+    label_no jtablelab;
     ccode_t lowcondition;
     store_pt targreg;
-    label_t zjtablelab;
+    label_no zjtablelab;
 
     caseptr = switchnow->caselist;
     casetop = switchnow->caseptr;

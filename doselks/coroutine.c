@@ -1,4 +1,4 @@
-#include <stdio.h>
+
 #include "doselks.h"
 
 int in_process = 0;

@@ -25,7 +25,7 @@
 
 struct labdatstruct
 {
-    label_t labnum;		/* 0 if not active */
+    label_no labnum;		/* 0 if not active */
     offset_t lablc;		/* location counter for branch or label */
     char *labpatch;		/* buffer ptr for branch, NULL for label */
     ccode_t labcond;		/* condition code for branch */
@@ -55,9 +55,9 @@ PRIVATE char condnames[][2] =	/* names of condition codes */
 };
 #endif
 
-PRIVATE label_t lasthighlab = 0xFFFF+1;	/* temp & temp init so labels fixed */
+PRIVATE label_no lasthighlab = 0xFFFF+1;	/* temp & temp init so labels fixed */
 				/* lint */
-PRIVATE label_t lastlab;	/* bss init to 0 */
+PRIVATE label_no lastlab;	/* bss init to 0 */
 PRIVATE offset_t lc;		/* bss init to 0 */
 
 PRIVATE struct labdatstruct vislab[MAXVISLAB];	/* bss, all labnum's init 0 */
@@ -65,14 +65,14 @@ PRIVATE smalin_t nextvislab;	/* bss init to NULL */
 PRIVATE struct symstruct *namedfirst;	/* bss init to NULL */
 PRIVATE struct symstruct *namedlast;	/* bss init to NULL */
 
-FORWARD void addlabel P((ccode_pt cond, label_t label, char *patch));
-FORWARD struct labdatstruct *findlabel P((label_t label));
+FORWARD void addlabel P((ccode_pt cond, label_no label, char *patch));
+FORWARD struct labdatstruct *findlabel P((label_no label));
 
 /* add label to circular list */
 
 PRIVATE void addlabel(cond, label, patch)
 ccode_pt cond;
-label_t label;
+label_no label;
 char *patch;
 {
     register struct labdatstruct *labptr;
@@ -167,7 +167,7 @@ PUBLIC uoffset_t getlc()
 /* define location of label and backpatch references to it */
 
 PUBLIC void deflabel(label)
-label_t label;
+label_no label;
 {
     char *cnameptr;
     struct labdatstruct *labmin;
@@ -241,7 +241,7 @@ label_t label;
 }
 
 PRIVATE struct labdatstruct *findlabel(label)
-label_t label;
+label_no label;
 {
     register struct labdatstruct *labptr;
     struct labdatstruct *labtop;
@@ -259,14 +259,14 @@ label_t label;
 
 /* reserve a new label, from top down to temp avoid renumbering low labels */
 
-PUBLIC label_t gethighlabel()
+PUBLIC label_no gethighlabel()
 {
     return --lasthighlab;
 }
 
 /* reserve a new label */
 
-PUBLIC label_t getlabel()
+PUBLIC label_no getlabel()
 {
     return ++lastlab;
 }
@@ -274,7 +274,7 @@ PUBLIC label_t getlabel()
 /* jump to label */
 
 PUBLIC void jump(label)
-label_t label;
+label_no label;
 {
     lbranch(RA, label);
 }
@@ -283,7 +283,7 @@ label_t label;
 
 PUBLIC void lbranch(cond, label)
 ccode_pt cond;
-label_t label;
+label_no label;
 {
 #ifdef I8088
     char *cnameptr;
@@ -376,7 +376,7 @@ ccode_pt cond;
 /* print label */
 
 PUBLIC void outlabel(label)
-label_t label;
+label_no label;
 {
     outbyte(LABELSTARTCHAR);
     outhexdigs((uoffset_t) label);
@@ -385,7 +385,7 @@ label_t label;
 /* print label and newline */
 
 PUBLIC void outnlabel(label)
-label_t label;
+label_no label;
 {
     outlabel(label);
 #ifdef LABELENDCHAR
@@ -399,7 +399,7 @@ label_t label;
 
 PUBLIC void sbranch(cond, label)
 ccode_pt cond;
-label_t label;
+label_no label;
 {
 #ifdef I8088
     char *cnameptr;

@@ -9,15 +9,37 @@
 #include <a.out.h>
 #include "minix.h"
 
-#undef DOTS		/* define to have dots printed */
-#define zone_shift 0	/* for any < 32M (non-zero not supported yet) */
+/* #define DOTS		/* define to have dots printed */
+/* #define ELKS_SETUP	/* Assume first SETUPSIZE bytes for SETUPSEG */
+/* #define HARDDISK	/* Define for hard disk version */
+/* #define TRY_FLOPPY	/* To do trial reads to find floppy size */
+/* #define IMAGE_MAGIC	/* Check for elks Image magic nos. */
 
+#ifdef IMAGE_MAGIC
+/* #undef DOTS */
+#define MIN_SPACE
+#endif
+
+#define zone_shift 0	/* for any < 32M (non-zero not supported yet) */
 #define seg_at(k) ((k)*64)
 #define seg_of(p) ((unsigned int)p >>4)
 #define BOOTSEG	  (0x07c0)
 #define LOADSEG   (0x1000)
 
-#define TRY_FLOPPY
+#ifdef ELKS_SETUP
+/* Can't do this .. SETUPSEGSIZE isn't in there! */
+/*
+ * #include <linuxmt/config.h>
+ * #define SETUPSEG  (DEF_SETUPSEG)
+ * #define SETUPSIZE (DEF_SETUPSIZE)
+ * #define ORGADDR   (SETUPSEG*16+SETUPSEGSIZE)
+ */
+#define SETUPSEG  (0x0120)
+#define SETUPSIZE (4*512/16)
+#define ORGADDR   (0x0500)
+#else
+#define ORGADDR   (0x0500)
+#endif
 
 #ifdef HARDDISK
 #define get_now()
@@ -32,11 +54,7 @@ static short     zone_shift;
 #endif
 
 #asm 
-! BOOTSEG  = 0x07c0
-! LOADSEG  = 0x1000	! This must be sector aligned
-
 BOOTADDR = 0x7c00
-ORGADDR  = $0500
 
 .text
 ! Apparently on startup the only things we can assume are that we start at
@@ -49,19 +67,21 @@ ORGADDR  = $0500
 !
 org ORGADDR	! The lowest available address.
 start:
+#ifndef MIN_SPACE
   include sysboot.s
 
 org dos_sysid
   .ascii "MINIXFS BOOT (C) 1990-1997,  Robert de Bath"
 
   org codestart
+#endif
 
 #ifdef HARDDISK
   mov	bx,[si+8]	! Fetch the linear address of part from DS:SI
   mov	dh,[si+10]	! DL is drive number
 #endif
 
-  xor	ax,ax
+  xor	ax,ax		! All segments are zero, first 64k of mem.
   mov	ds,ax
   mov	es,ax
   mov	ss,ax
@@ -100,8 +120,10 @@ loopy:
 
 #endasm
 
-/****************************************************************************/
 /* /* */
+/****************************************************************************/
+/* Section cdef */
+/****************************************************************************/
 
 /* The name of the file and inode to start */
 extern char bootfile[];
@@ -126,23 +148,24 @@ extern dir_struct * dirptr;
 extern unsigned flength;
 
 #ifndef HARDDISK
-/* The 'shape' of the floppy - intuit from superblock */
+/* The 'shape' of the floppy - intuit from superblock or try to read max */
 extern unsigned n_sectors;
 #endif
 
-/*
- * #define b_super	(*(struct super_block *) 1024)
- * #define b_inode	((d_inode *)2048)
- * #define b_zone	((zone_nr *)3072)
- */
+#ifdef IMAGE_MAGIC
+extern unsigned checkflg;
+extern unsigned segend;
+#endif
 
 extern struct super_block b_super;
 extern d_inode            b_inode[INODES_PER_BLOCK];
 extern zone_nr            b_zone[NR_INDIRECTS];
 extern dir_struct         directory[];
 
-/****************************************************************************/
 /* /* */
+/****************************************************************************/
+/* Section adef */
+/****************************************************************************/
 
 #asm
 ! A few variables we need to know the positions of for patching, so export
@@ -167,67 +190,80 @@ _loadaddr:  .word	0
 _lastsect:  .word	0
 #endif
 
-code:
-  call	_loadprog
-  call	_runprog
-  br	_nogood
+  block start+0x400
+_b_super:	.blkb 1024
+_b_inode:	.blkb 1024
+_b_zone:	.blkb 1024
+#ifdef MIN_SPACE
+temp_space:	.blkb 512
+#endif
+probe_buf:
+_directory:	.blkb 32768
+  endb
 
 #endasm
 
-/************************************/
-/* Hard disk device driver          */
-/************************************/
-#ifdef HARDDISK
-
+/* /* */
+/****************************************************************************/
+/* Section nogood */
+/****************************************************************************/
+/* #if defined(HARDDISK) && !defined(SKIPBOOT) */
+#ifndef SKIPBOOT
+static
+nogood()
+{
 #asm
-_load_block:
-  push	bp
-  mov	bp,sp
-
-  ! Fetch load location
-  mov	ax,[bp+4]
-  mov	es,ax
-
-  ! Test for block zero
-  mov	ax,6[bp]
-  test	ax,ax
-  jne 	real_block
-
-  ! Iff block zero, zap memory
-  push	di
-  mov	cx,#512
+  mov	si,#fail_fs
+min_nextc:
+  lodsb
+  cmp	al,#0
+  jz	min_eos
+  mov	bx,#7
+  mov	ah,#$E		! Can't use $13 cause that's AT+ only!
+  int	$10
+  jmp	min_nextc
+min_eos:		! Wait for a key then reboot
   xor	ax,ax
-  mov	di,ax
-  rep
-   stosw
-  pop	di
+  int	$16
+  !int	$19		! This should be OK as we haven't touched anything.
+  jmpi	$0,$FFFF	! Wam! Try or die!
 
-func_exit:
-  mov	sp,bp
-  pop	bp
-  ret
+fail_fs:
+#if defined(HARDDISK) && !defined(IMAGE_MAGIC)
+  .asciz	"Initial boot failed, press return to reboot\r\n"
+#else
+  .asciz	"Boot failed:"
+#endif
+#endasm
+}
 
-real_block:
-#ifdef DOTS
-  mov	ax,#$2E
-  push	ax
-  call	_bios_putc
-  inc	sp
-  inc	sp
+#else
+
+static
+nogood()
+{
+/* This didn't work, chain the boot sector of the HD */
+#asm
+  push	cs
+  pop	es
+hcode:
+  mov	ax,#$0201		! Read 1 sector
+  mov	bx,#BOOTADDR		! In the boot area
+  mov	cx,#$0001		! From sector 1
+  mov	dx,#$0080		! Of the hard drive head zero
+  int	$13
+  jc	hcode			! Keep trying forever!
+  jmpi	BOOTADDR,0
+#endasm
+}
 #endif
 
-! Load a real block.
-  mov	cx,ax
-  xor	dx,dx
-  shl	cx,#1
-  rcl	dx,#1
-
-  xor	bx,bx
-  mov	al,#2
-  call	load_sect 
-
-  j	func_exit
-
+/* /* */
+/****************************************************************************/
+/* Section hd_sect */
+/****************************************************************************/
+#ifdef HARDDISK
+#asm
 !
 ! Load AL sectors from linear sector DX:CX into location ES:BX
 ! Linear sector zero is at [bootpart]
@@ -254,7 +290,7 @@ onesect:
   push	es	! Load location
   push	bx
 
-  push	cx	! Drive and sector.
+  push	cx	! Drive and sector again.
   push	dx
 
   ! Fetch drive 'shape'
@@ -306,7 +342,7 @@ retry:
 
   dec	di
   jnz	retry
-  jmp	_nogood
+  br	_nogood
 
 got_hd_sect:
   pop	dx
@@ -321,11 +357,21 @@ got_hd_sect:
   add	bh,#2
   jmp	moresect
 #endasm
+#endif
 
-#else
-/************************************/
+/****************************************************************************/
+/* This is the end of the parts that MUST be in the first sector            */
+/* From here down the functions can safely be in any order.                 */
+/****************************************************************************/
+
+/* /* */
+/****************************************************************************/
+/* Section fd */
+/****************************************************************************/
+#ifndef HARDDISK
+/*----------------------------------*/
 /* Floppy disk device driver        */
-/************************************/
+/*----------------------------------*/
 
 static
 load_block(address, blkno)
@@ -334,7 +380,7 @@ unsigned address, blkno;
    register sect_nr sectno;
    if(blkno == 0) { zero_block(address); return; }
 #ifdef DOTS
-   bios_putc('.');
+   prt_dot();
 #endif
 
    sectno = (sect_nr)blkno * 2;
@@ -391,265 +437,27 @@ retry_get:
   int	$13
   dec	si
   jnz	retry_get
-  jmp	nogood
+  br	_nogood
 no_load:
   xor	ax,ax
   mov	[_loadcount],ax
 #endasm
 }
-
-#asm
-nogood:
-  j _nogood
-#endasm
-
-static
-zero_block(address)
-{
-#asm
-#if __FIRST_ARG_IN_AX__
-  mov	es,ax
-#else
-  mov	bx,sp
-  mov	es,[bx+2]
-#endif
-  push	di
-  mov	cx,#512
-  xor	ax,ax
-  mov	di,ax
-  rep
-   stosw
-  pop	di
-#endasm
-}
-
-#ifdef TRY_FLOPPY
-#asm
-!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-!
-! These are the number of sectors per track that will be scanned for.
-! For 3.5 inch floppies 36 is 2.88 Mb, 18 is 1.44Mb, 21 is 1.68Mb on
-! a 1.44Mb floppy drive. 15 and 9 are for 5.25 inch floppies.
-
-disksizes: .byte 36,21,18,15,9
-
-! It seems that there is no BIOS call to get the number of sectors.  Guess
-! 36 sectors if sector 36 can be read, 18 sectors if sector 18 can be read,
-! 15 if sector 15 can be read.  Otherwise guess 9.
-
-_probe_sectors:
-	mov	si,#disksizes		! table of sizes to try
-
-probe_loop:
-	lodsb
-	cbw				! extend to word
-	mov	_n_sectors, ax
-	cmp	al,#9
-	je	got_sectors		! if all else fails, try 9
-	xchg	ax, cx			! cx = track and sector
-	xor	dx, dx			! drive 0, head 0
-	mov	bx,#probe_buf 		! address after setup (es = cs)
-	mov	ax,#0x0201		! service 2, 1 sector
-	int	0x13
-	jc	probe_loop		! try next value
-got_sectors:
-
-	ret
-#endasm
-#else
-probe_sectors()
-{
-   n_sectors = b_super.s_nzones / 80;
-   if( n_sectors < 5 ) n_sectors = b_super.s_nzones / 40;
-}
-#endif
-#endif
-
-#ifdef DOTS
-static
-bios_putc(c)
-{
-#asm
-#if !__FIRST_ARG_IN_AX__
-  mov	bx,sp
-  mov	ax,[bx+2]
-#endif
-  mov	ah,#$0E
-  mov	bx,#7
-  int	$10
-#endasm
-}
-#endif
-
-#if defined(HARDDISK) && !defined(SKIPBOOT)
-static
-nogood()
-{
-#asm
-  mov	si,#fail_fs
-min_nextc:
-  lodsb
-  cmp	al,#0
-  jz	min_eos
-  mov	bx,#7
-  mov	ah,#$E		! Can't use $13 cause that's AT+ only!
-  int	$10
-  jmp	min_nextc
-min_eos:		! Wait for a key then reboot
-  xor	ax,ax
-  int	$16
-  !int	$19		! This should be OK as we haven't touched anything.
-  jmpi	$0,$FFFF	! Wam! Try or die!
-
-fail_fs:
-  .asciz	"Inital boot failed, press return to reboot\r\n"
-#endasm
-}
-
-#else
-
-static
-nogood()
-{
-/* This didn't work, chain the boot sector of the HD */
-#asm
-  push	cs
-  pop	es
-hcode:
-  mov	ax,#$0201		! Read 1 sector
-  mov	bx,#BOOTADDR		! In the boot area
-  mov	cx,#$0001		! From sector 1
-  mov	dx,#$0080		! Of the hard drive head zero
-  int	$13
-  jc	hcode			! Keep trying forever!
-  jmpi	BOOTADDR,0
-#endasm
-}
 #endif
 
 /****************************************************************************/
-#asm
-end_of_part1:
-  if *>start+0x200
-     fail! Part 1 too large!
-  endif
-  .blkb	0x200+start-*
-#endasm
-
+/* Section fd_bpb */
 /****************************************************************************/
-/* Part two, code to load directories then a file into memory from the device 
- */
-
-static
-loadprog()
-{
-#ifdef DOTS
-   bios_putc('+');
-#endif
-   if( b_super.s_magic != SUPER_MAGIC ) nogood();
-#ifndef HARDDISK
-   probe_sectors();
-
-   set_bpb();
-#endif
-
-try_again:;
-#ifdef zone_shift
-   if( zone_shift != b_super.s_log_zone_size) nogood();
-#else
-   zone_shift = b_super.s_log_zone_size;
-#endif
-
-   inode--;
-   load_block(seg_of(b_inode), inode/INODES_PER_BLOCK
-                          + b_super.s_imap_blocks
-                          + b_super.s_zmap_blocks
-                          + 2);
-   get_now();
-
-   ldaddr = LOADSEG;		/* Load at 64k mark */
-
-   {
-      register d_inode * i_ptr;
-      i_ptr = b_inode + inode%INODES_PER_BLOCK;
-      next_zone = i_ptr->i_zone;
-      flength   = i_ptr->i_size;
-      if( (i_ptr->i_mode & I_TYPE) == I_DIRECTORY )
-      {
-	 ldaddr = seg_of(directory);
-	 inode  = 0;		/* Mark - we've no _file_ inode yet */
-      }
-   }
-
-   end_zone = next_zone+NR_DZONE_NUM;
-   load_zone(seg_of(b_zone), (indirect = next_zone[NR_DZONE_NUM]));
-   get_now();
-
-   for(;;)
-   {
-      if( next_zone >= end_zone )
-      {
-         if( indirect != 0 )
-         {
-            next_zone = b_zone;
-            end_zone  = next_zone + NR_INDIRECTS;
-            indirect  = 0;
-            continue;
-         }
-	 break;
-      }
-      load_zone(ldaddr, *next_zone);
-      next_zone++;
-      ldaddr += (seg_at(1) << zone_shift);
-   }
-   get_now();
-
-#ifdef DOTS
-   bios_putc('\r');
-   bios_putc('\n');
-#endif
-   if(!inode)
-   {
-#ifdef DOTS
-      bios_putc('+');
-#endif
-      dirptr = directory;
-      while(flength > 0)
-      {
-register char * s = bootfile;
-register char * p = dirptr->d_name;
-
-	 if( dirptr->d_inum )
-	 {
-	    for(;;)
-	    {
-	       if( *s == '\0')
-	       {
-		  if(*p == '\0')
-		  {
-		     inode = dirptr->d_inum;
-		     goto try_again;
-		  }
-		  break;
-	       }
-	       if( *s++ != *p++ ) break;
-	    }
-	 }
-	 flength -= 16;
-	 dirptr++;
-      }
-      nogood();
-   }
-#ifndef HARDDISK
-   unset_bpb();
-#endif
-}
-
 #ifndef HARDDISK
 #asm
 _set_bpb:
+#ifdef MIN_SPACE
+bios_tabl=temp_space		! Temp space.
+bios_disk=temp_space+4		!
+#else
 bios_tabl=dosfs_stat		! Temp space.
 bios_disk=dosfs_stat+4		!
+#endif
 
 #ifndef __CALLER_SAVES__
   push	si
@@ -704,49 +512,109 @@ _unset_bpb:
 #endasm
 #endif
 
+/****************************************************************************/
+/* Section fd_zeroblk */
+/****************************************************************************/
+#ifndef HARDDISK
 static
-runprog()
+zero_block(address)
 {
-/* It all worked, run the loaded executable */
 #asm
-#ifdef HARDDISK
-  mov	dx,[bootpart+2]
-  xchg	dh,dl		! DX => hard drive
-  push	[bootpart]	! CX => partition offset
-  xor	si,si
+#if __FIRST_ARG_IN_AX__
+  mov	es,ax
 #else
-  xor	dx,dx		! DX=0 => floppy drive
-  push	dx		! CX=0 => partition offset = 0
-  mov	si,[_n_sectors]	! Save for monitor.out
+  mov	bx,sp
+  mov	es,[bx+2]
 #endif
-
-  mov	bx,#LOADSEG
-  mov	ds,bx		! DS = loadaddress
-  inc	bx
-  inc	bx		! bx = initial CS
-  xor	di,di		! Zero
-  mov	ax,[di]
-  cmp	ax,#0x0301	! Right magic ?
-  bne	_nogood		! Yuk ...
-  mov	ax,[di+2]
-  and	ax,#$20		! Is it split I/D ?
-  jz	impure		! No ...
-  mov	cl,#4
-  mov	ax,[di+8]
-  shr	ax,cl
-impure:
-  pop	cx
-  add	ax,bx
-  mov	ss,ax
-  mov	sp,[di+24]	! Chmem value
-  mov	ds,ax
-
-  push	bx
-  push	di		!  jmpi	0,#LOADSEG+2
-  retf
+  push	di
+  mov	cx,#512
+  xor	ax,ax
+  mov	di,ax
+  rep
+   stosw
+  pop	di
 #endasm
 }
+#endif
 
+/****************************************************************************/
+/* Section hd_block */
+/****************************************************************************/
+#ifdef HARDDISK
+/*----------------------------------*/
+/* Hard disk block driver           */
+/*----------------------------------*/
+
+#asm
+_load_block:
+  push	bp
+  mov	bp,sp
+
+  ! Fetch load location
+  mov	ax,[bp+4]
+  mov	es,ax
+
+  ! Test for block zero
+  mov	ax,6[bp]
+  test	ax,ax
+  jne 	real_block
+
+  ! Iff block zero, zap memory
+  push	di
+  mov	cx,#512
+  xor	ax,ax
+  mov	di,ax
+  rep
+   stosw
+  pop	di
+
+func_exit:
+  mov	sp,bp
+  pop	bp
+  ret
+
+real_block:
+#ifdef DOTS
+  call	_prt_dot
+#endif
+
+! Load a real block.
+  mov	cx,ax
+  xor	dx,dx
+  shl	cx,#1
+  rcl	dx,#1
+
+  xor	bx,bx
+  mov	al,#2
+  call	load_sect 
+
+  j	func_exit
+#endasm
+#endif
+
+/****************************************************************************/
+/* Section prt_dots */
+/****************************************************************************/
+#ifdef DOTS
+#asm
+_prt_crlf:
+  mov   al,#13
+  call	outch
+  mov	al,#10
+  j	outch
+_prt_dot:
+  mov   al,#'.
+outch:
+  mov	ah,#$0E
+  mov	bx,#7
+  int	$10
+  ret
+#endasm
+#endif
+
+/****************************************************************************/
+/* Section sys_libs */
+/****************************************************************************/
 #asm
 ! These functions are pulled from the C library.
 libstuff:
@@ -767,31 +635,345 @@ islu:
 	ret
 #endif
 libend:
+#endasm
 
+/****************************************************************************/
+/* Section sys_vars */
+/****************************************************************************/
+#asm
+#ifdef MIN_SPACE
+  block	temp_space+64
+#endif
 vars:
 #ifndef HARDDISK
-_n_sectors:	.word 0
+_n_sectors:	.blkw 1
 #endif
-_next_zone:	.word 0
-_end_zone:	.word 0
-_indirect:	.word 0
-_ldaddr:	.word 0
-_dirptr:	.word 0
-_flength:	.word 0
+_next_zone:	.blkw 1
+_end_zone:	.blkw 1
+_indirect:	.blkw 1
+_ldaddr:	.blkw 1
+_dirptr:	.blkw 1
+_flength:	.blkw 1
+#ifdef IMAGE_MAGIC
+_checkflg:	.blkw 1
+_segend:	.blkw 1
+#endif
 varend:
+#ifdef MIN_SPACE
+  endb
+#endif
+#endasm
 
+/****************************************************************************/
+/* Section end_1 */
+/****************************************************************************/
+#if defined(HARDDISK) || !defined(MIN_SPACE)
+#asm
+end_of_part1:
+#ifdef HARDDISK
+  if *>start+0x1FE	! Leave space for magic
+#else
+  if *>start+0x200
+#endif
+     fail! Part 1 too large!
+  endif
+  .blkb	0x200+start-*
+#endasm
+#endif
+
+/****************************************************************************/
+/* Section fd_probe */
+/****************************************************************************/
+#ifndef HARDDISK
+#ifdef TRY_FLOPPY
+#asm
+!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+!
+! These are the number of sectors per track that will be scanned for.
+! For 3.5 inch floppies 36 is 2.88 Mb, 18 is 1.44Mb, 21 is 1.68Mb on
+! a 1.44Mb floppy drive. 15 and 9 are for 5.25 inch floppies.
+
+disksizes: .byte 36,21,18,15,9
+
+! It seems that there is no BIOS call to get the number of sectors.  Guess
+! 36 sectors if sector 36 can be read, 18 sectors if sector 18 can be read,
+! 15 if sector 15 can be read.  Otherwise guess 9.
+
+_probe_sectors:
+	mov	si,#disksizes		! table of sizes to try
+
+probe_loop:
+	lodsb
+	cbw				! extend to word
+	mov	_n_sectors, ax
+	cmp	al,#9
+	je	got_sectors		! if all else fails, try 9
+	xchg	ax, cx			! cx = track and sector
+	xor	dx, dx			! drive 0, head 0
+	mov	bx,#probe_buf 		! address after setup (es = cs)
+	mov	ax,#0x0201		! service 2, 1 sector
+	int	0x13
+	jc	probe_loop		! try next value
+got_sectors:
+
+	ret
+#endasm
+#endif
+#endif
+
+/****************************************************************************/
+/* Section main */
+/****************************************************************************/
+#asm
+code:
+  call	_loadprog
+  call	_runprog
+  br	_nogood
+
+#endasm
+
+/****************************************************************************/
+/* Section prog_load */
+/****************************************************************************/
+
+static
+loadprog()
+{
+#ifdef DOTS
+   prt_dot();
+#endif
+   if( b_super.s_magic != SUPER_MAGIC ) nogood();
+#ifndef HARDDISK
+#ifdef TRY_FLOPPY
+   probe_sectors();
+#else
+   if( (n_sectors = b_super.s_nzones / 40) > 11 ) n_sectors /= 2;
+#endif
+
+   set_bpb();
+#endif
+
+try_again:;
+#ifdef zone_shift
+   if( zone_shift != b_super.s_log_zone_size) nogood();
+#else
+   zone_shift = b_super.s_log_zone_size;
+#endif
+
+   inode--;
+   load_block(seg_of(b_inode), inode/INODES_PER_BLOCK
+                          + b_super.s_imap_blocks
+                          + b_super.s_zmap_blocks
+                          + 2);
+   get_now();
+
+#ifdef ELKS_SETUP
+   ldaddr = SETUPSEG;		/* Load at $02200, where setup expects to be */
+#else
+   ldaddr = LOADSEG;		/* Load at 64k mark */
+#endif
+#ifdef IMAGE_MAGIC
+   checkflg = 1;
+#endif
+
+   {
+      register d_inode * i_ptr;
+      i_ptr = b_inode + inode%INODES_PER_BLOCK;
+      next_zone = i_ptr->i_zone;
+      flength   = i_ptr->i_size;
+      if( (i_ptr->i_mode & I_TYPE) == I_DIRECTORY )
+      {
+	 ldaddr = seg_of(directory);
+	 inode  = 0;		/* Mark - we've no _file_ inode yet */
+      }
+   }
+
+   end_zone = next_zone+NR_DZONE_NUM;
+   load_zone(seg_of(b_zone), (indirect = next_zone[NR_DZONE_NUM]));
+   get_now();
+
+   for(;;)
+   {
+      if( next_zone >= end_zone )
+      {
+         if( indirect != 0 )
+         {
+            next_zone = b_zone;
+            end_zone  = next_zone + NR_INDIRECTS;
+            indirect  = 0;
+            continue;
+         }
+	 break;
+      }
+      load_zone(ldaddr, *next_zone);
+      next_zone++;
+      ldaddr += (seg_at(1) << zone_shift);
+#ifdef ELKS_SETUP
+      /* finished with setup segment? */
+      if (ldaddr == (SETUPSEG+seg_of(SETUPSIZE))) ldaddr = LOADSEG;
+#endif
+#ifdef IMAGE_MAGIC
+      if (inode && checkflg)
+      {
+         get_now();
+	 checkflg=0;
+	 if( mcheck() )
+	     segend = (ldaddr = mfetch(495)) + mfetch(497)*(512/16);
+      }
+      if (ldaddr == segend) ldaddr = LOADSEG;
+#endif
+   }
+   get_now();
+
+#ifdef DOTS
+   prt_crlf();
+#endif
+   if(!inode)
+   {
+#ifdef DOTS
+      prt_dot();
+#endif
+      dirptr = directory;
+      while(flength > 0)
+      {
+register char * s = bootfile;
+register char * p = dirptr->d_name;
+
+	 if( dirptr->d_inum )
+	 {
+	    for(;;)
+	    {
+	       if( *s == '\0')
+	       {
+		  if(*p == '\0')
+		  {
+		     inode = dirptr->d_inum;
+		     goto try_again;
+		  }
+		  break;
+	       }
+	       if( *s++ != *p++ ) break;
+	    }
+	 }
+	 flength -= 16;
+	 dirptr++;
+      }
+      nogood();
+   }
+#ifndef HARDDISK
+   unset_bpb();
+#endif
+}
+
+/****************************************************************************/
+/* Section prog_magic */
+/****************************************************************************/
+
+#ifdef IMAGE_MAGIC
+#asm
+; mfetch(0) != 0x301 && mfetch(486) == 'E'+'L'*256 && mfetch(488) == 'K'+'S'*256 )
+.text
+export	_mcheck
+_mcheck:
+  mov	ax,#LOADSEG
+  mov	es,ax
+  xor	ax,ax
+  mov	bx,ax
+  cmp	[bx],#0x301
+  jz	doret
+  cmp	[bx+486],#'E+'L*256
+  jnz	doret
+  cmp	[bx+488],#'K+'S*256
+  jnz	doret
+  inc	ax
+doret:
+  ret
+
+.text
+export	_mfetch
+_mfetch:
+#if __FIRST_ARG_IN_AX__
+  mov	bx,ax
+#else
+  mov	bx,sp
+  mov	bx,2[bx]
+#endif
+  mov	ax,#LOADSEG
+  mov	es,ax
+  seg	es
+  mov	ax,[bx]
+  ret
+#endasm
+#endif
+
+/****************************************************************************/
+/* Section prog_run */
+/****************************************************************************/
+static
+runprog()
+{
+/* It all worked, run the loaded executable */
+#asm
+#ifdef HARDDISK
+  mov	dx,[bootpart+2]
+  xchg	dh,dl		! DX => hard drive
+  push	[bootpart]	! CX => partition offset
+  xor	si,si
+#else
+  xor	dx,dx		! DX=0 => floppy drive
+  push	dx		! CX=0 => partition offset = 0
+  mov	si,[_n_sectors]	! Save for monitor.out
+#endif
+
+#ifdef ELKS_SETUP
+  mov	bx,#SETUPSEG
+  xor	di,di
+#else
+  mov	bx,#LOADSEG
+  mov	ds,bx		! DS = loadaddress
+  xor	di,di		! Zero
+  mov	ax,[di]
+  cmp	ax,#0x0301	! Right magic ?
+  jnz	binfile		! Yuk ... assume .SYS
+  inc	bx
+  inc	bx		! bx = initial CS
+  mov	ax,[di+2]
+  and	ax,#$20		! Is it split I/D ?
+  jz	impure		! No ...
+  mov	cl,#4
+  mov	ax,[di+8]
+  shr	ax,cl
+impure:
+  pop	cx
+  add	ax,bx
+  mov	ss,ax
+  mov	sp,[di+24]	! Chmem value
+  mov	ds,ax
+binfile:
+#endif
+
+  push	bx
+  push	di		!  jmpi	0,#LOADSEG+2
+  retf
+#endasm
+}
+
+/****************************************************************************/
+/* Section end_2 */
+/****************************************************************************/
+#asm
 end_of_prog:
   if *>start+0x400
      fail! Part 2 too large!
   endif
 
+  if end_of_prog<start+0x201
+  .blkb	0x400+start-*
+  else
   .blkb	0x3FF+start-*
   .byte 0xFF
-
-_b_super:	.blkb 1024
-_b_inode:	.blkb 1024
-_b_zone:	.blkb 1024
-probe_buf:
-_directory:	.blkb 32768
+  endif
 
 #endasm
+
+/****************************************************************************/

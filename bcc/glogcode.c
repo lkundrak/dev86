@@ -40,26 +40,26 @@ FORWARD void cmporsub P((struct symstruct *target));
 FORWARD bool_pt cmpsmallconst P((value_t intconst, struct symstruct *target,
 				  ccode_t *pcondtrue));
 #endif
-FORWARD void comparecond P((struct nodestruct *exp, label_t truelab,
-			     label_t falselab, bool_pt nojump));
-FORWARD void jumpcond P((struct nodestruct *exp, label_t truelab,
-			  label_t falselab, bool_pt nojump));
-FORWARD void loadlogical P((struct symstruct *source, label_t falselab));
-FORWARD void logandcond P((struct nodestruct *exp, label_t truelab,
-			    label_t falselab, bool_pt nojump));
-FORWARD void logorcond P((struct nodestruct *exp, label_t truelab,
-			   label_t falselab, bool_pt nojump));
+FORWARD void comparecond P((struct nodestruct *exp, label_no truelab,
+			     label_no falselab, bool_pt nojump));
+FORWARD void jumpcond P((struct nodestruct *exp, label_no truelab,
+			  label_no falselab, bool_pt nojump));
+FORWARD void loadlogical P((struct symstruct *source, label_no falselab));
+FORWARD void logandcond P((struct nodestruct *exp, label_no truelab,
+			    label_no falselab, bool_pt nojump));
+FORWARD void logorcond P((struct nodestruct *exp, label_no truelab,
+			   label_no falselab, bool_pt nojump));
 FORWARD void reduceconst P((struct symstruct *source));
 FORWARD void test P((struct symstruct *target, ccode_t *pcondtrue));
-FORWARD void testcond P((struct nodestruct *exp, label_t truelab,
-			  label_t falselab, bool_pt nojump));
+FORWARD void testcond P((struct nodestruct *exp, label_no truelab,
+			  label_no falselab, bool_pt nojump));
 
 PUBLIC void cmp(source, target, pcondtrue)
 struct symstruct *source;
 struct symstruct *target;
 ccode_t *pcondtrue;
 {
-    label_t falselab;
+    label_no falselab;
 
     cmplocal(source, target, pcondtrue);
 #if 0
@@ -230,8 +230,8 @@ ccode_t *pcondtrue;
 
 PRIVATE void comparecond(exp, truelab, falselab, nojump)
 struct nodestruct *exp;
-label_t truelab;
-label_t falselab;
+label_no truelab;
+label_no falselab;
 bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
 {
     ccode_t condtrue;
@@ -278,11 +278,11 @@ bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
 PUBLIC void condop(exp)
 struct nodestruct *exp;
 {
-    label_t exitlab;
-    label_t falselab;
+    label_no exitlab;
+    label_no falselab;
     struct nodestruct *falsenode;
     struct symstruct *falsesym;
-    label_t truelab;
+    label_no truelab;
     struct nodestruct *truenode;
     struct symstruct *truesym;
 
@@ -318,8 +318,8 @@ struct nodestruct *exp;
 
 PRIVATE void jumpcond(exp, truelab, falselab, nojump)
 struct nodestruct *exp;
-label_t truelab;
-label_t falselab;
+label_no truelab;
+label_no falselab;
 bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
 {
     switch (exp->tag)
@@ -349,9 +349,9 @@ bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
 
 PUBLIC void jumpfalse(exp, label)
 struct nodestruct *exp;
-label_t label;
+label_no label;
 {
-    label_t truelab;
+    label_no truelab;
 
     jumpcond(exp, truelab = getlabel(), label, ~0);
     deflabel(truelab);
@@ -359,9 +359,9 @@ label_t label;
 
 PUBLIC void jumptrue(exp, label)
 struct nodestruct *exp;
-label_t label;
+label_no label;
 {
-    label_t falselab;
+    label_no falselab;
 
     jumpcond(exp, label, falselab = getlabel(), 0);
     deflabel(falselab);
@@ -369,9 +369,9 @@ label_t label;
 
 PRIVATE void loadlogical(source, falselab)
 struct symstruct *source;
-label_t falselab;
+label_no falselab;
 {
-    label_t exitlab;
+    label_no exitlab;
     struct symstruct *target;
 
     target = constsym((value_t) TRUE);
@@ -388,11 +388,11 @@ label_t falselab;
 
 PRIVATE void logandcond(exp, truelab, falselab, nojump)
 struct nodestruct *exp;
-label_t truelab;
-label_t falselab;
+label_no truelab;
+label_no falselab;
 bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
 {
-    label_t andlab;
+    label_no andlab;
 
     andlab = getlabel();
     jumpcond(exp->left.nodeptr, andlab, falselab, ~0);
@@ -403,9 +403,9 @@ bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
 PUBLIC void logop(exp)
 struct nodestruct *exp;
 {
-    label_t falselab;
+    label_no falselab;
     struct symstruct *target;
-    label_t truelab;
+    label_no truelab;
 
     jumpcond(exp, truelab = getlabel(), falselab = getlabel(), ~0);
     deflabel(truelab);
@@ -418,11 +418,11 @@ struct nodestruct *exp;
 
 PRIVATE void logorcond(exp, truelab, falselab, nojump)
 struct nodestruct *exp;
-label_t truelab;
-label_t falselab;
+label_no truelab;
+label_no falselab;
 bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
 {
-    label_t orlab;
+    label_no orlab;
 
     orlab = getlabel();
     jumpcond(exp->left.nodeptr, truelab, orlab, 0);
@@ -532,8 +532,8 @@ ccode_t *pcondtrue;
 
 PRIVATE void testcond(exp, truelab, falselab, nojump)
 struct nodestruct *exp;
-label_t truelab;
-label_t falselab;
+label_no truelab;
+label_no falselab;
 bool_pt nojump;			/* NB if nonzero, is ~0 so complement is 0 */
 {
     ccode_t condtrue;

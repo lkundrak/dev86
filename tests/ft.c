@@ -24,15 +24,19 @@
 #include <pwd.h>
 #include <grp.h>
 
-#ifdef S_IFSOCK
-#include <sys/socket.h>
+#if defined(S_IFSOCK) && !defined(__BCC__)
+#defined __HAS_SOCKETS
 #endif
 #ifndef S_IFLNK
 #define lstat stat
 #endif
 
+#ifdef __HAS_SOCKETS
+#include <sys/socket.h>
+#endif
+
 /* Ansi prototypes */
-#ifdef __STTDC__
+#ifdef __STDC__
 #define PR(x) x
 #else
 #define PR(x) ()
@@ -106,7 +110,7 @@ struct {
    { "ln",	CMD_LN,      -1, "vifs" },
    { "mkdir",	CMD_MKDIR,    0, "m:" },
    { "mkfifo",	CMD_MKFIFO,   0, "m:" },
-#ifdef S_IFSOCK
+#ifdef __HAS_SOCKETS
    { "mksock",	CMD_MKSOCK,   0, "m:" },
 #endif
    { "mknod",	CMD_MKNOD,    4, "m:" },
@@ -505,7 +509,7 @@ int when; char * fname;
 
    case CMD_MKDIR:   rv = cmd_mkdir(fname);  break;
    case CMD_MKFIFO:  rv = cmd_mkfifo(fname); break;
-#ifdef S_IFSOCK
+#ifdef __HAS_SOCKETS
    case CMD_MKSOCK:  rv = cmd_mksock(fname); break;
 #endif
    case CMD_MKNOD:   break;
@@ -721,7 +725,7 @@ static int last_uid=-1, last_gid=-1, last_mode=-1;
          {
          case S_IFDIR:  printf("\td"); break;
          case S_IFIFO:  printf("\tp"); break;
-#ifdef S_IFSOCK
+#ifdef __HAS_SOCKETS
          case S_IFSOCK: printf("\ts"); break;
 #endif
          case S_IFBLK:  printf("\tb,%d,%d", cur_file_stat.st_rdev>>8,
@@ -756,7 +760,7 @@ char * fname;
    return rv;
 }
 
-#ifdef S_IFSOCK
+#ifdef __HAS_SOCKETS
 int
 cmd_mksock(fname)
 char * fname;

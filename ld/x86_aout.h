@@ -118,7 +118,7 @@ struct nlist {			/* symbol table entry */
 
 /* High bits of storage class. */
 #define N_CLASS		0370	/* storage class mask */
-#define C_NULL
+#define C_NULL		0
 #define C_EXT		0020	/* external symbol */
 #define C_STAT		0030	/* static */
 

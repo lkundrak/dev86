@@ -691,7 +691,7 @@ store_pt reg;
 /* adjust stack ptr by adding a labelled constant less current sp */
 
 PUBLIC void adjsp(label)
-label_t label;
+label_no label;
 {
     outaddsp();
     outbyte(LOCALSTARTCHAR);
@@ -767,9 +767,9 @@ PUBLIC void bssseg()
 
 /* jump to case of switch */
 
-PUBLIC label_t casejump()
+PUBLIC label_no casejump()
 {
-    label_t jtablelab;
+    label_no jtablelab;
 
 #ifdef I8088
     outlswitch();
@@ -886,13 +886,13 @@ uoffset_t nullcount;
 
 /* define string */
 
-PUBLIC label_t defstr(sptr, stop, dataflag)
+PUBLIC label_no defstr(sptr, stop, dataflag)
 char *sptr;
 char *stop;
 bool_pt dataflag;
 {
     int byte;			/* promoted char for output */
-    label_t strlab;
+    label_no strlab;
     seg_t oldsegment;
     fastin_t count;		/* range 0..max(DEFSTR_BYTEMAX,DEFSTR_STRMAX) */
 
@@ -1043,7 +1043,7 @@ char *string;
 /* equate a local label to a value */
 
 PUBLIC void equlab(label, offset)
-label_t label;
+label_no label;
 offset_t offset;
 {
     outbyte(LOCALSTARTCHAR);
@@ -1087,7 +1087,7 @@ store_pt reg;
 	outcwd();
 	regtransfer(DXREG, reg);
 #else
-	label_t exitlab;
+	label_no exitlab;
 
 	clr(reg);
 	testhi();
@@ -1106,7 +1106,7 @@ store_pt reg;
 /* define local common storage */
 
 PUBLIC void lcommlab(label)
-label_t label;
+label_no label;
 {
     outlabel(label);
     outlcommon();

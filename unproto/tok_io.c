@@ -396,7 +396,11 @@ int     ch;
 	    if ((INPUT(c)) == EOF) {		/* EOF, punt */
 		break;
 	    } else if (c == 'a') {		/* \a -> audible bell */
+#ifdef BELL
 		if ((cp = vs_strcpy(vs, cp, BELL)) == 0)
+#else
+		if ((cp = vs_strcpy(vs, cp, "\007")) == 0)
+#endif
 		    fatal("out of memory");
 	    } else if (c == 'x') {		/* \xhh -> \nnn */
 		cp = read_hex(vs, cp);

@@ -10,13 +10,18 @@ TOP=$(TOPDIR)/libc
 endif
 
 VERMAJOR=0
-VERMINOR=12
-VERPATCH=4
+VERMINOR=13
+VERPATCH=0
 VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
 
 CC=bcc
 CCFLAGS=-I -I$(TOP)/include
 DEFS=-D__LIBC__
+
+ifeq ($(ELKSSRC),)
+ELKSSRC=/usr/src/elks
+endif
+export ELKSSRC
 
 include Make.defs
 
@@ -43,6 +48,9 @@ crt3.o: crt0.c Makefile
 crt0.o: crt0.c Makefile
 	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VER)"' -o $@ crt0.c
 
+crtg.o: crt0.c Makefile
+	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VER)"' -o $@ crt0.c
+
 crtX.o:
 	@echo "You need to define the 'PLATFORM=...' variable,"
 	@echo "Preferably by doing make from `dirname \`pwd\``"
@@ -55,8 +63,10 @@ transfer: .config.dir
 	   grep -s '^transfer' $$i/Makefile && $(MAKE) -s -C $$i $@ ; \
 	done ; echo -n
 	@[ -f kinclude/Used ] || \
-	{ rm -f include/linuxmt ; \
-	  ln -s $(ELKSSRC)/include/linuxmt include ; }
+	{ rm -f include/linuxmt include/arch ; \
+	  ln -s $(ELKSSRC)/include/linuxmt include ; \
+	  ln -s $(ELKSSRC)/include/arch include ; \
+	  }
 
 ############################################################################
 
@@ -75,8 +85,9 @@ install_incl:
 	cp -pr include $(BCCHOME)/include
 	if [ -f kinclude/Used ] ; \
 	then cp -pr kinclude/arch $(BCCHOME)/include/arch ; \
-	else rm -rf $(BCCHOME)/include/linuxmt ; \
+	else rm -rf $(BCCHOME)/include/linuxmt $(BCCHOME)/include/arch ; \
 	     ln -s $(ELKSSRC)/include/linuxmt $(BCCHOME)/include ; \
+	     ln -s $(ELKSSRC)/include/arch $(BCCHOME)/include ; \
 	fi
 	-chown -R root:root   $(BCCHOME)/include 2>/dev/null
 	-chmod -R u=rwX,og=rX $(BCCHOME)/include

@@ -4,25 +4,13 @@
  */
 /* We don't care, ignore GCC's __need hackery */
 
-#undef __need_wchar_t
-#undef __need_size_t
-#undef __need_ptrdiff_t
-#undef __need_NULL
-
-/* Fact is these are _normal_ */
-#if 1	/* __BCC__ */	/* Only for Bcc 8086/80386 */
-
 #ifndef __STDDEF_H
 #define __STDDEF_H
 
-#ifndef _SIZE_T
-#define _SIZE_T
-typedef unsigned int size_t;
-#endif
+#include <sys/types.h>
 
 #ifndef NULL
 #define NULL 0
 #endif
 
 #endif /* __STDDEF_H */
-#endif /* __AS386_16__ */

@@ -550,10 +550,14 @@ ts_s_includelist += sizeof *incnew;
     {
 	i386_32 = TRUE;
 	definestring("__AS386_32__");
+	definestring("__i386__");
     }
     else
 #endif
+    {
 	definestring("__AS386_16__");
+	definestring("__8086__");
+    }
 #endif
 #ifdef MC6809
     definestring("__AS09__");

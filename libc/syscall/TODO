@@ -3,3 +3,128 @@ semaphores.
 
 Idea, for RPC syscall, seperate all the FD related calls from the system ones
 IIRC all the single FD related ones have the FD in arg0
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+Subject: 8086 Shared Libs and local RPC.
+
+True shared libs are impossible with the 8086 in small model.
+BUT we can use RPC type links to provide a similar system.
+
+Client side
+-----------
+
+shl_open("socket", 0x81);
+   Open the shared lib called '/lib/socket.shl' on irq 0x81
+
+   The kernel starts the server daemon from /lib and binds it to the interrupt.
+
+   If the server is already loaded and has flag 'Multi_access' it will not
+   be reloaded; note the daemon can be loaded by init or similar.
+
+   The binding may be global or process specific depending on if we are
+   running in real mode or protected and the options the server starts
+   with. If the interrupt is busy or the program cannot be run an error
+   is returned.
+
+   Note also the server has the option to reject the connection even if the
+   kernel is happy.
+
+   If the server does a shl_open() on itself it is registering a request to
+   be known on the given interrupt by any process without prior registration.
+
+int <n>
+   The <n> must be the interrupt previously accepted by the kernel.
+   The registers AX,BX,CX,DX,DI,SI are passed to the server in the
+   structure for shl_accept in the vars: rtype, arg1, ... arg5.
+   Also the DS register is saved for access by the server.
+   If the server has died or doesn't respond after a (long) timeout an error
+   should be returned.
+   Note: A server that is not present may be respawned if it's stateless.
+
+   Note this is _very_ similar to the system call interrupt and it's possible
+   the system call server can be a model for a multi-threaded server.
+
+Server side
+-----------
+
+shl_register("socket", flags);
+
+   Flags:
+      Multi_access:  Server can accept accesses from multiple clients.
+      Stateless:     If server dies it can be restarted in some manner
+                     without the clients being aware.
+      Non-block:     Calls to shl_accept do not block, return error.
+
+   Another possibility is to register to a device (major/minor pair)
+   when a client attempts to access this device messages the open
+   syscall is passed to the server like the syscalls for fds opened
+   by shl_popen(). The server can then do a shl_popen to allow the
+   client access to a channel.
+
+   This has the advantage that the client doesn't need to know anything
+   special about the server.
+
+shl_accept(struct shl_message *);
+   A client has just made an INT call.
+   
+   If pid == 0 this is a shl_open request passed via the kernel, arg1 is
+   pid, arg2 is euid and arg3 is the egid. The reply will be the return
+   from the shl_open syscall.
+
+struct shl_message {
+   int pid;
+   int rtype;                               /* AX register */
+   int arg1, arg2, arg3, arg4, arg5;        /* BX,CX,DX,DI,SI registers */
+   int dseg;                                /* DS register */
+}
+   buffer;              Structure for 'accept' and 'reply' calls.
+
+shl_reply(struct shl_message *);
+   The rtype, arg1..3 values are copied back to the registers in the calling
+   program.
+
+shl_notify(int flag);
+   Allow asychronus notification of the arrival of shl_accept requests.
+   Perhaps a signal, SIGURG ?
+   The flag could be a ms time between signals while there are pending items.
+   (0=none, -1=1 per item, >0=time)
+   (If this used fds this could be done via select but as we ain't got it ...)
+
+shl_popen(int pid);
+   Open a file descriptor on the given process, return the FD number.
+
+   THIS WILL ONLY WORK IF THE PROCESS IS CURRENTLY WAITING FOR A REPLY.
+
+   This FD when accessed will send messages to the server process,
+
+   These messages will be identical in form to the normal messages
+   except that the value 0x8000 will be ored with the syscall number
+   in AX.
+
+   Beware also the semantics of fork and exec which can give a server
+   FD to a process that either knows nothing about the server or will
+   later register with the server in it's own right.
+
+   (This will probably need a 'dup3(fd, oldpid, newpid)' style call)
+
+shl_force(struct shl_message *);
+   This forces the remote process to execute a syscall
+
+   THIS WILL ONLY WORK IF THE PROCESS IS CURRENTLY WAITING FOR A REPLY.
+
+   This would be useful for: shl_open("minix", 0x20); or if an error
+   causes a forced closure of an FD.
+   
+shl_copy(int io, char * localbuf, int pid, char * remotebuf);
+   Copies data between the address space of the client process and the
+   server.  (Could be shl_read and shl_write)
+
+   THIS WILL ONLY WORK IF THE PROCESS IS CURRENTLY WAITING FOR A REPLY.
+
+   On Linux-8086 this will just be a far memcpy, in protected mode the
+   segment descriptor will have to be setup, either specially or previously.
+   
+   This will be complicated slightly by the problem that a multi-threaded
+   server may have many clients waiting at the same time.
+
+   Also the kernel is able to change the segment that a given program resides.

@@ -41,14 +41,15 @@ auto_start:
 #endif /* __AS386_16__ or __AS386_32__ */
 
 #if defined(__GNUC__) && defined(__i386__)
-#define CRT0_OK
-
 #ifdef __ELF__
-__asm__(".globl	__startup\n__startup:");
+#define CRT0_OK
+__asm__(".globl	_start\n_start:");
 __asm__("jmp	__cstartup");
 __asm__(".globl	__no_op\n__no_op:");
 __asm__("ret");
 #else
+
+#error This library is for ELF only, sorry.
 __asm__(".globl	startup\nstartup:");
 __asm__("jmp	___cstartup");
 __asm__(".globl	no_op\nno_op:");

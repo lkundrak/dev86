@@ -1,5 +1,14 @@
 For version 0.13.0.
 
+> Removed too eager 'typeconv.c' warning.
+
+> Well, I just broken everything! To be exact if Dev86 sees a directory
+  called ${ELKSSRC:-/usr/src/elks}/include it'll assume that is the
+  equlivent of libc/kinclude and use that in preference. I've sent off
+  a patch so that elks-0.0.* should be compatible but meantime there
+  are bound to be lots of problems caused by shuffling of include files.
+  (Later: Actually doesn't seem too bad)
+
 > Added '-g' to gcc options, make sure install has '-s' to strip symbols.
 
 > Grrrr, missing files in bootblocks directory, I didn't have them all.
@@ -18,6 +27,8 @@ For version 0.13.0.
   filesystems on a floppy. Also add some error retries to the floppy
   version.
 
+> Squeeze the minix BB a bit more, DOTS is now working again.
+
 > Can now do 'use16 8086' in assembler instead of 'use16 86' also
   'use16 80386'
 
@@ -26,13 +37,25 @@ For version 0.13.0.
   to do a make install after re-compiling. But it also means the
   'install' is dependent on the dev dirs.
 
-> Add ability to use overrides on the comand line of the initial make,
+> Add ability to use overrides on the command line of the initial make,
   and have them saved, for CC, CFLAGS, LDFLAGS, PREFIX, BINDIR and LIBDIR.
   Includes minor alteration to bcc.c and as86_encap.
 
 > Added in 'objchop' as an option in the ld directory.
 
-> Removed too eager 'typeconv.c' warning.
+> The cpu type warnings were worrying some people so I've set the
+  initial value of the '-w' flag to off, use -w- to turn them back on.
+  The -W flag to bcc now does this too.
+
+> Added the ELKS_SETUP from Ken Yap to minix.c.
+
+> Added __ELKS__, __8086__ and __i386__ #defines for relevent bcc configs.
+
+> Clarified some of the copyrights, esp for Bruce's stuff.
+
+> Added a few changes to clean up compiles on an AIX/RS6000. It still
+  needs gnu-make installed and is only tested with gcc though.
+  (Because of IBM's recent contribution to increasing the popularity of GCC)
 
 For version 0.12.0.
 

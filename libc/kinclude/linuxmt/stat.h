@@ -1,11 +1,7 @@
 #ifndef __LINUXMT_STAT_H
 #define __LINUXMT_STAT_H
 
-#ifdef __KERNEL__
-
-#include "../arch/stat.h"
-
-#endif
+#include <arch/stat.h>
 
 #define S_IFMT  00170000
 #ifdef __LINUXMT_NETWORK__

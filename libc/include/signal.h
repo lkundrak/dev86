@@ -79,7 +79,9 @@ struct sigaction {
 };
 
 /* BSDisms */
+#ifdef BSD
 extern __const char * __const sys_siglist[];
 #define sig_t __sighandler_t
+#endif
 
 #endif

@@ -107,7 +107,6 @@ char **argv;
 		{
 		   argv[0] = "ld86r";
 	           execv("/usr/bin/ld86r", argv);
-	           execv("/usr/bin/ld86", argv);
 		}
 #endif
 		usage();
@@ -190,7 +189,7 @@ char **argv;
 		    infilename = tfn;
 		    /* fatalerror(tfn);	* XXX */
 		readsyms(infilename, flag['t']);
-		icount++;
+		icount+=2;
 		break;
 	    case 'o':		/* output file name */
 		if (arg[2] != 0 || ++argn >= argc || outfilename != NUL_PTR)
@@ -205,18 +204,19 @@ char **argv;
 
 #ifdef REL_OUTPUT
 #ifndef MSDOS
-#ifndef BUGCOMPAT
+#ifdef BUGCOMPAT
+    if( icount>1 && ( flag['r'] && !flag['N'] ) )
+#else
     if( flag['r'] && !flag['N'] )
+#endif
     {
        /* Ok, try for an alternate linker */
        if( strcmp(argv[0], "ld86r") != 0 )
        {
 	  argv[0] = "ld86r";
 	  execv("/usr/bin/ld86r", argv);
-	  execv("/usr/bin/ld86", argv);
        }
     }
-#endif
 #endif
 #endif
 

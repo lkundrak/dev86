@@ -428,9 +428,9 @@ PUBLIC void ptrsub(source, target)
 struct symstruct *source;
 struct symstruct *target;
 {
-    label_t exitlab;
+    label_no exitlab;
     uoffset_t factor;
-    label_t usignlab;
+    label_no usignlab;
 
     if (source->indcount == 0 && source->storage != CONSTANT)
     {

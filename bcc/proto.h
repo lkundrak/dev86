@@ -8,7 +8,7 @@ void cast P((struct typestruct *type, struct symstruct *target));
 void extend P((struct symstruct *target));
 
 /* codefrag.c */
-void adjsp P((label_t label));
+void adjsp P((label_no label));
 void clrBreg P((void));
 void comment P((void));
 void ctoi P((void));
@@ -57,20 +57,20 @@ void addconst P((offset_t offset, store_pt reg));
 void adjlc P((offset_t offset, store_pt reg));
 void andconst P((offset_t offset));
 void bssseg P((void));
-label_t casejump P((void));
+label_no casejump P((void));
 void common P((char *name));
 void cseg P((void));
 void defnulls P((uoffset_t nullcount));
-label_t defstr P((char *sptr, char *stop, bool_pt dataflag));
+label_no defstr P((char *sptr, char *stop, bool_pt dataflag));
 bool_pt diveasy P((value_t divisor, bool_pt uflag));
 void dpseg P((void));
 void dseg P((void));
 void equ P((char *name, char *string));
-void equlab P((label_t label, offset_t offset));
+void equlab P((label_no label, offset_t offset));
 void globl P((char *name));
 void import P((char *name));
 void itol P((store_pt reg));
-void lcommlab P((label_t label));
+void lcommlab P((label_no label));
 void lcommon P((char *name));
 void lea P((offset_t offset, store_pt sourcereg, store_pt targreg));
 void loadconst P((offset_t offset, store_pt reg));
@@ -189,8 +189,8 @@ void transfer P((struct symstruct *source, store_pt targreg));
 void cmp P((struct symstruct *source, struct symstruct *target,
 	    ccode_t *pcondtrue));
 void condop P((struct nodestruct *exp));
-void jumpfalse P((struct nodestruct *exp, label_t label));
-void jumptrue P((struct nodestruct *exp, label_t label));
+void jumpfalse P((struct nodestruct *exp, label_no label));
+void jumptrue P((struct nodestruct *exp, label_no label));
 void logop P((struct nodestruct *exp));
 
 /* hardop.c */
@@ -220,16 +220,16 @@ void clearfunclabels P((void));
 void clearlabels P((char *patchbuf, char *patchtop));
 void clearswitchlabels P((void));
 uoffset_t getlc P((void));
-void deflabel P((label_t label));
-label_t gethighlabel P((void));
-label_t getlabel P((void));
-void jump P((label_t label));
-void lbranch P((ccode_pt cond, label_t label));
+void deflabel P((label_no label));
+label_no gethighlabel P((void));
+label_no getlabel P((void));
+void jump P((label_no label));
+void lbranch P((ccode_pt cond, label_no label));
 struct symstruct *namedlabel P((void));
 void outcond P((ccode_pt cond));
-void outlabel P((label_t label));
-void outnlabel P((label_t label));
-void sbranch P((ccode_pt cond, label_t label));
+void outlabel P((label_no label));
+void outnlabel P((label_no label));
+void sbranch P((ccode_pt cond, label_no label));
 void unbumplc P((void));
 
 /* loadexp.c */
@@ -343,7 +343,7 @@ struct symstruct *findstruct P((char *name));
 struct symstruct **gethashptr P((char *sname));
 void growheap P((unsigned size));
 void *growobject P((void *object, unsigned extra));
-label_t holdstr P((char *sptr, char *stop));
+label_no holdstr P((char *sptr, char *stop));
 void newlevel P((void));
 void oldlevel P((void));
 void ourfree P((void *ptr));

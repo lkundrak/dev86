@@ -2,9 +2,8 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-LSRC=syslibc.c
-LOBJ=__cstart3.o time.o abort.o wait.o waitpid.o wait3.o killpg.o setpgrp.o \
-     sleep.o usleep.o
+LSRC=cstartup.c
+LOBJ=__cstart3.o
 
 ESRC=exec.c
 EOBJ=execl.o execv.o execle.o execlp.o execvp.o

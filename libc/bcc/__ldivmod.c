@@ -1,5 +1,6 @@
 /************************************************************************/
 /* This file contains the BCC compiler helper functions */
+/* (C) Copyright Bruce Evans */
 /* Function ldivmod */
 
 #ifdef __AS386_16__

@@ -2,12 +2,8 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-LSRC=syslibc.c
-LOBJ=time.o abort.o wait.o waitpid.o wait3.o killpg.o setpgrp.o sleep.o \
-     usleep.o
-
-LSRC0=syslib0.c
-LOBJ0=__cstartup.o lseek.o getpid.o getppid.o getuid.o geteuid.o getgid.o \
+LSRC=syslib0.c
+LOBJ=__cstartup.o lseek.o getpid.o getppid.o getuid.o geteuid.o getgid.o \
       getegid.o dup2.o dup.o getpgrp.o times.o
 
 ESRC=exec.c
@@ -17,7 +13,7 @@ DSRC=dirent.c
 DOBJ=opendir.o closedir.o readdir.o
 
 ifeq ($(LIB_CPU)-$(LIB_OS),i86-ELKS)
-OBJ=$(LOBJ0) $(LOBJ) $(DOBJ) $(EOBJ) signal.o setjmp.o
+OBJ=$(LOBJ) $(LOBJ) $(DOBJ) $(EOBJ) signal.o setjmp.o
 SYSCALLS=call_i86
 endif
 
@@ -47,10 +43,6 @@ $(LIBC)($(DOBJ)): $(DSRC)
 	$(AR) $(ARFLAGS) $@ $*.o
 
 $(LIBC)($(EOBJ)): $(ESRC)
-	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
-	$(AR) $(ARFLAGS) $@ $*.o
-
-$(LIBC)($(LOBJ0)): $(LSRC0)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
 

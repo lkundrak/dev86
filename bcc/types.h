@@ -92,7 +92,7 @@ typedef smalu_pt constr_pt;	/* promoted constr_t */
 typedef smalu_t constr_t;	/* type constructor flags */
 typedef smalu_pt indn_pt;	/* promoted indn_t */
 typedef smalu_t indn_t;		/* storage indirection count */
-typedef unsigned label_t;	/* label number */
+typedef unsigned label_no;	/* label number */
 typedef smalu_t maclev_t;	/* macro expansion level */
 typedef smalin_pt op_pt;	/* promoted op_t */
 typedef smalin_t op_t;		/* operator code */
@@ -147,7 +147,7 @@ struct symstruct
     {
 	double *offd;		/* value for double constants */
 	offset_t offi;		/* offset for register or global storage */
-	label_t offlabel;	/* label number for strings */
+	label_no offlabel;	/* label number for strings */
 	char *offp;		/* to string for macro definitions */
 	sym_pt offsym;		/* symbol code for keywords */
 	value_t offv;		/* value for integral constants */
@@ -155,7 +155,7 @@ struct symstruct
      offset;
     union
     {
-	label_t label;		/* label number for strings */
+	label_no label;		/* label number for strings */
 	char namea[1];		/* variable length array for declarations */
 	char *namep;		/* to constant storage for exprs */
     }

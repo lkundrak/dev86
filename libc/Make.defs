@@ -54,6 +54,19 @@ LIB_OS=ELKS
 endif
 
 ##############################################################################
+# GCC 386.
+
+ifeq ($(PLATFORM),i386-GCC)
+OBJ=crtg.o
+LIBC=$(TOP)/libcg.a
+ARCH=
+LIB_CPU=g386
+LIB_OS=ELKS
+CC=gcc
+CCFLAGS=-O -g -nostdinc -I$(TOP)/include
+endif
+
+##############################################################################
 # Anonymous
 
 ifeq ($(PLATFORM),ANON)

@@ -1,4 +1,4 @@
-#include <stdio.h>
+
 #include "doselks.h"
 #include "syscalls.h"
 

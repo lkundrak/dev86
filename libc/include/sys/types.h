@@ -1,2 +1,3 @@
+#include <features.h>
 #include <stddef.h>
-#include <linuxmt/types.h>
+#include __SYSINC__(types.h)

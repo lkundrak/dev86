@@ -35,7 +35,7 @@ CC	=gcc $(GCCFLAG)
 #ifdef __i386__
 CFLAGS	=-Wall $(WALL) -O2 -m486 -fno-strength-reduce -g
 #else
-CFLAGS	=-Wall $(WALL) -O2 -fno-strength-reduce -g
+CFLAGS	=-Wall $(WALL) -O6 -g
 #endif
 #endif
 
@@ -68,9 +68,11 @@ INDAT=-o root -g root -m 644
 INEXE=-o root -g root -m 755 -s
 INSCR=-o root -g root -m 755
 
-all: check_config bcc unproto copt as86 ld86 library alt-libs elksemu 
+all: check_config bcc unproto copt as86 ld86 \
+     library lib-bsd alt-libs elksemu
 
-install: check_config install-bcc install-man install-lib install-lib2 install-emu
+install: check_config install-bcc install-man \
+     install-lib install-lib2 install-emu
 
 install-all: install install-other
 
@@ -125,10 +127,18 @@ ld86: bindir
 	$(MAKEC) ld $(MAKEARG) ld86
 	cp -p ld/ld86 bin/ld86
 
+ld86r: bindir
+	$(MAKEC) ld $(MAKEARG) ld86r
+	cp -p ld/ld86r bin/ld86r
+
 elksemu: bindir
+#ifdef __i386__
 	$(MAKEC) elksemu \
 	CC='$(CC)' PREFIX=$(PREFIX) LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' \
 	elksemu
+#else
+	$(MAKEC) elksemu CC='ncc' DEFS=-N- elksemu
+#endif
 	cp -p elksemu/elksemu bin/elksemu
 
 install-ln: bcc unproto copt as86 ld86 elksemu
@@ -162,17 +172,17 @@ install-emu: elksemu
 install-man:
 	-$(MAKEC) man MANDIR=$(DIST)/usr/man install
 
-install-lib: lib/lib0-done
+install-lib: lib/lib0-done lib/lib2-done
 	install -d $(DISTLIB)/i86
 	$(MAKEC) libc $(LIBARGS) BCCHOME=$(DISTPRE) install_incl
 	install $(INDAT) lib/crt0.o 	$(DISTLIB)/i86/crt0.o
 	install $(INDAT) lib/libc.a 	$(DISTLIB)/i86/libc.a
+	install $(INDAT) lib/libbsd.a	$(DISTLIB)/i86/libbsd.a
 	install -d $(DIST)/usr/lib
 	install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
 
 install-lib2: lib/lib1-done
 	install -d $(DISTLIB)/i86
-	install $(INDAT) lib/libbsd.a	$(DISTLIB)/i86/libbsd.a
 	install $(INDAT) lib/libc_f.a	$(DISTLIB)/i86/libc_f.a
 	install $(INDAT) lib/libc_s.a	$(DISTLIB)/i86/libc_s.a
 	install $(INDAT) lib/libdos.a	$(DISTLIB)/i86/libdos.a
@@ -187,40 +197,53 @@ lib/lib0-done:
 lib/lib1-done:
 	$(MAKE) -f make.fil alt-libs
 
+lib/lib2-done:
+	$(MAKE) -f make.fil lib-bsd
+
+all-libs: library lib-bsd alt-libs
+	@:
+
 library: bindir
 	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-ELKS
 	cp -p libc/crt0.o libc/libc.a lib/.
+	sh libcompat lib/libc.a
 	@touch lib/lib0-done
-
-alt-libs: lib-bsd lib-fast lib-stand lib-dos lib-386 
-	@touch lib/lib1-done
 
 lib-bsd: bindir
 	test -f bin/ncc
 	$(MAKEC) libbsd $(LIBARGS)
 	cp -p libbsd/libbsd.a lib/libbsd.a
+	sh libcompat lib/libbsd.a
+	@touch lib/lib2-done
+
+alt-libs: lib-stand lib-dos lib-386 lib-fast 
+	@touch lib/lib1-done
 
 lib-fast: bindir
 	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-FAST
 	cp -p libc/libc_f.a lib/libc_f.a
+	sh libcompat lib/libc_f.a
 
 lib-stand: bindir
 	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-BIOS
 	cp -p libc/libc_s.a lib/libc_s.a
+	sh libcompat lib/libc_s.a
 
 lib-dos: bindir
 	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-DOS
 	cp -p libc/libdos.a lib/libdos.a
+	sh libcompat lib/libdos.a
 
 lib-386: bindir
 	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i386-BCC
 	cp -p libc/crt3.o lib/i386/crt0.o
 	cp -p libc/libc3.a lib/i386/libc.a
+	sh libcompat lib/i386/libc.a
 
 ##############################################################################
 
@@ -249,12 +272,10 @@ install-other: phony
 		$(MAKEC) $$i BCC=ncc DIST=$(DIST) install || exit 1 ; \
 	done
 
-other: phony
-	@for i in $(OTHERS) ; do \
-		$(MAKEC) $$i BCC=ncc || exit 1 ; done
+other: $(OTHERS)
 
-tests: phony
-	$(MAKEC) tests BCC=ncc
+$(OTHERS): phony
+	$(MAKEC) $@ BCC=ncc
 
 clean:
 	-@for i in $(CLEANLIST) ; do $(MAKEC) $$i $@ ; true ; done

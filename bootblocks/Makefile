@@ -5,7 +5,8 @@ BCC=bcc
 
 CC=$(BCC)
 CFLAGS=-ansi -Ms -H0x10000 -s
-ASFLAGS=-0
+ASFLAGS=-0 -w
+MDEFS=
 # LST=-l $*.lst
 # CLST=-A-l -A$*.lst
 
@@ -41,10 +42,10 @@ monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
 
 minix.s: minix.c
-	$(BCC) -Mc -S minix.c
+	$(BCC) -Mf -DDOTS -DTRY_FLOPPY $(MDEFS) -S minix.c
 
 minixhd.s: minix.c
-	$(BCC) -Mc -DHARDDISK -S minix.c -o minixhd.s
+	$(BCC) -Mf -DDOTS -DHARDDISK $(MDEFS) -S minix.c -o minixhd.s
 
 makeboot:	makeboot.c sysboot.v noboot.v skip.v msdos.v tarboot.v
 	$(HOSTCC) $(HOSTCCFLAGS) -o makeboot makeboot.c
@@ -80,7 +81,7 @@ distribution:
 .SUFFIXES: .bin .v
 
 .s.bin:
-	$(BCC) -c $*.s -A-u- -A-b -A$*.tmp -A-s -A$*.sym $(CLST)
+	$(BCC) -W -c $*.s -A-u- -A-b -A$*.tmp -A-s -A$*.sym $(CLST)
 	mv $*.tmp $*.bin
 	-@rm $*.o
 

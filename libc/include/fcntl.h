@@ -1,9 +1,9 @@
-#ifndef __FCNTL_H
-#define __FCNTL_H
+#ifndef __FCNTL__H
+#define __FCNTL__H
 
 #include <features.h>
 #include <sys/types.h>
-#include <linuxmt/fcntl.h>
+#include __SYSINC__(fcntl.h)
 
 #ifndef FNDELAY
 #define FNDELAY	O_NDELAY

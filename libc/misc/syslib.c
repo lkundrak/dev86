@@ -4,11 +4,14 @@
  */
 
 #include <sys/types.h>
+#include <sys/time.h>
 #include <errno.h>
 #include <time.h>
+#include <signal.h>
+#include <sys/stat.h>
 
-/* MSDOS has it's own versions */
-#ifndef __MSDOS__
+/* This only for the various unix version */
+#ifdef __unix__
 
 /********************** Function time ************************************/
 
@@ -26,7 +29,6 @@ time_t *where;
 /********************** Function abort ************************************/
 
 #ifdef L_abort
-#include <signal.h>
 
 int abort()
 {
@@ -106,8 +108,8 @@ setpgrp()
 /********************** Function sleep ************************************/
 
 #ifdef L_sleep
-#include <signal.h>
 
+#ifdef __ELKS__
 /* This uses SIGALRM, it does keep the previous alarm call but will lose
  * any alarms that go off during the sleep
  */
@@ -130,9 +132,9 @@ unsigned int seconds;
    signal(SIGALRM, last_alarm);
    return seconds;
 }
-#if 0
+
+#else
         /* Is this a better way ? If we have select of course :-) */
-#include <sys/time.h>
 unsigned int
 sleep(seconds)
 unsigned int seconds;
@@ -151,7 +153,6 @@ unsigned int seconds;
 /********************** Function usleep ************************************/
 
 #ifdef L_usleep
-#include <sys/time.h>
 void
 usleep(useconds)
 unsigned long useconds;
@@ -163,6 +164,18 @@ unsigned long useconds;
 }
 #endif
 
+/********************** Function mkfifo ************************************/
+
+#ifdef L_mkfifo
+int
+mkfifo(path, mode)
+char * path;
+int mode;
+{
+   return mknod(path, mode | S_IFIFO, 0);
+}
+#endif
+
 /********************** THE END ********************************************/
 
-#endif /* __MSDOS__ */
+#endif /* __unix__ */

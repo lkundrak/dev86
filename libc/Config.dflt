@@ -5,7 +5,6 @@ getent:+:
 gtermcap:+:
 i386fp:+:
 i386sys:+:
-kinclude:+:
 malloc1:+:
 misc:+:
 msdos:+:

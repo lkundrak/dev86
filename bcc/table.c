@@ -50,7 +50,7 @@ struct string
     struct string *snext;
     char *sptr;
     char *stop;
-    label_t slabel;
+    label_no slabel;
 };
 #endif
 
@@ -495,7 +495,7 @@ PRIVATE void heapcorrupterror()
 
 /* hold string for dumping at end, to avoid mixing it with other data */
 
-PUBLIC label_t holdstr(sptr, stop)
+PUBLIC label_no holdstr(sptr, stop)
 char *sptr;
 char *stop;
 {

@@ -2,6 +2,10 @@
  * This file is part of the Linux-8086 Development environment and is
  * distributed under the GNU General Public License. */
 
+#ifdef _AIX
+#include <sys/types.h>	/* AIX 4.1 + GCC seems to need this */
+#endif
+
 /* Ansi C has certain guarentees ... except under MSdross :-( */
 
 #ifdef __STDC__

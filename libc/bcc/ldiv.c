@@ -1,3 +1,6 @@
+/************************************************************************/
+/* This file contains the BCC compiler helper functions */
+/* (C) Copyright Bruce Evans */
 
 #ifdef __AS386_16__
 #asm

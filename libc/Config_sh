@@ -15,7 +15,13 @@ main()
 
    if [ "$ALLON" = yes -a -f Config.dflt ]
    then grep '^[^:]*:+:' Config.dflt > .config.tmp
-        [ -s .config.tmp ] && ALLON=no
+        [ -s .config.tmp ] && {
+	   ALLON=no
+	   grep -q '^kinclude:' .config.tmp >/dev/null 2>&1 || {
+	      [ -d "$ELKSSRC/include" ] ||
+	         echo 'kinclude:+:' >> .config.tmp
+	   }
+        }
    fi
 
    egrep -v '^#|^$' /dev/null */[Cc]onfig | \
@@ -40,7 +46,7 @@ main()
    do
       display
       echo 
-      echo -n 'Option to flip [or quit] >'
+      echon 'Option to flip [or quit] >'
       read n
       v=""
       case "$n" in
@@ -142,6 +148,16 @@ set_option()
    cat .config.tmp[12] > .config.lst
    rm .config.tmp[12]
    unset_dups
+}
+
+echon() { 
+   [ "$ECHON" = "" ] && {
+      if echo -n | grep -e -n >/dev/null
+      then ECHON="echo "; ECHOT='\c'
+      else ECHON="echo -n"; ECHOT=''
+      fi
+   }
+   $ECHON "$@""$ECHOT"
 }
 
 main

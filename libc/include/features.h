@@ -22,6 +22,26 @@
 
 #endif
 
+/* Pick an OS sysinclude directory */
+/* Use with #include __SYSINC__(errno.h) */
+
+#ifdef __ELKS__
+#define __SYSINC__(_h_file_) <linuxmt/_h_file_>
+#endif
+
+#ifdef __linux__
+#undef linux	/* Eyuk! */
+#define __SYSINC__(_h_file_) <linux/_h_file_>
+#endif
+
+#ifdef __MSDOS__
+#define __SYSINC__(_h_file_) <msdos/_h_file_>
+#endif
+
+#ifndef __SYSINC__
+#define __SYSINC__(_h_file_) <generic/_h_file_>
+#endif
+
 /* No C++ */
 #define __BEGIN_DECLS
 #define __END_DECLS
@@ -33,4 +53,3 @@
 #include <sys/cdefs.h>
 
 #endif
-

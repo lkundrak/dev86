@@ -181,6 +181,7 @@ ssize_t write P((int fd, const void *buf, size_t nbytes));
 int main P((int argc, char **argv));
 
 FORWARD void addarg P((struct arg_s *argp, char *arg));
+FORWARD void adddefine P((char *arg));
 FORWARD void addprefix P((struct prefix_s *prefix, char *name));
 FORWARD char *expand_tilde P((char * str, int canfree));
 FORWARD void fatal P((char *message));
@@ -364,11 +365,8 @@ char **argv;
 	    case 'v':
 		++verbosity;
 		break;
-	    case 'w':
-		aswarn=FALSE;
-		break;
 	    case 'W':
-		++aswarn;
+		aswarn = TRUE;
 		break;
 	    case 'I':
 		add_default_inc = 0;
@@ -376,6 +374,7 @@ char **argv;
 	    case 'L':
 		add_default_lib = 0;
 		break;
+
 	    default:
 		*argdone = FALSE;
 		break;
@@ -388,11 +387,8 @@ char **argv;
 	      {
 		ansi_pass=TRUE;
 		cpp_pass=TRUE;
-#ifndef CCC
 		/* NOTE I'm setting this to zero, this isn't a _real_ STDC */
-		addarg(&ccargs, "-D__STDC__=0");
-#endif
-		addarg(&cppargs, "-D__STDC__=0");
+		adddefine("-D__STDC__=0");
 	      }
 	      break;
 	    case 'A':
@@ -407,10 +403,7 @@ char **argv;
 	    case 'D':
 	    case 'I':
 	    case 'U':
-#ifndef CCC
-		addarg(&ccargs, arg);
-#endif
-		addarg(&cppargs, arg);
+		adddefine(arg);
 		break;
 	    case 'X':
 		addarg(&ldargs, arg + 2);
@@ -485,15 +478,13 @@ char **argv;
 	exit(1);
 
 #ifdef BCC86
+    if(!major_mode && !bits32) major_mode='n';
     switch(major_mode)
     {
     case 'd': /* DOS compile */
        bits32 = FALSE;
        libc= "-ldos";
-#ifndef CCC
-       addarg(&ccargs, "-D__MSDOS__");
-#endif
-       addarg(&cppargs, "-D__MSDOS__");
+       adddefine("-D__MSDOS__");
        addarg(&ldargs, "-d");
        addarg(&ldargs, "-s");
        addarg(&ldargs, "-T100");
@@ -502,11 +493,15 @@ char **argv;
     case 'n': /* Normal Linux-86 */
        bits32 = FALSE;
        libc= "-lc";
+       adddefine("-D__ELKS__");
+       adddefine("-D__unix__");
        break;
 
     case 'f': /* Caller saves+ax is first arg */
        bits32 = FALSE;
        libc= "-lc_f";
+       adddefine("-D__ELKS__");
+       adddefine("-D__unix__");
        addarg(&ccargs, "-f");
        addarg(&ccargs, "-c");
        break;
@@ -514,35 +509,37 @@ char **argv;
     case 'c': /* Just caller saves, normal C-lib is ok */
        bits32 = FALSE;
        libc= "-lc";
+       adddefine("-D__ELKS__");
+       adddefine("-D__unix__");
        addarg(&ccargs, "-c");
        break;
 
     case 's': /* Standalone executable */
        bits32 = FALSE;
        libc= "-lc_s";
-#ifndef CCC
-       addarg(&ccargs, "-D__STANDALONE__");
-#endif
-       addarg(&cppargs, "-D__STANDALONE__");
+       adddefine("-D__STANDALONE__");
        break;
 
     case 'l': /* Large Linux compile */
        bits32 = TRUE;
        libc= "-lc";
-#ifndef CCC
-       addarg(&ccargs, "-D__linux__");
-#endif
-       addarg(&cppargs, "-D__linux__");
+       adddefine("-D__linux__");
+       adddefine("-D__unix__");
        addarg(&ldargs, "-N"); /* Make OMAGIC */
        break;
+
+    case '?':
     case 0:
        break;
+
     default:
        fatal("Fatal error: illegal -M option given");
     }
 #endif
 
-    if( !aswarn )
+    if( aswarn )
+       addarg(&asargs, "-w-");
+    else
        addarg(&asargs, "-w");
     if( patch_exe )
        addarg(&ldargs, "-s");
@@ -558,12 +555,7 @@ char **argv;
     if ((temp = getenv("BCC_EXEC_PREFIX")) != NUL_PTR)
 	addprefix(&exec_prefix, temp);
     if( add_default_inc )
-    {
-#ifndef CCC
-       addarg(&ccargs, DEFAULT_INCLUDE);
-#endif
-       addarg(&cppargs, DEFAULT_INCLUDE);
-    }
+       adddefine(DEFAULT_INCLUDE);
     if( add_default_lib )
     {
 #ifdef BCC86
@@ -1030,6 +1022,15 @@ int canfree;
    return newstr;
 }
 
+PRIVATE void adddefine(arg)
+char *arg;
+{
+#ifndef CCC
+   addarg(&ccargs, arg);
+#endif
+   addarg(&cppargs, arg);
+}
+
 PRIVATE void addarg(argp, arg)
 register struct arg_s *argp;
 char *arg;
@@ -1279,27 +1280,14 @@ struct arg_s *argp;
 
 PRIVATE void set_trap()
 {
-#ifndef NORDB
 #ifdef SIGINT
    signal(SIGINT, trap);
 #endif
 #ifdef SIGQUIT
    signal(SIGQUIT, trap);
 #endif
-
-#else
-    /* This is being too trap happy IMO - Rdb */
-#ifndef _NSIG
-#define _NSIG	NSIG
-#endif
-    int signum;
-
-    for (signum = 0; signum <= _NSIG; ++signum)
-#ifdef SIGCHLD
-	if (signum != SIGCHLD)
-#endif
-	if (signal(signum, SIG_IGN) != SIG_IGN)
-	    signal(signum, trap);
+#ifdef SIGTERM
+   signal(SIGTERM, trap);
 #endif
 }
 

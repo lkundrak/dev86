@@ -1,15 +1,15 @@
 
-#ifndef STDC_HEADERS_MISSING
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#endif
-
 #ifndef POSIX_HEADERS_MISSING
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#endif
+
+#ifndef STDC_HEADERS_MISSING
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #endif
 
 #ifdef MSDOS

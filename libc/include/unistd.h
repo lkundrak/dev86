@@ -32,6 +32,8 @@ extern char*    crypt __P((__const char *__key, __const char *__salt));
 #define	F_OK	0		/* Test for existence.  */
 #endif
 
+#define _POSIX_VDISABLE	'\0'
+
 #endif /* __UNISTD_H */
 
 

@@ -107,7 +107,8 @@ __io_init_vars()
 #ifndef __AS386_16__
 #ifndef __AS386_32__
    static int first_time = 1;
-   if( !first_time ) return ; first_time = 1;
+   if( !first_time ) return ;
+   first_time = 0;
 #endif
 #endif
    if (isatty(1))
@@ -182,6 +183,10 @@ FILE *fp;
    /* Nothing in the buffer - fill it up */
    if (fp->bufpos >= fp->bufread)
    {
+      /* Bind stdin to stdout if it's open and line buffered */
+      if( fp == stdin && stdout->fd >= 0 && (stdout->mode & _IOLBF ))
+         fflush(stdout);
+
       fp->bufpos = fp->bufread = fp->bufstart;
       ch = fread(fp->bufpos, 1, fp->bufend - fp->bufstart, fp);
       if (ch == 0)
@@ -244,7 +249,7 @@ FILE *fp;
 	       bstart+=cc; len-=cc;
 	    }
 	 }
-	 while ( cc>0 || (cc == -1 && errno == EINTR));
+	 while ( len>0 && (cc>0 || (cc == -1 && errno == EINTR)));
 	 /*
 	  * If we get here with len!=0 there was an error, exactly what to
 	  * do about it is another matter ...

@@ -1,5 +1,6 @@
 /************************************************************************/
 /* This file contains the BCC compiler helper functions */
+/* (C) Copyright Bruce Evans */
 /* Support for long arithmetic on little-endian (normal) longs 
  * __laddl.o __landl.o __lcmpl.o __lcoml.o __ldecl.o __ldivl.o __ldivul.o
  * __leorl.o __lincl.o __lmodl.o __lmodul.o __lmull.o __lnegl.o __lorl.o

@@ -1,5 +1,6 @@
 /************************************************************************/
 /* This file contains the BCC compiler helper functions */
+/* (C) Copyright Bruce Evans */
 /* Support for 386 integer arithmetic 
  * __divsi3.o __idiv.o __idivu.o __imod.o __imodu.o __imul.o
  * __isl.o __isr.o __isru.o

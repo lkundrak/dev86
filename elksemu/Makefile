@@ -2,12 +2,22 @@
 #	Makefile for elksemu.
 #
 
-ifeq ($(CC),bcc)
 # Use BCC to make a tiny static a.out version.
-CFLAGS=-O -3 -N -ansi -s
-else
-# For gcc with the default compiler
+ifeq ($(CC),bcc)
+CFLAGS=-Ml -ansi -s $(DEFS)
+endif
+ifeq ($(CC),ncc)
+CFLAGS=-Ml -ansi -s $(DEFS)
+endif
+
+# For gcc
+ifeq ($(CC),gcc)
 CFLAGS=-O2 -fno-strength-reduce -Wall -idirafter . $(DEFS)
+endif
+
+# Default
+ifeq ($(CFLAGS),)
+CFLAGS=-O
 endif
 
 # Turn on elkemu's strace like facility.
@@ -41,6 +51,7 @@ clean realclean:
 module: binfmt_elks.o
 
 # HOW to compile the module...
+# BUT remember you don't need it for a recent 2.1.X; use binfmt_misc.
 
 # This matches my compile (2.0.x); yours may be different.
 MODCFLAGS=-D__KERNEL__ -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer \

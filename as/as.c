@@ -64,6 +64,7 @@ char **argv;
     initsource();		/* only nec to init for unsupported mem file */
     typeconv_init(INT_BIG_ENDIAN, LONG_BIG_ENDIAN);
     as_warn.global = TRUE;		/* constant */
+    as_warn.semaphore = -1;
     last_pass=1;
     process_args(argc, argv);
     initscan();

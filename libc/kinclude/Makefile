@@ -6,16 +6,11 @@ all:
 	@:
 
 transfer:
-	-@rm -f ../include/linuxmt
+	-@rm -f ../include/linuxmt ../include/arch
 	ln -s ../kinclude/linuxmt ../include
+	ln -s ../kinclude/arch ../include
 	@touch Used
 
-# This is for use once linuxmt's syscall interface really gets working.
-# beware the arch directory must be removed when you do this.
-real_transfer:
-	-@rm -f ../include/linuxmt
-	cd ../include ; ln -s ../../linuxmt/include/linuxmt .
-
 clean:
-	-@rm -f ../include/linuxmt
+	-@rm -f ../include/linuxmt ../include/arch
 	-@rm -f Used

@@ -1,5 +1,6 @@
 /************************************************************************/
 /* This file contains the BCC compiler helper functions */
+/* (C) Prentice Hall (Minix) http://www.cs.vu.nl/~ast/minix.html */
 /* Miscellaneous obsolete junk 
  * __inport.o __inportb.o __outport.o __outportb.o __peekb.o __peekw.o
  * __pokeb.o __pokew.o

@@ -1,5 +1,6 @@
 /************************************************************************/
 /* This file contains the BCC compiler helper functions */
+/* (C) Copyright Bruce Evans */
 /* Support for long arithmetic on big-endian (words-swapped) longs 
  * __laddb.o __landb.o __lcmpb.o __lcomb.o __ldecb.o __ldivb.o __ldivub.o
  * __leorb.o __lincb.o __lmodb.o __lmodub.o __lmulb.o __lnegb.o __lorb.o

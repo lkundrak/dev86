@@ -1,13 +1,21 @@
 
-#include <ctype.h>
-#include <dos.h>
-#include <malloc.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <signal.h>
+#include <features.h>
+/* Sneaky, use the _linuxmt_ header files _not_ dos */
+#undef  __SYSINC__
+#define __SYSINC__(__h_file) <linuxmt/__h_file>
+
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/signal.h>
+#include <sys/errno.h>
+
+#include <stdio.h>
+#include <ctype.h>
+#include <dos.h>
+#include <malloc.h>
+#include <fcntl.h>
 
 /* Function return vals */
 
