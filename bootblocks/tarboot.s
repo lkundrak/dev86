@@ -25,7 +25,7 @@ DEBUG=1  		! Print dots ...
 
 macro locn
   if *-start>?1
-   fail
+   fail! ?1
   endif
   .blkb	?1 + start-*
 mend

@@ -5,7 +5,7 @@
 as86 \- Assembler for 8086..80386 processors
 .SH SYNOPSIS
 .B as86
-.RB [ -03agjuw ]
+.RB [ -0123agjuw ]
 .RB [ -lm [ list ]]
 .RB [ -n\ name ]
 .RB [ -o\ obj ]
@@ -60,10 +60,17 @@ arguments can be '-' for standard in/out.
 
 .TP
 .B -0
-start with 16-bit code segment
+start with 16-bit code segment, warn for all instructions > 8086
+.TP
+.B -1
+start with 16-bit code segment, warn for all instructions > 80186
+.TP
+.B -2
+start with 16-bit code segment, warn for all instructions > 80286
 .TP
 .B -3
-start with 32-bit code segment
+start with 32-bit code segment, don't warn for any instructions. (not even
+486 or 586)
 .TP
 .B -a
 enable partial compatibility with Minix asld
@@ -72,13 +79,17 @@ enable partial compatibility with Minix asld
 only put global symbols in object or symbol file
 .TP
 .B -j
-force all jumps to be long, don't use this with hand written assembler
-use the 
+replace short jumps that don't reach with 5 byte sequences, this causes the
+assembler to add an extra pass to try to determine if the long jump is
+really needed. If you add a second
+.B -j
+the assembler will keep adding passes until the labels all stabilise (to
+a maximum of 30 passes)
+Don't use this with hand written assembler use the explicit
 .B br\ bmi\ bcc
-style opcodes or the
+style opcodes for 8086 code or the
 .B jmp\ near
-style. The former generates 8086 compatible sequences the latter is 386 only
-for the conditional jumps.
+style for conditional i386 instructions.
 .TP
 .B -l
 produce list file, filename may follow
@@ -205,11 +216,16 @@ Return to stacked assemble location
 .B GET INCLUDE
 Insert new file (no quotes on name)
 .TP
-.B USE16
-Define default operand size as 16 bit
+.BR USE16\  [ cpu ]
+Define default operand size as 16 bit, argument is cpu type the code is
+expected to run on (86, 186, 286, 386, 486, 586) instructions for cpus
+later than specified give a warning.
 .TP
-.B USE32
-Define default operand size as 32 bit
+.BR USE32\  [ cpu ]
+Define default operand size as 32 bit, argument is cpu type the code is
+expected to run on (86, 186, 286, 386, 486, 586) instructions for cpus
+later than specified give a warning. If the cpu is not mentioned the
+assembler ensures it is >= 80386.
 .TP
 .B END
 End of compilation for this file.
@@ -340,7 +356,12 @@ as(1), ld86(1), bcc(1)
 The 6809 version does not support -0, -3, -a or -j.
 
 If this assembler is compiled with BCC this is classed as a 'small'
-compiler, so there is a maximum input line length of 256 characters.
+compiler, so there is a maximum input line length of 256 characters
+and the instruction to cpu checking is not included.
+
+The checking for instructions that work on specific cpus is probably
+not complete, the distinction between 80186 and 80286 is especially
+problematic.
 
 The
 .B .text

@@ -13,6 +13,12 @@
 #define bdataoffset (data_base_value)
 #define page_size() ((bin_off_t)4096)
 
+#ifdef __ELF__
+#ifndef ELF_SYMS
+#define ELF_SYMS 1
+#endif
+#endif
+
 #  define FILEHEADERLENGTH (headerless?0:A_MINHDR)
 				/* part of header not counted in offsets */
 #define DPSEG 2
@@ -94,7 +100,11 @@ bool_pt arguzp;
     bin_off_t tempoffset;
 
     if( reloc_output )
+#ifndef MSDOS
        fatalerror("Output binformat not configured relocatable, use -N");
+#else
+       fatalerror("Cannot use -r under MSDOS, sorry");
+#endif
 
     sepid = argsepid;
     bits32 = argbits32;
@@ -286,7 +296,7 @@ bool_pt arguzp;
 		     (symptr = *symparray) != NUL_PTR; ++symparray)
 		    if (symptr->modptr == modptr)
 		    {
-#ifdef __ELF__
+#if ELF_SYMS
 			if (symptr->name[0] == '_' && symptr->name[1] )
 			  strncpy((char *) extsym.n_name, symptr->name+1,
 				sizeof extsym.n_name);
@@ -519,7 +529,8 @@ PRIVATE void writeheader()
 	offtocn((char *) &header.a_entry, page_size(),
 		sizeof header.a_entry);
     offtocn((char *) &header.a_total, (bin_off_t)
-	(endoffset < 0x00010000L ? 0x00010000L : endoffset + 0x0008000L),
+	(endoffset < 0x00008000L ? endoffset+0x8000L :
+	(endoffset < 0x00010000L ? 0x00010000L : endoffset + 0x0008000L)),
 	    sizeof header.a_total);
     if( FILEHEADERLENGTH )
        writeout((char *) &header, FILEHEADERLENGTH);

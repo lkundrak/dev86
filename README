@@ -1,6 +1,6 @@
 This is a development environment for ELKS-86
 
-To install the basic environment you have to do make install as root
+To install the basic environment you have to do 'make install' as root
 Or:
 
 $ make bcc
@@ -11,7 +11,8 @@ $ make elksemu
 $ su -c "make install-emu"
 
 All from the top directory.
-Once this is done new files will be /lib/elksemu, /usr/bcc/* and /usr/bin/bcc
+Once this is done new files will be /lib/elksemu, /usr/bcc/*, /usr/bin/bcc
+and /usr/bin/as86_encap.
 
 The manual pages in the man subdirectory are a start as some pages matched
 to these programs, there are also some hints for using as86 well.
@@ -22,7 +23,7 @@ libraries _and_ include files are compied to these locations by install.
 
 After this you may want to install the other libraries, 'fast', 'MSDOS',
 'standalone' and Linux-i386.
-$ su -c "make install-lib"
+$ su -c "make install-lib2"
 
 Use these libraries like this:
    'FAST'    	$ bcc -Mf prog.c -o prog
@@ -37,17 +38,17 @@ convert them to an odd ELF executable with:
     $ bcc -N -3 prog.c -o prog
     $ objcopy -O elf32-i386 prog
 
+If you want to install everything in one go just login as root an do:
+$ make install-all
+
 The as86 and ld86 with this are _different_ from the ones needed for the
 linux-i386 kernel but can replace them, the kernel-i386 ones _will_ _not_
 work correctly here!
 
 Unfortunatly, the DOSEMU folks have been using the '-r' option of ld86
 This version does accept '-r' but it generates _LINUX_ a.out object files.
-I think they should really be using 'as86_encap'.
-
-To compile the various tools as Linux-8086 binaries cd into the relevent
-directory and do a "make clean ; make" from there.
-Bcc _WILL_ now work this way! Yippee! :-)
+I think they should really be using 'as86_encap'. Neverthless this ld86
+will call a program called /usr/bin/ld86r if it's given -r without -N.
 
 I _strongly_ suggest you install the kernel patch or load the module in
 the elksemu directory in your Linux-i386 kernel, it makes things _much_

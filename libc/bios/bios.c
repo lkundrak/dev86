@@ -115,6 +115,27 @@ reti_ins:
 
 /****************************************************************************/
 
+#ifdef L___file_3
+
+/* If the block function does track buffering this should be ok ... */
+struct {
+   int  (*block_rw)();		/* Args (rwoc, &buffer, blockno) 1k blocks */
+   				/* 0 = read, 1 = write */
+   				/* 2 = open, buffer is fname ptr */
+   				/* 3 = close, other args ignored */
+   long offset;
+
+   int  flags;
+   long block_num;
+   char buffer[1024];
+} __file_3_data;
+
+#define FILE3_OPEN	1	/* File is open */
+#define FILE3_DATA	2	/* buffer has valid contents */
+#define FILE3_DIRTY	4	/* buffer has been modified */
+
+#endif
+
 #ifdef L_bios_write
 write(fd,buf,len)
 int fd,len;

@@ -3,14 +3,18 @@
 
 /* Copyright (C) 1994 Bruce Evans */
 
-#include "syshead.h"
+#ifndef NO_AOUT
 #define A_OUT_INCL <a.out.h>
+#endif
+
+#include "syshead.h"
 #include "bindef.h"
 #include "const.h"
 #include "obj.h"
 #include "type.h"
 #include "globvar.h"
 
+#ifdef AOUT_DETECTED
 #define btextoffset (text_base_value)
 #define bdataoffset (data_base_value)
 #define page_size() 4096
@@ -936,3 +940,15 @@ bin_off_t count;
     while (count-- > 0)
 	writechar(0);
 }
+#else
+
+PUBLIC void writebin(outfilename, argsepid, argbits32, argstripflag, arguzp)
+char *outfilename;
+bool_pt argsepid;
+bool_pt argbits32;
+bool_pt argstripflag;
+bool_pt arguzp;
+{
+    fatalerror("Native a.out generation not included, sorry");
+}
+#endif

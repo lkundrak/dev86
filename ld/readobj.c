@@ -77,14 +77,22 @@ bool_pt trace;
 	filepos = SARMAG;
 	while ((filelength = readarheader(&archentry)) > 0)
 	{
+	    unsigned int magic;
 	    if (trace)
 		errtrace(archentry, 2);
 	    filepos += sizeof(struct ar_hdr);
-	    for (modcount = readfileheader(); modcount-- != 0;)
+            magic = (unsigned) readsize(2);
+            if(magic == OMAGIC)
 	    {
-		readmodule(stralloc(filename), archentry);
-		modlast->textoffset += filepos;
+	        seekin(filepos);
+	        for (modcount = readfileheader(); modcount-- != 0;)
+	        {
+		    readmodule(stralloc(filename), archentry);
+		    modlast->textoffset += filepos;
+	        }
 	    }
+	    else if( magic == 0x3C21 ) /* "!<" */
+	       filelength = SARMAG;
 	    seekin(filepos += ld_roundup(filelength, 2, long));
 	}
 	break;
@@ -107,8 +115,8 @@ char **parchentry;
 	     arheader.ar_name, sizeof arheader.ar_name);
     endptr = nameptr + sizeof arheader.ar_name;
     do
-	*endptr = 0;
-    while (endptr > nameptr && *--endptr == ' ');
+	*endptr-- = 0;
+    while (endptr > nameptr && (*endptr == ' ' || *endptr == '/'));
     return strtoul(arheader.ar_size, (char **) NUL_PTR, 0);
 }
 

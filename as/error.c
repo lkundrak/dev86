@@ -84,6 +84,8 @@ PRIVATE char *errormessage[] =
     "illegal FP register pair",
     "junk after operands",
     "already defined",
+    "label moved in last pass, add -j?",
+    "instruction illegal for current cpu",
     "short branch would do",
     "unknown error",
 };

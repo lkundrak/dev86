@@ -39,33 +39,35 @@
 #define EXESUF
 #endif
 
-#define AS	"as86" EXESUF
 #define BAS86
 #define BCC86
-#define CC1	"bcc-cc1" EXESUF
+
+#define AS			"as86" EXESUF
+#define CC1			"bcc-cc1" EXESUF
 #define CC1_MINUS_O_BROKEN	FALSE
-#define CPP	"bcc-cc1" EXESUF	/* normally a link to /usr/bin/bcc-cc1 */
-#define CPPFLAGS	"-E"
-#define CRT0	"crt0.o"
-#define GCC	"gcc"
-#define LD	"ld86" EXESUF
-#ifndef NO_ANSI_SUPPORT
-#define UNPROTO "unproto" EXESUF
-#endif
+#define CPP			"bcc-cc1" EXESUF
+#define CPPFLAGS		"-E"
+#define CRT0			"crt0.o"
+#define GCC			"gcc"
+#define LD			"ld86" EXESUF
+#define UNPROTO 		"unproto" EXESUF
+
 #ifdef MSDOS
-#define STANDARD_CRT0_0_PREFIX	LOCALPREFIX "/lib/"
-#define STANDARD_EXEC_PREFIX	LOCALPREFIX "/lib/"
-#define STANDARD_EXEC_PREFIX_2	            "/bin/"
-#define DEFAULT_INCLUDE    "-I" LOCALPREFIX "/libc/include"
-#define DEFAULT_LIBDIR0    "-L" LOCALPREFIX "/lib/"
+#define STANDARD_CRT0_0_PREFIX	"~/lib/"
+#define STANDARD_CRT0_3_PREFIX	"~/lib/i386/"
+#define STANDARD_EXEC_PREFIX	"~/lib/"
+#define STANDARD_EXEC_PREFIX_2	"~/bin/"
+#define DEFAULT_INCLUDE 	"-I~/include"
+#define DEFAULT_LIBDIR0		"-L~/lib/"
+#define DEFAULT_LIBDIR3		"-L~/lib/i386/"
 #else
-#define STANDARD_CRT0_0_PREFIX	LOCALPREFIX "/lib/bcc/i86/"
-#define STANDARD_CRT0_3_PREFIX	LOCALPREFIX "/lib/bcc/i386/"
-#define STANDARD_EXEC_PREFIX	LOCALPREFIX "/lib/bcc/"
-#define STANDARD_EXEC_PREFIX_2	            "/usr/bin/"
-#define DEFAULT_INCLUDE    "-I" LOCALPREFIX "/include"
-#define DEFAULT_LIBDIR0    "-L" LOCALPREFIX "/lib/bcc/i86/"
-#define DEFAULT_LIBDIR3    "-L" LOCALPREFIX "/lib/bcc/i386/"
+#define STANDARD_CRT0_0_PREFIX	"~/lib/bcc/i86/"
+#define STANDARD_CRT0_3_PREFIX	"~/lib/bcc/i386/"
+#define STANDARD_EXEC_PREFIX	"~/lib/bcc/"
+#define STANDARD_EXEC_PREFIX_2	"/usr/bin/"
+#define DEFAULT_INCLUDE         "-I~/include"
+#define DEFAULT_LIBDIR0         "-L~/lib/bcc/i86/"
+#define DEFAULT_LIBDIR3         "-L~/lib/bcc/i386/"
 #endif
 
 #ifdef CCC
@@ -76,7 +78,7 @@
 #define CC1_MINUS_O_BROKEN	TRUE
 #undef STANDARD_CRT0_0_PREFIX
 #undef STANDARD_CRT0_3_PREFIX
-#define STANDARD_CRT0_PREFIX	"/usr/local/lib/i386/"
+#define STANDARD_CRT0_PREFIX	"~/lib/i386/"
 #endif /* CCC */
 
 #ifdef MC6809
@@ -87,7 +89,7 @@
 #undef STANDARD_CRT0_0_PREFIX
 #undef STANDARD_CRT0_3_PREFIX
 #undef STANDARD_EXEC_PREFIX
-#define STANDARD_EXEC_PREFIX	LOCALPREFIX "/lib/bcc/m09/"
+#define STANDARD_EXEC_PREFIX	"~/lib/bcc/m09/"
 #endif /* MC6809 */
 
 #define ALLOC_UNIT	16	/* allocation unit for arg arrays */
@@ -114,9 +116,7 @@ struct prefix_s
 PRIVATE struct arg_s asargs = { AS, };
 PRIVATE struct arg_s ccargs = { CC1, CC1_MINUS_O_BROKEN, };
 PRIVATE struct arg_s cppargs = { CPP, };
-#ifndef NO_ANSI_SUPPORT
 PRIVATE struct arg_s unprotoargs = { UNPROTO, TRUE };
-#endif
 #ifdef STANDARD_CRT0_PREFIX
 PRIVATE struct prefix_s crt0_prefix = { STANDARD_CRT0_PREFIX, };
 #endif
@@ -136,6 +136,8 @@ PRIVATE bool_T runerror;	/* = FALSE */
 PRIVATE struct arg_s tmpargs;	/* = empty */
 PRIVATE char *tmpdir;
 PRIVATE unsigned verbosity;	/* = 0 */
+
+PRIVATE char * localprefix = LOCALPREFIX;
 
 #ifdef REDECLARE_STDC_FUNCTIONS
 void exit P((int status));
@@ -162,6 +164,7 @@ int main P((int argc, char **argv));
 
 FORWARD void addarg P((struct arg_s *argp, char *arg));
 FORWARD void addprefix P((struct prefix_s *prefix, char *name));
+FORWARD char *expand_tilde P((char * str, int canfree));
 FORWARD void fatal P((char *message));
 FORWARD char *fixpath P((char *path, struct prefix_s *prefix, int mode));
 FORWARD void killtemps P((void));
@@ -170,6 +173,9 @@ FORWARD char *my_mktemp P((void));
 FORWARD void my_unlink P((char *name));
 FORWARD void outofmemory P((char *where));
 FORWARD int run P((char *in_name, char *out_name, struct arg_s *argp));
+#ifdef MSDOS
+FORWARD void reset_localprefix P((void));
+#endif
 FORWARD void set_trap P((void));
 FORWARD void show_who P((char *message));
 FORWARD void startarg P((struct arg_s *argp));
@@ -202,9 +208,7 @@ char **argv;
     char *bits_arg;
 #endif
     bool_T cc_only = FALSE;
-#ifndef NO_ANSI_SUPPORT
     bool_T ansi_pass = FALSE;
-#endif
 #ifdef CCC
     bool_T cpp_pass = TRUE;
 #else
@@ -223,6 +227,7 @@ char **argv;
 #ifdef BAS86
     bool_T gnu_objects = FALSE;
 #endif
+    bool_T aswarn = FALSE;
     char *in_name;
     int length;
     unsigned ncisfiles = 0;
@@ -243,13 +248,15 @@ char **argv;
     addarg(&asargs, "-j");
 #endif
     addarg(&asargs, "-u");
-    addarg(&asargs, "-w");
 #ifdef BAS86
     addarg(&ldrargs, "-r");
     addarg(&ldrargs, "-N");	/* GCC uses native objects */
     				/* GCC also uses 386 how to add -3 too ? */
 #endif
 
+#ifdef MSDOS
+    reset_localprefix();
+#endif
     /* Pass 1 over argv to gather compile options. */
     for (; --argc != 0;)
     {
@@ -328,6 +335,12 @@ char **argv;
 	    case 'v':
 		++verbosity;
 		break;
+	    case 'w':
+		aswarn=FALSE;
+		break;
+	    case 'W':
+		++aswarn;
+		break;
 	    case 'I':
 		add_default_inc = 0;
 		break;
@@ -341,7 +354,6 @@ char **argv;
 	else if (arg[0] == '-')
 	    switch (arg[1])
 	    {
-#ifndef NO_ANSI_SUPPORT
 	    case 'a':
 	      if (!strcmp(arg, "-ansi"))
 	      {
@@ -352,7 +364,6 @@ char **argv;
 		addarg(&ccargs, "-D__STDC__=0");
 #endif
 		addarg(&cppargs, "-D__STDC__=0");
-#endif	      
 	      }
 	      break;
 	    case 'A':
@@ -456,12 +467,19 @@ char **argv;
     if (errcount != 0)
 	exit(1);
 
+    if( !aswarn )
+       addarg(&asargs, "-w");
     if( patch_exe )
        addarg(&ldargs, "-s");
 #ifdef BCC86
     else if( !bits32 )
        addarg(&ldargs, "-i");
 #endif
+    if (verbosity > 2)
+    {
+       show_who("localprefix set to ");
+       writesn(localprefix);
+    }
     if ((temp = getenv("BCC_EXEC_PREFIX")) != NUL_PTR)
 	addprefix(&exec_prefix, temp);
     if( add_default_inc )
@@ -491,11 +509,13 @@ char **argv;
 #ifdef BAS86
     ldrargs.prog = fixpath(ldrargs.prog, &exec_prefix, X_OK);
 #endif
-#ifndef NO_ANSI_SUPPORT
     unprotoargs.prog=fixpath(unprotoargs.prog, &exec_prefix, X_OK);
-#endif
     if (tmpdir == NUL_PTR && (tmpdir = getenv("TMPDIR")) == NUL_PTR)
+#ifdef MSDOS
+	tmpdir = ".";
+#else
 	tmpdir = "/tmp";
+#endif
 
     if (prep_only && !prep_line_numbers)
 	addarg(&cppargs, "-P");
@@ -558,18 +578,13 @@ char **argv;
 		{
 		    if (cpp_pass)
 		    {
-#ifndef NO_ANSI_SUPPORT
 			if (prep_only && !ansi_pass)
-#else
-			if (prep_only)
-#endif
 			    out_name = f_out;
 			else
 			    out_name = my_mktemp();
 			if (run(in_name, out_name, &cppargs) != 0)
 			    continue;
 			in_name = out_name;
-#ifndef NO_ANSI_SUPPORT
 		        if (ansi_pass)
 		        {
 			    if (prep_only)
@@ -581,7 +596,6 @@ char **argv;
 			       continue;
 			    in_name=out_name;
 		        }
-#endif		    
 		    }
 		    ext = 'i';
 		}
@@ -719,6 +733,8 @@ char **argv;
 	if( patch_exe && link_st == 0 )
 	   linux_patch(f_out);
     }
+    if( runerror && f_out != NUL_PTR )
+       my_unlink(f_out);
     killtemps();
     return runerror ? 1 : 0;
 }
@@ -810,6 +826,44 @@ static struct  aout_exec {
    close(fd);
 }
 
+#ifdef MSDOS
+PRIVATE void reset_localprefix()
+{
+   char *ptr, *temp;
+
+   temp = stralloc(progname);
+   if( (ptr = strrchr(temp, '\\')) != 0
+         && temp<ptr-4 && strncmp(ptr-4, "\\BIN", 4) == 0 )
+   {
+      ptr[-4] = 0;
+      localprefix = temp;
+      if (verbosity > 2)
+      {
+         show_who("localprefix is now ");
+	 writesn(localprefix);
+      }
+   }
+   else
+      free(temp);
+}
+#endif
+
+PRIVATE char * expand_tilde(str, canfree)
+char * str;
+int canfree;
+{
+   char * newstr;
+   char * ptr = strchr(str, '~');
+   if( ptr == 0 ) return str;
+
+   newstr = my_malloc(strlen(str)+strlen(localprefix), "expand tilde");
+   if( ptr!=str ) memcpy(newstr, str, ptr-str);
+   strcpy(newstr+(ptr-str), localprefix);
+   strcat(newstr, ptr+1);
+   if( canfree ) free(str);
+   return newstr;
+}
+
 PRIVATE void addarg(argp, arg)
 register struct arg_s *argp;
 char *arg;
@@ -828,7 +882,7 @@ char *arg;
 	    outofmemory("addarg");
 	argp->argv = new_argv;
     }
-    argp->argv[argp->argc] = arg;
+    argp->argv[argp->argc] = expand_tilde(arg, 0);
     argp->argv[argp->argc = new_argc] = NUL_PTR;
 }
 
@@ -843,7 +897,7 @@ char *name;
     else
     {
 	new_prefix = my_malloc(sizeof *new_prefix, "addprefix");
-	new_prefix->name = name;
+	new_prefix->name = expand_tilde(name, 0);
 	new_prefix->next = NUL_PTR;
 	while (prefix->next != NUL_PTR)
 	    prefix = prefix->next;
@@ -875,11 +929,10 @@ int mode;
 		writes("readable file ");
 	    else
 		writes("executable file ");
-	    writes(path);
-	    writes(" in ");
-	    writesn(prefix->name);
 	}
-	ppath = stralloc2(prefix->name, path);
+	ppath = expand_tilde(stralloc2(prefix->name, path), 1);
+	if (verbosity > 2)
+	    writesn(ppath);
 	if (access(ppath, mode) == 0)
 	    return ppath;
 	free(ppath);
@@ -912,7 +965,11 @@ PRIVATE char *my_mktemp()
     char *template;
     static unsigned tmpnum;
 
+#ifdef MSDOS
+    p = template = stralloc2(tmpdir, "/$$YYYXXX");
+#else
     p = template = stralloc2(tmpdir, "/bccYYYYXXXX");
+#endif
     p += strlen(p);
 
     digits = getpid();
@@ -944,6 +1001,7 @@ char *name;
 	show_who("unlinking ");
 	writesn(name);
     }
+    if (verbosity > 4) return;
     if (unlink(name) < 0)
     {
         if( !runerror || verbosity > 1)
@@ -1069,7 +1127,14 @@ PRIVATE void set_trap()
 PRIVATE void show_who(message)
 char *message;
 {
+#ifdef MSDOS
+    char * ptr;
+    ptr = strrchr(progname, '\\');
+    if(ptr) ptr++; else ptr = progname;
+    writes(ptr);
+#else
     writes(progname);
+#endif
     writes(": ");
     writes(message);
 }

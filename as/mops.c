@@ -12,7 +12,7 @@
 
 #define is8bitadr(offset) ((offset_t) offset < 0x100)
 #define is8bitsignedoffset(offset) ((offset_t) (offset) + 0x80 < 0x100)
-#define pass2 pass
+#define pass2 (pass==last_pass)
 
 FORWARD void mshort2 P((void));
 FORWARD reg_pt regchk P((void));
@@ -537,6 +537,7 @@ register struct ea_s *eap;
 		    postb = baseind16[eap->base + 0x4 * eap->index];
 	    }
 	}
+	needcpu(asize==4?3:0);
 	if (asize != defsize)
 	    aprefix = 0x67;
 	if (eap->base == NOREG)
@@ -867,6 +868,7 @@ register struct ea_s *eap;
 	if ((eap->size = regsize[eap->base]) > 0x1 && eap->size != defsize)
 	    oprefix = 0x66;
 	eap->displ = lastexp;
+        needcpu(eap->size==4?3:0);
 	return;
     }
     if (sym != lindirect)
@@ -906,6 +908,7 @@ register struct ea_s *eap;
 	    }
 	    if (sym == STAR)
 	    {
+                needcpu(3);
 		/* context-sensitive, STAR means scaled here*/
 		if (eap->index == NOREG && eap->base == ESPREG)
 		{
@@ -958,6 +961,8 @@ register struct ea_s *eap;
 	eap->indcount = 0x1;	/* compatibility kludge */
     if (!leading_displ)
 	eap->displ = lastexp;
+
+    needcpu(eap->size==4?3:0);
 }
 
 PRIVATE void getimmed(eap, immed_count)
@@ -1076,7 +1081,11 @@ PUBLIC void mbcc()
 	kgerror(REL_REQ);
     else
     {
+#ifdef iscpu
+	if (iscpu(3))
+#else
 	if (defsize != 0x2)
+#endif
 	{
 	    page = PAGE1_OPCODE;
 	    ++mcount;
@@ -1100,6 +1109,7 @@ PUBLIC void mbcc()
 
 PUBLIC void mbswap()
 {
+    needcpu(4);
     ++mcount;
     Gd(&target);
     opcode |= rm[target.base];
@@ -1192,7 +1202,8 @@ PUBLIC void mcall()
     }
     else if (opcode == JMP_SHORT_OPCODE)
     {
-	if (jumps_long)
+	if (jumps_long &&
+	    (pass!=0 && !is8bitsignedoffset(lastexp.offset - lc - 2)))
 	{
 	    opcode = JMP_OPCODE;
 	    lbranch(0x83);
@@ -1250,7 +1261,12 @@ PUBLIC void mcalli()
 	    if (!(lastexp.data & (FORBIT | RELBIT | UNDBIT)) &&
 		tsize == 0x2 &&
 		(offset_t) (lastexp.offset + 0x8000L) >= 0x18000L)
-		datatoobig();
+            {
+		tsize=4;
+	        if( tsize != defsize ) oprefix = 0x66;
+		/* datatoobig(); */
+	    }
+	    needcpu(tsize==4?3:0);
 	    mcount += tsize;
 	    source.size = 0x2;
 	    buildimm(&source, FALSE);
@@ -1287,6 +1303,7 @@ PUBLIC void menter()
 	mcount += 2;
 	lastexp = target.displ;	/* getimmed(&source) wiped it out */
     }
+    needcpu(1);
 }
 
 /* arpl r/m16,r16 (Intel manual opcode chart wrongly says EwRw) */
@@ -1638,6 +1655,7 @@ PUBLIC void mgroup2()
 	    opcode |= 0x2;
 	else if (source.displ.offset != 0x1)
 	{
+	    needcpu(1);
 	    opcode -= 0x10;
 	    source.size = 0x1;
 	    buildimm(&source, FALSE);
@@ -1649,6 +1667,7 @@ PUBLIC void mgroup2()
 
 PUBLIC void mgroup6()
 {
+    needcpu(2);
     ++mcount;
     Ew(&target);
     oprefix = 0x0;
@@ -1659,6 +1678,7 @@ PUBLIC void mgroup6()
 
 PUBLIC void mgroup7()
 {
+    needcpu(2);	/* I think INVLPG is actually 386 */
     ++mcount;
     if (opcode == 0x20 || opcode == 0x30)
     {
@@ -1679,6 +1699,7 @@ PUBLIC void mgroup7()
 
 PUBLIC void mgroup8()
 {
+    needcpu(3);
     ++mcount;
     Ev(&target);
     getcomma();
@@ -1707,6 +1728,7 @@ PUBLIC void mgroup8()
 
 PUBLIC void mGvEv()
 {
+    needcpu(2);
     ++mcount;
     Gv(&source);
     getcomma();
@@ -1760,6 +1782,7 @@ PUBLIC void mimul()
     yes_samesize();
     if (sym != COMMA && (target.indcount != 0x0 || target.base != NOREG))
     {
+        needcpu(3);
 	page = PAGE1_OPCODE;
 	++mcount;
 	opcode = 0xAF;
@@ -1856,6 +1879,7 @@ PUBLIC void minher32()
     minher();
     if (defsize != 0x4)
 	oprefix = 0x66;
+    needcpu(3);
 }
 
 /* AAD, AAM */
@@ -1904,16 +1928,44 @@ PUBLIC void mjcc()
  	   kgerror(REL_REQ);
         else
         {
+            needcpu(3);
 	    page = PAGE1_OPCODE;
 	    ++mcount;
 	    opcode += 0x10;
 	    lbranch(0x84);
         }
     }
-    else if (jumps_long && opcode < 0x80) /* above 0x80 means loop, not long */
-	mbcc();
-    else
+    else if (!jumps_long || opcode > 0x80) /* above 0x80 means loop, not long */
 	mshort();
+    else  /* mbcc */
+    {
+        getea(&target);
+	lastexp = target.displ;
+
+	if (pass!=0 && !is8bitsignedoffset(lastexp.offset - lc - 2))
+	{
+           if (target.indcount >= 0x2 || target.base != NOREG)
+	       kgerror(REL_REQ);
+
+	    aprefix = opcode ^ 0x1;	/* kludged storage for short branch
+					   over */
+	    oprefix = defsize + 0x1;
+	    mcount += 0x2;
+	    opcode = JMP_OPCODE;
+	    lbranch(0x83);
+	    mcount -= 0x2;
+	}
+	else
+	{
+	   /* 8 bit */
+	    if (lastexp.data & IMPBIT)
+	    {
+		error(NONIMPREQ);
+		lastexp.data = FORBIT | UNDBIT;
+    	    }
+    	    mshort2();
+	}
+    }
 }
 
 /* JCXZ, JECXZ */
@@ -1966,6 +2018,7 @@ PUBLIC void mmov()
 	    if ((source.size = displsize(&target)) != defsize)
 		aprefix = 0x67;
 	    mcount += source.size;
+	    needcpu(source.size==4?3:0);
 	}
 	else if (source.base == NOREG)
 	{
@@ -1982,6 +2035,7 @@ PUBLIC void mmov()
 	{
 	    if (isspecreg(source.base))
 	    {
+		needcpu(3);
 		page = PAGE1_OPCODE;
 		++mcount;
 		opcode = 0x0;
@@ -2169,6 +2223,7 @@ PUBLIC void msetcc()
 
 PUBLIC void mshdouble()
 {
+    needcpu(3);
     ++mcount;
     Ev(&target);
     getcomma();
@@ -2834,11 +2889,17 @@ PRIVATE reg_pt regchk()
 	{
 	    if (symptr->data & REGBIT)
 	    {
+	        int regno = symptr->value_reg_or_op.reg;
 #ifdef I80386
-		if (symptr->value_reg_or_op.reg == ST0REG && !fpreg_allowed)
+		if (regno == ST0REG && !fpreg_allowed)
 		    error(FP_REG_NOT_ALLOWED);
+
+		/* Check cpu */
+                needcpu((regno==FSREG||regno==GSREG)?3:0);
+                needcpu((regno>=EAXREG && regno<=ESPREG)?3:0);
+                needcpu((regno>=CR0REG && regno<=TR7REG)?3:0);
 #endif
-		return symptr->value_reg_or_op.reg;
+		return regno;
 	    }
 	}
 	else if (!(symptr->type & (LABIT | MACBIT | VARBIT)))

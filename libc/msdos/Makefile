@@ -6,8 +6,8 @@ TOP=..
 include $(TOP)/Make.defs
 
 ASRC=msdos.c
-AOBJ= dos_start.o __mkargv.o dos__fconv.o dos_read.o dos_write.o	\
-      dos_open.o dos_close.o dos_unlink.o dos_lseek.o			\
+AOBJ= dos_start.o __mkargv.o __mkenvp.o dos__fconv.o dos_read.o		\
+      dos_write.o dos_open.o dos_close.o dos_unlink.o dos_lseek.o	\
       dos_segalloc.o dos_segfree.o dos_setvect.o dos_getvect.o		\
       dos_isatty.o dos_getmod.o dos_stat.o
 

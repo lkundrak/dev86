@@ -2,15 +2,16 @@
 #	Makefile for elksemu.
 #
 
+ifeq ($(CC),bcc)
+# Use BCC to make a tiny static a.out version.
+CFLAGS=-O -3 -N -ansi
+else
 # For gcc with the default compiler
-# CFLAGS=-O2 -fno-strength-reduce -Wall -idirafter . $(DEFS)
+CFLAGS=-O2 -fno-strength-reduce -Wall -idirafter . $(DEFS)
+endif
 
 # For gcc making a.out with a basically ELF compiler
 # CFLAGS=-O2 -fno-strength-reduce -b i486-linuxaout -N -s -static
-
-# Use BCC to make a tiny static a.out version.
-CFLAGS=-O -3 -N -ansi
-CC=bcc
 
 OBJ=elks.o elks_sys.o elks_signal.o
 

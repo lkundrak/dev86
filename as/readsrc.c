@@ -208,7 +208,7 @@ PUBLIC void pproceof()
 	    error(EOFBLOCK);
 	if (iflevel != 0)
 	    error(EOFIF);
-	if (lcdata & UNDBIT)
+	if (pass && (lcdata & UNDBIT))
 	    error(EOFLC);
 	lcptr->data = lcdata;
 	lcptr->lc = lc;
@@ -232,29 +232,40 @@ PUBLIC void pproceof()
 	    lseek(infil, getstak->position, 0);
 #endif
     }
-    else if (!pass)
+    else if (pass!=last_pass)
     {
-	pass = TRUE;
-	objheader();		/* while pass 1 data all valid */
+	pass++;
+	if( last_pass>2 && last_pass<30 && dirty_pass && pass==last_pass )
+	   last_pass++;
+
+	if( pass==last_pass )
+	   objheader();		/* while pass 1 data all valid */
 	binmbuf = 0;		/* reset zero variables */
 	maclevel = iflevel = blocklevel =
 	    totwarn = toterr = linum = macnum = 0;
 	initp1p2();		/* reset other varaiables */
-	binaryc = binaryg;
+	if(pass==last_pass)
+	   binaryc = binaryg;
 #ifdef I80386
 	defsize = idefsize;
+	cpuid = origcpuid;
 #endif
-	list.current = list.global;
-	maclist.current = maclist.global;
+	if(pass==last_pass)
+	{
+	   list.current = list.global;
+	   maclist.current = maclist.global;
+	   warn.current = TRUE;
+	   if (warn.semaphore < 0)
+	       warn.current = FALSE;
+	}
 
-	warn.current = TRUE;
-	if (warn.semaphore < 0)
-	    warn.current = FALSE;
 	if (infiln != 0)
 	    infil = open_input(filnamptr);
         else
 	    eol_ptr=0;
-	binheader();
+
+	if(pass==last_pass)
+	   binheader();
     }
     else
 	finishup();

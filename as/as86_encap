@@ -19,6 +19,7 @@
 trap "rm -f _$$.* ; exit 99" 1 2 3 15 
 
 LIBDIR='%%LIBDIR%%'	# Set by make install
+[ -d "$LIBDIR" ] || LIBDIR=/usr/bin
 
 IFILE="$1"
 OFILE="$2"
@@ -39,7 +40,7 @@ $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
 
 [ "$RV" = 0 ] && {
   (
-    cat _$$.sym
+    sort _$$.sym
     echo %%%%
     od -v -t uC _$$.bin
   ) | \
@@ -75,7 +76,13 @@ $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
     flg==1 {
         if(NF == 0) next;
 	printf "   ";
-	for(i=2;i<=NF;i++) { printf("%3d,", $i); bincount++; }
+	for(i=2;i<=NF;i++) {
+	   if( $i >= 32 && $i <= 127 && $i != 39 && $i != 92 )
+	      printf("\047%c\047,", $i);
+	   else
+	      printf("%3d,", $i);
+	   bincount++;
+	}
 	printf "\n";
     }
     END {

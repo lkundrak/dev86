@@ -210,6 +210,28 @@ char ** __argv;
 }
 #endif
 
+#ifdef L___mkenvp
+
+#ifdef __AS386_16__
+#asm
+  loc	1		! Make sure the pointer is in the correct segment
+auto_func:		! Label for bcc -M to work.
+  .word	___mkenvp	! Pointer to the autorun function
+  .text			! So the function after is also in the correct seg.
+#endasm
+#endif
+
+char ** environ = 0;
+
+__mkenvp(__argc, __argv, __envp)
+int __argc;
+char ** __argv;
+char ** __envp;
+{
+    /* FIXME !!! */
+}
+#endif
+
 #ifdef L_dos__fconv
 /* This function converts filenames from unix like to DOS. */
 char *

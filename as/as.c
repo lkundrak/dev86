@@ -42,7 +42,7 @@ char **argv;
 {
 #ifdef __AS386_16__
     heapptr = sbrk(0);
-    heapend = ((char*)&argc) - STAKSIZ;
+    heapend = ((char*)&argc) - STAKSIZ - 16;
     brk(heapend);
     if(sbrk(0) != heapend)
        as_abort("Cannot allocate memory");
@@ -64,6 +64,7 @@ char **argv;
     initsource();		/* only nec to init for unsupported mem file */
     typeconv_init(BIG_ENDIAN, LONG_BIG_ENDIAN);
     warn.global = TRUE;		/* constant */
+    last_pass=1;
     process_args(argc, argv);
     initscan();
 
@@ -118,6 +119,7 @@ PUBLIC void initp1p2()
 {
     register struct lc_s *lcp;
 
+    dirty_pass = 0;
     ifflag = TRUE;
     pedata = UNDBIT;		/* program entry point not defined */
     blockstak = hid_blockstak + MAXBLOCK;
@@ -155,6 +157,11 @@ char **argv;
     char *arg;
     bool_t isnextarg;
     char *nextarg = 0;
+    int opened_file = 0;
+
+#ifdef I80386
+    setcpu(0xF);
+#endif
 
     if (argc <= 1)
 	usage();
@@ -175,11 +182,13 @@ char **argv;
 	    switch (arg[1])
 	    {
 #ifdef I80386
-	    case '0':
+	    case '0': case '1': case '2':
 		idefsize = defsize = 0x2;
+		setcpu(arg[1]-'0');
 		break;
 	    case '3':
 		idefsize = defsize = 0x4;
+		setcpu(0xF);
 		break;
 	    case 'a':
 		asld_compatible = TRUE;
@@ -199,6 +208,7 @@ char **argv;
 #ifdef I80386
 	    case 'j':
 		jumps_long = TRUE;
+		++last_pass;
 		break;
 #endif
 	    case 'l':
@@ -257,9 +267,18 @@ char **argv;
 		as_abort("source file name too long");
 	    infiln = infil0 = 1;
 	    infil = open_input(strcpy(filnamptr, arg));
+	    opened_file = 1;
 	}
     }
     while (--argc != 1);
+    if( !opened_file )
+    {
+       infiln = infil0 = 1;
+       infil = open_input(strcpy(filnamptr, "-"));
+    }
+#ifdef I80386
+    origcpuid = cpuid;
+#endif
     inidata = (~binaryg & inidata) | (RELBIT | UNDBIT);
 }				/* IMPBIT from inidata unless binaryg */
 

@@ -2,7 +2,7 @@
 .SH "NAME"
 dis88 \- 8088 symbolic disassembler
 .SH "SYNOPSIS"
-\fBdis88\fP [ -o ] ifile [ ofile ]
+\fBdis88\fP [ -f -o ] ifile [ ofile ]
 .SH "DESCRIPTION"
 Dis88 reads ifile, which must be in PC/IX a.out format.
 It interprets the binary opcodes and data locations, and
@@ -22,6 +22,10 @@ in comments during disassembly of the text segment.  This
 feature is used primarily for debugging the disassembler
 itself, but may provide information of passing interest
 to users.
+.PP
+If the "-f" option appears, dis88 will attempt to disassemble
+any file whatsoever. It has to assume that the file begins
+at address zero.
 .PP
 The program always outputs the current machine address
 before disassembling an opcode.  If a symbol table is

@@ -291,14 +291,14 @@ int c;
 	inc	bx
 	mov	[_outbufptr],bx
 	cmp	bx,[_outbuftop]
-	jae	OUTBYTE.FLUSH
+	jae	Outbyte.Flush
 # if !__FIRST_ARG_IN_AX__
 	jmp	dx
 # else
 	ret
 # endif
 
-OUTBYTE.FLUSH:
+Outbyte.Flush:
 # if !__FIRST_ARG_IN_AX__
 	push	dx
 # endif
@@ -320,10 +320,10 @@ OUTBYTE.FLUSH:
 	inc	ecx
 	mov	[_outbufptr],ecx
 	cmp	ecx,[_outbuftop]
-	jae	OUTBYTE.FLUSH
+	jae	Outbyte.Flush
 	ret
 
-OUTBYTE.FLUSH:
+Outbyte.Flush:
 	br	_flushout
 # endasm
 #endif /* __AS386_32__ */

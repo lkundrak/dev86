@@ -1,11 +1,11 @@
 
 ifneq ($(TOPDIR),)
 include $(TOPDIR)/Make.defs
-
-CFLAGS=$(CCFLAGS) -DREL_OUTPUT
+CFLAGS  =$(CCFLAGS) -DREL_OUTPUT
 else
-CC=bcc -3 -N
-LDFLAGS=
+LDFLAGS	=-s
+LIBDIR	=/usr/bin
+CFLAGS	=-O -DREL_OUTPUT
 endif
 
 # May need some of these if the auto-sense fails.

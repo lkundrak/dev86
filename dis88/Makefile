@@ -25,7 +25,6 @@
 # be necessary to alter the formats of the tables.
 
 #CC=bcc
-#CFLAGS=-O -A-l -A$*.lst
 CFLAGS=-O
 LDFLAGS=
 
@@ -37,7 +36,8 @@ dis88:	$(OBJ)
 	$(CC) $(LDFLAGS) -o dis88 $(OBJ)
 
 install:	dis88
-	install -m 755 -s dis88 $(DIST)/usr/bin/dis88
+	install -m 755 -s dis88   $(DIST)/usr/bin/dis88
+	install -m 644 -s dis88.1 $(DIST)/usr/man/man1/dis88.1
 
 $(OBJ): dis.h a.out.h
 

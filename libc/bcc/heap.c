@@ -44,7 +44,7 @@ has_change:
   js	go_down
   add	ax,[brk_addr]	! Goin up!
   jc	Enomem
-  sub	bx,#512		! Safety space 512 bytes
+  sub	bx,#511		! Safety space 512 bytes
   cmp	bx,ax		! Too close ?
   jb	Enomem
 

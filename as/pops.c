@@ -31,7 +31,7 @@ int defval;
 {
     int newcount;
 
-    if (flagptr->global &&pass != 0)
+    if (flagptr->global && pass == last_pass)
     {
 	/* bump semaphore count by an expression (default 1), */
 	/* then set currentflag iff semaphore count is plus */
@@ -192,7 +192,7 @@ unsigned char labits;
     nonimpexpres();
     lastexp.data |= olddata & FORBIT;	/* take all but FORBIT from
 					   expression */
-    if (oldtype & LABIT && !(olddata & UNDBIT))
+    if (oldtype & LABIT && !(olddata & UNDBIT) && !pass)
 	/* this is a previously defined label */
 
 	/*
@@ -228,7 +228,7 @@ unsigned char impbits;
 		error(ALREADY);
 	    else if (impbits != 0)
 	    {
-		if (pass != 0)
+		if (pass == last_pass)
 		    ;
 		else if (symptr->type & (EXPBIT | LABIT))
 		    symptr->type |= EXPBIT;
@@ -241,7 +241,7 @@ unsigned char impbits;
 	    }
 	    else
 	    {
-		if (pass != 0)
+		if (pass == last_pass)
 		{
 		    if (!(symptr->type & LABIT))
 			error(UNLAB);
@@ -676,7 +676,7 @@ PUBLIC void pexport()
 
 PUBLIC void pfail()
 {
-    if(pass) error(FAILERR);
+    if(pass==last_pass) error(FAILERR);
 }
 
 /* FCB pseudo-op */
@@ -1000,6 +1000,18 @@ PUBLIC void pwarn()
 PUBLIC void puse16()
 {
     defsize = 2;
+#ifdef iscpu
+    if( sym != EOLSYM )
+    {
+	absexpres();
+	if (lastexp.data & UNDBIT)
+	    return;
+        if( lastexp.offset > 15 )
+	   setcpu((int) lastexp.offset / 100);
+	else
+	   setcpu((int) lastexp.offset);
+    }
+#endif
 }
 
 /* USE16 pseudo-op */
@@ -1007,6 +1019,19 @@ PUBLIC void puse16()
 PUBLIC void puse32()
 {
     defsize = 4;
+#ifdef iscpu
+    if(!iscpu(3)) setcpu(3);
+    if( sym != EOLSYM )
+    {
+	absexpres();
+	if (lastexp.data & UNDBIT)
+	    return;
+        if( lastexp.offset > 15 )
+	   setcpu((int) lastexp.offset / 100);
+	else
+	   setcpu((int) lastexp.offset);
+    }
+#endif
 }
 
 #endif
@@ -1042,7 +1067,7 @@ PUBLIC void showlabel()
 PRIVATE void setloc(seg)
 unsigned seg;
 {
-    if (pass != 0 && seg != (lcdata & SEGM))
+    if (pass == last_pass && seg != (lcdata & SEGM))
 	putobj((opcode_pt) (seg | OBJ_SET_SEG));
     {
 	register struct lc_s *lcp;

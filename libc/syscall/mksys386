@@ -50,18 +50,16 @@ awk 'BEGIN{
    else if( $4 == "*" )        funcname="__" $1;
    else                        funcname=$1;
 
-   shortname=substr(funcname,1,12);
-
    if( length(obj) > 60 )
    {
       printf("%s\t\\\n", obj) > "syscall.mak";
       obj="    ";
    }
-   obj=obj shortname ".o ";
+   obj=obj funcname ".o ";
 
    printf "/* CALL %s */\n\n", $0;
 
-   printf("#ifdef L_%s\n", shortname);
+   printf("#ifdef L_%s\n", funcname);
    printf("#asm\n");
    printf("export _%s\n", funcname);
    printf("_%s:\n", funcname);
@@ -86,27 +84,27 @@ awk 'BEGIN{
    else
    {
       if( $3 >= 1 ) printf("#if __FIRST_ARG_IN_AX__\n");
-      if( $3 >= 5 ) printf("  push  edi\n");
-      if( $3 >= 4 ) printf("  push  esi\n");
-      if( $3 >= 5 ) printf("  mov   edi,[esp+16]\n");
-      if( $3 >= 4 ) printf("  mov   esi,[esp+12]\n");
-      if( $3 >= 3 ) printf("  mov   edx,[esp+8]\n");
-      if( $3 >= 2 ) printf("  mov   ecx,[esp+4]\n");
       if( $3 >= 1 ) printf("  mov   ebx,eax\n");
-      if( $3 >= 1 ) printf("#else\n");
-      if( $3 >= 5 ) printf("  push  edi\n");
+      if( $3 >= 2 ) printf("  mov   ecx,[esp+4]\n");
+      if( $3 >= 3 ) printf("  mov   edx,[esp+8]\n");
       if( $3 >= 4 ) printf("  push  esi\n");
-      if( $3 >= 5 ) printf("  mov   edi,[esp+20]\n");
       if( $3 >= 4 ) printf("  mov   esi,[esp+16]\n");
-      if( $3 >= 3 ) printf("  mov   edx,[esp+12]\n");
-      if( $3 >= 2 ) printf("  mov   ecx,[esp+8]\n");
+      if( $3 >= 5 ) printf("  push  edi\n");
+      if( $3 >= 5 ) printf("  mov   edi,[esp+24]\n");
+      if( $3 >= 1 ) printf("#else\n");
       if( $3 >= 1 ) printf("  mov   ebx,[esp+4]\n");
+      if( $3 >= 2 ) printf("  mov   ecx,[esp+8]\n");
+      if( $3 >= 3 ) printf("  mov   edx,[esp+12]\n");
+      if( $3 >= 4 ) printf("  push  esi\n");
+      if( $3 >= 4 ) printf("  mov   esi,[esp+20]\n");
+      if( $3 >= 5 ) printf("  push  edi\n");
+      if( $3 >= 5 ) printf("  mov   edi,[esp+28]\n");
       if( $3 >= 1 ) printf("#endif\n");
                     printf("  mov   eax,#%d\n", $2);
                     printf("  int   $80\n");
 
-      if( $3 >= 4 ) printf("  pop   esi\n");
       if( $3 >= 5 ) printf("  pop   edi\n");
+      if( $3 >= 4 ) printf("  pop   esi\n");
 
 	            printf("  test  eax,eax\n");
 	            printf("  jl   syscall_err\n");

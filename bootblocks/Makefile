@@ -14,7 +14,7 @@ nothing:
 all: makeboot monitor.out bin
 
 CSRC=minix.c
-SSRC=tarboot.s tiny.s com_bcc.s tich.s sysboot.s bootlist.s
+SSRC=tarboot.s skip.s com_bcc.s tich.s sysboot.s bootlist.s mbr.s msdos.s
 
 encap: $(SSRC:s=v) $(CSRC:c=v)
 bin: $(SSRC:s=bin) $(CSRC:c=bin)
@@ -39,13 +39,16 @@ minix.s: minix.c
 makeboot:	tarboot.v sysboot.v makeboot.c
 	$(HOSTCC) $(HOSTCCFLAGS) -o makeboot makeboot.c
 
+dosboot:	dosboot.c sysboot.v skip.v msdos.v
+	$(HOSTCC) $(HOSTCCFLAGS) -o dosboot dosboot.c
+
 clean:
-	rm -f monitor makeboot minix.s *.o *.bin *.out *.lst *.sym *.v
+	rm -f monitor makeboot dosboot minix.s *.o *.bin *.out *.lst *.sym *.v
 
 tgz: minix.bin monitor.out makeboot
 	tar cfV bootblocks.tar ENIAC monitor.out \
 	        README Makefile \
-		$(MSRC) standalone.c makeboot.c \
+		$(MSRC) dosboot.c makeboot.c \
 		$(CSRC) $(SSRC) \
 		makeboot minix.bin
 	makeboot bootblocks.tar
@@ -53,7 +56,7 @@ tgz: minix.bin monitor.out makeboot
 
 distribution:
 	tar czf /tmp/bootblocks.tar.gz README Makefile \
-		$(MSRC) standalone.c makeboot.c \
+		$(MSRC) dosboot.c makeboot.c \
 		$(CSRC) $(SSRC)
 
 .SUFFIXES: .bin .v

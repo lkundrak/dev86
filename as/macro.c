@@ -105,7 +105,7 @@ PUBLIC void pmacro()
 	    error(LABEXP);
 	else if (symptr->type & LABIT || symptr->data & FORBIT)
 	    error(RELAB);
-	else if (pass == 0 || symptr->type & REDBIT)
+	else if (pass != last_pass || symptr->type & REDBIT)
 				/* copy on pass 0, also pass 1 if redefined */
 	{
 	    saving = TRUE;

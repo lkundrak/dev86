@@ -196,9 +196,11 @@ struct opcode optab[] =             /* Table of opcode data */
    "\tseg\tgs",      sbhand,  1,    1,             /* 0x65  */
    "\tuse\top32",    sbhand,  1,    1,             /* 0x66  */
    "\tuse\tadr32",   sbhand,  1,    1,             /* 0x67  */
-   NULL,             dfhand,  0,    0,             /* 0x68  */
+   "\tpush\t",       mihand,  3,    3,             /* 0x68  */
+   /* NULL,             dfhand,  0,    0,             /* 0x68  */
    NULL,             dfhand,  0,    0,             /* 0x69  */
-   NULL,             dfhand,  0,    0,             /* 0x6a  */
+   "\tpush\t",       mihand,  2,    2,             /* 0x6a  */
+   /* NULL,             dfhand,  0,    0,             /* 0x6a  */
    NULL,             dfhand,  0,    0,             /* 0x6b  */
    NULL,             dfhand,  0,    0,             /* 0x6c  */
    NULL,             dfhand,  0,    0,             /* 0x6d  */
@@ -547,6 +549,9 @@ lookup(addr,type,kind,ext)
   * produce correct output!                                 *
   *                                                         *
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+#undef FRV
+#define FRV ""
 
 char *
 mtrans(c,m,type)

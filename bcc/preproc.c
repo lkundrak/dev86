@@ -68,11 +68,7 @@ PRIVATE void asmcontrol()
 
     asmmode = TRUE;
     if (orig_cppmode)
-#ifndef ASM_BARE
-	outstr("#asm");
-#else
 	outstr("#asm\n");
-#endif
     else
     {
 	outstr("!BCC_ASM\n");

@@ -1,3 +1,50 @@
+For version 0.0.9.
+
+> The debian stuff has been removed again, Christoph want's to keep contol
+  of the debian specific files.
+
+> I've done some changes to the makefiles, it'll now honour CC=XXX on the
+  make command line.
+
+> The assembler now works again compiled under bcc, it tried to allocate
+  too much memory.
+
+> Major change to the assembler, '-j' not auto-sizes jumps this requires
+  a change to at least 3 passes. Sometimes it'll say it needs another -j
+  because lengthing jumps cause others to fail, two -j's will give it lots
+  of passes :-)
+
+> The second large change is an effort to identify when instructions are
+  not right for a specific processor and generate a warning. The use16
+  and use32 instructions now have an optional argument of a processor
+  type (86,186..686). Also bcc has a '-W' to remove the -w it passes to
+  the assembler.
+
+> Altered the way bcc deals with LOCALPREFIX, now under DOS it picks this
+  up based on the path to the executable.
+
+> Fixed a bug introduced by the 'cpp in asm' change in 0.0.8, bcc-cc1 
+  wasn't compiling under bcc.
+
+> Two new bootblocks in the 'examples' mbr.s is an MBR (no really :-))
+  msdos.s is unfinished but even this far allows lilo to be used on an
+  MSDOS filesystem floppy.
+
+> Changed ld to _check_ the magic on files inside an archive, this cures
+  the problem caused by long names inserted by gnu-ar. Also it notices
+  if an archive has been included in an archive and will link that too.
+
+> Changed ld to do a final check that it knows what sort of a.out.h file
+  it's got, if this fails '-N' is disabled.
+
+> Ld changed so for 16 bit exes the heap is limited to 32k.
+
+> getcwd and execvp added, sash should now work. Also added to the 386-lib
+  except execvp won't run scripts without '#!'
+
+> Nasty bug with syscalls of > 3 args in 386 code fixed, none of them would
+  have been working correctly.
+
 For version 0.0.8.
 
 > Christoph Lameter <clameter@debian.org> has provided a patch for

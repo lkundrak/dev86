@@ -184,6 +184,31 @@ char **argv;
 	    }
     }
 
+#ifdef REL_OUTPUT
+#ifndef MSDOS
+    if( flag['r'] && !flag['N'] )
+    {
+       /* Ok, try for an alternate linker */
+       if( strcmp(argv[0], "ld86r") != 0 )
+       {
+	  argv[0] = "ld86r";
+	  execv("/usr/bin/ld86r", argv);
+	  execv("/usr/bin/ld86", argv);
+       }
+    }
+#endif
+#endif
+
+#ifdef MSDOS
+    /* MSDOS Native is special, we make a COM file */
+    if( flag['N'] )
+    {
+       flag['N'] = 0;
+       flag['d'] = 1;
+       text_base_value = 0x100;
+    }
+#endif
+
     /* Headerless executables can't use symbols. */
     headerless = flag['d'];
     if( headerless ) flag['s'] = 1;

@@ -1,5 +1,6 @@
 
 #include <errno.h>
+#include <sys/stat.h>
 
 extern char ** environ;
 
@@ -113,9 +114,91 @@ char ** envp;
 }
 #endif
 
-#ifdef L_execvve
+#ifdef L_execlp
 int
-execvve(fname, interp, argv, envp)
+execlp(fname, arg0)
+char * fname, *arg0;
+{
+   return execvp(fname, &arg0);
+}
+#endif
+
+#ifdef L_execvp
+int
+execvp(fname, argv)
+char * fname, **argv;
+{
+   char *pname = fname, *path;
+   int besterr = ENOENT;
+   int flen, plen;
+   char * bp = sbrk(0);
+
+   if( *fname != '/' && (path = getenv("PATH")) != 0 )
+   {
+      flen = strlen(fname)+2;
+
+      for(;path;)
+      {
+         if( *path == ':' || *path == '\0' )
+	 {
+	    tryrun(fname, argv);
+	    if( errno == EACCES ) besterr = EACCES;
+	    if( *path ) path++; else break;
+	 }
+	 else
+	 {
+	    char * p = strchr(path, ':');
+	    if(p) *p = '\0';
+	    plen = strlen(path);
+	    pname = sbrk(plen+flen);
+
+	    strcpy(pname, path);
+	    strcat(pname, "/");
+	    strcat(pname, fname);
+
+	    tryrun(pname, argv);
+	    if( errno == EACCES ) besterr = EACCES;
+
+	    brk(pname);
+	    pname = fname;
+	    if(p) *p++ = ':';
+	    path=p;
+	 }
+      }
+   }
+
+   tryrun(pname, argv);
+   brk(bp);
+   if( errno == ENOENT || errno == 0 ) errno = besterr;
+   return -1;
+}
+
+static int tryrun(pname, argv)
+char * pname;
+char ** argv;
+{
+static char *shprog[] = {"/bin/sh", "", 0};
+   struct stat st;
+
+   if( stat(pname, &st) < 0 ) return;
+   if( !S_ISREG(st.st_mode) ) return;
+
+#ifdef __AS386_16__
+   __execvve(pname, (void*)0, argv, environ);
+   if( errno == ENOEXEC )
+   {
+      shprog[1] = pname;
+      __execvve(shprog[0], shprog, argv, environ);
+   }
+#else
+   execve(pname, argv, environ);
+   /* FIXME - running /bin/sh in 386 mode */
+#endif
+}
+
+#ifdef __AS386_16__
+static int
+__execvve(fname, interp, argv, envp)
 char * fname;
 char ** interp;
 char ** argv;
@@ -205,4 +288,5 @@ char ** envp;
 	sbrk(-stack_bytes);
 	return rv;
 }
+#endif
 #endif

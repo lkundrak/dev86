@@ -8,11 +8,12 @@ LIBS2=    libbsd
 LIBS=     libc $(LIBS2)
 EXTRAS=   man dis88 doselks
 TESTDIRS= tests
-DISTFILES=Makefile Make.defs README Changes README.ash Libc_version make_bcc.bat
+DISTFILES=Makefile Make.defs README Changes Libc_version Uninstall
 DISTDIRS= $(LIBS2) elksemu $(TESTDIRS) $(EXTRAS)
+DOSBITS=  mkcompile compile.bat later.c
 
 default: dummy
-	@echo You have to do make install as root
+	@echo "You have to do 'make install' as root"
 	@echo Or:
 	@echo
 	@echo '$ make bcc'
@@ -21,19 +22,32 @@ default: dummy
 	@echo '$ su -c "make install-lib"'
 	@echo '$ make elksemu'
 	@echo '$ su -c "make install-emu"'
+	@echo '$ su -c "make install-man"'
 	@echo
 	@echo 'Other libraries are built with:'
 	@echo '$ su -c "make install-lib2"'
 	@echo
-	@echo 'Others pieces are: "make tests" and "make extras"'
+	@echo "Or do 'make install-all' for _everything_"
 
 dummy:
 	@if [ -f .runme ] ; then sh .runme ; rm .runme ; fi
 
-install: install-bcc install-lib install-emu
+install: install-bcc install-lib install-emu install-man
 
 # Do _everything_!
-install-all: realclean config install install-lib2 install-extras realclean
+install-all:
+	make realclean
+	make config
+	make install-bcc
+	make install-man
+	make install-lib-fast
+	make install-lib-dos
+	make install-lib-bios
+	make install-lib-386
+	make install-lib
+	make install-emu
+	make -C dis88 install
+	make realclean
 
 config:
 	make -C libc config
@@ -109,6 +123,9 @@ install-emu: dummy
 	@test -f libc/syscall/call_tab.v || \
 	( echo 'Must do "make library" first' && exit 1 )
 	make -C elksemu install
+
+install-man: dummy
+	make -C man install
 
 install-extras: dummy
 	@for i in $(EXTRAS) ; do make -C $$i install || exit 1; done

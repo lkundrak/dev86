@@ -15,7 +15,7 @@ GOBJ=atoi.o atol.o ltoa.o ltostr.o \
      ctype.o qsort.o bsearch.o rand.o lsearch.o getopt.o \
      itoa.o cputype.o strtol.o crypt.o
 
-UOBJ=getenv.o putenv.o popen.o system.o setenv.o
+UOBJ=getenv.o putenv.o popen.o system.o setenv.o getcwd.o
 
 
 ifeq ($(LIB_OS),ELKS)

@@ -46,7 +46,7 @@ impure:			! ax is now offset 'tween CS&DS
 ! Check for overlap
 end_of_code:
   if end_of_code>hitme
-     fail
+     fail! At end_of_code
   endif
 
 .org ((ENDOFF)<<4)-1

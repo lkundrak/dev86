@@ -16,8 +16,8 @@ LSRC0=syslib0.c
 LOBJ0=__cstartup.o lseek.o getpid.o getppid.o getuid.o geteuid.o getgid.o \
       getegid.o dup2.o dup.o getpgrp.o times.o
 
-ESRC=execve.c
-E2OBJ=execl.o execv.o execle.o
+ESRC=exec.c
+E2OBJ=execl.o execv.o execle.o execlp.o execvp.o
 EOBJ=execve.o $(E2OBJ)
 
 DSRC=dirent.c

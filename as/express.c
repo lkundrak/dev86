@@ -27,7 +27,7 @@ PUBLIC void chkabs()
 {
     if (lastexp.data & RELBIT)
     {
-	if (pass != 0)
+	if (pass == last_pass)
 	    error(ABSREQ);
 	expundefined();
     }
@@ -56,7 +56,7 @@ PUBLIC void nonimpexpres()
 
 PUBLIC void showrelbad()
 {
-    if (pass != 0)
+    if (pass == last_pass)
 	error(RELBAD);
     expundefined();
 }
@@ -281,7 +281,7 @@ PUBLIC void factor()
 		    symptr->data |= FORBIT;
 		    lastexp.sym = symptr;
 		}
-		if (pass == 0)
+		if (pass != last_pass)
 		{
 		    lastexp.data = symptr->data &
 			(FORBIT | RELBIT | UNDBIT | SEGM);
@@ -333,7 +333,7 @@ PUBLIC void factor()
     case STAR:
 	/* context-sensitive, STAR means location counter here */
 	lastexp.offset = lc;
-	if ((lastexp.data = lcdata) & UNDBIT && pass != 0)
+	if ((lastexp.data = lcdata) & UNDBIT && pass == last_pass)
 	    experror(UNBLAB);
 	getsym();
 	return;

@@ -45,7 +45,7 @@
 #ifdef __AS386_16__
 # undef INBUFSIZE
 # define INBUFSIZE	512
-# define STAKSIZ	256	/* table grows up to stack less this */
+# define STAKSIZ	512	/* table grows up to stack less this */
 #endif
 
 /* booleans */
@@ -325,9 +325,11 @@ enum
     JUNK_AFTER_OPERANDS,
 
     ALREADY,
+    UNSTABLE_LABEL,
 
 /* Warnings. */
-#define MINWARN		SHORTB
+#define MINWARN		CPUCLASH
+    CPUCLASH,
     SHORTB
 };
 

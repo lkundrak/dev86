@@ -1,4 +1,6 @@
 
+#ifndef MSDOS
+#ifndef NO_AOUT
 /* Ok, I'm just gonna make it simple ... override this if you like. */
 #ifndef A_OUT_INCL
 #define A_OUT_INCL	"a.out.h"
@@ -12,12 +14,7 @@
 #  else
 #   define A_OUT_INCL "bsd-a.out.h"
 #  endif
-
-#  ifdef MSDOS
-#   define A_OUT_INCL "a_out.h"
-#  else
-#   define A_OUT_INCL "a.out.h"	/* maybe local copy of <a.out.h> for X-link */
-#  endif
+#  define A_OUT_INCL "a.out.h"	/* maybe local copy of <a.out.h> for X-link */
 # endif /* BSD_A_OUT */
 #endif
 
@@ -48,7 +45,9 @@
 #  else
 #   define RELOC_INFO_SIZE (sizeof (struct relocation_info))
 #  endif
-#  define C_EXT N_EXT
+#  ifdef N_EXT
+#   define C_EXT N_EXT
+#  endif
 #  define C_STAT 0
 #  define n_was_name n_un.n_name
 #  define n_was_numaux n_other
@@ -66,3 +65,10 @@
 #  define n_was_type n_type
 # endif /* BSD_A_OUT */
 
+/* And finally make sure it worked */
+#ifdef C_EXT
+#define AOUT_DETECTED	1
+#endif
+
+#endif /* NO_AOUT */
+#endif /* MSDOS */

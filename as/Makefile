@@ -2,12 +2,13 @@
 ifneq ($(TOPDIR),)
 include $(TOPDIR)/Make.defs
 else
-CC=bcc
-LDFLAGS=-s
+CFLAGS=-O
+LIBDIR=/usr/bin
+BINDIR=/usr/bin
 endif
 
 # Temp needed for libc-5.4.7
-CFLAGS+=-Dwarn=as_warn
+CFLAGS+= -Dwarn=as_warn
 
 OBJS		=as.o assemble.o error.o express.o \
 		 genbin.o genlist.o genobj.o gensym.o \
@@ -26,11 +27,6 @@ install: all
 	install -d $(BINDIR)
 	install -m 755 tmp $(BINDIR)/as86_encap
 	-@rm -f tmp
-
-# typeconv.o: dummy
-# 	-cp -p ../ld/typeconv.o .
-
-dummy:
 
 clean:
 	rm -f *.o as86

@@ -396,8 +396,11 @@ distext()
          }
       if ((c = getlab(N_TEXT)) != NULL)
          printf("%s",c);
-      f = optab[j].func;
-      (*f)(j);
+      if( j>=0 && j<256 )
+      {
+         f = optab[j].func;
+         (*f)(j);
+      }
       fflush(stdout);
       }
 

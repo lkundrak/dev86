@@ -58,6 +58,7 @@ unsigned newseg;
 
    /* The actual jump ... */
    memseg = newseg;
+
 #asm
    mov	ax,ds
    mov	bx,cs

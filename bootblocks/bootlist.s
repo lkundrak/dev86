@@ -11,6 +11,8 @@
 !	Stack top is at abs location 64k.
 !
 
+! PS: This hasn't been tested much ... make that at all!
+
 BOOTSEG = 0x07c0
 LOADSEG = 0x07e0	! Just after boot sector.
 
@@ -24,7 +26,7 @@ reloc  = 1 *linear	! Auto configure of bootpart.
 
 macro locn
   if *-start>?1
-   fail
+   fail! ?1
   endif
   .blkb	?1 + start-*
 mend

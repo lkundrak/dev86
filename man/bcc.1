@@ -156,6 +156,10 @@ error (substitution of some cc passes not supported)
 print names and args of subprocesses being run.  Two or more -v's print
 names of files being unlinked.  Three or more -v's print names of paths
 being searched.
+.TP
+.B -W
+allow the assembler to generate warnings, useful for finding 80186+
+instructions.
 .P
 Other options are passed to the linker, in particular -i-, -lx, -M, -m, -s.
 The -i option is always passed to the linker but can be cancelled using -i-.
@@ -290,7 +294,7 @@ directory to place temporary files (default /tmp)
 .SH DIRECTORIES
 All the include, library and compiler components are stored under the
 .I /usr/bcc
-directory under Linux-86, this is laid out the same as a
+directory under Linux-i386, this is laid out the same as a
 .I /usr
 filesystem and if bcc is to be the primary compiler on a system it should
 be moved there. The configuration for this is in the

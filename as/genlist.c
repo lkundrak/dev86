@@ -349,7 +349,7 @@ PRIVATE void listerrors()
     do
     {
 #ifdef I80386
-        if(column)
+        if(errcol != CODE_LIST_LENGTH)
 	{
 	    writenl(); paderrorline(1);
 	}
@@ -363,7 +363,7 @@ PRIVATE void listerrors()
 	    ++errcol;
 	}
 #endif
-	while (column < errptr->position)
+	while (errptr && errptr->position < 132 && column < errptr->position)
 	{
 	    ++column;
 	    if (*linep++ == '\t')	/* next tab (standard tabs only) */
@@ -381,7 +381,7 @@ PRIVATE void listerrors()
 	    }
 	}
 #ifdef I80386
-	writec('^');
+	writec('^'); ++errcol;
 #else
 	if (errcolw < errcol)	/* position under error on new line */
 	{

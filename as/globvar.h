@@ -80,6 +80,8 @@ EXTERN opcode_t page;
 EXTERN opcode_t opcode;
 EXTERN opcode_t postb;		/* postbyte, 0 if none */
 EXTERN unsigned char pcrflag;	/* OBJ_RMASK set if addressing is PC-relative */
+EXTERN int last_pass;		/* Pass number of last pass */
+EXTERN int dirty_pass;		/* Set if this pass had a label movement */
 
 #ifdef I80386
 
@@ -91,8 +93,28 @@ EXTERN opcode_t oprefix;	/* operand size prefix or 0 */
 EXTERN opcode_t sprefix;	/* segment prefix or 0 */
 EXTERN opcode_t sib;		/* scale-index-base byte */
 
+EXTERN int cpuid;		/* Assembler instruction limit flag */
+EXTERN int origcpuid;		/* Assembler instruction limit flag */
+
 #endif
 
 /* miscellaneous */
 
 extern char hexdigit[];
+
+/* cpuid functions */
+#ifdef I80386
+#ifndef __AS386_16__
+#define iscpu(x) (cpuid>=(x))
+#define needcpu(x) do{ if(cpuid<(x)) {error(CPUCLASH); cpuid|=0x10;} }while(0)
+#define setcpu(x) (cpuid=(x))
+#define cpuwarn() (cpuid&=0xF)
+#endif
+#endif
+
+#ifndef setcpu
+#define needcpu(x)
+#define setcpu(x)
+#define cpuwarn()
+#endif
+
