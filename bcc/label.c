@@ -316,8 +316,10 @@ label_t label;
 	    outbyte(' ');
 	outtab();
 	bumplc2();
+#ifdef I80386
 	if (i386_32)
 	    bumplc();
+#endif
 #endif
 #ifdef MC6809
 	outcond(cond);

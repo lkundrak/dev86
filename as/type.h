@@ -1,5 +1,10 @@
 /* type.h - types for assembler */
 
+typedef unsigned short u2_t;
+typedef unsigned u2_pt;
+typedef unsigned long u4_t;
+typedef unsigned long u4_pt;
+
 /* redefine foo_t's because their use has become non-portable */
 
 #define bool_t bool_T

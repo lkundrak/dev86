@@ -26,7 +26,7 @@ EXTERN offset_t framep;		/* hardware relative frame ptr */
 EXTERN uoffset_t func1saveregsize;  /* choice of next two values */
 EXTERN uoffset_t funcdsaveregsize;  /* funcsaveregsize adjusted for doubles */
 EXTERN uoffset_t funcsaveregsize;  /* tot size of framelist/calleemask regs */
-#ifdef I8088
+#ifdef I80386
 EXTERN bool_t i386_32;		/* nonzero to generate 386 32 bit code */
 				/* depends on zero init */
 #endif

@@ -20,14 +20,19 @@ that /usr/bcc/include is a symlink into this directory.
 It is now also possible to make libc.a versions for MSDOS and a more compact
 version with 'CALLER_SAVES' and 'FIRST_ARG_IN_AX'. "Make install-lib2" does
 this and 'bcc -Md x.c -o x.com" or "bcc x.c -Mf x.c -o x" uses the libs.
+To compile bcc using bcc this has to be done.
 
 The as86 and ld86 with this are _different_ from the ones needed for the
 linux-i386 kernel but can replace them, the kernel-i386 ones _will_ _not_
 work correctly here!
 
+Unfortunatly, I've just discovered the dosemu folks have been using the
+'-r' option of ld86, Grrrrr. Well **** them, they can use as86_encap, it's
+better suited to the job anyway.
+
 To compile the various tools as Linux-8086 binaries cd into the relevent
-directory and do a "make clean ; make" from there, note you'll have to
-do "ld" before "as". Currently bcc won't work this way.
+directory and do a "make clean ; make" from there.
+Bcc _WILL_ now work this way! Yippee! :-)
 
 I _strongly_ suggest you install the kernel patch or load the module in
 the elksemu directory in your Linux-i386 kernel, it makes things _much_

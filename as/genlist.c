@@ -1,5 +1,6 @@
 /* genlist.c - generate listing and error reports for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "address.h"
@@ -9,20 +10,6 @@
 #include "macro.h"
 #include "scan.h"
 #include "source.h"
-
-#ifdef STDC_HEADERS_MISSING
-void *memset P((void *s, int c, unsigned n));
-unsigned strlen P((const char *s));
-#else
-#include <string.h>
-#endif
-
-#ifdef POSIX_HEADERS_MISSING
-int write P((int fd, const void *buf, unsigned nbytes));
-#else
-#include <sys/types.h>
-#include <unistd.h>
-#endif
 
 #define CODE_LIST_LENGTH (sizeof (struct code_listing_s) - 1)
 				/* length of formatted code listing */
@@ -202,9 +189,9 @@ PUBLIC void listline()
 PRIVATE void list1(fd)
 fd_t fd;
 {
-    innum = fd;
+    outfd = fd;
     listcode();
-    write(innum, linebuf, (unsigned) (lineptr - linebuf));
+    write(outfd, linebuf, (unsigned) (lineptr - linebuf));
     writenl();
     if (errcount != 0)
 	listerrors();
@@ -349,7 +336,11 @@ PRIVATE void listerrors()
     char *linep;
     unsigned char remaining;
 
+#ifdef I80386
+    paderrorline(1);
+#else
     paderrorline(CODE_LIST_LENGTH - LINUM_LEN);
+#endif
     remaining = errcount;
     column = 0;			/* column to match with error column */
     errcolw = errcol = CODE_LIST_LENGTH; /* working & col number on err line */
@@ -357,6 +348,21 @@ PRIVATE void listerrors()
     linep = linebuf;
     do
     {
+#ifdef I80386
+        if(column)
+	{
+	    writenl(); paderrorline(1);
+	}
+	writes(errmsg = build_error_message(errptr->errnum, heapptr));
+	errcol = strlen(errmsg)+LINUM_LEN+1;
+	column = 0; linep = linebuf;
+        errcolw = CODE_LIST_LENGTH;
+	while (errcolw > errcol)
+	{
+	    writec('.');
+	    ++errcol;
+	}
+#endif
 	while (column < errptr->position)
 	{
 	    ++column;
@@ -366,10 +372,17 @@ PRIVATE void listerrors()
 		++errcolw;
 	    while (errcolw > errcol)
 	    {
+#ifdef I80386
+	        writec('.');
+#else
 		writec(' ');
+#endif
 		++errcol;
 	    }
 	}
+#ifdef I80386
+	writec('^');
+#else
 	if (errcolw < errcol)	/* position under error on new line */
 	{
 	    writenl();
@@ -378,13 +391,18 @@ PRIVATE void listerrors()
 	writec('^');
 	writes(errmsg = build_error_message(errptr->errnum, heapptr));
 	errcol += strlen(errmsg);
+#endif
 	++errptr;
     }
     while (--remaining != 0);
     writenl();
     if (erroverflow)
     {
+#ifdef I80386
+	paderrorline(1);
+#else
 	paderrorline(CODE_LIST_LENGTH - LINUM_LEN);
+#endif
 	writesn(build_error_message(FURTHER, heapptr));
     }
 }
@@ -407,7 +425,7 @@ unsigned nspaces;
 PUBLIC void writec(ch)
 char ch;
 {
-    write(innum, &ch, 1);
+    write(outfd, &ch, 1);
 }
 
 /* write newline */
@@ -429,7 +447,7 @@ offset_t offset;
 #else
     u2c2(buf, offset);
 #endif
-    write(innum, buf, sizeof buf);
+    write(outfd, buf, sizeof buf);
 }
 
 /* write string */
@@ -437,7 +455,7 @@ offset_t offset;
 PUBLIC void writes(s)
 char *s;
 {
-    write(innum, s, strlen(s));
+    write(outfd, s, strlen(s));
 }
 
 /* write string followed by newline */
@@ -457,5 +475,5 @@ unsigned word;
     char buf[2];
 
     u2c2(buf, (u16_T) word);
-    write(innum, buf, sizeof buf);
+    write(outfd, buf, sizeof buf);
 }

@@ -466,7 +466,9 @@ char *argv[];
 #endif
     fd = 0;			/* standard input */
     memset(flag, 0, sizeof flag);
+#ifdef I80386
     flag['3'] = sizeof (int) >= 4;
+#endif
     fname = "stdin";
     (incptr = &incfirst)->incnext = &inclast;
     initout();
@@ -486,6 +488,8 @@ char *argv[];
 	    {
 #ifdef I8088
 	    case '0':		/* generate 16-bit code */
+#endif
+#ifdef I80386
 	    case '3':		/* generate 32-bit code */
 #endif
 	    case 'c':		/* caller saves */
@@ -539,12 +543,14 @@ ts_s_includelist += sizeof *incnew;
 	    }
     }
 #ifdef I8088
+#ifdef I80386
     if (flag['3'])
     {
 	i386_32 = TRUE;
 	definestring("__AS386_32__");
     }
     else
+#endif
 	definestring("__AS386_16__");
 #endif
 #ifdef MC6809
@@ -584,6 +590,9 @@ ts_s_includelist += sizeof *incnew;
 	posindependent = TRUE;
 	definestring("__POS_INDEPENDENT__");
     }
+#endif
+#ifdef NOFLOAT
+    definestring("__HAS_NO_FLOATS__");
 #endif
     ctext = flag['t'];
     watchlc = flag['w'];

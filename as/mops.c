@@ -1,5 +1,6 @@
 /* mops.c - handle pseudo-ops */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "globvar.h"
@@ -952,7 +953,8 @@ register struct ea_s *eap;
 	else
 	    getsym();
     }
-    else if (!leading_immed && idefsize <= 0x2)
+    /* RDB */
+    else if (!leading_immed && defsize <= 0x2)
 	eap->indcount = 0x1;	/* compatibility kludge */
     if (!leading_displ)
 	eap->displ = lastexp;
@@ -1113,14 +1115,23 @@ PUBLIC void mcall()
 
     far_diff = 0x0;
     if (sym == IDENT && (symptr = gsymptr)->type & MNREGBIT &&
-	symptr->data & SIZEBIT &&
-	symptr->value_reg_or_op.op.routine == FAROP)
+	symptr->data & SIZEBIT )
     {
-	far_diff = 0x8;
-	getsym();
+        if(symptr->value_reg_or_op.op.routine == FAROP)
+        {
+	    far_diff = 0x8;
+	    getsym();
+        }
+        if(symptr->value_reg_or_op.op.routine == WORDOP &&
+	   opcode == JMP_SHORT_OPCODE)
+        {
+	   opcode = JMP_OPCODE;
+	   getsym();
+	}
     }
     indirect = FALSE;
-    if (asld_compatible && idefsize <= 0x2)
+
+    if (asld_compatible && defsize <= 0x2)
     {
 	calljmp_kludge = 0x2;
 	if (sym == INDIRECT)
@@ -1136,6 +1147,7 @@ PUBLIC void mcall()
     calljmp_kludge = 0x0;
     if (sym == COLON)
     {
+        int tsize = target.size?target.size:defsize;
 	if (opcode == JMP_SHORT_OPCODE)
 	    opcode = JMP_OPCODE;
 	++mcount;
@@ -1151,10 +1163,10 @@ PUBLIC void mcall()
 		opcode = 0x9A;
 	    lastexp = source.displ;
 	    if (!(lastexp.data & (FORBIT | RELBIT | UNDBIT)) &&
-		defsize == 0x2 &&
+		tsize == 0x2 &&
 		(offset_t) (lastexp.offset + 0x8000L) >= 0x18000L)
 		datatoobig();
-	    mcount += defsize;
+	    mcount += tsize;
 	    target.size = 0x2;
 	    buildimm(&target, FALSE);
 	}
@@ -1228,6 +1240,7 @@ PUBLIC void mcalli()
     }
     else
     {
+        int tsize = target.size?target.size:defsize;
 	getcomma();
 	getea(&source);
 	yesimmed(&source);
@@ -1235,10 +1248,10 @@ PUBLIC void mcalli()
 	{
 	    lastexp = target.displ;
 	    if (!(lastexp.data & (FORBIT | RELBIT | UNDBIT)) &&
-		defsize == 0x2 &&
+		tsize == 0x2 &&
 		(offset_t) (lastexp.offset + 0x8000L) >= 0x18000L)
 		datatoobig();
-	    mcount += defsize;
+	    mcount += tsize;
 	    source.size = 0x2;
 	    buildimm(&source, FALSE);
 	}
@@ -1878,7 +1891,26 @@ PUBLIC void mint()
 
 PUBLIC void mjcc()
 {
-    if (jumps_long && opcode < 0x80)	/* above 0x80 means loop - not long */
+    /* First look for j* near */
+    if (sym == IDENT && 
+        gsymptr->type & MNREGBIT &&
+	gsymptr->data & SIZEBIT &&
+        gsymptr->value_reg_or_op.op.routine == WORDOP &&
+	opcode < 0x80)
+    {
+        getsym();
+        getea(&target);
+        if (target.indcount >= 0x2 || target.base != NOREG)
+ 	   kgerror(REL_REQ);
+        else
+        {
+	    page = PAGE1_OPCODE;
+	    ++mcount;
+	    opcode += 0x10;
+	    lbranch(0x84);
+        }
+    }
+    else if (jumps_long && opcode < 0x80) /* above 0x80 means loop, not long */
 	mbcc();
     else
 	mshort();

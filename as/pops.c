@@ -1,5 +1,6 @@
 /* pops.c - handle pseudo-ops for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "address.h"
@@ -12,7 +13,7 @@ PRIVATE bool_t elseflag;	/* set if ELSE/ELSEIF are enabled */
 				/* depends on zero = FALSE init */
 PRIVATE bool_t lcommflag;
 
-FORWARD void bumpsem P((struct flags_s *flagptr));
+FORWARD void bumpsem P((struct flags_s *flagptr, int defval));
 FORWARD void constdata P((unsigned size));
 FORWARD void docomm P((void));
 FORWARD void doelseif P((pfv func));
@@ -24,8 +25,9 @@ FORWARD struct sym_s *needlabel P((void));
 FORWARD void showredefinedlabel P((void));
 FORWARD void setloc P((unsigned seg));
 
-PRIVATE void bumpsem(flagptr)
+PRIVATE void bumpsem(flagptr, defval)
 register struct flags_s *flagptr;
+int defval;
 {
     int newcount;
 
@@ -34,7 +36,7 @@ register struct flags_s *flagptr;
 	/* bump semaphore count by an expression (default 1), */
 	/* then set currentflag iff semaphore count is plus */
 	if (sym == EOLSYM)
-	    lastexp.offset = 1;
+	    lastexp.offset = defval;
 	else
 	{
 	    absexpres();
@@ -674,7 +676,7 @@ PUBLIC void pexport()
 
 PUBLIC void pfail()
 {
-    error(FAILERR);
+    if(pass) error(FAILERR);
 }
 
 /* FCB pseudo-op */
@@ -848,7 +850,14 @@ PUBLIC void plcomm1()
 
 PUBLIC void plist()
 {
-    bumpsem(&list);
+    bumpsem(&list, 1);
+}
+
+/* .NOLIST pseudo-op */
+
+PUBLIC void pnolist()
+{
+    bumpsem(&list, -1);
 }
 
 /* LOC pseudo-op */
@@ -871,7 +880,7 @@ PUBLIC void ploc()
 
 PUBLIC void pmaclist()
 {
-    bumpsem(&maclist);
+    bumpsem(&maclist, 1);
 }
 
 /* .MAP pseudo-op */
@@ -899,6 +908,7 @@ PUBLIC void porg()
     {
 	accumulate_rmb(lastexp.offset - lc);
 	binmbuf = lc = lastexp.offset;
+	binmbuf_set = 1;
 	popflags = POPLC;
     }
 }
@@ -980,7 +990,7 @@ PUBLIC void ptext()
 
 PUBLIC void pwarn()
 {
-    bumpsem(&warn);
+    bumpsem(&warn, -1);
 }
 
 #ifdef I80386

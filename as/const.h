@@ -1,5 +1,21 @@
-#define align(x)		/* ((x) = ((int) (x) + (4-1)) & ~(4-1)) */
+
+/* Speed and space hacks for BCC */
+#ifdef __AS386_16__
 #define LOW_BYTE	0	/* must be changed for big-endian */
+#define align(x)		/* Don't bother */
+
+#endif
+
+#ifndef align
+#ifdef MSDOS
+#define align(x)		
+#endif
+#endif
+
+#ifndef align			/* Normal ... */
+#define align(x)		((x) = (void*)(((long) (x) + (4-1)) & ~(4-1)))
+#endif
+
 
 /* const.h - constants for assembler */
 
@@ -23,6 +39,12 @@
 # define INBUFSIZE	512
 # undef SOS_EOLSTR
 # define SOS_EOLSTR	"\015\012"
+# define STAKSIZ	256	/* table grows up to stack less this */
+#endif
+
+#ifdef __AS386_16__
+# undef INBUFSIZE
+# define INBUFSIZE	512
 # define STAKSIZ	256	/* table grows up to stack less this */
 #endif
 

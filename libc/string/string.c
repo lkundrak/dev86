@@ -120,6 +120,7 @@ const char * s;
   push	es
   push	ds	; Im not sure if this is needed, so just in case.
   pop	es
+  cld
 #endif
 
 #if __FIRST_ARG_IN_AX__
@@ -367,6 +368,7 @@ size_t l;
   push	es
   push	ds	; Im not sure if this is needed, so just in case.
   pop	es
+  cld
 #endif
 
 #if __FIRST_ARG_IN_AX__

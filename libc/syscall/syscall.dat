@@ -67,7 +67,7 @@ RENAME                  38  2
 MKDIR                   39  2
 RMDIR                   40  1
 PIPE                    42  1
-TIMES                   43  1
+TIMES                   43  2	* 2nd arg is pointer for long ret val.
 SETGID                  46  1
 GETGID                  47  1   * This gets both gid and egid
 SIGNAL                  48  2   * Have put the despatch table in user space.
@@ -78,7 +78,7 @@ UMASK                   60  1
 CHROOT                  61  1
 USTAT                   62  2
 GETPGRP                 65  0	- use getpgid(0)
-SETSID                  66  X
+SETSID                  66  0
 SIGACTION               67  X
 SGETMASK                68  X
 SSETMASK                69  X

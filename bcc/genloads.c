@@ -124,7 +124,7 @@ PUBLIC store_pt getindexreg()
     if (!(reguse & INDREG2))
 	return INDREG2;
 #if NOTFINISHED
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
     {
 	if (!(reguse & DATREG1))
@@ -579,7 +579,7 @@ store_pt targreg;
 {
     if ((store_t) targreg & ALLDATREGS && source->type->scalar & CHAR)
 	targreg = BREG;
-#ifdef I8088
+#ifdef I80386
     if (i386_32 && source->type->scalar & SHORT &&
 	source->indcount <= 1)
     {
@@ -642,7 +642,7 @@ struct symstruct *adr;
 	outshex(adr->offset.offi);
     }
     bumplc2();
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
 	bumplc2();
 #endif
@@ -691,7 +691,11 @@ struct symstruct *adr;
 #ifdef I8088
     case DATREG1:
     case DATREG2:
+#ifdef I80386
 	if (indflag && !i386_32)
+#else
+	if (indflag)
+#endif
 	{
 	    outnl();
 	    badaddress();
@@ -784,8 +788,10 @@ struct symstruct *adr;
     case GLOBAL:
 #ifdef I8088
 	bumplc();
+#ifdef I80386
 	if (i386_32)
 	    bumplc2();
+#endif
 	if (!indflag)
 	    outimmed();
 	else
@@ -1014,8 +1020,11 @@ struct symstruct *source;
 #ifdef I8088
     else if ((source->indcount == 1 &&
 	     (sscalar & (SHORT | INT | LONG | FLOAT) ||
-	      source->type->constructor & POINTER)) ||
-	     (source->storage == CONSTANT && i386_32))
+	      source->type->constructor & POINTER))
+#ifdef I80386
+	      || (source->storage == CONSTANT && i386_32)
+#endif
+	      )
     {
 	size = source->type->typesize;
 	if (size == 1)
@@ -1033,6 +1042,7 @@ struct symstruct *source;
 	outpshs();
 	bumplc();
 	outtab();
+#ifdef I80386
 	if (i386_32)
 	{
 	    if (source->storage == CONSTANT)
@@ -1048,6 +1058,7 @@ struct symstruct *source;
 	    else
 		outdword();
 	}
+#endif
 	outadr(source);
 	sp -= size;
     }
@@ -1200,7 +1211,7 @@ struct symstruct *target;
 	    unbumplc();
 	outnnadr(target);
 	outcomma();
-#ifdef I8088
+#ifdef I80386
 	if (i386_32 && target->type->scalar & SHORT)
 	{
 	    outshortregname(sourcereg);

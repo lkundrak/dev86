@@ -1,5 +1,6 @@
 /* scan.c - lexical analyser for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "globvar.h"
@@ -11,7 +12,7 @@ PRIVATE int numbase;		/* base for number */
 
 PRIVATE char symofchar[256] =	/* table to convert chars to their symbols */
 {
-    WHITESPACE, WHITESPACE, WHITESPACE, WHITESPACE,
+    EOLSYM, WHITESPACE, WHITESPACE, WHITESPACE,
     WHITESPACE, WHITESPACE, WHITESPACE, WHITESPACE,
     WHITESPACE, WHITESPACE, EOLSYM, WHITESPACE,
     WHITESPACE, WHITESPACE, WHITESPACE, WHITESPACE,

@@ -177,6 +177,7 @@ void pimport P((void));
 void plcomm P((void));
 void plcomm1 P((void));
 void plist P((void));
+void pnolist P((void));
 void ploc P((void));
 void pmaclist P((void));
 void pmap P((void));
@@ -211,6 +212,10 @@ struct sym_s *lookup P((void));
 void statistics P((void));
 
 /* type.c */
+u2_pt c2u2 P((char *buf));
+u4_t c4u4 P((char *buf));
+u2_pt cnu2 P((char *buf, unsigned count));
+u4_t cnu4 P((char *buf, unsigned count));
 void u2c2 P((char *buf, u16_pt offset));
 void u4c4 P((char *buf, u32_T offset));
 void u2cn P((char *buf, u16_pt offset, unsigned count));

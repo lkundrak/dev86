@@ -1,0 +1,169 @@
+as options
+----------
+
+as [-03agjuw] [-b [bin]] [-lm [list]] [-n name] [-o obj] [-s sym] src
+
+The 6809 version does not support -0, -3, -a or -j.
+
+The 'src' file can be '-' for stdin but ONLY on 'big' machines.
+
+defaults (off or none except for these; no output is produced without a flag):
+-03		native
+list		stdout (beware of clobbering next arg)
+name		basename of the source name
+
+-0  start with 16-bit code segment
+-3  start with 32-bit code segment
+-a  enable partial compatibility with asld
+-g  only put global symbols in object or symbol file
+-j  force all jumps to be long
+-l  produce list file, filename may follow
+-m  print macro expansions in listing
+-n  name of module follows (goes in object instead of source name)
+-o  produce object file, filename follows
+-b  produce a raw binary file, filename may follow
+-s  produce an ASCII symbol file, filename follows
+-u  take undefined symbols as imported-with-unspecified segment
+-w  don't print warnings
+
+The -u and -w options are perhaps back to front because they are needed for
+cc1 output and Minix's make does the wrong thing with .s files left around.
+However, all assembler code not written by compilers should assemble with
+them turned off.
+
+The -b flag now produces a 'raw' binary file with no header, if there's no
+-s flag the file starts at location 0. The -s generates an ASCII symbol
+table, if a binary file doesn't start at location zero the first two items
+are the start and end addresses of the binary file.
+
+BCC is classed as a 'small' compiler, with this there is a maximum line
+length of 256 characters.
+
+Using GASP
+----------
+
+The Gnu assembler preprocessor provides some reasonable implementations
+of user biased pseudo operations.
+
+It can be invoked as:
+   gasp [-a] ... file.s [file2.s ...] | as86 [...] - [-o obj] [-b bin]
+
+Notes:
+Gasp generates an error for '.org' commands if you're not using
+'alternate' syntax you can use 'org' instead, otherwise use 'block'.
+
+Export is translated in .global, if you are making a 'bin' file use
+'public' or '.define' instead.
+
+The GASP list options have no support in as86.
+
+as source
+---------
+
+Conditionals:
+   IF, ELSE, ELSEIF, ENDIF	Numeric condition
+   IFC, ELSEIFC			String compare (str1,str2)
+   FAIL .FAIL			Generate user error.
+
+Segments:
+    .TEXT .ROM .DATA .BSS
+    .SECT	Follow with one of above
+    LOC		Set numeric segment 0=TEXT, 3=DATA,ROM,BSS, 15=MAX
+
+Lable type definition:
+   Export label defined in this object:		EXPORT PUBLIC .DEFINE
+   Force linker to include label in a.out:	ENTRY
+
+   Define label as external or imported:	.GLOBL .GLOBAL
+   Import list of externally defined labels:	EXTRN EXTERN IMPORT .EXTERN
+   NB: Can't use imports in 'bin' files.
+
+   Mark entry for old binary file (obs)		.ENTER
+
+Data init
+  1 byte:   	DB .DATA1 .BYTE  FCB
+  2 byte:   	DW .DATA2 .SHORT FDB .WORD
+  4 byte:   	DD .DATA4 .LONG
+  String:   	.ASCII FCC
+  String+Zero: 	.ASCIZ
+
+Data uninit
+    byte count:	.BLKB RMB .SPACE
+    word count: .BLKW .ZEROW
+
+Data Common
+    COMM .COMM LCOMM .LCOMM
+
+Alignment
+    .ALIGN .EVEN
+
+Misc
+    EQU		Define label
+    SET		Define re-definable label
+    ORG .ORG	Set assemble location
+    BLOCK	Set assemble location and stack old one
+    ENDB	Return to stacked assemble location
+    GET INCLUDE	Insert new file (no quotes on name)
+    USE16	Define default operand size as 16 bit
+    USE32	Define default operand size as 32 bit
+    END		End of compilation for this file.
+    .WARN	Switch warnings
+    .LIST	Listings on/off (1,-1)
+    .MACLIST	Macro listings on/off (1,-1)
+
+Macros
+    MACRO sax
+       mov ax,#?1
+    MEND
+    sax(1)
+
+Unimplemented/unused.
+    IDENT	Define object identity string.
+    SETDP	Set DP value on 6809
+    .MAP	Set binary symbol table map number.
+
+Registers
+   BP BX DI SI
+   EAX EBP EBX ECX EDI EDX ESI ESP
+   AX CX DX SP
+   AH AL BH BL CH CL DH DL
+   CS DS ES FS GS SS 
+   CR0 CR2 CR3 DR0 DR1 DR2 DR3 DR6 DR7
+   TR3 TR4 TR5 TR6 TR7 ST
+
+Operand type specifiers
+   BYTE DWORD FWORD FAR PTR PWORD QWORD TBYTE WORD NEAR
+
+
+Instructions
+
+AAA AAD AAM AAS ADC ADD AND ARPL BCC BCS BEQ BGE BGT BHI BHIS BLE BLO
+BLOS BLT BMI BNE BOUND BPC BPL BPS BR BVC BVS CALL CALLF CALLI CBW CLC
+CLD CLI CMC CMP CMPS CMPSB CMPSD CMPSW CMPW CSEG CWD CWDE CDQ DAA DAS
+DSEG DEC DIV ENTER ESEG FSEG GSEG HLT IDIV IMUL IN INC INS INSB INSD
+INSW INT INTO INW IRET IRETD J JA JAE JB JBE JC JCXE JCXZ JECXE JECXZ JE
+JG JGE JL JLE JMP JMPF JMPI JNA JNAE JNB JNBE JNC JNE JNG JNGE JNL JNLE
+JNO JNP JNS JNZ JO JP JPE JPO JS JZ LAHF LDS LEA LEAVE LES LOCK LODB
+LODS LODSB LODSD LODSW LODW LOOP LOOPE LOOPNE LOOPNZ LOOPZ MOV MOVS
+MOVSB MOVSD MOVSW MOVW MUL NEG NOP NOT OR OUT OUTS OUTSB OUTSD OUTSW
+OUTW POP POPA POPAD POPF POPFD PUSH PUSHA PUSHAD PUSHF PUSHFD RCL RCR
+ROL ROR REP REPE REPNE REPNZ REPZ RET RETF RETI SAHF SAL SAR SBB SCAB
+SCAS SCASB SCASD SCASW SCAW SEG SHL SHR SSEG STC STD STI STOB STOS STOSB
+STOSD STOSW STOW SUB TEST WAIT XCHG XLAT XLATB XOR
+
+F2XM1 FABS FADD FADDP FBLD FBSTP FCHS FCLEX FCOM FCOMP FCOMPP FCOS
+FDECSTP FDISI FDIV FDIVP FDIVR FDIVRP FENI FFREE FIADD FICOM FICOMP
+FIDIV FIDIVR FILD FIMUL FINCSTP FINIT FIST FISTP FISUB FISUBR FLD FLD1
+FLDL2E FLDL2T FLDCW FLDENV FLDLG2 FLDLN2 FLDPI FLDZ FMUL FMULP FNCLEX
+FNDISI FNENI FNINIT FNOP FNSAVE FNSTCW FNSTENV FNSTSW FPATAN FPREM
+FPREM1 FPTAN FRNDINT FRSTOR FSAVE FSCALE FSETPM FSIN FSINCOS FSQRT FST
+FSTCW FSTENV FSTP FSTSW FSUB FSUBP FSUBR FSUBRP FTST FUCOM FUCOMP
+FUCOMPP FWAIT FXAM FXCH FXTRACT FYL2X FYL2XP1
+
+BSF BSR BSWAP BT BTC BTR BTS CLTS CMPXCHG INVD INVLPG LAR LFS LGDT LGS
+LIDT LLDT LMSW LSL LSS LTR MOVSX MOVZX SETA SETAE SETB SETBE SETC SETE
+SETG SETGE SETL SETLE SETNA SETNAE SETNB SETNBE SETNC SETNE SETNG SETNGE
+SETNL SETNLE SETNO SETNP SETNS SETNZ SETO SETP SETPE SETPO SETS SETZ
+SGDT SIDT SHLD SHRD SLDT SMSW STR VERR VERW WBINVD XADD ADCB ADDB ANDB
+CMPB DECB DIVB IDIVB IMULB INB INCB MOVB MULB NEGB NOTB ORB OUTB RCLB
+RCRB ROLB RORB SALB SARB SHLB SHRB SBBB SUBB TESTB XCHGB XORB

@@ -5,6 +5,7 @@
   in any order (but no repeated file options)
 */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "byteord.h"
@@ -14,31 +15,6 @@
 #include "file.h"
 #include "flag.h"
 #include "globvar.h"
-
-#ifdef STDC_HEADERS_MISSING
-void exit P((int status));
-void *malloc P((unsigned size));
-char *strcpy P((char *s1, const char *s2));
-unsigned strlen P((const char *s));
-#else
-#include <stdlib.h>
-#include <string.h>
-#endif
-
-#ifdef MSDOS
-#include <sys/types.h>
-#include <fcntl.h>
-#else
-#ifdef POSIX_HEADERS_MISSING
-int close P((int fd));
-int creat P((const char *path, int mode));
-int write P((int fd, const void *buf, unsigned nbytes));
-#else
-#include <sys/types.h>
-#include <fcntl.h>
-#include <unistd.h>
-#endif
-#endif
 
 PUBLIC char hexdigit[] = "0123456789ABCDEF";	/* XXX - ld uses lower case */
 
@@ -64,12 +40,21 @@ PUBLIC int main(argc, argv)
 int argc;
 char **argv;
 {
+#ifdef __AS386_16__
+    heapptr = sbrk(0);
+    heapend = ((char*)&argc) - STAKSIZ;
+    brk(heapend);
+    if(sbrk(0) != heapend)
+       as_abort("Cannot allocate memory");
+#else
+#ifdef SOS_EDOS
+    heapend = stackreg() - STAKSIZ;
+#else
     heapptr = malloc(USERMEM);
     heapend = heapptr + USERMEM;
     if (heapptr == 0)
 	as_abort("cannot allocate memory");
-#ifdef SOS_EDOS
-    heapend = stackreg() - STAKSIZ;
+#endif
 #endif
     initp1();
     initp1p2();
@@ -116,6 +101,9 @@ PUBLIC void finishup()
 PRIVATE void initp1()
 {
 #ifdef I80386
+    idefsize = defsize = 2;	/* I think this is probably safer (RDB) */
+#endif
+#if 0
     idefsize = defsize = sizeof (char *) > 2 ? 4 : 2;
 #endif
     lctabtop = lctab + NLOC;
@@ -173,7 +161,7 @@ char **argv;
     do
     {
 	arg = *++argv;
-	if (arg[0] == '-')
+	if (arg[0] == '-' && arg[1] != '\0')
 	{
 	    if (arg[2] != 0)
 		usage();	/* no multiple options */
@@ -267,8 +255,8 @@ char **argv;
 	{
 	    if (strlen(arg) > FILNAMLEN)
 		as_abort("source file name too long");
-	    infil = open_input(strcpy(filnamptr, arg));
 	    infiln = infil0 = 1;
+	    infil = open_input(strcpy(filnamptr, arg));
 	}
     }
     while (--argc != 1);
@@ -278,7 +266,7 @@ char **argv;
 PRIVATE void summary(fd)
 int fd;
 {
-    innum = fd;
+    outfd = fd;
     writenl();
     summ_number(toterr);
     writesn(" errors");

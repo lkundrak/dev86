@@ -1,25 +1,11 @@
 /* genobj.c - object code generation routines for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "address.h"
 #include "file.h"
 #include "globvar.h"
-
-#ifdef STDC_HEADERS_MISSING
-char *strcpy P((char *s1, const char *s2));
-char *strrchr P((const char *s, int c));
-unsigned strlen P((const char *s));
-#else
-#include <string.h>
-#endif
-
-#ifdef POSIX_HEADERS_MISSING
-int write P((int fd, const void *buf, unsigned nbytes));
-#else
-#include <sys/types.h>
-#include <unistd.h>
-#endif
 
 #define OBJBUFSIZE 512		/* size of object code output buffer */
 #define isge2byteoffset(offset) ((offset) >= 0x100)

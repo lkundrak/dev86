@@ -1,0 +1,40 @@
+#!/usr/bin/awk -f
+BEGIN{
+    started = 0;
+    prefix=ARGV[1] "_";
+    if( 2 in ARGV ) prefix=ARGV[2];
+
+    sname = prefix "start";
+    cmd = ARGV[1] ".sym";
+    while(getline < cmd)
+    {
+       if(NF == 0) break;
+       if( substr($2,1,4) == "0000" ) $2=substr($2,5);
+       if( $1 == "+" && $4 == "$start" )
+       {
+          printf "int  %s = 0x%s;\n", sname, $2;
+	  started = 1;
+       }
+       else if( substr($3, 1, 1) == "E" && $4 != "start" && $4 != "size" && $4 != "data" )
+       {
+          printf "int  %s%s = 0x%s;\n", prefix, $4, $2;
+       }
+    }
+
+    if( !started )
+       printf "int  %s = 0;\n", sname;
+
+    printf "\n";
+    printf "char %sdata[] = {\n", prefix;
+    cmd = "od " ARGV[1] ".bin -v -t uC";
+    bincount=0;
+    while(cmd | getline)
+    {
+        if(NF == 0) break;
+	printf "   ";
+	for(i=2;i<=NF;i++) { printf("%3d,", $i); bincount++; }
+	printf "\n";
+    }
+    printf "};\n\n";
+    printf "int  %ssize = %d;\n", prefix, bincount;
+}

@@ -208,10 +208,13 @@ void main(int argc, char *argv[], char *envp[])
 	}
 	/* This uses the _real_ user ID If the file is exec only that's */
 	/* ok cause the suid root will override.  */
+	/* BTW, be careful here, security problems are possible because of 
+	 * races if you change this. */
 
 	if( access(argv[1], X_OK) < 0
-	  || stat(argv[1], &st) < 0
-	  || (fd=open(argv[1], O_RDONLY)) < 0)
+	  || (fd=open(argv[1], O_RDONLY)) < 0
+	  || fstat(fd, &st) < 0
+	  )
 	{
 		perror(argv[1]);
 		exit(1);

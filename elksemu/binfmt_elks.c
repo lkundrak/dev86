@@ -104,7 +104,6 @@ int init_elksaout_binfmt(void) {
 
 #ifdef MODULE
 #if LINUX_VERSION_CODE < 0x010300
-#include <linux/version.h>
 char kernel_version[] = UTS_RELEASE;
 #endif
 int init_module(void)

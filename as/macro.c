@@ -1,5 +1,6 @@
 /* macro.c - expand macros for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "globvar.h"
@@ -7,12 +8,6 @@
 #undef EXTERN
 #define EXTERN
 #include "macro.h"
-
-#ifdef STDC_HEADERS_MISSING
-int strncmp P((const char *s1, const char *s2, unsigned n));
-#else
-#include <string.h>
-#endif
 
 /*
   Enter macro: stack macro and get its parameters.
@@ -137,8 +132,12 @@ PUBLIC void pmacro()
 	getsym_nolookup();
 	if (sym == IDENT)
 	{
-	    if (lineptr == symname + 4 && strncmp(symname, "MEND", 4) == 0)
+	    if (lineptr == symname + 4 &&
+	        ( strncmp(symname, "MEND", 4) == 0 || strncmp(symname, "mend", 4) == 0) )
+            {
+                getsym();
 		break;
+            }
 	}
 	else if (sym != MACROARG)
 	{

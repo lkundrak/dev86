@@ -234,7 +234,7 @@ struct symstruct *target;
 PRIVATE void out_callstring()
 {
     outop3str(callstring);
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
 	bumplc2();
 #endif
@@ -305,7 +305,7 @@ PUBLIC void reslocals()
 	    pushlist(doubleargregs);
 	    break;
 	case 4:
-# ifdef I8088
+# ifdef I80386
 	    if (!i386_32)
 # endif
 	    {

@@ -64,7 +64,7 @@ ccode_t *pcondtrue;
 
     cmplocal(source, target, pcondtrue);
 #if 0
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
     {
 	if (*pcondtrue == LO)
@@ -475,12 +475,14 @@ ccode_t *pcondtrue;
     if (target->offset.offi != 0 && cc_signed(*pcondtrue))
 	load(target, targreg);
 
+#ifdef I80386
     /* Extension was not done in exptree for the == 0 case, to allow
      * optimization here - which we don't do for shorts.  (foo--) is
      * newfoo == -1 here and used to be missed.
      */
     if (i386_32 && target->type->scalar & SHORT)
 	extend(target);
+#endif
 
     if (target->offset.offi == 0)
     {

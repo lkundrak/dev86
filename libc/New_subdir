@@ -36,7 +36,7 @@ OBJ=$1.o
 all: \$(OBJ)
 
 libc.a: \$(OBJ)
-	ar r ../$(LIBC) \$(OBJ)
+	ar r ../\$(LIBC) \$(OBJ)
 	@touch libc.a
 
 clean:

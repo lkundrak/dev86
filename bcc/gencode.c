@@ -378,7 +378,7 @@ register uvalue_t number;
 
 PUBLIC void codeinit()
 {
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
     {
 	/* Need DATREG2 for doubles although handling of extra data regs is

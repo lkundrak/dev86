@@ -5,6 +5,7 @@
 EXTERN bool_t binaryc;		/* current binary code flag */
 EXTERN bool_t binaryg;		/* global binary code flag */
 EXTERN offset_t binmbuf;	/* offset in binary code buffer for memory */
+EXTERN bool_t binmbuf_set;	/* set to 1 when binmbuf set by org */
 
 EXTERN unsigned char dirpag;	/* direct page */
 
@@ -61,9 +62,13 @@ EXTERN offset_t lc;		/* location counter */
 EXTERN unsigned char lcdata;	/* shows how lc is bound */
 				/* FORBIT is set if lc is forward referenced */
 				/* RELBIT is is if lc is relocat. (not ASEG) */
-EXTERN offset_t lcjump;		/* lc jump between lines */
+EXTERN offset_t lcjump; 	/* lc jump between lines */
+#ifdef LOW_BYTE
 #define mcount (((unsigned char *) &lcjump)[LOW_BYTE])
 				/* low byte of lcjump */
+#else
+#define mcount lcjump		/* I think this is just a speed hack */
+#endif
 EXTERN struct lc_s *lcptr;	/* top of current spot in lctab */
 EXTERN struct lc_s *lctab;	/* start of lctab */
 EXTERN struct lc_s *lctabtop;	/* top of lctab */

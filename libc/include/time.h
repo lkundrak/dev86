@@ -30,6 +30,11 @@ struct tm {
 	int tm_isdst;
 };
 
+struct timezone {
+	int	tz_minuteswest;	/* minutes west of Greenwich */
+	int	tz_dsttime;	/* type of dst correction */
+};
+
 #define	__isleap(year)	\
   ((year) % 4 == 0 && ((year) % 100 != 0 || (year) % 400 == 0))
 
@@ -43,8 +48,10 @@ extern int	stime __P ((time_t* __tptr));
 
 extern clock_t	clock __P ((void));
 extern time_t	time __P ((time_t * __tp));
+#ifndef __HAS_NO_FLOATS__
 extern __CONSTVALUE double difftime __P ((time_t __time2,
 					  time_t __time1)) __CONSTVALUE2;
+#endif
 extern time_t	mktime __P ((struct tm * __tp));
 
 extern char *	asctime __P ((__const struct tm * __tp));

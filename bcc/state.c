@@ -342,7 +342,7 @@ PRIVATE void docont()
 #ifdef MC6809
 	outcregname(LOCAL);
 #endif
-#ifdef I8088
+#ifdef I80386
 	if (i386_32)
 	    bumplc2();
 #endif
@@ -669,8 +669,10 @@ offset_t offset;
     outswstacklab();
 #ifdef I8088
     bumplc();
+#ifdef I80386
     if (i386_32)
 	bumplc2();
+#endif
 #endif
 }
 

@@ -22,9 +22,9 @@ typedef int fastin_pt;
 typedef unsigned flags_t;	/* unsigned makes shifts logical */
 
 #ifdef LONG_OFFSETS
-typedef unsigned long offset_t;
+typedef unsigned long bin_off_t;
 #else
-typedef unsigned offset_t;
+typedef unsigned bin_off_t;
 #endif
 
 struct entrylist		/* list of entry symbols */
@@ -55,13 +55,13 @@ struct redlist			/* list of redefined (exported) symbols */
     struct redlist *rlnext;	/* next on list */
     struct symstruct *rlsymptr;	/* to symbol with same name, flags */
     struct modstruct *rlmodptr;	/* module for this redefinition */
-    offset_t rlvalue;		/* value for this redefinition */
+    bin_off_t rlvalue;		/* value for this redefinition */
 };
 
 struct symstruct		/* symbol table entry format */
 {
     struct modstruct *modptr;	/* module where symbol is defined */
-    offset_t value;		/* value of symbol */
+    bin_off_t value;		/* value of symbol */
     flags_t flags;		/* see below (unsigned makes shifts logical) */
     struct symstruct *next;	/* next symbol with same hash value */
     char name[1];		/* name is any string beginning here */
@@ -71,10 +71,12 @@ struct symstruct		/* symbol table entry format */
 
 /* prototypes */
 
+#ifndef P
 #ifdef __STDC__
 #define P(x)	x
 #else
 #define P(x)	()
+#endif
 #endif
 
 /* dump.c */
@@ -92,8 +94,8 @@ void openin P((char *filename));
 void openout P((char *filename));
 void putstr P((char *message));
 #ifdef OBJ_H
-void put08x P((offset_t num));
-void put08lx P((offset_t num));
+void put08x P((bin_off_t num));
+void put08lx P((bin_off_t num));
 #endif
 void putbstr P((unsigned width, char *str));
 void putbyte P((int ch));
@@ -116,7 +118,7 @@ void redefined P((char *name, char *message, char *archentry,
 		  char *deffilename, char *defarchentry));
 void reserved P((char *name));
 #ifdef OBJ_H
-void size_error P((int seg, offset_t count, offset_t size));
+void size_error P((int seg, bin_off_t count, bin_off_t size));
 #endif
 void undefined P((char *name));
 void usage P((void));
@@ -130,8 +132,8 @@ void objinit P((void));
 void readsyms P((char *filename, bool_pt trace));
 #ifdef OBJ_H
 void entrysym P((struct symstruct *symptr));
-offset_t readconvsize P((unsigned countindex));
-offset_t readsize P((unsigned count));
+bin_off_t readconvsize P((unsigned countindex));
+bin_off_t readsize P((unsigned count));
 unsigned segsizecount P((unsigned seg, struct modstruct *modptr));
 #endif
 

@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <time.h>
+#include <sys/times.h>
 
 /* MSDOS has it's own versions */
 #ifndef __MSDOS__
@@ -114,6 +115,18 @@ time_t *where;
    if( gettimeofday(&rv, (void*)0) < 0 ) return -1;
    if(where) *where = rv.tv_sec;
    return rv.tv_sec;
+}
+#endif
+
+/********************** Function times ************************************/
+
+#ifdef L_times
+clock_t times(buf)
+struct tms* buf;
+{
+   long rv;
+   __times(buf, &rv);
+   return rv;
 }
 #endif
 
@@ -359,6 +372,22 @@ unsigned int seconds;
 	return seconds - (time((void*)0) - start);
 }
 #endif
+
+#endif
+
+/********************** Function usleep ************************************/
+
+#ifdef L_usleep
+#include <sys/time.h>
+void
+usleep(useconds)
+unsigned long useconds;
+{
+        struct timeval timeout;
+        timeout.tv_sec = useconds%1000000L;
+        timeout.tv_usec = useconds/1000000L;
+        select(1, NULL, NULL, NULL, &timeout);
+}
 #endif
 
 /********************** THE END ********************************************/

@@ -8,7 +8,7 @@ endif
 
 OBJS		=as.o assemble.o error.o express.o \
 		 genbin.o genlist.o genobj.o gensym.o \
-		 macro.o mops.o pops.o readsrc.o \
+		 keywords.o macro.o mops.o pops.o readsrc.o \
 		 scan.o table.o typeconv.o
 
 all: as86
@@ -20,8 +20,8 @@ install: all
 	install -d $(LIBDIR)
 	install -m 755 as86 $(LIBDIR)
 
-typeconv.o: dummy
-	-cp -p ../ld/typeconv.o .
+# typeconv.o: dummy
+# 	-cp -p ../ld/typeconv.o .
 
 dummy:
 
@@ -37,6 +37,7 @@ genlist.o: const.h type.h address.h flag.h file.h globvar.h macro.h scan.h \
 	   source.h
 genobj.o: const.h type.h address.h file.h globvar.h
 gensym.o: const.h type.h flag.h file.h globvar.h
+keywords.o: const.h type.h globvar.h opcode.h
 macro.o: const.h type.h globvar.h scan.h macro.h
 mops.o: const.h type.h globvar.h opcode.h scan.h address.h
 pops.o: const.h type.h address.h flag.h globvar.h opcode.h scan.h

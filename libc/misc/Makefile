@@ -11,11 +11,18 @@ MOBJ=abs.o raise.o bcopy.o bzero.o bcmp.o index.o rindex.o remove.o creat.o
 ESRC=atexit.c
 EOBJ=on_exit.o atexit.o __do_exit.o
 
-OBJ=$(MOBJ) $(EOBJ) \
-    atoi.o atol.o ltoa.o ltostr.o \
-    ctype.o qsort.o bsearch.o rand.o lsearch.o getopt.o \
-    getenv.o putenv.o itoa.o cputype.o \
-    strtol.o popen.o system.o crypt.o
+GOBJ=atoi.o atol.o ltoa.o ltostr.o \
+     ctype.o qsort.o bsearch.o rand.o lsearch.o getopt.o \
+     itoa.o cputype.o strtol.o crypt.o
+
+UOBJ=getenv.o putenv.o popen.o system.o
+
+
+ifeq ($(PLATFORM),i86-DOS)
+OBJ=$(MOBJ) $(EOBJ) $(GOBJ)
+else
+OBJ=$(MOBJ) $(EOBJ) $(GOBJ) $(UOBJ)
+endif
 
 # No ELKS strtod() until BCC does 16 bit FP...
 ifeq ($(PLATFORM),i386-Linux)

@@ -7,51 +7,13 @@ static long bdataoffset;
 
 /* Copyright (C) 1994 Bruce Evans */
 
-#ifdef A_OUT_H
-# include A_OUT_H
-#else
-# ifdef BSD_A_OUT
-#  ifdef STANDARD_GNU_A_OUT
-#   include <a.out.h>
-#   define RELOC_INFO_SIZE 8	/* unportable bitfields - bcc doesn't pack */
-#  else
-#   include "bsd-a.out.h"
-#   define RELOC_INFO_SIZE (sizeof (struct relocation_info))
-#  endif
-#  define C_EXT N_EXT
-#  define C_STAT 0
-#  define n_was_name n_un.n_name
-#  define n_was_numaux n_other
-#  define n_was_other n_numaux
-#  define n_was_sclass n_type
-#  define n_was_strx n_un.n_strx
-#  define n_was_type n_desc
-# else /* not BSD_A_OUT */
-#  ifdef MSDOS
-#   include "a_out.h"
-#  else
-#   include "a.out.h"		/* maybe local copy of <a.out.h> for X-link */
-#  endif
-#  define n_was_name n_name
-#  define n_was_numaux n_numaux
-#  define n_was_other n_other
-#  define n_was_sclass n_sclass
-#  define n_was_strx n_value
-#  define n_was_type n_type
-# endif /* BSD_A_OUT */
-#endif
-
+#include "syshead.h"
+#include A_OUT_INCL
 #include "const.h"
 #include "obj.h"
 #include "type.h"
 #undef EXTERN
 #include "globvar.h"
-
-#ifdef STDC_HEADERS_MISSING
-void *memset P((void *s, int c, unsigned n));
-#else
-#include <string.h>
-#endif
 
 #ifdef EDOS
 # define FILEHEADERLENGTH 0
@@ -95,13 +57,13 @@ void *memset P((void *s, int c, unsigned n));
 #define memsizeof(struc, mem) sizeof(((struc *) 0)->mem)
 
 PRIVATE bool_t bits32;		/* nonzero for 32-bit executable */
-PRIVATE offset_t combase[NSEG];	/* bases of common parts of segments */
-PRIVATE offset_t comsz[NSEG];	/* sizes of common parts of segments */
+PRIVATE bin_off_t combase[NSEG];/* bases of common parts of segments */
+PRIVATE bin_off_t comsz[NSEG];	/* sizes of common parts of segments */
 PRIVATE fastin_t curseg;	/* current segment, 0 to $F */
-PRIVATE offset_t edataoffset;	/* end of data */
-PRIVATE offset_t endoffset;	/* end of bss */
-PRIVATE offset_t etextoffset;	/* end of text */
-PRIVATE offset_t etextpadoff;	/* end of padded text */
+PRIVATE bin_off_t edataoffset;	/* end of data */
+PRIVATE bin_off_t endoffset;	/* end of bss */
+PRIVATE bin_off_t etextoffset;	/* end of text */
+PRIVATE bin_off_t etextpadoff;	/* end of padded text */
 #ifdef BSD_A_OUT
 PRIVATE unsigned ndreloc;	/* number of data relocations */
 #endif
@@ -111,17 +73,17 @@ PRIVATE unsigned ntreloc;	/* number of text relocations */
 PRIVATE bool_t reloc_output;	/* nonzero to leave reloc info in output */
 #endif
 PRIVATE unsigned relocsize;	/* current relocation size 1, 2 or 4 */
-PRIVATE offset_t segadj[NSEG];	/* adjusts (file offset - seg offset) */
+PRIVATE bin_off_t segadj[NSEG];	/* adjusts (file offset - seg offset) */
 				/* depends on zero init */
-PRIVATE offset_t segbase[NSEG];	/* bases of data parts of segments */
+PRIVATE bin_off_t segbase[NSEG];/* bases of data parts of segments */
 PRIVATE char segboundary[9] = "__seg0DH";
 				/* name of seg boundary __seg0DL to __segfCH */
-PRIVATE offset_t segpos[NSEG];	/* segment positions for current module */
-PRIVATE offset_t segsz[NSEG];	/* sizes of data parts of segments */
+PRIVATE bin_off_t segpos[NSEG];	/* segment positions for current module */
+PRIVATE bin_off_t segsz[NSEG];	/* sizes of data parts of segments */
 				/* depends on zero init */
 PRIVATE bool_t sepid;		/* nonzero for separate I & D */
 PRIVATE bool_t stripflag;	/* nonzero to strip symbols */
-PRIVATE offset_t spos;		/* position in current seg */
+PRIVATE bin_off_t spos;		/* position in current seg */
 PRIVATE bool_t uzp;		/* nonzero for unmapped zero page */
 
 #ifdef EDOS
@@ -131,7 +93,7 @@ FORWARD char *idconvert P((struct entrylist *elptr, char *commandname));
 FORWARD void linkmod P((struct modstruct *modptr));
 FORWARD void linkrefs P((struct modstruct *modptr));
 FORWARD void padmod P((struct modstruct *modptr));
-FORWARD void setsym P((char *name, offset_t value));
+FORWARD void setsym P((char *name, bin_off_t value));
 FORWARD void symres P((char *name));
 FORWARD void setseg P((fastin_pt newseg));
 FORWARD void skip P((unsigned countsize));
@@ -140,7 +102,7 @@ FORWARD void writeheader P((char *commandname));
 #else
 FORWARD void writeheader P((void));
 #endif
-FORWARD void writenulls P((offset_t count));
+FORWARD void writenulls P((bin_off_t count));
 
 extern int doscomfile;
 
@@ -219,7 +181,7 @@ bool_pt arguzp;
     struct modstruct *modptr;
     fastin_t seg;
     unsigned sizecount;
-    offset_t tempoffset;
+    bin_off_t tempoffset;
 
     sepid = argsepid;
     bits32 = argbits32;
@@ -305,7 +267,7 @@ bool_pt arguzp;
 #endif			
 #endif
 			{
-			    tempoffset = roundup(symptr->value, 4, offset_t);
+			    tempoffset = ld_roundup(symptr->value, 4, bin_off_t);
 			    /* temp kludge quad alignment for 386 */
 			    symptr->value = comsz[seg = symptr->flags & SEGM_MASK];
 			    comsz[seg] += tempoffset;
@@ -322,8 +284,8 @@ bool_pt arguzp;
 
 		/* adjust sizes to even to get quad boundaries */
 		/* this should be specifiable dynamically */
-		segsz[seg] = roundup(segsz[seg], 4, offset_t);
-		comsz[seg] = roundup(comsz[seg], 4, offset_t);
+		segsz[seg] = ld_roundup(segsz[seg], 4, bin_off_t);
+		comsz[seg] = ld_roundup(comsz[seg], 4, bin_off_t);
 #endif
 		cptr += sizecount;
 	    }
@@ -342,7 +304,7 @@ bool_pt arguzp;
     etextpadoff = etextoffset = combase[0] + comsz[0];
     if (sepid)
     {
-	etextpadoff = roundup(etextoffset, 0x10, offset_t);
+	etextpadoff = ld_roundup(etextoffset, 0x10, bin_off_t);
 	segadj[1] += etextpadoff - bdataoffset;
     }
     else if (bdataoffset == 0)
@@ -360,9 +322,9 @@ bool_pt arguzp;
 	    if (tempoffset > 0x100)
 		fatalerror("direct page segment too large");
 	    if ((((segbase[seg] + tempoffset) ^ segbase[seg])
-		 & ~(offset_t) 0xFF) != 0)
+		 & ~(bin_off_t) 0xFF) != 0)
 		segpos[seg] = segbase[seg] = (segbase[seg] + 0xFF)
-					     & ~(offset_t) 0xFF;
+					     & ~(bin_off_t) 0xFF;
 	}
 	combase[seg] = segbase[seg] + segsz[seg];
 	segadj[seg] = segadj[seg - 1];
@@ -420,7 +382,14 @@ bool_pt arguzp;
     setsym("__etext", etextoffset);
     setsym("__edata", edataoffset);
     setsym("__end", endoffset = combase[NSEG - 1] + comsz[NSEG - 1]);
-    setsym("__segoff", (offset_t)(segadj[1]-segadj[0])/0x10);
+    setsym("__segoff", (bin_off_t)(segadj[1]-segadj[0])/0x10);
+    if( !bits32 )
+    {
+        if( etextoffset > 65535L )
+            fatalerror("text segment too large for 16bit");
+        if( endoffset > 65535L )
+            fatalerror("data segment too large for 16bit");
+    }
 
     openout(outfilename);
 #ifdef BSD_A_OUT
@@ -472,7 +441,7 @@ bool_pt arguzp;
 		    {
 #ifdef BSD_A_OUT
 			offtocn((char *) &extsym.n_was_strx,
-				(offset_t) stringoff, 4);
+				(bin_off_t) stringoff, 4);
 #else
 			strncpy((char *) extsym.n_was_name, symptr->name,
 				sizeof extsym.n_was_name);
@@ -511,7 +480,7 @@ bool_pt arguzp;
 		    }
 	    }
 #ifdef BSD_A_OUT
-	offtocn((char *) &extsym.n_was_strx, (offset_t) stringoff, 4);
+	offtocn((char *) &extsym.n_was_strx, (bin_off_t) stringoff, 4);
 	writeout((char *) &extsym.n_was_strx, 4);
 	for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	    if (modptr->loadflag)
@@ -615,7 +584,7 @@ struct modstruct *modptr;
     char buf[ABS_TEXT_MAX];
     int command;
     unsigned char modify;
-    offset_t offset;
+    bin_off_t offset;
     int symbolnum;
     struct symstruct **symparray;
     struct symstruct *symptr;
@@ -787,9 +756,9 @@ struct modstruct *modptr;
 PRIVATE void padmod(modptr)
 struct modstruct *modptr;
 {
-    offset_t count;
+    bin_off_t count;
     fastin_t seg;
-    offset_t size;
+    bin_off_t size;
     unsigned sizecount;
     char *sizeptr;
 
@@ -803,7 +772,7 @@ struct modstruct *modptr;
 
 	/* pad to quad boundary */
 	/* not padding in-between common areas which sometimes get into file */
-	if ((size = roundup(segpos[seg], 4, offset_t) - segpos[seg]) != 0)
+	if ((size = ld_roundup(segpos[seg], 4, bin_off_t) - segpos[seg]) != 0)
 	{
 	    setseg(seg);
 	    writenulls(size);
@@ -815,7 +784,7 @@ struct modstruct *modptr;
 
 PRIVATE void setsym(name, value)
 char *name;
-offset_t value;
+bin_off_t value;
 {
     struct symstruct *symptr;
 
@@ -861,7 +830,7 @@ fastin_pt newseg;
 PRIVATE void skip(countsize)
 unsigned countsize;
 {
-    writenulls((offset_t) readsize(countsize));
+    writenulls((bin_off_t) readsize(countsize));
 }
 
 #ifdef EDOS
@@ -870,7 +839,7 @@ PRIVATE void writeheader(commandname)
 char *commandname;
 {
     char buf[MAX_OFFSET_SIZE];
-    offset_t offset;
+    bin_off_t offset;
     unsigned headlength;
     char *name;
     struct entrylist *elptr;
@@ -977,7 +946,7 @@ PRIVATE void writeheader()
 	    offtocn((char *) &header.a_entry, page_size(),
 		    sizeof header.a_entry);
 #ifndef STANDARD_GNU_A_OUT
-	offtocn((char *) &header.a_total, (offset_t)
+	offtocn((char *) &header.a_total, (bin_off_t)
     	    (endoffset < 0x00010000L ? 0x00010000L : endoffset + 0x0008000L),
 		sizeof header.a_total);
 #endif
@@ -989,9 +958,12 @@ PRIVATE void writeheader()
 #endif /* MINIX */
 
 PRIVATE void writenulls(count)
-offset_t count;
+bin_off_t count;
 {
+    long lcount = count;
+    if( lcount < 0 )
+    	fatalerror("org command requires reverse seek");
     spos += count;
-    while (count--)
+    while (count-- > 0)
 	writechar(0);
 }

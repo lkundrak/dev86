@@ -141,6 +141,7 @@ PUBLIC void comment()
 }
 PUBLIC void ctoi()
 {
+#ifdef I80386
     if (i386_32)
     {
 	outmovzx();
@@ -148,6 +149,7 @@ PUBLIC void ctoi()
 	outncregname(BREG);
     }
     else
+#endif
     {
 	outxor();
 	outhiaccum();
@@ -345,12 +347,14 @@ PUBLIC void outword()
 }
 PUBLIC void sctoi()
 {
+#ifdef I80386
     if (i386_32)
     {
 	outmovsx();
 	outncregname(BREG);
     }
     else
+#endif
 	outnop1str("cbw");
 }
 PUBLIC void stoi()
@@ -592,7 +596,7 @@ PRIVATE seg_t segment;		/* current seg, depends on init to CSEG = 0 */
 
 PUBLIC void adc0()
 {
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
     {
 	adjcarry();
@@ -616,8 +620,12 @@ offset_t offset;
 store_pt reg;
 {
 #ifdef I8088
+#ifdef I80386
     if ((i386_32 && (uoffset_t) offset + 1 <= 2)  /* do -1 to 1 by dec/inc */
 	|| (!i386_32 && (uoffset_t) offset + 2 <= 4))	/* do -2 to 2  */
+#else
+    if ((uoffset_t) offset + 2 <= 4)	/* do -2 to 2  */
+#endif
     {
 	if (reg == ALREG)
 	    reg = AXREG;	/* shorter and faster */
@@ -673,7 +681,7 @@ store_pt reg;
 	    if ((store_t) reg != AXREG)
 #endif
 		bumplc();
-#ifdef I8088
+#ifdef I80386
 	    if (i386_32)
 		bumplc2();
 #endif
@@ -702,7 +710,7 @@ label_t label;
 #ifdef MC6809
     outcregname(LOCAL);
 #endif
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
 	bumplc2();
 #endif
@@ -726,8 +734,10 @@ offset_t offset;
 	outncimmadr((offset_t) (topbits >> (INT16BITSTO - CHBITSTO)));
 #else
 	outandac();
+#ifdef I80386
 	if (i386_32)
 	    bumplc2();
+#endif
 	outncimmadr(offset);
 	return;
 #endif
@@ -767,8 +777,10 @@ PUBLIC label_t casejump()
     outj1switch();
     outlabel(jtablelab = getlabel());
     outj2switch();
+#ifdef I80386
     if (i386_32)
 	bumplc2();
+#endif
 #endif
 #ifdef MC6809
     if (posindependent)
@@ -833,7 +845,7 @@ uoffset_t value;
     uoffset_t longlow;
 
     longlow = value & (uoffset_t) intmaskto;
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
 	defdword();
     else
@@ -1157,7 +1169,7 @@ store_pt reg;
 	if (reg != BREG)
 	{
 	    bumplc();
-#ifdef I8088
+#ifdef I80386
 	    if (i386_32)
 		bumplc2();
 #endif
@@ -1463,7 +1475,7 @@ PUBLIC void outimmed()
 PUBLIC void outjumpstring()
 {
     outop3str(jumpstring);
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
 	bumplc2();
 #endif
@@ -1571,7 +1583,7 @@ store_pt targreg;
 
 PUBLIC void sbc0()
 {
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
     {
 	adjcarry();
@@ -1624,7 +1636,7 @@ PUBLIC void slconst(shift, reg)
 value_t shift;
 store_pt reg;
 {
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
     {
 	if ((shift = (uvalue_t) shift % INT32BITSTO) != 0)
@@ -1675,7 +1687,7 @@ PUBLIC void srconst(shift, uflag)
 value_t shift;
 bool_pt uflag;
 {
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
     {
 	if ((shift = (uvalue_t) shift % INT32BITSTO) != 0)
@@ -1767,8 +1779,10 @@ PRIVATE void opregadr()
     outccname(opregstr);
     outindright();
     bumplc2();
+#ifdef I80386
     if (i386_32)
 	bumplc2();
+#endif
 #endif
 #ifdef MC6809
     outregname(OPREG);

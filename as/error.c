@@ -1,13 +1,8 @@
 /* error.c - error routines for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
-
-#ifdef STDC_HEADERS_MISSING
-char *strcpy P((char *s1, const char *s2));
-#else
-#include <string.h>
-#endif
 
 PRIVATE char *errormessage[] =
 {

@@ -28,5 +28,7 @@ typedef __u16 ino_t;
 typedef __u32 tcflag_t;
 typedef __u8  cc_t;
 
+typedef int   ptrdiff_t;
+
 #endif
 

@@ -18,7 +18,10 @@ typedef long double __long_double_t;
 #define	__STRING(x)	"x"
 
 #define __ptr_t char *
+
+#ifndef __HAS_NO_FLOATS__
 typedef double __long_double_t;
+#endif
 
 #endif
 

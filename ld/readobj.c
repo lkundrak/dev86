@@ -2,21 +2,13 @@
 
 /* Copyright (C) 1994 Bruce Evans */
 
+#include "syshead.h"
 #include "ar.h"			/* maybe local copy of <ar.h> for cross-link */
 #include "const.h"
 #include "byteord.h"
 #include "obj.h"
 #include "type.h"
 #include "globvar.h"
-
-#ifdef STDC_HEADERS_MISSING
-int strncmp P((const char *s1, const char *s2, unsigned n));
-char *strncpy P((char *dest, const char *src, unsigned n));
-unsigned long strtoul P((const char *s, char **endptr, int base));
-#else
-#include <stdlib.h>
-#include <string.h>
-#endif
 
 /*
    Linking takes 2 passes. The 1st pass reads through all files specified
@@ -42,7 +34,7 @@ FORWARD long readarheader P((char **parchentry));
 FORWARD unsigned readfileheader P((void));
 FORWARD void readmodule P((char *filename, char *archentry));
 FORWARD void reedmodheader P((void));
-FORWARD bool_pt redsym P((struct symstruct *symptr, offset_t value));
+FORWARD bool_pt redsym P((struct symstruct *symptr, bin_off_t value));
 FORWARD unsigned checksum P((char *string, unsigned length));
 FORWARD unsigned segbits P((unsigned seg, char *sizedesc));
 
@@ -93,7 +85,7 @@ bool_pt trace;
 		readmodule(stralloc(filename), archentry);
 		modlast->textoffset += filepos;
 	    }
-	    seekin(filepos += roundup(filelength, 2, long));
+	    seekin(filepos += ld_roundup(filelength, 2, long));
 	}
 	break;
     }
@@ -147,7 +139,7 @@ char *archentry;
 {
     struct symdstruct		/* to save parts of symbol before name known */
     {
-	offset_t dvalue;
+	bin_off_t dvalue;
 	flags_t dflags;
     };
     struct symdstruct *endsymdptr;
@@ -289,7 +281,7 @@ PRIVATE void reedmodheader()
 
 PRIVATE bool_pt redsym(symptr, value)
 register struct symstruct *symptr;
-offset_t value;
+bin_off_t value;
 {
     register struct redlist *rlptr;
     char class;
@@ -340,13 +332,13 @@ unsigned length;
     return sum;
 }
 
-PUBLIC offset_t readconvsize(countindex)
+PUBLIC bin_off_t readconvsize(countindex)
 unsigned countindex;
 {
     return readsize(convertsize[countindex]);
 }
 
-PUBLIC offset_t readsize(count)
+PUBLIC bin_off_t readsize(count)
 unsigned count;
 {
     char buf[MAX_OFFSET_SIZE];

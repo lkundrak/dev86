@@ -17,7 +17,7 @@ diff -ru ash-linux-0.2/Makefile ash/Makefile
  #	Makefile,v 1.7 1993/08/09 04:58:18 mycroft Exp
  
 +CC=bcc
-+CFLAGS=-DSHELL
++CFLAGS=-e -DSHELL
 +LDFLAGS=-s
 +
  PROG=	sh

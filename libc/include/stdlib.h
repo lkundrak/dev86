@@ -25,6 +25,22 @@ extern void srand __P ((unsigned int seed));
 extern long strtol __P ((const char * nptr, char ** endptr, int base));
 extern unsigned long strtoul __P ((const char * nptr,
 				   char ** endptr, int base));
+#ifndef __HAS_NO_FLOATS__
 extern double strtod __P ((const char * nptr, char ** endptr));
+#endif
+
+/* Returned by `div'.  */
+typedef struct
+  {
+    int quot;			/* Quotient.  */
+    int rem;			/* Remainder.  */
+  } div_t;
+
+/* Returned by `ldiv'.  */
+typedef struct
+  {
+    long int quot;		/* Quotient.  */
+    long int rem;		/* Remainder.  */
+  } ldiv_t;
 
 #endif /* __STDLIB_H */

@@ -1,6 +1,8 @@
 
 ifneq ($(TOPDIR),)
 include $(TOPDIR)/Make.defs
+
+# CFLAGS=$(CCFLAGS) -DBSD_A_OUT
 else
 CC=bcc
 LDFLAGS=-s

@@ -1,5 +1,6 @@
 /* genbin.c - binary code generation routines for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "address.h"
@@ -19,7 +20,8 @@ FORWARD void putbinoffset P((offset_t offset, count_t size));
 
 PUBLIC void binheader()
 {
-    if ((innum = binfil) != 0x0)
+#ifdef BINSYM
+    if ((outfd = binfil) != 0x0 && binmbuf_set && binmax >= binmin)
     {
 	writec(0x0);		/* binary header byte */
 #ifdef LONG_BINHEADER
@@ -30,13 +32,31 @@ PUBLIC void binheader()
 	writew((unsigned) (binfbuf = binmin));	/* program start */
 #endif
     }
+#else
+    if ( ( outfd = symfil ) && binmbuf_set && binmax >= binmin)
+    {
+        int sft;
+        writec('+'); writec(' ');
+	for(sft=SIZEOF_OFFSET_T*8-4; sft >= 0; sft-=4)
+           writec(hexdigit[(binmin>>sft) & 0xF]);
+	writesn(" ----- $start");
+
+        writec('+'); writec(' ');
+	for(sft=SIZEOF_OFFSET_T*8-4; sft >= 0; sft-=4)
+           writec(hexdigit[(binmax>>sft) & 0xF]);
+	writesn(" ----- $end");
+
+	binfbuf = binmin;	/* program start */
+    }
+#endif
 }
 
 /* write trailer to binary file */
 
 PUBLIC void bintrailer()
 {
-    if ((innum = binfil) != 0x0)
+#ifdef BINSYM
+    if ((outfd = binfil) != 0x0 && (pedata & UNDBIT) != UNDBIT && binmbuf_set)
     {
 	writec(0xFF);		/* binary trailer byte */
 	writew(0x0);		/* further trailer bytes */
@@ -46,6 +66,7 @@ PUBLIC void bintrailer()
 	writew(pedata & UNDBIT ? (unsigned) binmin : (unsigned) progent);
 #endif
     }
+#endif
 }
 
 /* generate binary code for current line */
@@ -168,16 +189,26 @@ opcode_pt ch;
 	}
 	else
 	{
+#if 0
 	    if (binfbuf > binmbuf)
-		error(BWRAP);	/* file buffer ahead of memory buffer */
-	    else
 	    {
-		innum = binfil;
+		error(BWRAP);	/* file buffer ahead of memory buffer */
+	    }
+	    else
+#endif
+	    {
+		outfd = binfil;
+		if( binfbuf != binmbuf)
+		    if( lseek(binfil, (long)(binmbuf-binfbuf), 1) < 0 )
+			error(BWRAP);
+		binfbuf = binmbuf;
+#if 0
 		while (binfbuf < binmbuf)
 		{
 		    writec(0x0);/* pad with nulls if file buffer behind */
 		    ++binfbuf;
 		}
+#endif
 		writec(ch);
 		binmbuf = ++binfbuf;
 	    }

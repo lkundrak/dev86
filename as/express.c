@@ -1,5 +1,6 @@
 /* express.c - expression handler for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "address.h"

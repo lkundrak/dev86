@@ -1,24 +1,11 @@
 /* gensym.c - generate symbol table for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "flag.h"
 #include "file.h"
 #include "globvar.h"
-
-#ifdef STDC_HEADERS_MISSING
-void *memset P((void *s, int c, unsigned n));
-int strcmp P((const char *s1, const char *s2));
-#else
-#include <string.h>
-#endif
-
-#ifdef POSIX_HEADERS_MISSING
-int write P((int fd, const void *buf, unsigned nbytes));
-#else
-#include <sys/types.h>
-#include <unistd.h>
-#endif
 
 FORWARD int printsym P((register struct sym_s *symptr, unsigned column));
 FORWARD void sort P((struct sym_s **array, struct sym_s **top,
@@ -37,9 +24,11 @@ PUBLIC void gensym()
     register struct sym_s **hashptr;
     unsigned label_count;	/* number of labels */
     unsigned labels_length;	/* length of all label strings */
-    unsigned label_stringptr;	/* offset of label str from start of file */
-    register struct sym_s *symptr;
     struct sym_s **symlptr;	/* start of symbol output list */
+    register struct sym_s *symptr;
+#ifdef BINSYM
+    unsigned label_stringptr;	/* offset of label str from start of file */
+#endif
 
     labels_length = label_count = 0;
 
@@ -71,7 +60,7 @@ sort_symbols:
     heapptr = (char *) (copytop = copyptr);
     if (list.global)
     {
-	innum = lstfil;
+	outfd = lstfil;
 	writenl();
 	writesn("Symbols:");
 	for (copyptr = symlptr, column = 0; copyptr < copytop;)
@@ -79,8 +68,37 @@ sort_symbols:
 	if (column != 0)
 	    writenl();
     }
-    if ((innum = symfil) != 0)
+    if ((outfd = symfil) != 0)
     {
+#ifndef BINSYM
+	for (copyptr = symlptr; copyptr < copytop;)
+	/* for (copyptr = spt; copyptr < spt_top;) */
+	{
+	    int sft;
+	    if((symptr = *copyptr++) == NUL_PTR ) continue;
+	    if( globals_only_in_obj &&
+	       !(symptr->type & EXPBIT)) continue;
+
+            writec(hexdigit[symptr->data & SEGM]);
+	    writec(' ');
+
+	    for(sft=SIZEOF_OFFSET_T*8-4; sft >= 0; sft-=4)
+               writec(hexdigit[(symptr->value_reg_or_op.value>>sft) & 0xF]);
+
+	    writec(' ');
+            writec(symptr->type & EXPBIT ? 'E' : '-');
+            writec(symptr->type & ENTBIT ? 'N' : '-');
+            writec(symptr->data & IMPBIT ? 'I' : '-');
+            writec(symptr->data & RELBIT ? 'R' : 'A');
+            writec(symptr->type & COMMBIT ? 'C' : '-');
+
+	    writec(' ');
+	    write(outfd, symptr->name, (unsigned) (symptr->length));
+
+	    /* printsym(*copyptr++, 0); */
+	    writenl();
+        }
+#else
 	writew(mapnum);
 	label_count *= 2;	/* now length of ptr table (2 bytes per ptr) */
 	label_stringptr = label_count + 6;
@@ -104,7 +122,7 @@ sort_symbols:
 	    symptr = *copyptr++;
 	    writew((unsigned) symptr->value_reg_or_op.value);
 	    writec(symptr->type);
-	    write(innum, symptr->name, (unsigned) (symptr->length - 1));
+	    write(outfd, symptr->name, (unsigned) (symptr->length - 1));
 	    writec(symptr->name[symptr->length - 1] | 0x80);
 	}
 	sort(symlptr, copyptr, FALSE);
@@ -114,6 +132,7 @@ sort_symbols:
 	    symptr = *copyptr++;
 	    writew((unsigned) symptr->next);	/* now has string position */
 	}
+#endif
     }
 }
 
@@ -137,7 +156,7 @@ unsigned column;
 	outname[length = SYMLIS_NAMELEN] = '+';
     }
     else
-	outname = (listptr->name + SYMLIS_NAMELEN) - length;
+	outname = listptr->name; /*(listptr->name + SYMLIS_NAMELEN) - length;*/
     symname = symptr->name;
     do
 	*outname++ = *symname++;

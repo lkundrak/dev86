@@ -9,7 +9,7 @@ LSRC=syslibc.c
 LOBJ=__cstartup.o time.o lseek.o getpid.o getppid.o 	\
      getuid.o geteuid.o getgid.o getegid.o 		\
      dup2.o dup.o abort.o wait.o waitpid.o sleep.o	\
-     killpg.o setpgrp.o getpgrp.o
+     killpg.o setpgrp.o getpgrp.o times.o usleep.o
 
 ESRC=execve.c
 EOBJ=execve.o execl.o execv.o execle.o

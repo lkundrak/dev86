@@ -724,8 +724,16 @@ PUBLIC void stringorcharconst()
 	if (ch == terminator)
 	{
 	    *charptr++ = terminator;
-	    gch1();
-	    break;
+
+	    /* This adds ansi string concatenation BUT only on one line */
+	    do { gch1(); } while(SYMOFCHAR(ch) == WHITESPACE);
+	    if( ch == terminator ) /* Hang on .. that's another string ... */
+	    {
+	       charptr--;	   /* Stick it together */
+	       gch1();
+	    }
+	    else
+	        break;
 	}
     }
 }

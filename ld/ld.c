@@ -2,27 +2,11 @@
 
 /* Copyright (C) 1994 Bruce Evans */
 
+#include "syshead.h"
 #include "const.h"
 #include "byteord.h"
 #include "type.h"
 #include "globvar.h"
-
-#ifdef STDC_HEADERS_MISSING
-extern int errno;
-char *strcat P((char *dest, const char *src));
-unsigned long strtoul P((const char *s, char **endptr, int base));
-#else
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#endif
-
-#ifdef POSIX_HEADERS_MISSING
-#define R_OK	0
-int access P((const char *path, int amode));
-#else
-#include <unistd.h>
-#endif
 
 #define MAX_LIBS	(NR_STDLIBS + 5)
 #ifdef MC6809

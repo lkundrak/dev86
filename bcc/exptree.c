@@ -13,7 +13,11 @@
 #include "sizes.h"
 #include "type.h"
 
+#ifdef __AS386_16__
+#define ETREESIZE 300
+#else
 #define ETREESIZE 1200
+#endif
 #define errtype itype
 #define redtype ctype
 #define uredtype uctype
@@ -96,7 +100,7 @@ register struct nodestruct *nodeptr;
 		nodeptr->right = castnode(nodeptr->nodetype, right);
 	}
     }
-#ifdef I8088
+#ifdef I80386
     else if (i386_32 && bothscalar & SHORT)
     {
 	nodeptr->nodetype = itype;
@@ -133,7 +137,11 @@ struct nodestruct *nodeptr;
 
 PRIVATE void etreefull()
 {
+#if ETREESIZE == 1200
     limiterror("expression too complex (1201 nodes)");
+#else
+    limiterror("expression too complex (ETREESIZE)");
+#endif
 }
 
 PUBLIC void etreeinit()
@@ -1043,7 +1051,7 @@ struct nodestruct *nodeptr;
 		nodeptr->right = castnode(rscalar & UNSIGNED
 					  ? ultype : targtype, right);
 	}
-#ifdef I8088
+#ifdef I80386
 	else if (i386_32 && lscalar & INT)
 	{
 	    if (rscalar & SHORT)

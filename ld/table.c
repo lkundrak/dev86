@@ -2,19 +2,12 @@
 
 /* Copyright (C) 1994 Bruce Evans */
 
+#include "syshead.h"
 #include "const.h"
 #include "align.h"
 #include "obj.h"
 #include "type.h"
 #include "globvar.h"
-
-#ifdef STDC_HEADERS_MISSING
-void *malloc P((unsigned size));
-char * strcpy P((char* dest, char* src));
-#else
-#include <stdlib.h>
-#include <string.h>
-#endif
 
 #define GOLDEN		157	/* GOLDEN/HASHTABSIZE approx golden ratio */
 #define HASHTABSIZE	256

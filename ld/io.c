@@ -2,41 +2,11 @@
 
 /* Copyright (C) 1994 Bruce Evans */
 
+#include "syshead.h"
 #include "const.h"
-#include "obj.h"		/* needed for LONG_OFFSETS and offset_t */
+#include "obj.h"		/* needed for LONG_OFFSETS and bin_off_t */
 #include "type.h"
 #include "globvar.h"
-#include <fcntl.h>
-
-#ifdef STDC_HEADERS_MISSING
-void exit P((int status));
-void *malloc P((unsigned size));
-#else
-#include <stdlib.h>
-#endif
-
-#ifdef POSIX_HEADERS_MISSING
-#define SEEK_SET	0
-#define STDOUT_FILENO	0
-#include <sys/types.h>
-#include <sys/stat.h>
-#define mode_t		unsigned short
-#define off_t		long
-int chmod P((const char *path, int mode));
-int close P((int fd));
-int creat P((const char *path, int mode));
-int fstat P((int fd, struct stat *statbuf));
-off_t lseek P((int fd, off_t offset, int whence));
-int open P((const char *path, int oflag, ...));
-int read P((int fd, void *buf, unsigned nbytes));
-mode_t umask P((int oldmask));
-int write P((int fd, const void *buf, unsigned nbytes));
-#else
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#endif
 
 #define DRELBUFSIZE	3072
 #define ERR		(-1)
@@ -44,9 +14,6 @@ int write P((int fd, const void *buf, unsigned nbytes));
 #define INBUFSIZE	1024
 #define OUTBUFSIZE	2048
 #define TRELBUFSIZE	1024
-#ifndef O_BINARY
-#define O_BINARY 0
-#endif
 
 #ifdef BSD_A_OUT
 PRIVATE char *drelbuf;		/* extra output buffer for data relocations */
@@ -81,7 +48,7 @@ FORWARD void flushout P((void));
 #ifdef BSD_A_OUT
 FORWARD void flushtrel P((void));
 #endif
-FORWARD void outhexdigs P((offset_t num));
+FORWARD void outhexdigs P((bin_off_t num));
 FORWARD void outputerror P((char *message));
 FORWARD void put04x P((unsigned num));
 FORWARD void putstrn P((char *message));
@@ -228,7 +195,7 @@ char *filename;
 }
 
 PRIVATE void outhexdigs(num)
-register offset_t num;
+register bin_off_t num;
 {
     if (num >= 0x10)
     {
@@ -250,7 +217,7 @@ register unsigned num;
 #ifdef LONG_OFFSETS
 
 PUBLIC void put08lx(num)
-register offset_t num;
+register bin_off_t num;
 {
     put04x(num / 0x10000);
     put04x(num % 0x10000);
@@ -259,7 +226,7 @@ register offset_t num;
 #else /* not LONG_OFFSETS */
 
 PUBLIC void put08x(num)
-register offset_t num;
+register bin_off_t num;
 {
     putstr("0000");
     put04x(num);
@@ -562,12 +529,12 @@ char *name;
 
 PUBLIC void size_error(seg, count, size)
 int seg;
-offset_t count;
-offset_t size;
+bin_off_t count;
+bin_off_t size;
 {
     refer();
     putstr("seg ");
-    outhexdigs((offset_t) seg);
+    outhexdigs((bin_off_t) seg);
     putstr(" has wrong size ");
     outhexdigs(count);
     putstr(", supposed to be ");

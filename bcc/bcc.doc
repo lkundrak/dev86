@@ -126,14 +126,14 @@ name		basename of the source name
 -0  start with 16-bit code segment
 -3  start with 32-bit code segment
 -a  enable partial compatibility with asld
--b  produce binary file, filename may follow (obsolete)
 -g  only put global symbols in object file
 -j  force all jumps to be long
 -l  produce list file, filename may follow
 -m  print macro expansions in listing
 -n  name of module follows (goes in object instead of source name)
 -o  produce object file, filename follows
--s  produce symbol file, filename follows (obsolete)
+-b  produce binary file, filename may follow
+-s  produce symbol file, filename follows
 -u  take undefined symbols as imported-with-unspecified segment
 -w  don't print warnings
 
@@ -141,6 +141,11 @@ The -u and -w options are perhaps back to front because they are needed for
 cc1 output and Minix's make does the wrong thing with .s files left around.
 However, all assembler code not written by compilers should assemble with
 them turned off.
+
+The -b flag now produces a 'raw' binary file with no header, if there's no
+-s flag the file starts at location 0. The -s generates an ASCII symbol
+table, if a binary file doesn't start at location zero the first two items
+are the start and end addresses of the binary file.
 
 ld options
 ----------

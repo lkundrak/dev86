@@ -1,9 +1,6 @@
-#define MAXLINE 256		/* when this is made bigger, fix pfcc not
-				 * to store the string length in a byte-
-				 * sized variable */
-
 /* readsrc.c - read source files for assembler */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "flag.h"
@@ -15,37 +12,26 @@
 #define EXTERN
 #include "source.h"
 
-#ifdef POSIX_HEADERS_MISSING
-#define O_RDONLY	0
-typedef long off_t;
-int close P((int fd));
-off_t lseek P((int fd, off_t offset, int whence));
-int open P((const char *path, int oflag, ...));
-int read P((int fd, void *buf, unsigned nbytes));
-#else
-#include <sys/types.h>
-#include <fcntl.h>
-#include <unistd.h>
+/*
+ * Ok, lots of hack & slash here.
+ * 1) Added BIG buffer to load entire _primary_ file into memory.
+ * 2) This means primay file can be standard input.
+ * 3) Fixed so 'get/include' processing now works.
+ * 4) Altered for a 'normal' style buffer otherwise (MINIBUF)
+ * 5) Have the option of completely unbuffered if you need the last Kb.
+ *
+ * RDB.
+ */
+
+#ifndef __AS386_16__
+#ifndef BIGBUFFER
+#define BIGBUFFER	1	/* For most machines we have the memory */
+#endif
 #endif
 
-struct fcbstruct		/* file control block structure */
-{
-    fd_t fd;			/* file descriptor */
-    char *lineptr;		/* current spot in line */
-    char *buf;			/* start of buffer (after partial line) */
-    char *first;		/* start of partial line before buf */
-    char *limit;		/* end of used part of input buffer */
-    int blocksize;		/* chars from last read and partial line flag */
-    struct fbufstruct *includer;/* buffer of file which included current one */
-};
-
-struct fbufstruct		/* file buffer structure */
-{
-    struct fcbstruct fcb;	/* status after opening an include sub-file */
-    char fpartline[MAXLINE + 1];/* buffer for partial line */
-    char fbuf[INBUFSIZE + 1];	/* buffer to read into */
-    char fname[1];		/* file name (variable length), 1 for null */
-};
+#ifndef MINIBUF
+#define MINIBUF		1	/* Add in a reasonable buffer */
+#endif
 
 struct get_s			/* to record included files */
 {
@@ -59,27 +45,27 @@ PRIVATE char hid_filnambuf[FILNAMLEN + 1];	/* buffer for file name */
 PRIVATE struct get_s hid_getstak[MAXGET];	/* GET stack */
 PRIVATE struct get_s *getstak;	/* ptr */
 
-PRIVATE struct fcbstruct input;	/* current input file control block */
-				/* input.lineptr is not kept up to date */
-				/* input.fd depends on zero init */
-PRIVATE struct fbufstruct xyz;
-PRIVATE struct fbufstruct *inputbuf;	/* current input file buffer */
-					/* its fcb only to date in includes */
+#if BIGBUFFER == 1
+PRIVATE char *mem_start, *mem_end;
+#endif
 
 PRIVATE char hid_linebuf[LINLEN];	/* line buffer */
+PRIVATE char *eol_ptr;
+
 PRIVATE char *maclinebuf;
 PRIVATE char *maclineptr;
+
+#if MINIBUF == 1
+PRIVATE void inp_seek P((int fd, long posn));
+PRIVATE long inp_tell P((int fd));
+PRIVATE int inp_line P((int fd, char * buf, int size));
+#endif
 
 FORWARD void clearsource P((void));
 FORWARD void line_too_long P((void));
 
 PRIVATE void clearsource()
 {
-    input.includer = inputbuf;
-    inputbuf = &xyz;
-    input.first = input.limit = input.buf = inputbuf->fbuf;
-    *(lineptr = linebuf = input.first - 1) = EOLCHAR;
-    input.blocksize = 0;
 }
 
 PRIVATE void line_too_long()
@@ -93,7 +79,7 @@ PRIVATE void line_too_long()
 PUBLIC void initsource()
 {
     filnamptr = hid_filnambuf;
-    getstak = hid_getstak + MAXGET;
+    getstak = hid_getstak;
     clearsource();		/* sentinel to invoke blank skipping */
 }
 
@@ -101,9 +87,67 @@ PUBLIC fd_t open_input(name)
 char *name;
 {
     fd_t fd;
+#if BIGBUFFER == 1
+    off_t filelength = -1;
 
-    if ((unsigned) (fd = open(name, O_RDONLY)) > 255)
+    if( mem_start == 0 && strcmp(name, "-") == 0 )
+       fd = 0;
+    else
+#endif
+    if ((unsigned) (fd = open(name, O_RDONLY|O_BINARY)) > 255)
 	as_abort("error opening input file");
+
+#if BIGBUFFER == 1
+    if( mem_start == 0 )
+    {
+	if(fd)
+	{
+	   struct stat st;
+	   if( fstat(fd, &st) >= 0 )
+	      filelength = st.st_size;
+	   if( filelength > (((unsigned)-1)>>1)-3 )
+	   {
+	      mem_end = mem_start = "\n\n";
+	      goto cant_do_this;
+ 	   }
+	}
+	if( filelength > 0 )
+	{
+	   if( (mem_start = malloc(filelength+2)) == 0 )
+	   {
+	      mem_end = mem_start = "\n\n";
+	      goto cant_do_this;
+ 	   }
+	   filelength = read(fd, mem_start, filelength);
+	}
+	else
+	{
+	   size_t memsize = 0;
+	   int cc;
+	   filelength = 0;
+
+	   for(;;)
+	   {
+	       if( filelength >= memsize )
+		   mem_start = realloc(mem_start, (memsize+=16000)+4);
+	       if(mem_start == 0)
+	           as_abort("Cannot allocate memory for BIG buffer");
+	       cc = read(fd, mem_start+filelength,
+	                     (size_t)(memsize-filelength));
+	       if( cc <= 0 ) break;
+	       filelength+=cc;
+	   }
+	}
+	*(mem_end=mem_start+filelength) = '\n';
+	mem_end[1] = '\0';
+
+	infiln = infil0 = 0;	/* Assemble from memory */
+	if(fd) close(fd);
+	fd = -1;
+    }
+cant_do_this:
+#endif
+
     clearsource();
     return fd;
 }
@@ -116,27 +160,36 @@ char *name;
 
 PUBLIC void pget()
 {
-#if OLD
     if (infiln >= MAXGET)
 	error(GETOV);
     else
     {
+	char save;
+
 	skipline();
 	listline();
+
+	getstak->fd = infil;
+	getstak->line = linum;
 	if (infiln != 0)
-	{
-	    --getstak;
-	    getstak->fd = infil;
-	    getstak->line = linum;
-	    getstak->position = lseek(infil, 0L, 1) - (inbufend - inbufptr);
-	    ++infiln;
-	    linum = 0;
-	    infil = open_input(lineptr - 1);
-	}
-    }
+#if MINIBUF == 1
+	    getstak->position = inp_tell(infil);
 #else
-    as_abort("get/include pseudo-op not implemented");
+	    getstak->position = lseek(infil, 0L, 1);
 #endif
+	else
+	    getstak->position = (off_t)eol_ptr;
+	++getstak;
+	++infiln;
+	linum = 0;
+
+	for(lineptr=symname; *lineptr != EOLCHAR; lineptr++)
+	   if( *lineptr <= ' ' ) break;
+	save = *lineptr; *lineptr = '\0';
+	infil = open_input(symname);
+	*lineptr = save;
+	getsym();
+    }
 }
 
 /* process end of file */
@@ -148,8 +201,6 @@ PUBLIC void pproceof()
 {
     if (infiln != 0)
 	close(infil);
-    if (lineptr == linebuf)
-	list.current = FALSE;	/* don't list line after last unless error */
     if (infiln == infil0)
 	/* all conditionals must be closed before end of main file (not GETs) */
     {
@@ -165,14 +216,21 @@ PUBLIC void pproceof()
     /* macros must be closed before end of all files */
     if (macload)
 	error(EOFMAC);
-    listline();			/* last line or line after last if error */
+    if (linebuf != lineptr)
+        listline();		/* last line or line after last if error */
     if (infiln != infil0)
     {
+	--getstak;
 	infil = getstak->fd;
 	linum = getstak->line;
-	if (--infiln != 0)
+	if (--infiln == 0)
+	    eol_ptr = (void*)getstak->position;
+	else
+#if MINIBUF == 1
+	    inp_seek(infil, getstak->position);
+#else
 	    lseek(infil, getstak->position, 0);
-	++getstak;
+#endif
     }
     else if (!pass)
     {
@@ -194,6 +252,8 @@ PUBLIC void pproceof()
 	    warn.current = FALSE;
 	if (infiln != 0)
 	    infil = open_input(filnamptr);
+        else
+	    eol_ptr=0;
 	binheader();
     }
     else
@@ -211,6 +271,8 @@ PUBLIC void pproceof()
 
 PUBLIC void readline()
 {
+    int cc = 0;
+
     listpre = FALSE;		/* not listed yet */
     if (maclevel != 0)
     {
@@ -285,56 +347,127 @@ PUBLIC void readline()
 	lineptr = maclineptr;
 	macflag = FALSE;
     }
-again:
-    ++linum;
-    ++lineptr;			/* if eof, this is input.limit + 1 */
-    if (input.blocksize != 0)	/* and this routine just resets eof */
-    {
-	if (lineptr < input.limit)	/* move back partial line */
-	{
-	    register char *col;
+    /* End of macro expansion processing */
 
-	    col = input.buf;
-	    while ((*--col = *--input.limit) != EOLCHAR)
-		;
-	    input.first = col + 1;
-	    ++input.limit;
-	    input.blocksize = 0;
-	}
-	else			/* may be non-terminated line, don't stop */
-	    lineptr = input.limit;
-    }
-    if (lineptr == input.limit)
+again:	/* On EOF for main or included files */
+    ++linum;
+
+#if BIGBUFFER == 1
+    if( infiln == 0 )
     {
-	lineptr = input.first;
-	input.blocksize = read(infil, input.buf, INBUFSIZE);
-	if (input.blocksize < 0)
-		as_abort("error reading input");
-	if (input.blocksize == 0)
-	{
-	    clearsource();
-	    pproceof();
-	    if (macload)
-	    {
-		symname = lineptr;
-		return;		/* macro not allowed across eof */
-	    }
-	    goto again;
-	}
-	input.first = input.buf;
-	*(input.limit = input.buf + input.blocksize) = EOLCHAR;
+       if( eol_ptr == 0 ) eol_ptr = mem_start-1;
+       else *eol_ptr = '\n';
+       linebuf = lineptr = eol_ptr + 1;
+       cc = (mem_end - linebuf);
+
+       /* memchr not strchr 'cause some implementations of strchr are like:
+	  memchr(x,y,strlen(x)); this is _BAD_ with BIGBUFFER
+	*/
+       if((eol_ptr = memchr(linebuf, '\n', cc)) == 0 && cc > 0)
+          cc = -1;
     }
-    linebuf = lineptr;
-    if (lineptr >= input.limit)
-	*(lineptr = input.limit = input.buf) = EOLCHAR;
+    else
+#endif
+    {
+       lineptr = linebuf = hid_linebuf;
+       *(hid_linebuf+sizeof(hid_linebuf)-2) = '\0';	/* Term */
+
+#if MINIBUF == 1
+       cc = inp_line(infil, linebuf, sizeof(hid_linebuf)-2);
+       if( cc >= 0 )
+          eol_ptr = linebuf+cc-1;
+#else
+       cc = read(infil, linebuf, sizeof(hid_linebuf)-2);
+       if( cc > 0 )
+       {
+          eol_ptr = memchr(linebuf, '\n', cc);
+	  if( eol_ptr == 0 )
+	     eol_ptr = hid_linebuf+sizeof(hid_linebuf)-2;
+	  else
+	     lseek(infil, (long)(eol_ptr+1-hid_linebuf)-cc, 1);
+       }
+#endif
+    }
+
+    if( cc <= 0 )
+    {
+        if( cc < 0 ) as_abort("error reading input");
+
+        clearsource();
+        pproceof();
+	listpre = FALSE;
+        if (macload)
+        {
+	    symname = lineptr;
+	    return;		/* macro not allowed across eof */
+        }
+        goto again;
+    }
+
+#if 0
+    *eol_ptr = 0;
+    printf("LINE:%s.\n", lineptr);
+#endif
+    *eol_ptr = EOLCHAR;
 }
 
 PUBLIC void skipline()
 {
-    register char *reglineptr;
-
-    reglineptr = lineptr - 1;
-    while (*reglineptr != EOLCHAR)
-	++reglineptr;
-    lineptr = reglineptr;
+    if(macflag)
+        lineptr = strchr(hid_linebuf, EOLCHAR);
+    else
+        lineptr = eol_ptr;
 }
+
+#if MINIBUF == 1
+PRIVATE char input_buf[1024];		/* input buffer */
+PRIVATE int  in_start=0, in_end=0;
+PRIVATE long ftpos = 0;
+PRIVATE int  lastfd = -1;
+
+PRIVATE int inp_line(fd, buf, size)
+int fd;
+char * buf;
+int size;
+{
+   int offt = 0;
+   if( fd!=lastfd ) inp_seek(-1, 0L);
+   for(;;)
+   {
+      if(in_start >= in_end)
+      {
+	 lastfd = -1;
+         ftpos = lseek(fd, 0L, 1);
+	 in_start = 0;
+         in_end = read(fd, input_buf, sizeof(input_buf));
+	 if( in_end <=0 ) return in_end;
+	 lastfd = fd;
+      }
+      if( (buf[offt++] = input_buf[in_start++]) == '\n' || offt >= size )
+         break;
+   }
+   return offt;
+}
+
+PRIVATE long inp_tell(fd)
+int fd;
+{
+   if( fd != lastfd )
+      return lseek(fd, 0L, 1);
+   else
+      return ftpos + in_start;
+}
+
+PRIVATE void inp_seek(fd, posn)
+int fd;
+long posn;
+{
+   if( lastfd != -1 )
+      lseek(lastfd, ftpos+in_start, 0);
+   lastfd = -1;
+   in_end = 0;
+   if( fd >= 0 )
+      lseek(fd, posn, 0);
+}
+
+#endif

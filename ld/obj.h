@@ -31,9 +31,9 @@
 #endif
 
 #ifdef MC6809			/* temp don't support alignment at all */
-# define roundup( num, boundary, type ) (num)
+# define ld_roundup( num, boundary, type ) (num)
 #else
-# define roundup( num, boundary, type ) \
+# define ld_roundup( num, boundary, type ) \
 	(((num) + ((boundary) - 1)) & (type) ~((boundary) - 1))
 #endif
 

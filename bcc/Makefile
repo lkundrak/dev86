@@ -2,7 +2,7 @@
 # bcc Makefile
 # $Id$
 #
-BCCDEFS=-DLOCALPREFIX="\"/usr\"" -DDEFARCH=0
+BCCDEFS=-DLOCALPREFIX="\"/usr/bcc\"" -DDEFARCH=0
 
 ifneq ($(TOPDIR),)
 include $(TOPDIR)/Make.defs
@@ -10,7 +10,7 @@ BCCDEFS=-DLOCALPREFIX="\"$(BCCHOME)\"" -DDEFARCH=0
 else
 CC=bcc
 CFLAGS=-Mf
-LDFLAGS=-s -M
+LDFLAGS=-s -Mf
 BINDIR=/usr/bin
 LIBDIR=/usr/lib/bcc
 endif
@@ -20,7 +20,7 @@ OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \
 	loadexp.o longop.o output.o preproc.o preserve.o scan.o softop.o \
 	state.o table.o type.o assign.o	
 
-all:	bcc bcc-cc1
+all:	bcc-cc1 bcc 
 
 install: all
 	install -d $(LIBDIR)

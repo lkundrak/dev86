@@ -352,10 +352,12 @@ static int elks_times(int bx,int cx,int dx,int di,int si)
 	struct tms t;
 	long clock_ticks=times(&t);
 	long *tp=ELKS_PTR(long, bx);
+	long *clkt=ELKS_PTR(long, cx);
 	*tp++=t.tms_utime;
 	*tp++=t.tms_stime;
 	*tp++=t.tms_cutime;
 	*tp=t.tms_cstime;
+	*clkt = clock_ticks;
 	return 0;	/* Should be clock_ticks */
 }
 
@@ -675,6 +677,9 @@ static int elks_termios(int bx,int cx,int dx,int di,int si)
    case 0x09: rv = ioctl(bx, TCSBRK, dx); break;
    case 0x0A: rv = ioctl(bx, TCXONC, dx); break;
    case 0x0B: rv = ioctl(bx, TCFLSH, dx); break;
+
+   case 0x11: rv = ioctl(bx, TIOCOUTQ, ELKS_PTR(void, dx)); break;
+   case 0x1B: rv = ioctl(bx, TIOCINQ, ELKS_PTR(void, dx)); break;
 
    default: rv = -1; errno = EINVAL; break;
    }

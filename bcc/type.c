@@ -179,7 +179,7 @@ struct typestruct *type;
 
 PUBLIC void typeinit()
 {
-#ifdef I8088
+#ifdef I80386
     if (i386_32)
     {
 	uitype->typesize =

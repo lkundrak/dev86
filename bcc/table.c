@@ -25,10 +25,18 @@
 #define GOLDEN 157		/* GOLDEN/HASHTABSIZE approx golden ratio */
 #define HASHTABSIZE 256
 #define MARKER ((unsigned) 0x18C396A5L)	/* lint everywhere it is used */
+#ifdef __AS386_16__
+#define MAXEXPR 125
+#else
 #define MAXEXPR 500
+#endif
 #define MAXLOCAL 100
 #define NKEYWORDS 35
+#ifdef NOFLOAT
+#define NSCALTYPES 10
+#else
 #define NSCALTYPES 12
+#endif
 #define STACKSPACE 256		/* punt for normal recursions - switch extra */
 
 struct keywordstruct
@@ -134,8 +142,10 @@ PRIVATE struct typedatastruct scaltypes[NSCALTYPES] =
     { "int", FALSE, UNSIGNED | INT, 2, &uitype, },
     { "long", TRUE, LONG | DLONG, 4, &ltype, },
     { "long", FALSE, UNSIGNED | LONG | DLONG, 4, &ultype, },
+#ifndef NOFLOAT
     { "float", TRUE, FLOAT, 4, &fltype, },
     { "double", TRUE, DOUBLE, 8, &dtype, },
+#endif
 };
 
 FORWARD struct symstruct *addkeyword P((char *name, sym_pt code));
@@ -419,7 +429,11 @@ struct symstruct *symptr;
 
     newsymptr = exprptr++;
     if (exprptr >= &exprsyms[MAXEXPR])
+#if MAXEXPR == 500
 	limiterror("expression too complex (501 symbols)");
+#else
+	limiterror("expression too complex (MAXEXPR)");
+#endif
     *newsymptr = *symptr;
     newsymptr->level = EXPRLEVEL;
     newsymptr->name.namep = symptr->name.namea;
