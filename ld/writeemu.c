@@ -9,14 +9,12 @@
  *       an as86 object file.
  */
 
-#ifdef BUGCOMPAT
+#undef  A_OUT_INCL
 #define A_OUT_INCL		"rel_aout.h"
 #define BSD_A_OUT		1
 #define FILEHEADERLENGTH	32
 #define ELF_SYMS		0
 
-#define FUNCNAME		write_rel
-#undef NO_AOUT
+#define FUNCNAME		write_dosemu
 
 #include "writebin.c"
-#endif

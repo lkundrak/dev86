@@ -5,7 +5,7 @@
 #include <string.h>
 
 #ifdef __STDC__		/* == Not braindead compiler (hopefully!) */
-#include <malloc.h>
+#include <stdlib.h>
 
 #define P(x) x
 #else
@@ -441,7 +441,7 @@ manifest_constant()
 #ifdef __linux__
    save_name("__linux__", 'D');
 #ifdef __i386__
-   save_name("__linux____i386__", 'D');
+   save_name("__linux_i386__", 'D');
 #endif
 #endif
 #ifdef __unix__
@@ -498,5 +498,8 @@ manifest_constant()
 /* This isn't much nicer */
 #ifdef __CYGWIN__
    save_name("__CYGWIN__", 'D');
+#endif
+#ifdef __APPLE__
+   save_name("__APPLE__", 'D');
 #endif
 }

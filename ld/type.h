@@ -144,6 +144,7 @@ char *ourmalloc P((unsigned nbytes));
 void ourfree P((char *cptr));
 char *readstring P((void));
 void release P((char *cptr));
+int memory_used P((void));
 char *stralloc P((char *s));
 
 /* typeconvert.c */
@@ -161,7 +162,7 @@ bool_pt typeconv_init P((bool_pt big_endian, bool_pt long_big_endian));
 void writebin P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
 		 bool_pt argstripflag, bool_pt arguzp));
 
-void write_rel P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
+void write_dosemu P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
 		 bool_pt argstripflag, bool_pt arguzp));
 
 /* write_elks.c */

@@ -1,22 +1,19 @@
 
-#if defined(__i386__) || defined(__8086__) || defined(__i386)
-#ifndef MSDOS
-#ifndef NO_AOUT
-/* Ok, I'm just gonna make it simple ... override this if you like. */
-#ifndef A_OUT_INCL
-#define A_OUT_INCL	"a.out.h"
+/* Only do native on Linux/i386 by default -- it's safer. */
+#ifndef DETECTAOUT
+#if defined(__i386__) && defined(__linux__)
+#define DETECTAOUT
+#else
+# ifdef A_OUT_INCL
+# define DETECTAOUT
+# endif
+#endif
 #endif
 
-/* This is how it used to be ... */
+#ifdef DETECTAOUT
+/* Ok, I'm just gonna make it simple ... override this if you like. */
 #ifndef A_OUT_INCL
-# ifdef BSD_A_OUT
-#  ifdef STANDARD_GNU_A_OUT
-#   define A_OUT_INCL <a.out.h>
-#  else
-#   define A_OUT_INCL "bsd-a.out.h"
-#  endif
-#  define A_OUT_INCL "a.out.h"	/* maybe local copy of <a.out.h> for X-link */
-# endif /* BSD_A_OUT */
+#define A_OUT_INCL 	<a.out.h>
 #endif
 
 #include A_OUT_INCL
@@ -76,5 +73,3 @@
 #endif
 
 #endif /* NO_AOUT */
-#endif /* MSDOS */
-#endif /* CPU type */

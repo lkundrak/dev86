@@ -615,11 +615,11 @@ PUBLIC void usage()
 #ifdef REL_OUTPUT
     errexit("\
  [-03NMdimrstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
-       [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] [-H heapsize] infile...");
+       [-Llibdir] [-Olibfile] [-Ttextaddr] [-Ddataaddr] [-Hheapsize] infile...");
 #else
     errexit("\
  [-03NMdimstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
-       [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] [-H heapsize] infile...");
+       [-Llibdir] [-Olibfile] [-Ttextaddr] [-Ddataaddr] [-Hheapsize] infile...");
 #endif
 }
 

@@ -105,16 +105,10 @@ char **argv;
 	    case 'v':
 	       version_msg();
 	    case 'r':		/* relocatable output */
-#ifndef REL_OUTPUT
-#ifndef MSDOS
-		/* Ok, try for an alternate linker */
-		if( strcmp(argv[0], "ld86r") != 0 )
-		{
-		   argv[0] = "ld86r";
-	           execv("/usr/bin/ld86r", argv);
-		}
-#endif
-		usage();
+	    case 't':		/* trace modules linked */
+	       if (icount > 0) usage();
+#ifdef REL_OUTPUT
+	    case 'B':		/* Broken -r for dosemu. */
 #endif
 	    case '0':		/* use 16-bit libraries */
 	    case '3':		/* use 32-bit libraries */
@@ -122,7 +116,6 @@ char **argv;
 	    case 'i':		/* separate I & D output */
 	    case 'm':		/* print modules linked */
 	    case 's':		/* strip symbols */
-	    case 't':		/* trace modules linked */
 	    case 'z':		/* unmapped zero page */
 	    case 'N':		/* Native format a.out */
 	    case 'd':		/* Make a headerless outfile */
@@ -209,22 +202,21 @@ char **argv;
 		usage();
 	    }
     }
-    if(icount==0) fatalerror("no input files");
+    if(icount==0) usage();
+
+#ifdef BUGCOMPAT
+    if( icount==1 && ( flag['r'] && !flag['N'] ) ) {
+       flag['r'] = 0;
+       flag['B'] = 1;
+    }
+#endif
 
 #ifdef REL_OUTPUT
 #ifndef MSDOS
-#ifdef BUGCOMPAT
-    if( icount>1 && ( flag['r'] && !flag['N'] ) )
-#else
     if( flag['r'] && !flag['N'] )
-#endif
     {
-       /* Ok, try for an alternate linker */
-       if( strcmp(argv[0], "ld86r") != 0 )
-       {
-	  argv[0] = "ld86r";
-	  execv("/usr/bin/ld86r", argv);
-       }
+       /* Do a relocatable link -- actually fake it with 'ar.c' */
+       ld86r(argc, argv);
     }
 #endif
 #endif
@@ -249,7 +241,7 @@ char **argv;
     if ( cpm86 ) flag['s'] = 1;
 #endif
 
-    linksyms(flag['r']);
+    linksyms(flag['r'] | flag['B']);
     if (outfilename == NUL_PTR)
 	outfilename = "a.out";
 #ifndef MSDOS
@@ -258,12 +250,10 @@ char **argv;
 	     flag['z'] & flag['3']);
     else
 #endif
-#ifdef BUGCOMPAT
-       if( flag['r'] )
-          write_rel(outfilename, flag['i'], flag['3'], flag['s'],
-	     flag['z'] & flag['3']);
+    if( flag['B'] )
+       write_dosemu(outfilename, flag['i'], flag['3'], flag['s'],
+	  flag['z'] & flag['3']);
     else
-#endif
        write_elks(outfilename, flag['i'], flag['3'], flag['s'],
 	     flag['z'], flag['y']);
     if (flag['m'])

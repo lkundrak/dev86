@@ -27,7 +27,7 @@ MAKEX=
 # files. This should be fine for Linux, but it won't be for AIX etc.
 # Unfortunatly it's even _required_ for linux because some versions
 # of Redhat have a broken standard ar command.
-#ifdef __linux__
+#ifdef __linux_i386__
 AR=ar86
 #endif
 
@@ -68,21 +68,22 @@ BCCARCH =-Mf -O
 #endif
 #endif
 
-# Alter these if for some reason you don't want this done as root.
-#ifdef __CYGWIN__
-INDAT=-m 644
-INEXE=-m 755
-INSCR=-m 755
-#else
-#ifdef __BCC__
-INDAT=-o root -g root -m 644
-INEXE=-o root -g root -m 755
-INSCR=-o root -g root -m 755
-#else
+# Apple cpp-precomp 6.14 (devkit-213/devkit_tools-214) cannot
+# handle the QUOT macro in bcc. It puts a space in /usr so that
+# it becomes / usr
+#ifdef __APPLE__
+CFLAGS += -no-cpp-precomp
+#endif
+
+# Yet again other systems have general weirdness here.
+#ifdef __linux__
 INDAT=-o root -g root -m 644
 INEXE=-o root -g root -m 755 -s
 INSCR=-o root -g root -m 755
-#endif
+#else
+INDAT=-m 644
+INEXE=-m 755
+INSCR=-m 755
 #endif
 
 #ifdef __CYGWIN__
@@ -188,13 +189,9 @@ objdump86: bindir
 elksemu: bindir
 #ifndef __AS386_16__
 #ifdef __linux_i386__
-	$(MAKEC) elksemu \
-	CC='$(CC)' PREFIX=$(PREFIX) LIBPRE='$(LIBPRE)' LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' \
-	elksemu
-#else
 	$(MAKEC) elksemu CC='ncc' elksemu
-#endif
 	cp -p elksemu/elksemu bin/elksemu
+#endif
 #endif
 
 install-ln: bcc cpp unproto copt as86 ar86 ld86 elksemu
@@ -205,7 +202,9 @@ install-ln: bcc cpp unproto copt as86 ar86 ld86 elksemu
 	ln -fs `pwd`/bin/ar86 		$(DISTBIN)/ar86
 	ln -fs `pwd`/bin/ld86 		$(DISTBIN)/ld86
 #ifndef __AS386_16__
+#ifdef __linux_i386__
 	ln -fs `pwd`/bin/elksemu 	$(DIST)/lib/elksemu
+#endif
 #endif
 	-install -d $(DIST)/usr/lib
 	-install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
@@ -231,8 +230,10 @@ install-bcc: bcc cpp unproto copt as86 ar86 ld86 objdump86
 # NB: This doesn't install as a suid root, that's ok though.
 install-emu: elksemu
 #ifndef __AS386_16__
+#ifdef __linux_i386__
 	install -d $(DIST)/lib
 	install $(INEXE) bin/elksemu 	$(DIST)/lib/elksemu
+#endif
 #endif
 
 install-man:
@@ -287,10 +288,11 @@ lib-bsd: bindir
 
 #ifdef __AS386_16__
 alt-libs: lib-stand lib-dos lib-fast 
+	@touch lib/lib1-done
 #else
 alt-libs: lib-stand lib-dos lib-386 lib-fast 
-#endif
 	@touch lib/lib1-done
+#endif
 
 lib-fast: bindir
 	test -f bin/ncc

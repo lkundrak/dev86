@@ -15,7 +15,7 @@
    You should have received a copy of the GNU General Public License
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
-
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,11 +29,11 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/errno.h>
+#include <errno.h>
 #include "ar.h"
 #include "rel_aout.h"
 
-#ifdef __BCC__
+#if defined(__BCC__) || defined(__HP_cc)
 #define HAVE_RENAME
 #undef  HAVE_FSYNC
 #define SHORT_FILENAME

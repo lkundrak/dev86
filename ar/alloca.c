@@ -6,7 +6,7 @@
 #include <string.h>
 #endif
 
-#ifdef __TINYC__
+#if defined(__TINYC__) || defined(__HP_cc)
 typedef union mem_cell
 {
    union mem_cell *next;	/* A pointer to the next mem */

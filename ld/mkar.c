@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -9,25 +10,12 @@
 #include <malloc.h>
 #endif
 
-#define ARMAG "!<arch>\n"
-#define SARMAG 8
-#define ARFMAG "`\n"
+#include "ar.h"
 
-struct ar_hdr {
-	char	ar_name[16],
-		ar_date[12],
-		ar_uid[6],
-		ar_gid[6],
-		ar_mode[8],
-		ar_size[10],
-		ar_fmag[2];
-} arbuf;
+static struct ar_hdr arbuf;
 
 void
-fatal(char * str) { fprintf(stderr, "%s\n", str); exit(2); }
-
-void
-main(int argc, char ** argv)
+ld86r(int argc, char ** argv)
 {
 char buf[128];
    FILE * fd, * ifd;
@@ -45,15 +33,15 @@ char buf[128];
    }
 
    if( libarg == 0 || got_o > 1 || need_o > got_o )
-      fatal("Err, what's the output gonna be called?");
+      fatalerror("-o option required for -r");
 
-   if( (fd =fopen(argv[libarg], "wb")) == 0 ) fatal("Cannot open archive");
-   if( fwrite(ARMAG, 1, SARMAG, fd) != SARMAG)  fatal("Cannot write magic");
+   if( (fd =fopen(argv[libarg], "wb")) == 0 ) fatalerror("Cannot open archive");
+   if( fwrite(ARMAG, 1, SARMAG, fd) != SARMAG)  fatalerror("Cannot write magic");
 
    for(ar=1; ar<argc; ar++) if( ar != libarg && argv[ar][0] != '-' )
    {
       char * ptr;
-      if( stat(argv[ar], &st) < 0 ) fatal("Cannot stat object");
+      if( stat(argv[ar], &st) < 0 ) fatalerror("Cannot stat object");
       if((ptr=strchr(argv[ar], '/'))) ptr++; else ptr=argv[ar];
       memset(&arbuf, ' ', sizeof(arbuf));
       strcpy(buf, ptr); strcat(buf, "/                 ");
@@ -67,19 +55,19 @@ char buf[128];
       memcpy(arbuf.ar_fmag, ARFMAG, sizeof(arbuf.ar_fmag));
 
       if( fwrite(&arbuf, 1, sizeof(arbuf), fd) != sizeof(arbuf) )
-         fatal("Cannot write header");
+         fatalerror("Cannot write header");
 
       ptr = malloc(st.st_size+2);
-      if( ptr == 0 ) fatal("Out of memory");
+      if( ptr == 0 ) fatalerror("Out of memory");
       ptr[st.st_size] = ' ';
-      if( (ifd = fopen(argv[ar], "rb")) == 0 ) fatal("Cannot open input");
+      if( (ifd = fopen(argv[ar], "rb")) == 0 ) fatalerror("Cannot open input");
       if( fread(ptr, 1, st.st_size, ifd) != st.st_size )
-         fatal("Cannot read input file");
+         fatalerror("Cannot read input file");
       fclose(ifd);
 
       if( st.st_size&1 ) st.st_size++;
       if( fwrite(ptr, 1, st.st_size, fd) != st.st_size )
-         fatal("Cannot write output file");
+         fatalerror("Cannot write output file");
    }
    fclose(fd);
    exit(0);

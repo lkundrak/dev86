@@ -3,12 +3,6 @@
 
 /* Copyright (C) 1994 Bruce Evans */
 
-#ifndef NO_AOUT
-#ifndef A_OUT_INCL
-#define A_OUT_INCL <a.out.h>
-#endif
-#endif
-
 #include "syshead.h"
 #include "bindef.h"
 #include "const.h"

@@ -3,31 +3,28 @@
 #if __STDC__
 #include <stdlib.h>
 #include <locale.h>
-#endif
-#ifndef __CYGWIN__
-#include <ctype.h>
 #else
-#include "cygwin.c"
-#endif
-#include <string.h>
 #include <malloc.h>
+#endif
+#include <ctype.h>
+#include <string.h>
 #include <time.h>
 
 #include "cc.h"
 
 #define MAXINCPATH	5
 
-int main _P((int argc, char ** argv));
-void undefine_macro _P((char * name));
-void define_macro _P((char * name));
-void print_toks_cpp _P((void));
-void print_toks_raw _P((void));
-void define_macro _P((char *));
-void undefine_macro _P((char *));
-void cmsg _P((char * mtype, char * str));
-char * token_txn _P((int));
-void pr_indent _P((int));
-void hash_line _P((void));
+int main P((int argc, char ** argv));
+void undefine_macro P((char * name));
+void define_macro P((char * name));
+void print_toks_cpp P((void));
+void print_toks_raw P((void));
+void define_macro P((char *));
+void undefine_macro P((char *));
+void cmsg P((char * mtype, char * str));
+char * token_txn P((int));
+void pr_indent P((int));
+void hash_line P((void));
 
 char * include_paths[MAXINCPATH];
 

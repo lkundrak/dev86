@@ -16,7 +16,11 @@ PRIVATE struct symstruct *hashtab[HASHTABSIZE];	/* hash table */
 PRIVATE char *tableptr;		/* next free spot in catchall table */
 PRIVATE char *tableend;		/* ptr to spot after last in table */
 
+PUBLIC  int maxused = 0;	/* Stats */
+PRIVATE int mainavail, usedtop;	/* Stats */
+
 FORWARD struct symstruct **gethashptr P((char *name));
+FORWARD void check_used P((void));
 
 /* initialise symbol table */
 
@@ -33,6 +37,9 @@ PUBLIC void syminit()
     tableend = tableptr + i;
     for (i = 0; i < HASHTABSIZE; i++)
 	hashtab[i] = NUL_PTR;
+
+    mainavail = tableend - tableptr;
+    usedtop = 0;
 }
 
 /* add named symbol to end of table - initialise only name and next fields */
@@ -130,6 +137,9 @@ unsigned nbytes;
     register char *source;
     register char *target;
 
+    usedtop   += nbytes;
+    mainavail -= nbytes;
+
     source = tableptr;
     target = tableend;
     while (nbytes--)
@@ -157,7 +167,9 @@ unsigned nbytes;
 PUBLIC void ourfree(cptr)
 char *cptr;
 {
+    check_used();
     tableptr = cptr;
+    check_used();
 }
 
 /* read string from file into table at offset suitable for next symbol */
@@ -172,6 +184,7 @@ PUBLIC char *readstring()
     start = s = ((struct symstruct *) tableptr)->name;
     while (TRUE)
     {
+        /* Stats: need a checkused against 's', maybe. */
 	if (s >= tableend)
 	    outofmemory();
 	if ((c = readchar()) < 0)
@@ -187,7 +200,25 @@ PUBLIC char *readstring()
 PUBLIC void release(cptr)
 char *cptr;
 {
+    check_used();
+    mainavail += cptr - tableend;
+    usedtop -= cptr - tableend;
+
     tableend = cptr;
+}
+
+PRIVATE void check_used()
+{
+   int used;
+
+   used = usedtop + mainavail - (tableend - tableptr);
+   if (used > maxused) maxused = used;
+}
+
+PUBLIC int memory_used()
+{
+   check_used();
+   return maxused;
 }
 
 /* allocate space for string */

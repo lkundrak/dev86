@@ -3,6 +3,11 @@ For version 0.16.*.
 > More changes so it compiles better on 'other' machines. 
   Removed some GNU-Make'isms in the top header file.
 
+> It seems that CYGWin's problem with _P is inherited from BSD. It also
+  seems most of my problems come from BSD recently, haven't they realised
+  that they down own the 'Unix Standard' anymore and haven't since SYSV
+  got popular.
+
 > Some changes for cygwin, it isn't quite as nasty as compiling for minix
   but it doesn't miss by much!
 

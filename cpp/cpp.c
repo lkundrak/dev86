@@ -1,9 +1,10 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <malloc.h>
 #ifdef __STDC__
 #include <stdlib.h>
+#else
+#include <malloc.h>
 #endif
 #include "cc.h"
 
@@ -92,26 +93,26 @@ struct arg_store {
    int  in_define;
 };
 
-static int  chget _P((void));
-static int  chget_raw _P((void));
-static void unchget _P((int));
-static int  gettok_nosub _P((void));
-static int  get_onetok _P((int));
-static int  pgetc _P((void));
-static int  do_preproc _P((void));
-static int  do_proc_copy_hashline _P((void));
-static int  do_proc_if _P((int));
-static void do_proc_include _P((void));
-static void do_proc_define _P((void));
-static void do_proc_undef _P((void));
-static void do_proc_else _P((void));
-static void do_proc_endif _P((void));
-static void do_proc_tail _P((void));
-static int  get_if_expression _P((void));
-static int_type get_expression _P((int));
-static int_type get_exp_value _P((void));
-static void gen_substrings _P((char *, char *, int));
-static char * insert_substrings _P((char *, struct arg_store *, int));
+static int  chget P((void));
+static int  chget_raw P((void));
+static void unchget P((int));
+static int  gettok_nosub P((void));
+static int  get_onetok P((int));
+static int  pgetc P((void));
+static int  do_preproc P((void));
+static int  do_proc_copy_hashline P((void));
+static int  do_proc_if P((int));
+static void do_proc_include P((void));
+static void do_proc_define P((void));
+static void do_proc_undef P((void));
+static void do_proc_else P((void));
+static void do_proc_endif P((void));
+static void do_proc_tail P((void));
+static int  get_if_expression P((void));
+static int_type get_expression P((int));
+static int_type get_exp_value P((void));
+static void gen_substrings P((char *, char *, int));
+static char * insert_substrings P((char *, struct arg_store *, int));
 
 int
 gettok()

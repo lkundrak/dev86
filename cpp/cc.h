@@ -1,16 +1,16 @@
 
-#ifndef _P
+#ifndef P
 #if __STDC__
-#define _P(x) x
+#define P(x) x
 #else
-#define _P(x) ()
+#define P(x) ()
 #endif
 #endif
 
-extern void cfatal _P((char*));
-extern void cerror _P((char*));
-extern void cwarn _P((char*));
-extern FILE * open_include _P((char*, char*, int));
+extern void cfatal P((char*));
+extern void cerror P((char*));
+extern void cwarn P((char*));
+extern FILE * open_include P((char*, char*, int));
 
 extern FILE * curfile;
 extern char   curword[];
@@ -22,11 +22,11 @@ extern int    dialect;
 #define DI_KNR	1
 #define DI_ANSI	2
 
-extern int gettok _P((void));
+extern int gettok P((void));
 
 struct token_trans { char * name; int token; };
-struct token_trans * is_ctok _P((const char *str, unsigned int len));
-struct token_trans * is_ckey _P((const char *str, unsigned int len));
+struct token_trans * is_ctok P((const char *str, unsigned int len));
+struct token_trans * is_ckey P((const char *str, unsigned int len));
 
 #define WORDSIZE	128
 #define TK_WSPACE	256
@@ -101,8 +101,8 @@ struct token_trans * is_ckey _P((const char *str, unsigned int len));
 #define MAX_INCLUDE 64	/* Nested includes */
 #define MAX_DEFINE  64	/* Nested defines */
 
-extern char * set_entry _P((int,char*,void*));
-extern void * read_entry _P((int,char*));
+extern char * set_entry P((int,char*,void*));
+extern void * read_entry P((int,char*));
 
 struct define_item
 {

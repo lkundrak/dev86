@@ -16,11 +16,12 @@
  */
 
 #include <stdio.h>
-#include <malloc.h>
-#include <string.h>
 #ifdef __STDC__
 #include <stdlib.h>
+#else
+#include <malloc.h>
 #endif
+#include <string.h>
 #include "ar.h"
 #include "obj.h"
 
@@ -36,6 +37,7 @@ char * ifname;
 long get_long _((void));
 long get_sized _((int sz));
 unsigned int get_word _((void));
+int get_byte _((void));
 int main _((int argc, char**argv));
 void do_file _((char * fname));
 long read_arheader _((char *archentry));
@@ -44,6 +46,8 @@ int error _((char * str));
 int read_objheader _((void));
 int read_sectheader _((void));
 int read_syms _((void));
+void disp_sectheader _((void));
+int disp_syms _((void));
 void read_databytes _((void));
 void hex_output _((int ch));
 void fetch_aout_hdr _((void));
@@ -51,14 +55,24 @@ void dump_aout _((void));
 void size_aout _((void));
 void nm_aout _((void));
 
+int  obj_ver;
 int  sections;
 long segsizes[16];
-long textoff, textlen;
-long str_off, str_len;
+long textoff;
+long textlen;
+long str_off;
+long str_len;
 long filepos;
+int  num_syms;
+long code_bytes;
 
 char ** symnames;
-char *  symtab;
+char *  strtab;
+
+struct {
+   unsigned int nameoff, symtype;
+   long offset;
+} *symtab;
 
 int display_mode = 0;
 int multiple_files = 0;
@@ -177,7 +191,7 @@ do_module(fname, archive)
 char * fname;
 char * archive;
 {
-   int  modno, i, ch;
+   int  modno, i;
 
    size_text = size_data = size_bss = 0;
    byte_order = 0;
@@ -209,6 +223,14 @@ char * archive;
 
 	 if( read_syms() < 0 ) break;
 
+	 strtab = malloc((unsigned int)str_len+1);
+	 if( strtab == 0 ) { error("Out of memory"); break; }
+	 str_off = ftell(ifd);
+	 fread(strtab, 1, (unsigned int)str_len, ifd);
+
+	 disp_sectheader();
+	 disp_syms();
+
          if( display_mode == 0 )
             printf("text\tdata\tbss\tdec\thex\tfilename\n");
          if( display_mode != 2 )
@@ -227,20 +249,6 @@ char * archive;
 
 	 read_databytes();
       }
-      if( !archive && !display_mode )
-      {
-         i=0;
-         while( (ch=getc(ifd)) != EOF )
-         {
-            if( i == 0 )
-	    {
-	       printf("TRAILER\n");
-	       i=1;
-	    }
-            hex_output(ch);
-         }
-         hex_output(EOF);
-      }
       break;
 
    case 1: /* ELKS executable */
@@ -256,9 +264,9 @@ char * archive;
       break;
    }
 
-   if( symtab ) free(symtab);
+   if( strtab ) free(strtab);
    if( symnames ) free(symnames);
-   symtab = 0;
+   strtab = 0;
    symnames = 0;
 }
 
@@ -306,32 +314,16 @@ read_objheader()
 int
 read_sectheader()
 {
-   long ssenc, cpos;
-   int i, ver;
+   long ssenc;
+   int i;
 
-   textoff = get_long(); textlen = get_long();
-   str_len=get_word(); str_off=textoff-str_len;
-   ver = get_word();
+   textoff = get_long();	/* Offset of bytecode in file */
+   textlen = get_long();	/* Length of text+data (no bss) in memory */
+   str_len = get_word();	/* Length of string table in file */
+   obj_ver = get_word();	/* 0.0 */
 
-   symtab = malloc((unsigned int)str_len+1);
-   if( symtab == 0 ) return error("Out of memory");
-
-   cpos = ftell(ifd);
-   fseek(ifd, filepos+str_off, 0);
-   fread(symtab, 1, (unsigned int)str_len, ifd);
-   fseek(ifd, cpos, 0);
-
-   if( !display_mode )
-   {
-      printf("MODULE  '%s'\n", symtab);
-      printf("BYTEPOS %08lx\n", textoff);
-      printf("BINLEN  %08lx\n", textlen);
-      printf("STRINGS %04lx +%04lx\n", str_off, str_len);
-      printf("VERSION %d.%d\n", ver/256, ver%256);
-   }
-
-   (void)get_long(); /* Ignore fives */
-   ssenc=get_long();
+   (void)get_long(); 		/* Ignore fives */
+   ssenc = get_long();		/* Sixteen segment size sizes */
 
    for(i=0; i<16; i++)
    {
@@ -339,48 +331,92 @@ read_sectheader()
       ss = (i^3);
       ss = ((ssenc>>(2*(15-ss)))&3);
       segsizes[i] = get_sized(ss);
-      if( segsizes[i] && !display_mode )
-	 printf("SEG%x %08lx\n", i, segsizes[i]);
    }
-   if( !display_mode )
-      printf("\n");
+
+   num_syms = get_word();	/* Number of symbol codes */
 
    return 0;
+}
+
+void
+disp_sectheader()
+{
+   int i;
+   if( display_mode ) return;
+
+   printf("MODULE  '%s'\n",  strtab);
+   printf("BYTEPOS %08lx\n", textoff);
+   printf("BINLEN  %08lx\n", textlen);
+   printf("STRINGS %04lx +%04lx\n", str_off, str_len);
+   printf("VERSION %d.%d\n", obj_ver/256, obj_ver%256);
+
+   for(i=0; i<16; i++)
+      if( segsizes[i] )
+	 printf("SEG%x %08lx\n", i, segsizes[i]);
+
+   printf("\n");
+   printf("SYMS %u\n", num_syms);
 }
 
 int
 read_syms()
 {
-   int syms, i;
+   int i;
 
-   syms=get_word();
+   if( num_syms < 0 ) return error("Bad symbol table");
 
-   if( !display_mode ) printf("SYMS %u\n", syms);
-   if( syms < 0 ) return error("Bad symbol table");
-
-   symnames = malloc(syms*sizeof(char*)+1);
+   symnames = malloc(num_syms*sizeof(char*)+1);
    if( symnames == 0 ) return error("Out of memory");
+
+   symtab = calloc(num_syms, sizeof(*symtab));
+   if( symtab == 0 ) return error("Out of memory");
 
    if(display_mode == 2 && multiple_files)
      printf("\n%s:\n", ifname);
 
-   for(i=0; i<syms; i++)
+   for(i=0; i<num_syms; i++)
+   {
+      unsigned int symtype;
+
+      symtab[i].nameoff = get_word();
+      symtab[i].symtype = get_word();
+      symtype = (symtab[i].symtype & 0x3FFF);
+
+      if (symtab[i].nameoff == -1 || symtab[i].symtype == -1) {
+	 printf("!!! EOF in symbol table\n");
+	 break;
+      }
+      symtab[i].offset = get_sized((symtab[i].symtype>>14)&3);
+
+      if( symtype == 0x43 || symtype == 0x2003 )
+         size_bss += symtab[i].offset;
+   }
+
+   return 0;
+}
+
+int
+disp_syms()
+{
+   int i;
+
+   if(display_mode == 2 && multiple_files)
+     printf("\n%s:\n", ifname);
+
+   for(i=0; i<num_syms; i++)
    {
       long offset=0;
       unsigned int nameoff, symtype;
 
-      nameoff = get_word();
-      symtype = get_word();
-      if (nameoff == -1 || symtype == -1) {
-	 printf("!!! EOF in symbol table\n");
-	 break;
-      }
-      offset = get_sized((symtype>>14)&3);
+      nameoff = symtab[i].nameoff;
+      symtype = symtab[i].symtype;
+      offset = symtab[i].offset;
+
       symtype &= 0x3FFF;
       if (nameoff > str_len || nameoff < 0)
-	 symnames[i] = symtab + str_len;
+	 symnames[i] = strtab + str_len;
       else
-	 symnames[i] = symtab+nameoff;
+	 symnames[i] = strtab+nameoff;
 
       if( !display_mode )
       {
@@ -425,9 +461,6 @@ read_syms()
 	 }
          printf(" %s\n", symnames[i]);
       }
-
-      if( symtype == 0x43 || symtype == 0x2003 )
-         size_bss += offset;
    }
    if( !display_mode )
       printf("\n");
@@ -439,16 +472,18 @@ void
 read_databytes()
 {
 static char * relstr[] = {"ERR", "DB", "DW", "DD"};
-   long l;
+   long l, cpos;
    int ch, i;
    int curseg = 0;
    int relsize = 0;
+
+   cpos = ftell(ifd);
    fseek(ifd, filepos+textoff, 0);
 
    printf("\nBYTECODE\n");
    for(;;)
    {
-      if( (ch=getc(ifd)) == EOF ) break;
+      if( (ch=get_byte()) == -1 ) break;
 
       if( ch == 0 ) break;
 
@@ -467,7 +502,7 @@ static char * relstr[] = {"ERR", "DB", "DW", "DD"};
 	                     printf("SEG %x\n", curseg= (ch&0xF));
 		             break;
                   default:   printf("CODE %02x - unknown\n", ch);
-                             return ;
+                             goto break_break ;
                   }
 		  break;
       case 0x40:  /* Raw bytes */
@@ -476,12 +511,12 @@ static char * relstr[] = {"ERR", "DB", "DW", "DD"};
 		     if( abscnt == 0 ) abscnt = 64;
 	             for( i=0; i<abscnt; i++ )
 	             {
-                        if( (ch=getc(ifd)) == EOF ) break;
+                        if( (ch=get_byte()) == -1 ) break;
 	                hex_output(ch);
 	             }
 	             hex_output(EOF);
             
-	             if( ch == EOF ) return;
+	             if( ch == -1 ) goto break_break;
                   }
                   break;
       case 0x80:  /* Relocator - simple */
@@ -498,10 +533,10 @@ static char * relstr[] = {"ERR", "DB", "DW", "DD"};
                   if( ch & 0x18 )
 		  {
 		     printf("CODE %02x - unknown\n", ch);
-		     return;
+		     goto break_break;
 		  }
                   if( ch & 4 ) i = get_word();
-                  else         i = getc(ifd);
+                  else         i = get_byte();
 		  l = get_sized(ch&3);
 
 		  printf("%s %s%s%s", relstr[relsize],
@@ -514,7 +549,9 @@ static char * relstr[] = {"ERR", "DB", "DW", "DD"};
                   break;
       }
    }
+break_break:;
    printf("\n");
+   fseek(ifd, cpos, 0);
 }
 
 long
@@ -524,7 +561,7 @@ int sz;
    switch(sz)
    {
    case 0: return 0;
-   case 1: return getc(ifd);
+   case 1: return get_byte();
    case 2: return get_word();
    case 3: return get_long();
    }
@@ -556,12 +593,22 @@ get_word()
    {
       int v = getc(ifd);
       if( v == EOF ) return -1;
+      code_bytes++;
       if( byte_order & 1 )
          retv += (v<<(8-i));
       else
          retv += (v<<i);
    }
    return retv;
+}
+
+int
+get_byte()
+{
+   int v = getc(ifd);
+   if (v == EOF) return -1; 
+   code_bytes++;
+   return v;
 }
 
 void
@@ -719,7 +766,8 @@ nm_aout()
 
    fseek(ifd, h_len+header[2]+header[3]+header[8]+header[9], 0);
 
-   if( h_flgs & 4 ) { error("Executable has new format symtab\n"); return; }
+   if( h_flgs & 4 ) 
+      { error("Executable has new format symbol table.\n"); return; }
 
    bytes_left = header[7];
 

@@ -21,10 +21,11 @@
 #ifndef MSDOS
 #include <unistd.h>
 #endif
+#else
+#include <malloc.h>
 #endif
 #include <string.h>
 #include <memory.h>
-#include <malloc.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>

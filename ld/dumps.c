@@ -83,4 +83,12 @@ PUBLIC void dumpsyms()
 		    putbyte('\n');
 		}
 	}
+
+    putstr("Total memory used: ");
+#ifdef LONG_OFFSETS
+    put08lx(memory_used());
+#else
+    put08x(memory_used());
+#endif
+    putbyte('\n');
 }

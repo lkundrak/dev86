@@ -3,20 +3,22 @@ LIBDIR	=/usr/bin
 CFLAGS	=-O
 LDFLAGS	=
 
-# May need some of these if the auto-sense fails.
+# Will need some of these if you want native executables on non-Linux/i386
+# -DDETECTAOUT			# Turn on detection.
 # -DV7_A_OUT			# a.out.h is like V7
 # -DBSD_A_OUT			# a.out.h is like BSD
 # -DSTANDARD_GNU_A_OUT		# a.out.h is like GNU normal.
-# -DNO_AOUT			# a.out.h is like nothing known!
 #
-DEFS	=-DREL_OUTPUT -DBUGCOMPAT
+# -DREL_OUTPUT -DBUGCOMPAT	# -r Produces weird *.o files.
+#
+DEFS	=-DREL_OUTPUT
 
 # An alternative file for a non-standard a.out.h (eg i386 linux on an Alpha)
 #
 # NATIVE=-DA_OUT_INCL='"a_out_local.h"' 
 
-OBJS= dumps.o io.o ld.o readobj.o table.o typeconv.o linksyms.o \
-      writex86.o writebin.o writerel.o
+OBJS= dumps.o io.o ld.o readobj.o table.o typeconv.o linksyms.o mkar.o \
+      writex86.o writebin.o writeemu.o
 
 all: ld86 objchop catimage objdump86
 

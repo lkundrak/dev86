@@ -1,6 +1,10 @@
 
 #include <stdio.h>
+#ifdef __STDC__
+#include <stdlib.h>
+#else
 #include <malloc.h>
+#endif
 #include "cc.h"
 
 /*
@@ -23,7 +27,7 @@ struct hashentry
 struct hashentry ** hashtable;
 int  hashsize  = 0xFF;	/* 2^X -1 */
 int  hashcount = 0;
-static int hashvalue _P((int namespace, char * word));
+static int hashvalue P((int namespace, char * word));
 
 void *
 read_entry(namespace, word)
