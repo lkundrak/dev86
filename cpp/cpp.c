@@ -134,8 +134,8 @@ gettok()
 
 	 if( ch == TK_WORD )
 	 {
-	    struct token_trans *p;
-	    if( p=is_ckey(curword, strlen(curword)) )
+	    struct token_trans *p = is_ckey(curword, strlen(curword)) ;
+	    if( p )
 	       return p->token;
 	 }
 
@@ -551,7 +551,7 @@ unchget(ch)
    fprintf(stderr, "\b", ch);
 #endif
    if(ch == 0) return;  /* Hummm */
-   if(ch == EOF) ch=EOT; /* EOF is pushed back as ^Z */
+   if(ch == EOF) ch=EOT; /* EOF is pushed back as a normal character. */
    ch &= 0xFF;
 
    if(unputc&0xFF000000) 

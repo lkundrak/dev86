@@ -42,7 +42,7 @@ static void init_vars()
    int i, cc, fd, err, len, bufoff=0;
    char * ptr;
 
-   fd = open("/usr/lib/liberror.txt", 0);
+   fd = open("/lib/liberror.txt", 0);
    if( fd < 0 ) return;
 
    for(i=0; i<NR_ERRORS; i++) sys_errlist[i] = "Unknown error";

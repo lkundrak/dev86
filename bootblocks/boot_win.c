@@ -35,6 +35,7 @@ main()
 {
    int i, rv;
    int floppy_only = 0;
+   int c,h,s,os;
 
    reset_screen();
    cprintf("...\n");
@@ -52,12 +53,29 @@ main()
 
    if (!floppy_only) {
       for(rv=-1, i=0x1BE; i<0x1FE; i+= 16) {
-	 if (bs_buf[i] == (char)0x80)
+	 if (bs_buf[i] == (char)0x80) {
 	    rv = 0;
+	    s = (bs_buf[i+2] & 63) ;
+	    h = (bs_buf[i+1] & 255) ;
+	    c = (bs_buf[i+3] & 255) + ((bs_buf[i+2] & 0xC0) << 2);
+
+	    os = (bs_buf[i+4] & 255) ;
+	    break;
+	 }
       }
 
       if (rv) {
 	 cprintf("Hard disk has no active partition.\n");
+	 floppy_only = 1;
+      }
+   }
+
+   if (!floppy_only && (os==4 || os==6 || os==11 || os==12 || os==13)) {
+      for(i=0; i<6; i++)
+	if (!(rv = _bios_disk_read(0x80, c, h, s, 1, bs_buf))) break;
+
+      if (rv != 0 || bs_buf[510] != 0x55 || bs_buf[511] != (char)0xAA) {
+	 cprintf("DOS Partition not bootable.\n");
 	 floppy_only = 1;
       }
    }

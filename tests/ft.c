@@ -588,7 +588,7 @@ char * prefix; char * ustring;
       }
    }
 
-   if( set_user < 0 && set_group < 0 && set_mode < 0 && *mode_str == 0)
+   if( set_user == -1 && set_group == -1 && set_mode < 0 && *mode_str == 0)
    {
       error(EINVAL, "", "Permission string has no changes");
       exit(1);
@@ -664,6 +664,7 @@ static char oldpath[2048] = "~";
 static int last_uid=-1, last_gid=-1, last_mode=-1;
    struct passwd * pptr;
    struct group  * gptr;
+   int major, minor;
 
    if( flg_verbose>1 )
    {
@@ -721,6 +722,14 @@ static int last_uid=-1, last_gid=-1, last_mode=-1;
          if( (cur_file_stat.st_mode&07777) != (last_mode&07777) )
 	    printf(":%03o", cur_file_stat.st_mode & 07777);
 
+	 major = (cur_file_stat.st_rdev >> 8);
+	 minor = (cur_file_stat.st_rdev&0xFF);
+#ifdef __linux__
+	 major &= 0xFFF;
+	 minor |= ((cur_file_stat.st_rdev&0xFF000000)>>12);
+#else
+	 major &= 0xFF;
+#endif
          switch(cur_file_stat.st_mode & S_IFMT)
          {
          case S_IFDIR:  printf("\td"); break;
@@ -728,11 +737,9 @@ static int last_uid=-1, last_gid=-1, last_mode=-1;
 #ifdef __HAS_SOCKETS
          case S_IFSOCK: printf("\ts"); break;
 #endif
-         case S_IFBLK:  printf("\tb,%d,%d", cur_file_stat.st_rdev>>8,
-	                                    cur_file_stat.st_rdev&0xFF);
+         case S_IFBLK:  printf("\tb,%d,%d", major, minor);
 		        break;
-         case S_IFCHR:  printf("\tc,%d,%d", cur_file_stat.st_rdev>>8,
-	                                    cur_file_stat.st_rdev&0xFF);
+         case S_IFCHR:  printf("\tc,%d,%d", major, minor);
 		        break;
          }
          last_mode = ((cur_file_stat.st_mode&07777)|S_IFREG);
@@ -987,8 +994,8 @@ char * file;
 
   /* Try to preserve ownership.  For non-root it might fail, but that's ok.
      But root probably wants to know, e.g. if NFS disallows it.  */
-  user  = cur_file_stat.st_uid; if(set_user>=0) user = set_user;
-  group = cur_file_stat.st_gid; if(set_group>=0) group = set_group;
+  user  = cur_file_stat.st_uid; if(set_user != -1) user = set_user;
+  group = cur_file_stat.st_gid; if(set_group != -1) group = set_group;
 
   if (chown (file, user, group)
       && (errno != EPERM || geteuid() == 0 || (flg_preserve==0 && flg_force==0)))
@@ -1157,7 +1164,7 @@ char * dirname;
    }
    if( retv>=0 && cmd_tok == CMD_MKDIR )
    {
-      if( set_user > 0 || set_group > 0 )
+      if( set_user != -1 || set_group != -1 )
       {
          if( chown(dirname, set_user, set_group) < 0)
 	    warning(errno, "Cannot change directory owner ", dirname);
@@ -1173,12 +1180,19 @@ char * dirname;
 int
 cmd_mknod()
 {
-   int device;
+   int device, major, minor;
    int rv = -1;
    int mode=0666;
    if( set_mode >= 0 ) mode=set_mode;
 
-   device = (atoi(flist[2])<<8) + atoi(flist[3]);
+   major = atoi(flist[2]);
+   minor = atoi(flist[3]);
+#ifdef __linux__
+   /* Linux 2.6+ uses an odd arrangment. */
+   device = (major<<8) + (minor & 0xFF) + ((minor & 0xFFF00) << 12);
+#else
+   device = (major<<8) + (minor & 0xFF);
+#endif
 
    if(flist[1][0] == 'b')
       rv = mknod(flist[0], S_IFBLK|mode, device);

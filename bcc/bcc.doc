@@ -1,3 +1,5 @@
+WARNING: This document bis out of date; it's kept mainly for the 6809 notes.
+
 bcc options
 -----------
 
@@ -15,7 +17,7 @@ outfile		stdout for preprocessor output
 		somewhere/file.[cis] -> file.o for assembler output
 		a.out for ld output
 
--ansi  Pass the source through '/usr/bin/unprotoize' first
+-ansi  Pass the source through 'unproto' first
 -0  8086 target (works even on 80386 host)
 -3  80386 target (works even on 8086 host)
 -A  pass remainder of option to assembler (e.g. -A-l -Alistfile for a listing)

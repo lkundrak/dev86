@@ -11,8 +11,10 @@ char **argv;
     growheap(0);		/* init order is important */
     syminit();
     etreeinit();
+#ifdef BUILTIN_CPP
     ifinit();
     predefine();
+#endif
     openio(argc, argv);
     codeinit();
     typeinit();

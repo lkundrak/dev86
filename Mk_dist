@@ -62,7 +62,7 @@ mkdir ${TMPDIST}/doselks
 ( cd ${TMPDIST}/doselks  ; tar xzf /tmp/doselks.tar.gz )
 
 [ "`id -un`" = "root" ] && {
-  chown -R root:root ${TMPDIST}
+  chown -R root:0 ${TMPDIST}
   chmod -R og=u-w ${TMPDIST}
 }
 
@@ -193,7 +193,9 @@ echo Compile up the binaries.
 
 cd ${TMPDIR} || exit 1
 mkdir -p ${TMPDIST}.ins
-make -C ${TMPDIST} install ARFLAGS=q DIST=${TMPDIST}.ins ELKSSRC=/dev/null || 
+make -C ${TMPDIST} install install-other \
+        ARFLAGS=q ELKSSRC=/dev/null \
+        DIST=${TMPDIST}.ins 'ASLDDIR=$(BINDIR)' || 
     exit
 make -C ${TMPDIST} other || exit
 tar cf ${ARCDIR}/Dev86bin-$VERSION.tar -C ${TMPDIST}.ins .

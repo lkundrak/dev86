@@ -24,7 +24,7 @@ int err;
    }
 
    if( err <= 0 ) goto unknown;	/* NB the <= allows comments in the file */
-   fd = open("/usr/lib/liberror.txt", 0);
+   fd = open("/lib/liberror.txt", 0);
    if( fd < 0 ) goto unknown;
 
    while( (cc=read(fd, inbuf, sizeof(inbuf))) > 0 )

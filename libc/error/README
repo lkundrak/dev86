@@ -1,10 +1,11 @@
-Copyright (C) 1996 Robert de Bath <robert@debath.thenet.co.uk>
+Copyright (C) 1996,2004 Robert de Bath <robert@debath.thenet.co.uk>
 This file is part of the Linux-8086 C library and is distributed
 under the GNU Library General Public License.
 
-These routines assume the existance of a file /usr/lib/liberror.txt,
-this file contains the actual error messages. One useful feature,
-the language of the error messages can be easily changed.
+The file "liberror.txt" is the master list of errors for ELKS only.
 
+WARNING: 
+   If you use the -Mf compile style this file must be in the filessystem
+   as "/lib/liberror.txt" unless you're using elksemu.
 
 -Robert

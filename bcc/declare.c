@@ -1052,9 +1052,11 @@ PUBLIC void needvarname()
 
 PUBLIC void program()
 {
+#ifdef BUILTIN_CPP
     if (orig_cppmode)
 	cppscan(0);
     else
+#endif
     {
 	nextsym();
 	while (sym != EOFSYM)

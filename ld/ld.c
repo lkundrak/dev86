@@ -53,13 +53,15 @@ char *suf;
 PRIVATE char *expandlib(fn)
 char *fn;
 {
-    char *path;
+    char *path, *s;
     int i;
 
     for (i = lastlib - 1; i >= 0; --i)
     {
-	path = ourmalloc(strlen(libs[i]) + strlen(fn) + 1);
+	path = ourmalloc(strlen(libs[i]) + strlen(fn) + 2);
 	strcpy(path, libs[i]);
+	s = path + strlen(path);
+	if (s!=path && s[-1] != '/') strcat(path, "/");
 	strcat(path, fn);
 	if (access(path, R_OK) == 0)
 	    return path;

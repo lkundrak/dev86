@@ -37,7 +37,8 @@ BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v msdos16.v \
 
 EXTRAS=minix.h zimage.s minix_elks.c lsys.c boot_win.c
 
-install:
+install: makeboot
+	install -m 755 -s makeboot $(DIST)$(PREFIX)/bin/makeboot
 
 monitor.com: $(MOBJ)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(MONDEFS) -d $(MOBJ) -o monitor.com -M > monitor.sym

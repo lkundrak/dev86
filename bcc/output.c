@@ -157,7 +157,9 @@ char *message;
 
 PUBLIC void finishup()
 {
+#ifdef BUILTIN_CPP
     if (!orig_cppmode)
+#endif
     {
 	if (watchlc)
 	{
@@ -208,7 +210,9 @@ PUBLIC void flushout()
     }
     if (nbytes != 0)
     {
+#ifdef BUILTIN_CPP
 	if (!orig_cppmode)
+#endif
 	    clearlabels(outbufptr, outbufptr + nbytes);
 	if (write(output, outbufptr, nbytes) != nbytes)
 	{

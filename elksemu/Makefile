@@ -26,12 +26,15 @@ OBJ=elks.o elks_sys.o elks_signal.o minix.o
 elksemu:	$(OBJ)
 		$(CC) $(CFLAGS) -o $@ $^
 
-elks_sys.o:	call_tab.v
+elks_sys.o:	call_tab.v efile.h
 $(OBJ):		elks.h
 
 call_tab.v:	dummy
 	-cp -p ../libc/syscall/call_tab.v . 2>/dev/null
 	-cp -p ../libc/syscall/defn_tab.v . 2>/dev/null
+
+efile.h: ../libc/error/liberror.txt
+	sh mkefile ../libc/error/liberror.txt
 
 dummy:
 
@@ -42,7 +45,7 @@ install: elksemu
 	install -s -o root -g root -m 4555 elksemu $(DIST)/lib/elksemu
 
 clean realclean:
-	rm -f $(OBJ) binfmt_elks.o elksemu call_tab.v defn_tab.v
+	rm -f $(OBJ) binfmt_elks.o elksemu call_tab.v defn_tab.v efile.h
 
 module: binfmt_elks.o
 

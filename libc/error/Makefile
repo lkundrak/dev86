@@ -4,14 +4,23 @@
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-ifeq ($(LIB_OS),ELKS)
+ifeq ($(PLATFORM),i86-FAST)
 OBJ=error.o sys_errlist.o perror.o sys_siglist.o __assert.o
 else
+ifeq ($(LIB_OS),ELKS)
+OBJ=error2.o perror.o sys_siglist.o __assert.o
+else
 OBJ=__assert.o
+endif
 endif
 
 all: $(LIBC)($(OBJ))
 	@$(RM) $(OBJ)
 
 clean:
-	rm -f *.o libc.a
+	rm -f *.o libc.a error_list.h
+
+$(LIBC)(error2.o): error_list.h
+
+error_list.h: liberror.txt
+	sh mktab.sh

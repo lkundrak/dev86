@@ -20,6 +20,8 @@ include VERSION
 endif
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
+USERID=$(shell id -gn)
+GROUPID=$(shell id -un)
 
 ############################################################################
 
@@ -74,11 +76,11 @@ clean:
 ############################################################################
 
 install_incl: transfer
-	install -d $(BCCHOME)/include
-	rm -f $(BCCHOME)/include/linuxmt $(BCCHOME)/include/arch ||:
-	cp -Lpr include/* $(BCCHOME)/include
-	-chown -R root:root   $(BCCHOME)/include
-	-chmod -R u=rwX,og=rX $(BCCHOME)/include
+	install -d $(DISTINCL)/include
+	rm -f $(DISTINCL)/include/linuxmt $(DISTINCL)/include/arch ||:
+	cp -LpR include/* $(DISTINCL)/include
+	-chown -R $(USERID):$(GROUPID) $(DISTINCL)/include
+	-chmod -R ugo-x,u=rwX,og=rX $(DISTINCL)/include
 
 ############################################################################
 

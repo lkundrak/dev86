@@ -24,6 +24,8 @@
 #include <sys/time.h>
 #include "elks.h" 
 
+#include "efile.h"
+
 #ifdef DEBUG
 #define dbprintf(x) db_printf x
 #else
@@ -69,17 +71,17 @@ static void squash_stat(struct stat *s, int bx)
 	ELKS_POKE(long, bx+26, s->st_ctime);
 #else
 	struct elks_stat * ms = ELKS_PTR(struct elks_stat, bx);
-	ms->st_dev=s->st_dev;
-	ms->st_inode=(unsigned short)s->st_ino;	/* Bits lost */
-	ms->st_mode=s->st_mode;
-	ms->st_nlink=s->st_nlink;
-	ms->st_uid=s->st_uid;
-	ms->st_gid=s->st_gid;
-	ms->st_rdev=s->st_rdev;
-	ms->st_size=s->st_size;
-	ms->st_atime=s->st_atime;
-	ms->st_mtime=s->st_mtime;
-	ms->st_ctime=s->st_ctime;
+	ms->est_dev=s->st_dev;
+	ms->est_inode=(unsigned short)s->st_ino;	/* Bits lost */
+	ms->est_mode=s->st_mode;
+	ms->est_nlink=s->st_nlink;
+	ms->est_uid=s->st_uid;
+	ms->est_gid=s->st_gid;
+	ms->est_rdev=s->st_rdev;
+	ms->est_size=s->st_size;
+	ms->est_atime=s->st_atime;
+	ms->est_mtime=s->st_mtime;
+	ms->est_ctime=s->st_ctime;
 #endif
 }
 
@@ -141,6 +143,17 @@ static int elks_open(int bx,int cx,int dx,int di,int si)
 	char *dp=ELKS_PTR(char, bx);
 	dbprintf(("open(%s, %d, %d)\n",
 		dp,cx,dx));
+
+	/* Nasty hack so /lib/liberror.txt doesn't exist on the host.
+	 */
+	if (strcmp(dp, "/lib/liberror.txt") == 0 ) {
+	   int fd = open("/tmp/liberror.txt", O_CREAT|O_EXCL|O_RDWR, 0666);
+	   if (fd < 0) return fd;
+	   unlink("/tmp/liberror.txt");
+	   write(fd, efile, sizeof(efile));
+	   lseek(fd, 0L, 0);
+	   return fd;
+	}
 
 	if( cx == O_RDONLY )
 	{
@@ -451,7 +464,7 @@ static int elks_execve(int bx,int cx,int dx,int di,int si)
 	ct=0;
 	if( is_elks )
 	{
-	   argp[0]="/lib/elksemu";
+	   argp[0]="/usr/bin/elksemu";
 	   /* argp[1]=ELKS_PTR(char, bx); */
 	   ct=1;
 	}

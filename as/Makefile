@@ -33,6 +33,8 @@ clean realclean clobber:
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
+$(OBJS): const.h errors.h
+
 as.o: const.h type.h byteord.h macro.h file.h flag.h globvar.h
 assemble.o: const.h type.h address.h globvar.h opcode.h scan.h
 error.o: const.h type.h

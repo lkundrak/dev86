@@ -19,6 +19,10 @@
 
 #define INBUFSIZE 2048
 
+#ifndef BUILTIN_CPP
+#define NO_EOFHACK
+#endif
+
 struct fbufstruct		/* file buffer structure */
 {
     struct fcbstruct fcb;	/* status after opening an include sub-file */
@@ -51,8 +55,10 @@ PRIVATE struct inclist inclast =
 #endif
     NULL,
 };
+#ifdef BUILTIN_CPP
 PRIVATE fastin_t inclevel;	/* nest level of include files */
 				/* depends on zero init */
+#endif
 PRIVATE struct fbufstruct *inputbuf;	/* current input file buffer */
 					/* its fcb only to date in includes */
 					/* depends on zero (NULL) init */
@@ -63,8 +69,10 @@ FORWARD void backslash P((void));
 #endif
 FORWARD void definefile P((char *fname));
 FORWARD void inputinit P((char *fname, fd_t fd));
-FORWARD void leaveinclude P((void));
 FORWARD void usage P((void));
+#ifdef BUILTIN_CPP
+FORWARD void leaveinclude P((void));
+#endif
 
 #ifdef ARBITRARY_BACKSLASH_NEWLINES
 PRIVATE void backslash()
@@ -138,10 +146,13 @@ PUBLIC void closein()
 #else
     close(input.fd);
 #endif
+#ifdef BUILTIN_CPP
     while (inclevel != 0)
 	leaveinclude();
+#endif
 }
 
+#ifdef BUILTIN_CPP
 PRIVATE void definefile(fname)
 char *fname;
 {
@@ -155,6 +166,7 @@ char *fname;
     definestring(def);
     ourfree(def);
 }
+#endif
 
 PUBLIC void errorloc()
 {
@@ -170,6 +182,7 @@ PUBLIC void errorloc()
     {
 	outudec(input.linenumber);
 	outbyte('.');
+#ifdef BUILTIN_CPP
 	if (maclevel == 0)
 	    outudec((unsigned) (lineptr - inputbuf->fbuf) - input.lineoffset);
 	else
@@ -180,6 +193,9 @@ PUBLIC void errorloc()
 	    outudec((unsigned) maclevel);
 	    outbyte(')');
 	}
+#else
+	outudec((unsigned) (lineptr - inputbuf->fbuf) - input.lineoffset);
+#endif
     }
     infbuf->fcb.includer = input.includer;
     while ((infbuf = infbuf->fcb.includer) != NULL)
@@ -202,6 +218,7 @@ PUBLIC void gch1()
     specialchar();
 }
 
+#ifdef BUILTIN_CPP
 /* process #include */
 
 PUBLIC void include()
@@ -217,10 +234,15 @@ PUBLIC void include()
 
     while (blanksident())
     {
+#ifdef BUILTIN_CPP
 	if ((gsymptr = findlorg(gsname)) == NULL ||
 	    gsymptr->flags != DEFINITION)
 	    break;
 	entermac();
+#else
+	if ((gsymptr = findlorg(gsname)) == NULL )
+	    break;
+#endif
     }
     if ((terminator = ch) == '<')
 	terminator = '>';
@@ -345,6 +367,7 @@ ts_s_filename_tot -= charptr - fnameptr;
 #endif
     charptr = fnameptr;
 }
+#endif
 
 /* initialise current input file */
 
@@ -373,14 +396,18 @@ ts_s_inputbuf_tot += sizeof *inputbuf;
     inputbuf = newinputbuf;
     newinputbuf->fname = fname;
     newinputbuf->fname_malloced = FALSE;
+#ifdef BUILTIN_CPP
     undefinestring(filemacro);
     definefile(fname);
     if (orig_cppmode && !suppress_line_numbers)
 	outcpplinenumber(1, fname, input.includer == NULL ? "" : " 1");
+#endif
     *(input.limit = newinputbuf->fbuf) = EOL;
 
+#ifdef BUILTIN_CPP
     /* dummy line so #include processing can start with skipline() */
     ch = *(lineptr = newinputbuf->fbuf - 1) = EOL;
+#endif
 }
 
 PUBLIC void linecontol()
@@ -412,11 +439,14 @@ ts_s_pathname_tot -= strlen(inputbuf->fname) + 1;
     inputbuf->fname = linename;
 
     ptr=lineptr;
+#ifdef BUILTIN_CPP
     undefinestring(filemacro);
     definefile(inputbuf->fname);
+#endif
     ch = *(lineptr = ptr);
 }
 
+#ifdef BUILTIN_CPP
 /* switch from include file to file which included it */
 
 PRIVATE void leaveinclude()
@@ -442,13 +472,16 @@ ts_s_inputbuf_tot -= sizeof *inputbuf;
 #endif
     inputbuf = input.includer;
     input = inputbuf->fcb;
+#ifdef BUILTIN_CPP
     undefinestring(filemacro);
     definefile(inputbuf->fname);
+#endif
     ch = *(lineptr = input.lineptr);
     skipline();
     if (orig_cppmode && !suppress_line_numbers)
 	outcpplinenumber(input.linenumber, inputbuf->fname, " 2");
 }
+#endif
 
 /* open input and output files and get options */
 
@@ -499,7 +532,9 @@ char *argv[];
 #ifdef DEBUG
 	    case 'd':		/* print debugging information in asm output */
 #endif
+#ifdef BUILTIN_CPP
 	    case 'E':		/* acting as cpp */
+#endif
 	    case 'f':		/* pass first argument in register */
 #ifdef DYNAMIC_LONG_ORDER
 	    case 'l':		/* long big-endian */
@@ -520,6 +555,7 @@ char *argv[];
 		if (arg[1] == '0')	/* flag 0 is negative logic flag 3 */
 		    flag['3'] = TRUE + FALSE - flag['0'];
 		break;
+#ifdef BUILTIN_CPP
 	    case 'D':
 		definestring(arg + 2);
 		break;
@@ -536,6 +572,7 @@ ts_s_includelist += sizeof *incnew;
 	    case 'U':
 		undefinestring(arg + 2);
 		break;
+#endif
 	    case 'o':
 		if (arg[2] != 0 || ++argn >= argc)
 		    usage();
@@ -546,6 +583,7 @@ ts_s_includelist += sizeof *incnew;
 		break;
 	    }
     }
+#ifdef BUILTIN_CPP
 #ifdef I8088
 #ifdef I80386
     if (flag['3'])
@@ -607,6 +645,28 @@ ts_s_includelist += sizeof *incnew;
 #ifdef NOFLOAT
     definestring("__HAS_NO_FLOATS__");
 #endif
+
+#else /* !BUILTIN_CPP */
+
+#ifdef I80386
+    if (flag['3']) i386_32 = TRUE;
+#endif
+    if (flag['c']) callersaves = TRUE;
+#ifdef DEBUG
+    debugon = flag['d'];
+#endif
+    if (flag['f']) arg1inreg = TRUE;
+    arg1op = arg1inreg ? ROOTLISTOP : LISTOP;
+#ifdef DYNAMIC_LONG_ORDER
+    if (flag['l']) long_big_endian = TRUE;
+#endif
+    suppress_line_numbers = flag['P'];
+#ifdef POSINDEPENDENT
+    if (flag['p']) posindependent = TRUE;
+#endif
+    if (flag['O']) optimise = TRUE;
+
+#endif
     ctext = flag['t'];
 #ifdef DEBUG
     if (ctext) debugon = 1;
@@ -642,6 +702,7 @@ PUBLIC void skipeol()
 	    outbyte(' ');
 	    outline(lineptr);
 	}
+#ifdef BUILTIN_CPP
 #ifndef ASM_BARE
 	if (!virtual_nl && (orig_cppmode || asmmode))
 #else
@@ -651,6 +712,13 @@ PUBLIC void skipeol()
 	    if (!skip_printing_nl)
 #endif
 		outbyte('\n');
+#else	/* !BUILTIN_CPP */
+	if (asmmode)
+#ifdef INSERT_BACKSLASH_NEWLINES
+	    if (!skip_printing_nl)
+#endif
+		outbyte('\n');
+#endif
 
 #ifdef INSERT_BACKSLASH_NEWLINES
 	if (bs_state == 1 && *(lineptr - 1) == EOL)
@@ -715,6 +783,7 @@ case0:
     ch = *lineptr;
     if (nread == 0)
     {
+#ifdef BUILTIN_CPP
 	if (inclevel == 0)
 	{
 	    eofile = TRUE;
@@ -725,6 +794,9 @@ case0:
 	    leaveinclude();
 	    skipeol();
 	}
+#else
+	eofile = TRUE;
+#endif
 	return;
     }
     if (ctext && !asmmode)
@@ -738,6 +810,7 @@ case0:
 
 PUBLIC void specialchar()
 {
+#ifdef BUILTIN_CPP
     if (maclevel != 0)
     {
 	if (ch == EOL)		/* it might also be backslash or COEOL */
@@ -745,6 +818,7 @@ PUBLIC void specialchar()
 	if (ch != EOL)
 	    return;
     }
+#endif
 more:
 #ifdef ARBITRARY_BACKSLASH_NEWLINES
     if (ch == '\\')

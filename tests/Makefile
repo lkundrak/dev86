@@ -15,7 +15,14 @@ LINK_FILES=cat chgrp chmod chown cp install ln mkdir mkfifo mknod mv rm
 
 all: $(EXE)
 
-install links:
+install:
+	echo Use real-install if you actually want to install these
+
+real-install:
+	install wc hd env ft $(DIST)$(PREFIX)/bin
+	for i in $(LINK_FILES) ; do ln -s ft $(DIST)$(PREFIX)/bin/$$i ; done
+
+install_links:
 	for i in $(LINK_FILES) ; do ln -s ft $$i ; done
 
 no_links:

@@ -78,6 +78,9 @@ mem  *x;
 #endif
 
 #ifdef L_alloca
+/* This alloca is based on the same concept as the EMACS fallback alloca.
+ * It should probably be considered Copyright the FSF under the GPL.
+ */
 static mem *alloca_stack = 0;
 
 void *

@@ -223,7 +223,8 @@ void build_stack(char ** argv, char ** envp)
 	*pip++ = 0;
 }
 
-void main(int argc, char *argv[], char *envp[])
+int
+main(int argc, char *argv[], char *envp[])
 {
 	int fd;
 	struct stat st;
@@ -258,7 +259,7 @@ void main(int argc, char *argv[], char *envp[])
 	setregid(rgid, egid);
 	setreuid(ruid, euid);
 
-	dbprintf(("ELKSEMU 0.12.0\n"));
+	dbprintf(("ELKSEMU\n"));
 	elks_init();
 
 	/* The Linux vm will deal with not allocating the unused pages */

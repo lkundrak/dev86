@@ -1,8 +1,8 @@
 
 compile()
 {
-   # /lib/elksemu ./as86 -3 "$@"
-   ./as86 -3 "$@"
+   # /lib/elksemu ./as86 -3 -k "$@"
+   ./as86 -3 -k "$@"
 }
 
 for i in `ls asm/*.asm`

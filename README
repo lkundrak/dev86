@@ -18,21 +18,40 @@ The manual pages in the man subdirectory are matched to these programs,
 there are also some hints for using as86 well.  The tests and bootblocks
 directories give some example code.
 
-The bcc command defaults to using /usr/bcc/include and /usr/bcc/lib/bcc
+The bcc command defaults to using /usr/lib/bcc/include and /usr/lib/bcc
 the libraries _and_ include files are copied to these locations by
-install.  This can be changed by overriding 'PREFIX=/usr' or
-'LIBDIR=/usr/bcc/lib/bcc' on the initial make. Also available in the
-same way the 'ELKSSRC=/usr/src/elks' variable can be altered if you
-have ELKS on a different path.
+install.  This can be changed by overriding 'PREFIX=/usr/...' or
+'LIBDIR=/usr/...' on the initial make. Also available in the
+same way are the BINDIR, INCLDIR, ASLDDIR, MANDIR and ELSESRC.
+The 'ELKSSRC=/usr/src/elks' variable can be altered if you have ELKS on
+path different from the default or ELKSSRC=/dev/null uses the supplied
+ELKS headers. The ASLDDIR variable can be used to move as86 and ld86
+into the LIBDIR with 'ASLDDIR=$(LIBDIR)'. The final '/include' is added
+to the end of INCLDIR.
 
 In the unlikely event you're makeing a non-cross development environment
-you can, on the initial make, do "make LIBPRE=/usr' to have the libraries
-and include files directly under /usr rather than /usr/bcc.
+you can, on the initial make, do "make PREFIX=/' to have the libraries
+and include files in 'Native' locations.
 
 Note: These prefix options only effect the 'bcc.c' driver program and
       the install scripts, all the others get their paths from bcc.c.
       The ELKSSRC location can, however, greatly effect how the ELKS
       libraries are built.
+
+If you don't want to install in the locations specified above there
+is also a DIST= argument to make install that is used to specify the
+distribution root to install to.
+
+The last option is not to install at all. All the executables in the
+bin directory can be moved to whereever you wish except for bcc and ncc.
+To use bcc at any other location you can create a symlink from your
+new location to the 'ncc' executable and it will be able to find
+the libraries in the build directory:
+
+eg:
+  cp ar86 elksemu objdump86 $HOME/bin/.
+  cp as86 as86_encap ld86 $HOME/bin/.	# Optional.
+  ln -s `pwd`/ncc $HOME/bin/bcc
 
 All the versions of the library are built by make; 'normal', 'fast',
 'MSDOS', 'standalone' and Linux-i386.
@@ -76,10 +95,10 @@ to allow transparent execution of elks executables.  If you're using
 a post 2.1.43 or 2.0.36 kernel the only module you need is the binfmt_misc
 driver configured like this:
 
-echo ':i86-elks:M::\x01\x03\x20\x00:\xff\xff\xff\x83:/lib/elksemu:' \
+echo ':i86-elks:M::\x01\x03\x20\x00:\xff\xff\xff\x83:/usr/bin/elksemu:' \
      > /proc/sys/fs/binfmt_misc/register
 
-The elksemu executable must be stored in /lib/elksemu or the above
+The elksemu executable must be stored in /usr/bin/elksemu or the above
 line adjusted.
 
 Previous versions need a special module or patch described in elksemu/README

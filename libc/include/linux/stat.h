@@ -9,7 +9,6 @@
 
 struct stat {
 	dev_t		st_dev;
-	unsigned short __pad1;
 	ino_t		st_ino;
 	umode_t		st_mode;
 	nlink_t		st_nlink;

@@ -24,17 +24,17 @@
  
 struct elks_stat
 {
-	unsigned short st_dev;
-	unsigned short st_inode;
-	unsigned short st_mode;
-	unsigned short st_nlink;
-	unsigned short st_uid;
-	unsigned short st_gid;
-	unsigned short st_rdev;
-	int st_size;
-	int st_atime;
-	int st_mtime;
-	int st_ctime;
+	unsigned short est_dev;
+	unsigned short est_inode;
+	unsigned short est_mode;
+	unsigned short est_nlink;
+	unsigned short est_uid;
+	unsigned short est_gid;
+	unsigned short est_rdev;
+	int est_size;
+	int est_atime;
+	int est_mtime;
+	int est_ctime;
 };
 
 

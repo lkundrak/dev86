@@ -17,7 +17,7 @@ CC      =%CC%
 CFLAGS	=%CFLAGS%
 LDFLAGS	=
 MAKEARG	=CC='$(CC)' CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' \
-	 PREFIX=$(PREFIX) LIBPRE='$(LIBPRE)' LIBDIR='$(LIBDIR)' \
+	 PREFIX=$(PREFIX) LIBDIR='$(LIBDIR)' \
 	 BINDIR='$(BINDIR)' ANSI='$(ANSI)'
 MAKEC=$(MAKE) -C
 MAKEX=
@@ -75,16 +75,10 @@ BCCARCH =-Mf -O
 CFLAGS += -no-cpp-precomp
 #endif
 
-# Yet again other systems have general weirdness here.
-#ifdef __linux__
-INDAT=-o root -g root -m 644
-INEXE=-o root -g root -m 755 -s
-INSCR=-o root -g root -m 755
-#else
+# Install files with the userid of the currently running process.
 INDAT=-m 644
-INEXE=-m 755
+INEXE=-m 755 -s
 INSCR=-m 755
-#endif
 
 #ifdef __CYGWIN__
 EXE=.exe
@@ -95,28 +89,38 @@ EXE=
 #ifdef GNUMAKE
 all: check_config bcc cpp unproto copt as86 ar86 ld86 objdump86 \
      library lib-bsd alt-libs elksemu
+
+install: check_config install-bcc install-man \
+     install-lib install-emu
+
+install-all: install install-other
+
 #else
 all: check_config bcc cpp unproto copt as86 ar86 ld86 objdump86
 	@echo
 	@echo 'NOTE: To build the libraries you need GNU-Make.'
 	@echo '      They are available precompiled in the Dev86clb-X.X.X.zip file.'
+
+install install-all: check_config install-bcc install-man
+	@echo
+	@echo 'NOTE: To build the libraries you need GNU-Make.'
+	@echo '      They are available precompiled in the Dev86clb-X.X.X.zip file.'
+
 #endif
-
-install: check_config install-bcc install-man \
-     install-lib install-lib2 install-emu
-
-install-all: install install-other
 
 ##############################################################################
 
 LIBARGS= CC=ncc "CCFLAGS=-O" AR=$(AR) ARFLAGS=$(ARFLAGS)
+LIB3ARGS= CC=ncc AR=$(AR) ARFLAGS=$(ARFLAGS)
 
 # Season in the top makefile
 ELKSSRC= %ELKSSRC%
 PREFIX=	 %PREFIX%
-LIBPRE=	 %LIBPRE%
 BINDIR=	 %BINDIR%
 LIBDIR=  %LIBDIR%
+INCLDIR= %INCLDIR%
+ASLDDIR= %ASLDDIR%
+MANDIR=  %MANDIR%
 
 #ifdef GNUMAKE
 export ELKSSRC
@@ -124,7 +128,8 @@ export ELKSSRC
 
 DISTBIN= $(DIST)$(BINDIR)
 DISTLIB= $(DIST)$(LIBDIR)
-DISTPRE= $(DIST)$(LIBPRE)
+DISTASLD=$(DIST)$(ASLDDIR)
+DISTINCL=$(DIST)$(INCLDIR)
 
 # Others to install
 OTHERS=  tests dis88 doselks bootblocks
@@ -186,74 +191,52 @@ objdump86: bindir
 	$(MAKEC) ld $(MAKEARG) objdump86
 	cp -p ld/objdump86$(EXE) bin/objdump86$(EXE)
 
-elksemu: bindir
 #ifndef __AS386_16__
 #ifdef __linux_i386__
+elksemu: bindir
+	$(MAKEC) elksemu elksemu
+	cp -p elksemu/elksemu bin/elksemu
+#else
+elksemu: bindir
 	$(MAKEC) elksemu CC='ncc' elksemu
 	cp -p elksemu/elksemu bin/elksemu
 #endif
 #endif
 
-install-ln: bcc cpp unproto copt as86 ar86 ld86 elksemu
-	install -d $(DISTBIN)
-	ln -fs `pwd`/bin/ncc		$(DISTBIN)/bcc
-	ln -fs `pwd`/bin/as86_encap	$(DISTBIN)/as86_encap
-	ln -fs `pwd`/bin/as86 		$(DISTBIN)/as86
-	ln -fs `pwd`/bin/ar86 		$(DISTBIN)/ar86
-	ln -fs `pwd`/bin/ld86 		$(DISTBIN)/ld86
-#ifndef __AS386_16__
-#ifdef __linux_i386__
-	ln -fs `pwd`/bin/elksemu 	$(DIST)/lib/elksemu
-#endif
-#endif
-	-install -d $(DIST)/usr/lib
-	-install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
-
 install-bcc: bcc cpp unproto copt as86 ar86 ld86 objdump86
-	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
+	install -d $(DISTBIN) $(DISTLIB)
 	install $(INEXE) bin/Bcc$(EXE) 		$(DISTBIN)/bcc$(EXE)
-	install $(INSCR) bin/as86_encap		$(DISTBIN)/as86_encap
-	install $(INEXE) bin/as86$(EXE) 	$(DISTBIN)/as86$(EXE)
+	install $(INEXE) bin/as86$(EXE) 	$(DISTASLD)/as86$(EXE)
+	install $(INEXE) bin/ld86$(EXE) 	$(DISTASLD)/ld86$(EXE)
 	install $(INEXE) bin/ar86$(EXE) 	$(DISTBIN)/ar86$(EXE)
-	install $(INEXE) bin/ld86$(EXE) 	$(DISTBIN)/ld86$(EXE)
 	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/objdump86$(EXE)
 	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/nm86$(EXE)
 	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/size86$(EXE)
+	install $(INSCR) bin/as86_encap		$(DISTLIB)/as86_encap
 	install $(INEXE) lib/bcc-cc1$(EXE) 	$(DISTLIB)/bcc-cc1$(EXE)
 	install $(INEXE) lib/bcc-cpp$(EXE) 	$(DISTLIB)/bcc-cpp$(EXE)
 	install $(INEXE) lib/unproto$(EXE) 	$(DISTLIB)/unproto$(EXE)
 	install $(INEXE) lib/copt$(EXE) 	$(DISTLIB)/copt$(EXE)
-	install $(INDAT) lib/rules.* 		$(DISTLIB)/i86
-	@test ! -f $(DISTLIB)/as86 || rm -f $(DISTLIB)/as86
-	@test ! -f $(DISTLIB)/ld86 || rm -f $(DISTLIB)/ld86
+	install $(INDAT) lib/rules.* 		$(DISTLIB)
 
 # NB: This doesn't install as a suid root, that's ok though.
 install-emu: elksemu
-#ifndef __AS386_16__
 #ifdef __linux_i386__
-	install -d $(DIST)/lib
-	install $(INEXE) bin/elksemu 	$(DIST)/lib/elksemu
-#endif
+	install -d $(DISTBIN)
+	install $(INEXE) bin/elksemu 	$(DISTBIN)/elksemu
 #endif
 
 install-man:
-	-$(MAKEC) man MANDIR=$(DIST)$(PREFIX)/man install
+	-$(MAKEC) man MANDIR=$(DIST)$(MANDIR) install
 
-install-lib: lib/lib0-done lib/lib2-done
-	install -d $(DISTLIB)/i86
-	$(MAKEC) libc $(LIBARGS) BCCHOME=$(DISTPRE) install_incl
-	install $(INDAT) lib/crt0.o 	$(DISTLIB)/i86/crt0.o
-	install $(INDAT) lib/libc.a 	$(DISTLIB)/i86/libc.a
-	install $(INDAT) lib/libbsd.a	$(DISTLIB)/i86/libbsd.a
-	-install -d $(DIST)/usr/lib
-	-install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
-
-install-lib2: lib/lib1-done
-	install -d $(DISTLIB)/i86
-	install $(INDAT) lib/libc_f.a	$(DISTLIB)/i86/libc_f.a
-	install $(INDAT) lib/libc_s.a	$(DISTLIB)/i86/libc_s.a
-	install $(INDAT) lib/libdos.a	$(DISTLIB)/i86/libdos.a
-
+install-lib: lib/lib0-done lib/lib2-done lib/lib1-done
+	$(MAKEC) libc $(LIBARGS) DISTINCL=$(DISTINCL) install_incl
+	install $(INDAT) lib/crt0.o 	$(DISTLIB)/crt0.o
+	install $(INDAT) lib/libc.a 	$(DISTLIB)/libc.a
+	install $(INDAT) lib/libc_f.a	$(DISTLIB)/libc_f.a
+	install $(INDAT) lib/libc_s.a	$(DISTLIB)/libc_s.a
+	install $(INDAT) lib/libbsd.a	$(DISTLIB)/libbsd.a
+	install $(INDAT) lib/libdos.a	$(DISTLIB)/libdos.a
 #ifndef __AS386_16__
 	install -d $(DISTLIB)/i386
 	install $(INDAT) lib/i386/crt0.o 	$(DISTLIB)/i386/crt0.o
@@ -312,14 +295,12 @@ lib-dos: bindir
 	cp -p libc/libdos.a lib/libdos.a
 	sh libcompat lib/libdos.a
 
-#ifndef __AS386_16__
 lib-386: bindir
 	test -f bin/ncc
-	$(MAKEC) libc $(LIBARGS) PLATFORM=i386-BCC
+	$(MAKEC) libc $(LIB3ARGS) PLATFORM=i386-BCC
 	cp -p libc/crt3.o lib/i386/crt0.o
 	cp -p libc/libc3.a lib/i386/libc.a
 	sh libcompat lib/i386/libc.a
-#endif
 
 ##############################################################################
 
@@ -353,6 +334,8 @@ other:
 	@for i in $(OTHERS) ; do \
 		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) || exit 1; \
 	done
+
+##############################################################################
 
 clean:
 	-@for i in $(CLEANLIST) ; do $(MAKEC) $$i $@ ; true ; done

@@ -26,6 +26,7 @@
 #ifndef VERY_SMALL_MEMORY
 #define DEBUG			/* generate compiler-debugging code */
 #define OPTIMISE		/* include optimisation code */
+#define BUILTIN_CPP
 #endif
 
 #ifdef I8088

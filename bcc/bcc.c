@@ -42,7 +42,6 @@
 #define W_OK	2		/* Test for write permission.  */
 #define X_OK	1		/* Test for execute permission.	 */
 #define F_OK	0		/* Test for existence.	*/
-#define L_TREE	1		/* Use different tree style */
 #define DEFARCH 0		/* Default to 8086 code */
 #include "version.h"
 #else
@@ -132,6 +131,7 @@ char * tmpdir = "/tmp/";
 int main P((int argc, char **argv));
 void getargs P((int argc, char **argv));
 void add_prefix P((char * path));
+void build_prefix P((char * path1, char * path2, char * path3));
 void run_aspreproc P((struct file_list * file));
 void run_preproc P((struct file_list * file));
 void run_unproto P((struct file_list * file));
@@ -149,45 +149,35 @@ void validate_link_opts P((void));
 void append_file P((char * filename, int ftype));
 void append_option P((char * option, int otype));
 void prepend_option P((char * option, int otype));
-char * expand_tilde P((char * str));
+char * build_libpath P((char * opt, char * str, char * suffix));
 void * xalloc P((int size));
 void Usage P((void));
 void fatal P((char * why));
 char * copystr P((char * str));
 char * catstr P((char * str, char * str2));
-#ifdef L_TREE
-void reset_localprefix P((void));
-#endif
+void reset_prefix_path P((void));
 void run_command P((struct file_list * file));
 
-#ifndef LOCALPREFIX
-#define LOCALPREFIX     	/usr
-#endif
-char * localprefix = QUOT(LOCALPREFIX);
-#ifndef L_TREE
-char * default_include = "-I~/include";
-char * default_libdir0 = "-L~/lib/bcc/i86/";
-char * default_libdir3 = "-L~/lib/bcc/i386/";
-char * optim_rules     = "-d~/lib/bcc/i86";
+char * prefix_path = "";
+
+#ifdef LOCALPREFIX
+char * localprefix  = QUOT(LOCALPREFIX);
 #else
-char * default_include = "-I~/include";
-char * default_libdir0 = "-L~/lib/";
-char * default_libdir3 = "-L~/lib/i386/";
-char * optim_rules     = "-d~/lib";
+char * localprefix  = "/";
 #endif
+
+/* These paths are NATIVE install paths, change others below */
+char * default_include = "/usr/include";
+char * optim_rules     = "/lib";
+#ifdef LIBDIR
+char * default_libdir  = QUOT(LIBDIR);
+#else
+char * default_libdir  = "/lib";
+#endif
+char * libdir_suffix   = "";
 
 char devnull[] = "/dev/null";
-char * exec_prefixs[] = {
-
-   /* Place fillers for dynamic fill */
-   devnull, devnull, devnull, devnull, devnull,
-
-   "~/lib/bcc/",
-#ifdef BINDIR
-   QUOT(BINDIR) "/",
-#endif
-   "~/lib/",
-   "~/bin/",
+char * exec_prefixs[16] = {
    0		/* Last chance is contents of $PATH */
 };
 
@@ -199,18 +189,55 @@ int argc;
 char ** argv;
 {
    struct file_list * next_file;
+   char * temp;
 
    progname = argv[0];
-#ifdef L_TREE
-   reset_localprefix();
-#endif
+   if ((temp = getenv("BCC_PREFIX")) != 0 )
+      localprefix = copystr(temp);
+
    getargs(argc, argv);
    validate_link_opts();
 
-   default_include = expand_tilde(default_include);
-   default_libdir0 = expand_tilde(default_libdir0);
-   default_libdir3 = expand_tilde(default_libdir3);
-   optim_rules     = expand_tilde(optim_rules);
+   reset_prefix_path();
+
+   if (!*localprefix || !localprefix[1]) {
+
+      if (*localprefix == '/') {
+	 /* Paths for full NATIVE install "-M/" */
+	 build_prefix(default_libdir, libdir_suffix, "");
+	 build_prefix(default_libdir, "", "");
+
+	 default_include = build_libpath("-I", "/usr/include", "");
+	 default_libdir  = build_libpath("-L", default_libdir, libdir_suffix);
+	 optim_rules     = build_libpath("-d", optim_rules, libdir_suffix);
+#if 0
+      } else if (*localprefix == '+') {
+	 /* Paths for a special */
+#endif
+      } else {
+	 /* Relative paths to a build dir "-M-" */
+	 build_prefix("/lib", libdir_suffix, "");
+	 build_prefix("/lib", "", "");
+
+	 default_include = build_libpath("-I", "/include", "");
+	 default_libdir  = build_libpath("-L", "/lib", libdir_suffix);
+	 optim_rules     = build_libpath("-d", "/lib", libdir_suffix);
+      }
+
+   } else {
+      /* Relative paths to normal PREFIX directory */
+      default_include = build_libpath("-I", "/lib/bcc/include", "");
+      default_libdir  = build_libpath("-L", "/lib/bcc", libdir_suffix);
+      optim_rules     = build_libpath("-d", "/lib/bcc", libdir_suffix);
+
+      build_prefix("/lib/bcc", libdir_suffix, "");
+      build_prefix("/lib/bcc", "", "");
+   }
+
+   build_prefix("/bin", "", "");
+#ifdef BINDIR
+   add_prefix(QUOT(BINDIR) "/");
+#endif
 
    if (opt_v>1) { command.cmd = ""; command_reset(); }
    
@@ -260,7 +287,7 @@ void
 run_aspreproc(file)
 struct file_list * file;
 {
-   static char * cc1bcc = CC1BCC;
+   static char cc1bcc[] = CC1BCC;
 
    if (opt_arch<5) {
       if (opt_e)
@@ -290,7 +317,7 @@ struct file_list * file;
 {
    int last_stage = 0;
    int combined_cpp;
-   static char * cc1bcc = CC1BCC;
+   static char cc1bcc[] = CC1BCC;
 
    if (opt_arch<5) {
       if (opt_e)
@@ -381,21 +408,32 @@ struct file_list * file;
    command_reset();
    newfilename(file, !do_as, 's', 1);
    command_opt("-c!");
-   if (opt_O)
+   if (opt_O && opt_arch == 0)
    {
       sprintf(buf, "-huse16 %c86", opt_O);
       command_opt(buf);
    }
    command_opt(optim_rules);
 
-   command_opts('o');
    command_opt("rules.start");
-   if (opt_O)
-   {
-      sprintf(buf, "rules.%c86", opt_O);
+   command_opts('o');
+
+   if (opt_O) {
+      if (opt_arch == 0)
+	 sprintf(buf, "rules.%c86", opt_O);
+      else
+	 sprintf(buf, "rules.lv_%c", opt_O);
       command_opt(buf);
    }
-   command_opt("rules.86");
+
+   switch(opt_arch) {
+   case 0: command_opt("rules.86"); break;
+   case 1: 
+   case 2: command_opt("rules.i386"); break;
+   case 4: command_opt("rules.6809"); break;
+   default:command_opt("rules.mid"); break;
+   }
+
    command_opt("rules.end");
 
    run_command(file);
@@ -436,9 +474,9 @@ struct file_list * file;
    {
       command.cmd = LD86;
       command_reset();
-      newfilename(file, !do_link, 'o', 1);
       command_opt("-r");
       command_opt("-N");
+      newfilename(file, !do_link, 'o', 1);
       run_command(file);
    }
 }
@@ -472,15 +510,14 @@ run_link()
 	 command_opt("-i");
 
       if (!opt_L)
-      {
-	 if (opt_arch==1) command_opt(default_libdir3);
-	 else             command_opt(default_libdir0);
-      }
+	 command_opt(default_libdir);
       command_arch();
 
       if (!opt_x)
 	 command_opt("-C0");
    }
+   /* Current Debian compilers only work in with this: */
+   else command_opt("--static");
 
    for(next_file = files; next_file; next_file = next_file->next) 
       command_opt(next_file->file);
@@ -605,13 +642,13 @@ command_reset()
 	    memcpy(buf, *prefix, p-*prefix);
 	    buf[p-*prefix] = 0;
 
-	    strcat(buf, localprefix);
+	    strcat(buf, prefix_path);
 	    strcat(buf, p+1);
 	 }
 	 strcat(buf, command.cmd);
 
 	 if (!*command.cmd)
-	    fprintf(stderr, "PATH+=%s\n", buf);
+	    fprintf(stderr, "PATH%d=%s\n", prefix-exec_prefixs, buf);
 	 else if (access(buf, X_OK) == 0)
 	 {
 	    command.fullpath = copystr(buf);
@@ -832,7 +869,7 @@ char ** argv;
 
       case 'O':
          do_optim=1;
-	 if (!opt_arg[1] && ( opt_arg[0] >= '1' && opt_arg[0] <= '3' ))
+	 if (!opt_arg[1] && ( opt_arg[0] >= '1' && opt_arg[0] <= '9' ))
 	    opt_O = opt_arg[0];
 	 else if (opt_arg[0] == '-')
 	    append_option(opt_arg, 'o');
@@ -866,7 +903,15 @@ char ** argv;
          break;
 
       case 'M':
+	 if (opt_arg[0] == '/') {
+	    localprefix = copystr(opt_arg);
+	    break;
+	 }
 	 if (opt_arg[1]) Usage();
+	 if (opt_arg[0] == '-') {
+	    localprefix = "";
+	    break;
+	 }
 	 opt_M    = *opt_arg;
 	 break;
 
@@ -1002,23 +1047,21 @@ char ** argv;
       opt_arch = 2;
       prepend_option("-D__unix__", 'p');
       prepend_option("-D__linux__", 'p');
-      /* This one works (in Debian potato), /usr/bin/gcc crashes. */
-      add_prefix("/usr/bin/i486-linuxlibc1-");
+
+      /* This is a more traditional libc, it also gives a 20k executable
+       * for hello world vs. 400k with glibc2 and --static. 
+       * NB: DLL libc no longer seems to work.
+       */
+      add_prefix("/usr/bin/i386-uclibc-");
       break;
    case '8':		/* Use 'c386' program as compiler */
       opt_arch = 3;
+      prepend_option("-D__unix__", 'p');
+      prepend_option("-D__c386__", 'p');
       break;
    case '9':		/* 6809 compiler */
       opt_arch = 4;
-#ifndef L_TREE
-      default_libdir0 = "-L~/lib/bcc/m09/";
-      optim_rules     = "-d~/lib/bcc/m09";
-      add_prefix("~/lib/bcc/m09/");
-#else
-      default_libdir0 = "-L~/lib/m09/";
-      optim_rules     = "-d~/lib/m09";
-      add_prefix("~/lib/m09/");
-#endif
+      prepend_option("-D__6809__", 'p');
       break;
    case '0':		/* Plain old Unix V7 style */
       opt_arch = 5;
@@ -1036,6 +1079,29 @@ char ** argv;
       append_option("-O", 'C');
       append_option("-O", 'a');
    }
+
+   if (opt_arch == 1) libdir_suffix = "/i386";
+   if (opt_arch == 4) libdir_suffix = "/m09";
+}
+
+void
+build_prefix(path1, path2, path3)
+char * path1, * path2, * path3;
+{
+   char * newstr;
+   int l;
+   newstr = xalloc(strlen(path1)+strlen(path1)+strlen(path3)
+	  + strlen(prefix_path)+2);
+
+   strcpy(newstr, prefix_path);
+   strcat(newstr, path1);
+   strcat(newstr, path2);
+   strcat(newstr, path3);
+   l = strlen(newstr);
+   if (l>1 && newstr[l-1] != '/')
+      strcat(newstr, "/");
+
+   add_prefix(newstr);
 }
 
 void
@@ -1045,14 +1111,18 @@ char * path;
    char ** p; 
    if (!path || !*path) return;
 
-   for(p=exec_prefixs; *p; p++) {
-      if( *p == devnull )
+   for(  p=exec_prefixs; 
+	 p<exec_prefixs+(sizeof(exec_prefixs)/sizeof(*p))-1; 
+	 p++) {
+
+      if( !*p )
       {
 	 *p = path;
-	 break;
+	 return;
       }
+      if (strcmp(*p, path) == 0) return;
    }
-   if (!*p) fatal("Too many -B options");
+   fatal("Too many -B options");
 }
 
 void append_file (filename, ftype)
@@ -1128,17 +1198,15 @@ int otype;
    options = newopt;
 }
 
-char * expand_tilde(str)
-char * str;
+char * build_libpath(opt, str, suffix)
+char * opt, * str, * suffix;
 {
    char * newstr;
-   char * ptr = strchr(str, '~');
-   if( ptr == 0 ) return copystr(str);
-
-   newstr = xalloc(strlen(str)+strlen(localprefix));
-   if( ptr!=str ) memcpy(newstr, str, ptr-str);
-   strcpy(newstr+(ptr-str), localprefix);
-   strcat(newstr, ptr+1);
+   newstr = xalloc(strlen(opt)+strlen(str)+strlen(prefix_path)+strlen(suffix)+1);
+   strcpy(newstr, opt);
+   strcat(newstr, prefix_path);
+   strcat(newstr, str);
+   strcat(newstr, suffix);
    return newstr;
 }
 
@@ -1168,27 +1236,41 @@ char * str;
    exit(1);
 }
 
-#ifdef L_TREE
 #ifdef MSDOS
-void reset_localprefix()
+void reset_prefix_path()
 {
    char *ptr, *temp;
+
+   if (*localprefix && localprefix[1]) {
+      prefix_path = localprefix;
+      return;
+   }
 
    temp = copystr(progname);
    if( (ptr = strrchr(temp, '\\')) != 0
          && temp<ptr-4 && strncmp(ptr-4, "\\BIN", 4) == 0 )
    {
       ptr[-4] = 0;
-      localprefix = temp;
+      prefix_path = temp;
    }
    else
       free(temp);
 }
 #else
 
-void reset_localprefix()
+void reset_prefix_path()
 {
    char *ptr, *temp;
+
+   if (*localprefix && localprefix[1]) {
+      prefix_path = localprefix;
+      return;
+   }
+
+   if ( *localprefix == '/' && !localprefix[1]) {
+      prefix_path = "";
+      return;
+   }
 
    if( *progname == '/' )
       temp = copystr(progname);
@@ -1237,14 +1319,12 @@ void reset_localprefix()
          && temp<ptr-4 && strncmp(ptr-4, "/bin", 4) == 0 )
    {
       ptr[-4] = 0;
-      localprefix = temp;
+      prefix_path = temp;
    }
    else
       free(temp);
 }
 #endif
-#endif
-
 
 void
 run_command(file)

@@ -79,6 +79,7 @@ int multiple_files = 0;
 int byte_order = 0;
 
 long size_text, size_data, size_bss;
+long tot_size_text=0, tot_size_data=0, tot_size_bss=0;
 
 int
 main(argc, argv)
@@ -117,6 +118,12 @@ char ** argv;
 
    for(ar=1; ar<argc; ar++) if(argv[ar][0] != '-')
       do_file(argv[ar]);
+
+   if( display_mode == 1 && multiple_files)
+      printf("%ld\t%ld\t%ld\t%ld\t%lx\tTotal\n",
+	 tot_size_text, tot_size_data, tot_size_bss,
+	 tot_size_text+ tot_size_data+ tot_size_bss,
+	 tot_size_text+ tot_size_data+ tot_size_bss);
 
    return 0;
 }
@@ -242,6 +249,10 @@ char * archive;
 
 	    if(archive) printf("%s(%s)\n", archive, fname);
 	    else        printf("%s\n", fname);
+
+	    tot_size_text += size_text;
+	    tot_size_data += size_data;
+	    tot_size_bss  += size_bss;
 	 }
 
 	 if( sections == 1 && display_mode != 0 )
@@ -753,6 +764,10 @@ size_aout()
       header[2]+ header[3]+ header[4],
       header[2]+ header[3]+ header[4],
       ifname);
+
+   tot_size_text += header[2];
+   tot_size_data += header[3];
+   tot_size_bss  += header[4];
 }
 
 void

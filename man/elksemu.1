@@ -16,11 +16,11 @@ the
 .B bcc(1)
 C compiler.
 
-It is not usual to invoke
-.I /lib/elksemu
-directly, either the simple patch or kernel module distributed with it 
-will cause the kernel to run
-.I /lib/elksemu
+Yom may use the
+.I binfmt-misc
+module under Linux 2.1.43 or greater as described in the elksemu README
+which will cause the kernel to run
+.I elksemu
 with the correct arguments whenever the user tries to execute an ELKS 
 executable directly.
 
@@ -28,14 +28,17 @@ executable directly.
 There are no flag options to elksemu, the first argument is the name of the
 program to run the rest are arguments that are passed to the Elks program.
 
+.SH SECURITY
 The 
 .B elksemu
-program is normally installed suid-root and in this event it is able to
+program may be installed suid-root and in this event it is able to
 run execute only (chmod 111) elks executables and act correctly on the
-suid permission bits on those executable. This may be considered a
-security hazard so elksemu does
+suid permission bits on any executable.
+This should be considered a security hazard so elksemu does
 .I not
-have to be installed suid-root.
+have to be installed suid-root. 
+If you consider using this facility you should also be aware that it will
+override the 'nosuid' mount(8) option.
 
 .SH SEE ALSO
 bcc(1), as86(1), ld86(1)

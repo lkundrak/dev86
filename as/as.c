@@ -28,6 +28,7 @@ PRIVATE struct sym_s *hid_spt[SPTSIZ];	/* hash table */
 
 PRIVATE char * binfilename = 0;
 PRIVATE char * objfilename = 0;
+PRIVATE int keep_bad_output = 0;
 
 FORWARD void initp1 P((void));
 FORWARD int my_creat P((char *name, char *message));
@@ -85,7 +86,7 @@ PUBLIC void finishup()
     /* If an output binary is in error remove it */
     close(binfil); binfil=0;
     close(objfil); objfil=0;
-    if (toterr != 0) 
+    if (toterr != 0 && !keep_bad_output) 
     {
        if(binfilename) unlink(binfilename);
        if(objfilename) unlink(objfilename);
@@ -279,6 +280,9 @@ char **argv;
 	    case 'w':
 		if( flag_state ) as_warn.semaphore = -1;
 		else             as_warn.semaphore = 0;
+		break;
+	    case 'k':
+		keep_bad_output = 1;
 		break;
 	    default:
 		usage();	/* bad option */

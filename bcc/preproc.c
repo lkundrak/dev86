@@ -12,6 +12,16 @@
 #include "table.h"
 #include "type.h"
 
+/* blanksident() - return nonzero if at blanks followed by an identifier */
+
+PUBLIC bool_pt blanksident()
+{
+    blanks();
+    return isident();
+}
+
+#ifdef BUILTIN_CPP
+
 #define MAX_IF		32
 #define MAX__LINE__	10	/* enough for 32-bit source unsigneds */
 #define MAX_MACRO	32
@@ -136,14 +146,6 @@ PRIVATE void asmcontrol()
 	outnstr("#endasm");
     else
 	outnstr("!BCC_ENDASM");
-}
-
-/* blanksident() - return nonzero if at blanks followed by an identifier */
-
-PUBLIC bool_pt blanksident()
-{
-    blanks();
-    return isident();
 }
 
 PUBLIC void checknotinif()
@@ -1076,3 +1078,5 @@ char *str;
 {
     defineorundefinestring(str, FALSE);
 }
+
+#endif

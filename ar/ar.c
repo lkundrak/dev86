@@ -37,16 +37,12 @@
 #define HAVE_RENAME
 #undef  HAVE_FSYNC
 #define SHORT_FILENAME
-extern char **sys_errlist;
-extern int sys_nerr;
 #else
 #define HAVE_FCHMOD
 #define HAVE_RENAME
 #undef  HAVE_FSYNC
 #endif
 #define HAVE_TRAILING_SLASH_IN_NAME
-
-extern int errno;
 
 #ifdef	__GNUC__
 # ifndef alloca
@@ -66,9 +62,6 @@ extern int errno;
 
 /* Locking is normally disabled because fcntl hangs on the Sun
    and it isn't supported properly across NFS anyway.  */
-#ifdef LOCKS
-#include <errno.h>
-#endif
 
 /* This structure is used internally to represent the info
    on a member of an archive.  This is to make it easier to change format.  */
@@ -2055,26 +2048,14 @@ void
 perror_with_name (name)
      char *name;
 {
-  char *s;
-
-  if (errno < sys_nerr)
-    s = concat ("", sys_errlist[errno], " for %s");
-  else
-    s = "unknown error for %s";
-  error (s, name);
+  error (concat ("", strerror(errno), " for %s"), name);
 }
 
 void
 pfatal_with_name (name)
      char *name;
 {
-  char *s;
-
-  if (errno < sys_nerr)
-    s = concat ("", sys_errlist[errno], " for %s");
-  else
-    s = "cannot open %s";
-  fatal (s, name);
+  fatal (concat ("", strerror(errno), " for %s"), name);
 }
 
 /* Return a newly-allocated string whose contents

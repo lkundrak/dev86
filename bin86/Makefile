@@ -27,13 +27,11 @@ all:
 
 install: all
 	install $(INSTALL_OPTS) as/as86       $(BINDIR)/as$(SUF)
-	install $(INSTALL_OPT)  as/as86_encap $(BINDIR)/as$(SUF)_encap
 	install $(INSTALL_OPTS) ld/ld86       $(BINDIR)/ld$(SUF)
 	install $(INSTALL_OPTS) ld/objdump86  $(BINDIR)/objdump$(SUF)
 	install $(MAN_OPTS)     man/*.1       $(MANDIR)
 	ln -sf                  objdump$(SUF) $(BINDIR)/nm$(SUF)
 	ln -sf                  objdump$(SUF) $(BINDIR)/size$(SUF)
-	ln -sf                  as86.1        $(MANDIR)/as86_encap.1
 
 depend clean clobber:
 	set -e ; for d in $(DIRS); do \

@@ -4,13 +4,12 @@
 #
 
 PREFIX=/usr
-LIBPRE=$(PREFIX)
 
 CFLAGS	=-O
 LDFLAGS	=-s
 BINDIR	=$(PREFIX)/bin
-LIBDIR	=$(LIBPRE)/lib/bcc
-BCCDEFS	=-DLOCALPREFIX=$(LIBPRE) -DBINDIR=$(BINDIR) -DDEFARCH=0
+LIBDIR	=$(PREFIX)/lib/bcc
+BCCDEFS	=-DLOCALPREFIX=$(PREFIX) -DBINDIR=$(BINDIR) -DDEFARCH=0
 
 BCFLAGS=$(ANSI) $(CFLAGS) $(LDFLAGS)
 
@@ -31,7 +30,7 @@ bcc: bcc.c
 	$(CC) $(BCFLAGS) $(BCCDEFS) bcc.c -o $@
 
 ncc: bcc.c
-	$(CC) $(BCFLAGS) -DL_TREE -DDEFARCH=0 bcc.c -o $@
+	$(CC) $(BCFLAGS) -DLOCALPREFIX= -DDEFARCH=0 bcc.c -o $@
 
 bcc09: bcc.c
 	$(CC) $(BCFLAGS) -DMC6809 $(BCCDEFS) bcc.c -o $@

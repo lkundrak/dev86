@@ -1,5 +1,32 @@
 For version 0.16.*.
 
+> WARNING to distributions: I've altered the install scripts and paths
+  you will want to check them.  Altered paths for bcc.c and normal
+  installs, defaults should now be good for distributions where bcc is a
+  cross compiler. If you set the PREFIX to / it'll install to suggested
+  Native paths. As86_encap moved to LIBDIR.
+
+> I've altered 'perror' and 'strerror' to be normal when compiled for
+  everything except libc_f.a. Only that library it look for the
+  liberror.txt file and it now looks in "/lib/liberror.txt".
+  This means there's no need to install it anywhere except ELKS itself.
+
+> Change -Mg option to use uclibc as glibc2 seems to have stopped working.
+
+> ar.c switch to usnig strerror.
+
+> Move elksemu, it's used like a shared library but is best treated like 
+  an emulator so it's now installed in DISTBIN. Also on Linux-386 it's
+  compiled using the system compiler.
+
+> Use the POSIX -R argument to cp rather than the normal standard -r because
+  some new systems have decided to stop supporting their '-r' option.
+
+> Oops, the constant error strings in the assembler were char pointers not 
+  char arrays, small waste of space.
+
+> Allow for Linux-2.6 32bit dev_t.
+
 > More changes so it compiles better on 'other' machines. 
   Removed some GNU-Make'isms in the top header file.
 
