@@ -78,6 +78,10 @@ For version 0.16.*.
   executable from DOS, if __argr.x.cflag is set this is running under
   DOS.
 
+> Compile for DOS again, disable cpm86 headers under DOS.
+
+> Minor bugfix for as86 binary output re sizeof(int)/K&R problem.
+
 For version 0.16.0.
 
 > As major bugs seem to be absent 0.16.0 is escaping.

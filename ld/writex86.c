@@ -4,7 +4,9 @@
 
 #include "syshead.h"
 #include "x86_aout.h"
+#ifndef MSDOS
 #include "x86_cpm86.h"
+#endif
 #include "const.h"
 #include "obj.h"
 #include "type.h"
@@ -18,7 +20,11 @@
 #define ELF_SYMS 0
 #endif
 
+#ifdef MSDOS
+#  define FILEHEADERLENGTH (headerless?0:A_MINHDR)
+#else
 #  define FILEHEADERLENGTH (headerless?0:(cpm86?CPM86_HEADERLEN:A_MINHDR))
+#endif
 				/* part of header not counted in offsets */
 #define DPSEG 2
 
@@ -77,7 +83,9 @@ FORWARD void symres P((char *name));
 FORWARD void setseg P((fastin_pt newseg));
 FORWARD void skip P((unsigned countsize));
 FORWARD void writeheader P((void));
+#ifndef MSDOS
 FORWARD void cpm86header P((void));
+#endif
 FORWARD void writenulls P((bin_off_t count));
 
 EXTERN bool_t reloc_output;
@@ -324,8 +332,11 @@ bool_pt argxsym;
     setsym("__heap_top", (bin_off_t)heap_top_value);
 
     openout(outfilename);
+#ifndef MSDOS
     if (cpm86) cpm86header();
-    else writeheader();
+    else
+#endif
+       writeheader();
     for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	if (modptr->loadflag)
 	{
@@ -602,6 +613,7 @@ unsigned countsize;
     writenulls((bin_off_t) readsize(countsize));
 }
 
+#ifndef MSDOS
 PRIVATE void cpm86header()
 {
     struct cpm86_exec header;
@@ -626,6 +638,7 @@ PRIVATE void cpm86header()
     if( FILEHEADERLENGTH )
        writeout((char *) &header, FILEHEADERLENGTH);
 }
+#endif
 
 PRIVATE void writeheader()
 {

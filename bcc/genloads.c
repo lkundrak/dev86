@@ -573,6 +573,38 @@ store_pt targreg;
 	}
 	else
 	{
+#ifdef I8088
+	    /* Added acess to CPU registers. Just declare _AX etc. as
+	     * extern int, and you can use them to get/set
+	     * the register values. (vak) */
+	    if (source->storage == GLOBAL && !(source->flags & LABELLED) &&
+		*source->name.namep != 0 && 
+		strncmp(source->name.namep, "__", 2) == 0)
+	    {
+		if (strcmp (source->name.namep, "__AX") == 0)
+		{
+		    /* Load AX register - do nothing. */
+done:		    source->storage = AXREG;	/* in register for further use */
+		    source->flags = 0;
+		    if (source->level == OFFKLUDGELEVEL)
+			source->level = EXPRLEVEL;
+		    source->offset.offi = 0;	/* indcount was adjusted by outadr */
+		    return;
+		}
+		if (strcmp (source->name.namep, "__BX") == 0) { outstr ("mov\tax,bx\n"); goto done; }
+		if (strcmp (source->name.namep, "__CX") == 0) { outstr ("mov\tax,cx\n"); goto done; }
+		if (strcmp (source->name.namep, "__DX") == 0) { outstr ("mov\tax,dx\n"); goto done; }
+		if (strcmp (source->name.namep, "__SP") == 0) { outstr ("mov\tax,sp\n"); goto done; }
+		if (strcmp (source->name.namep, "__BP") == 0) { outstr ("mov\tax,bp\n"); goto done; }
+		if (strcmp (source->name.namep, "__SI") == 0) { outstr ("mov\tax,si\n"); goto done; }
+		if (strcmp (source->name.namep, "__DI") == 0) { outstr ("mov\tax,di\n"); goto done; }
+		if (strcmp (source->name.namep, "__CS") == 0) { outstr ("mov\tax,cs\n"); goto done; }
+		if (strcmp (source->name.namep, "__DS") == 0) { outstr ("mov\tax,ds\n"); goto done; }
+		if (strcmp (source->name.namep, "__ES") == 0) { outstr ("mov\tax,es\n"); goto done; }
+		if (strcmp (source->name.namep, "__SS") == 0) { outstr ("mov\tax,ss\n"); goto done; }
+		if (strcmp (source->name.namep, "__FLAGS") == 0) { outstr ("pushf\npop\tax\n"); goto done; }
+	    }
+#endif
 	    outload();
 	    if (source->storage == GLOBAL && source->indcount != 0 &&
 		(store_t) targreg & (AXREG | ALREG))
@@ -1276,6 +1308,29 @@ struct symstruct *target;
     }
     else
     {
+#ifdef I8088
+	/* Added acess to CPU registers. Just declare _AX etc. as
+	 * extern int, and you can use them to get/set
+	 * the register values. (vak) */
+	if (target->storage == GLOBAL && !(target->flags & LABELLED) &&
+	    *target->name.namep != 0 && 
+	     strncmp(target->name.namep, "__", 2) == 0)
+	{
+	    if (strcmp (target->name.namep, "__AX") == 0) { return; }
+	    if (strcmp (target->name.namep, "__BX") == 0) { outstr ("mov\tbx,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__CX") == 0) { outstr ("mov\tcx,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__DX") == 0) { outstr ("mov\tdx,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__SP") == 0) { outstr ("mov\tsp,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__BP") == 0) { outstr ("mov\tbp,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__SI") == 0) { outstr ("mov\tsi,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__DI") == 0) { outstr ("mov\tdi,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__CS") == 0) { outstr ("mov\tcs,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__DS") == 0) { outstr ("mov\tds,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__ES") == 0) { outstr ("mov\tes,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__SS") == 0) { outstr ("mov\tss,"); outregname(sourcereg); outnl(); return; }
+	    if (strcmp (target->name.namep, "__FLAGS") == 0) { outstr ("push\tax"); outregname(sourcereg); outstr ("\npopf\n"); return; }
+	}
+#endif
 	outstore();
 #ifdef I8088
 	if (target->storage == GLOBAL && (store_t) sourcereg & (AXREG | ALREG))

@@ -109,8 +109,19 @@ char ** argv;
 void Usage(prog)
 char * prog;
 {
-   fprintf(stderr, "Usage: %s [-DFLAG] [-UFLAG] [-blcrMDU] [-C##] files\n",
+   fprintf(stderr, "Usage: %s [-DFLAG] [-UFLAG] [-blcrhMDU] [-C##] files\n",
 		   prog);
+   fprintf(stderr, "\t-DFLAG\tDefine flag.\n");
+   fprintf(stderr, "\t-UFLAG\tUndefine flag.\n");
+   fprintf(stderr, "\t-C##\tComment out liines with '##'\n");
+   fprintf(stderr, "\t-b\tRemove contents of lines leaving empty lines\n");
+   fprintf(stderr, "\t-l\tUse #line lines.\n");
+   fprintf(stderr, "\t-c\tComment out with '# '\n");
+   fprintf(stderr, "\t-r\tRemove undefined lines completely.\n");
+   fprintf(stderr, "\t-h\tRemove any line beginning with a '#'\n");
+   fprintf(stderr, "\t-M\tInclude manifest constants.\n");
+   fprintf(stderr, "\t-D\tAssume any unknown names are defined.\n");
+   fprintf(stderr, "\t-U\tAssume any unknown names are undefined.\n");
    exit(1);
 }
 
@@ -430,7 +441,7 @@ manifest_constant()
 #ifdef __linux__
    save_name("__linux__", 'D');
 #ifdef __i386__
-   save_name("XX__linux_i386__", 'D');
+   save_name("__linux____i386__", 'D');
 #endif
 #endif
 #ifdef __unix__
