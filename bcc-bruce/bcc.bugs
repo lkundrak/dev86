@@ -1,0 +1,169 @@
+compiler limitations
+--------------------
+
+These are not implemented:
+
+a. bit fields
+   kludgily implemented (everything padded to char, int or long; can store
+   values wider than the specified field width)
+ 
+g. signed char type, other ANSI extensions
+
+compiler bugs
+-------------
+
+6. weird but doable casts are not always done for initializers
+
+15. calls to a (casted) absolute address produce an immediate prefix. as386
+    doesn't mind this but complains about the absolute address. as09 complains
+    about the prefix but can handle the absolute address
+
+23. char *f(); &f() is accepted as f() but produces botched nodetype
+    (calc char **).
+
+31. null byte in string initialiser should be ignored if it doesn't fit
+    Non-null bytes which don't fit should be ignored with a warning
+
+32. static char c = "xyz"; is allowed, and bad FCB is generated
+
+37. init of union will store multiple comma-separated entries
+
+38. arrays sizes larger than the amount of memory are accepted
+
+40. structure and union definitions are confused with each other. So
+    struct foo may be used in a declaration like "union foo bar;"
+
+42. pointer arithmetic is performed on pointers to undefined structures
+    (of unknown size). Size is taken as 0 although alignmask is set early
+
+59. preprocessor stuff (# lines or macro names) between the identifier for
+    a label and the colon for the label messes up the label
+
+60. some things involving switches are now broken for 6809 due to lack of
+    frame pointer
+
+61. assembler may get lost on lines of length exactly (?) 256
+
+65. expressions in emum lists or not properly checked for overflow. They
+    should fit in ints. The ordinal number is allowed to overflow
+
+66. sizeof has type int instead of size_t
+
+68. "return expr;" in a function returning a void is reported as a compiler
+    bug not as a semantic error
+
+69. an argument declared as float is (correctly) promoted to double, but
+    not demoted to float when it is used
+
+71. identifiers longer than 64 are botched (scanning of the identifier is
+    stopped but the remaining characters in the identifier are left to
+    mess up the input stream
+
+72. check for too many macro parameters is not working
+
+74. union { char a, b; } foo; gives the wrong offset for b. Unions work OK
+    if the declaration lists have length 1
+
+75. stack gets cleaned up too early in bee = foo ? bar : baz() where baz()
+    returns a struct although there is kludge to make plain bee = baz() work
+
+76. have reintroduced reduced-type bugs, so sizeof(1 ? 1 : 2) is 1
+
+78. fix to require comma in arg list may be half-baked
+
+79. compiler starts trying to load the void expression (i ? (void)0 : (void)0)
+
+80. (unsigned char *) - (char *) causes error and message is obscure
+
+81. 'defined' is a reserved word
+
+82. conditionals with voids don't work
+
+83. float = 1e100 gets overflow exception
+
+84. #endif seems to be seen in
+#if 1
+foo #endif bar
+
+85. line numbers from cpp are not quite right.
+
+bugs that may be fixed
+----------------------
+
+41. typedef's are not scoped properly
+
+nonstandard things that are not done quite right
+------------------------------------------------
+
+3. arguments declared as register are not being dumped by #asm, register
+   vars anyway not being passed to #asm
+
+26. should clear label ptrs when starting #asm
+
+things that have to be be done better
+-------------------------------------
+
+11. push order reversed in genloads.c (temp) - might try to get DP order right
+
+12. need to clean up handling of sc specs (maybe rename flags to sc)
+    And local statics and externs
+
+24. gvarsc is not returned properly for struct/union since the members
+    affect gvarsc (incorrectly). There should be a flag set when
+    inside a struct/union definition to disable sc specs. This could
+    replace the tests in abdeclarator and declselt
+    Best may be to carry the sc along with the type a bit more (in a
+    global symbol structure). Also, the symbol should record sc in a better
+    way than now
+
+25. need to check stack sometimes. Xenix cc does it when allocating >= 100
+    bytes locals and this is essential in Xenix as the stack is grown
+    dynamically
+
+68. overflow checking for constants
+
+things that could be done better
+--------------------------------
+
+4. install new 6809 code for branch patching (after redundancy checks)
+
+5. can improve code for compare with global adr in non-posindependent case
+
+6. char *s; long *pl;
+	code for *s += *pl is poor, for *s += (int) *pl is good
+
+7. most mov's from to ax would be faster and smaller done by xchg's
+
+7a. check ptr add/sub operations earlier
+
+8. tests for against 1 and -1 can sometimes be done with dec's and inc's
+
+9. __opreg is used unnec when the ptr is already in it
+
+9a. double indirect ptrs should maybe be made direct rather than singly
+    indirect by makelessindirect
+
+10. in cmpsmallconst(), the comparison constant should be incorporated in
+    the offset if the indcount is 0 and lea() called. It is harmless to
+    use the lea() trick for non-small constants
+
+20. when saved registers are popped in assign() they may overwrite the
+    expression value, anywhere else? May be fixed now
+
+27. better if loadexpression returned the register used
+
+28. better if source.c did not #include storage.h - it only references
+    DEFINITION, in some blank-skipping code which could be moved to
+    scan.c or preproc.c. preproc.c, scan.c and type.c also #include
+    storage.h, just to get at the DEFINITION and KEYWORD definitions
+
+29. need nodetype() to know about all optimisations in advance, including
+    int % small power of 2 (including 0, 1). Need to delete all type
+    assignments in final code gen, specially the one that convert short
+    to int
+
+30. overflow checking at runtime
+
+31. Use more than the first char from multiple character constants
+
+56. --i++ is not detected as an error in the parser

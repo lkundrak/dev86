@@ -1,0 +1,17 @@
+The `bcc' and `ld' parts of the bin86 distribution are now covered by the
+GNU GPL.  The next release of the `as' part will be covered by the GPL.
+The `a.out.h' part is no longer used and should be deleted.  The `bccfp'
+belongs in another package and may be deleted.
+
+`ld' is now correctly ported to linux.  It now defaults to the target
+a.out format for output.  However, it still requires its own special
+format for input.  It is best used as a post-processor for `as' to
+produce objects in a.out format.  Then the target ld can be used to
+link the objects.  The post-processing step is:
+
+	ld86 -r -o tmpfile.o file.o && mv tmpfile.o file.o
+
+This can be handled more simply by using the `bcc' compiler driver as
+the assembler and never calling as86 or ld86 directly:
+
+	AS86="bcc -G -0 -c"

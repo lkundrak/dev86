@@ -1,0 +1,56 @@
+int x;
+.comm _x,2
+
+int x = 1;
+.global _x  
+.data
+_x:
+1
+
+static int x;
+.bss
+_x:
+.=.+2
+
+static int x = 1;
+.bss						| implicit
+.data
+_x:
+1
+
+char x[10];
+.comm _x,12
+
+char x[10] = "1";
+.globl _x
+.data
+_x:
+.byte 61,0
+.=.+10
+
+static char x[10];
+.bss;
+_cc:
+.=.+12
+
+static char x[10] = "1";
+.data
+_x:
+.byte 61,0
+.=.+10
+
+test()
+.globl _test
+.text
+_test:
+
+{
+static int x;
+.bss
+L3:
+.=.+2
+
+static int x = 1;
+.bss
+.data
+L5:1

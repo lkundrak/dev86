@@ -1,0 +1,67 @@
+Tue May 16 22:01:05 1995  H.J. Lu (hjl@nynexst.com)
+
+	* version 0.3 is released.
+
+	* Makefile: fix a few typos.
+
+	* as/const.h: include "endian.h".
+	  (LOW_BYTE): check the byte order.
+
+	* Makefile (endian.h): new target.
+	  (const.h): depend on endian.h.
+
+	* as/det_endian.c: new from glibc.
+
+Sat Mar 18 16:39:19 1995  Francois-Rene Rideau (rideau@clipper.ens.fr)
+
+	* as/pops.c (doif): support nested conditionals.
+
+Mon Nov 21 22:48:26 1994  H.J. Lu (hlu@nighthawk)
+
+	* version 0.2 is released.
+
+	* Makefile (MFLAGS): new. add BINDIR and CC.
+
+Fri Nov 18 22:25:24 1994  Package Maintainer (opt@calum.csclub.uwaterloo.ca)
+
+	* ./as/Makefile:
+	* ./as/const.h:
+	* ./as/proto.h:
+	* ./as/readsrc.c:
+	* ./as/type.h:
+	* ./ld/Makefile:
+	* ./ld/align.h:
+	* ./ld/config.h:
+	* ./ld/type.h:
+	* ./ld/typeconv.c: remove endian dependency.
+
+Thu Mar  3 15:12:23 1994  H.J. Lu (hlu@nighthawk)
+
+	* version 0.1 is released.
+
+	* Makefile: new.
+
+	* a.out.h/bsd-a.out.h (struct exec): use short form if
+	  __linux__ is defined.
+
+	* as/Makefile: minor changes.
+	  (CLFAGS): add -I../a.out.h.	
+	
+	* ld/Makefile: minor changes.
+	  (CLFAGS): add -I../a.out.h.	
+
+	* ld/io.c (MY_STAT_H): don't define it if __linux__ is
+	  defined.
+
+	* ld/ld.c (flag['z']): initialized to 0 if __linux__ is
+	  defined.
+
+	* ld/obj.h (roundup):
+	* ld/writebin.c (roundup):
+	  ld/readobj.c (roundup): change that to ld_roundup to avoid the
+	  conflict with the system's roundup.
+
+	* ld/writebin.c: cleanup for the latest Linux C library.
+	  (FILEHEADERLENGTH): change to sizeof (struct exec).
+	  don't write a_trsize and its friends.
+
