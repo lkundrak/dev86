@@ -1,0 +1,12 @@
+   File Name		Archive #	Description
+-----------------------------------------------------------
+ MANIFEST                   1	
+ Makefile                   1	
+ README                     1	
+ dis.h                      1	
+ dis88.1                    1	
+ disfp.c                    1	
+ dishand.c                  2	
+ dismain.c                  1	
+ disrel.c                   1	
+ distabs.c                  2	

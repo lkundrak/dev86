@@ -1,0 +1,1448 @@
+Subject:  v15i006:  Symbolic disassembler for PC/IX, Part01/02
+Newsgroups: comp.sources.unix
+Sender: sources
+Approved: rsalz@uunet.UU.NET
+
+Submitted-by: "G. M. Harding" <gm@uts.amdahl.com>
+Posting-number: Volume 15, Issue 6
+Archive-name: dis88/part01
+
+[  I packed up the archives and turned the formatted manpage
+   into an unformatted one.  --r$  ]
+
+	 "Dis88" is a symbolic disassembler for the Intel 8088 CPU,
+    designed to run under the PC/IX  operating  system on an IBM XT
+    or fully-compatible clone.  Its output is in the format of, and
+    is completely compatible with, the PC/IX assembler,  "as".  The
+    program is copyrighted by its author, but may be copied and re-
+    distributed freely provided that complete source code, with all
+    copyright notices, accompanies any distribution. This provision
+    also applies to any  modifications you may make.  You are urged
+    to comment such changes,  giving,  as a miminum,  your name and
+    complete address.
+
+    ---
+    G. M. HARDING
+    POB 4142
+    Santa Clara CA  95054-0142
+
+#! /bin/sh
+# This is a shell archive.  Remove anything before this line, then unpack
+# it by saving it into a file and typing "sh file".  To overwrite existing
+# files, type "sh file -c".  You can also feed this as standard input via
+# unshar, or by typing "sh <file", e.g..  If this archive is complete, you
+# will see the following message at the end:
+#		"End of archive 1 (of 2)."
+PATH=/bin:/usr/bin:/usr/ucb ; export PATH
+if test -f 'MANIFEST' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'MANIFEST'\"
+else
+echo shar: Extracting \"'MANIFEST'\" \(406 characters\)
+sed "s/^X//" >'MANIFEST' <<'END_OF_FILE'
+X   File Name		Archive #	Description
+X-----------------------------------------------------------
+X MANIFEST                   1	
+X Makefile                   1	
+X README                     1	
+X dis.h                      1	
+X dis88.1                    1	
+X disfp.c                    1	
+X dishand.c                  2	
+X dismain.c                  1	
+X disrel.c                   1	
+X distabs.c                  2	
+END_OF_FILE
+if test 406 -ne `wc -c <'MANIFEST'`; then
+    echo shar: \"'MANIFEST'\" unpacked with wrong size!
+fi
+# end of 'MANIFEST'
+fi
+if test -f 'Makefile' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'Makefile'\"
+else
+echo shar: Extracting \"'Makefile'\" \(1593 characters\)
+sed "s/^X//" >'Makefile' <<'END_OF_FILE'
+X# @(#) Makefile, Ver. 2.1 created 00:00:00 87/09/01
+X# Makefile for 8088 symbolic disassembler
+X
+X# Copyright (C) 1987 G. M. Harding, all rights reserved.
+X# Permission to copy and redistribute is hereby granted,
+X# provided full source code, with all copyright notices,
+X# accompanies any redistribution.
+X
+X# This Makefile  automates the process of compiling and linking
+X# a symbolic  object-file  disassembler  program  for the Intel
+X# 8088 CPU. Relatively machine-independent code is contained in
+X# the file dismain.c; lookup tables and handler routines, which
+X# are by their nature  machine-specific,  are  contained in two
+X# files named distabs.c and dishand.c,  respectively.  (A third
+X# machine-specific file, disfp.c, contains handler routines for
+X# floating-point  coprocessor opcodes.)  A header file,  dis.h,
+X# attempts to mediate between the machine-specific and machine-
+X# independent portions of the code. An attempt has been made to
+X# isolate machine  dependencies and to deal with them in fairly
+X# straightforward ways. Thus, it should be possible to target a
+X# different CPU by rewriting the handler  routines and changing
+X# the initialization  data in the lookup tables.  It should not
+X# be necessary to alter the formats of the tables.
+X
+OBJ = disrel.o dismain.o distabs.o dishand.o disfp.o
+X
+dis88 : $(OBJ)
+X	ld -i -s -o dis88 /lib/crt0.o $(OBJ) -lc
+X	size dis88
+X	@echo "\07Build of 'dis88' complete." > /dev/tty
+X
+X.c.o :
+X	cc -O -c $<
+X	chmod 600 $*.o
+X
+disrel.o : disrel.c
+X
+dismain.o : dismain.c dis.h
+X
+distabs.o : distabs.c dis.h
+X
+dishand.o : dishand.c dis.h
+X
+disfp.o : disfp.c dis.h
+X
+END_OF_FILE
+if test 1593 -ne `wc -c <'Makefile'`; then
+    echo shar: \"'Makefile'\" unpacked with wrong size!
+fi
+# end of 'Makefile'
+fi
+if test -f 'README' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'README'\"
+else
+echo shar: Extracting \"'README'\" \(4898 characters\)
+sed "s/^X//" >'README' <<'END_OF_FILE'
+X                                     dis88
+X                                  Beta Release
+X                                    87/09/01
+X                                      ---
+X                                 G. M. HARDING
+X                                    POB 4142
+X                           Santa Clara CA  95054-0142
+X
+X
+X             "Dis88" is a symbolic disassembler for the Intel 8088 CPU,
+X        designed to run under the PC/IX  operating  system on an IBM XT
+X        or fully-compatible clone.  Its output is in the format of, and
+X        is completely compatible with, the PC/IX assembler,  "as".  The
+X        program is copyrighted by its author, but may be copied and re-
+X        distributed freely provided that complete source code, with all
+X        copyright notices, accompanies any distribution. This provision
+X        also applies to any  modifications you may make.  You are urged
+X        to comment such changes,  giving,  as a miminum,  your name and
+X        complete address.
+X
+X             This release of the program is a beta release, which means
+X        that it has been  extensively,  but not  exhaustively,  tested.
+X        User comments, recommendations, and bug fixes are welcome.  The
+X        principal features of the current release are:
+X
+X             (a)  The ability to  disassemble  any file in PC/IX object
+X        format, making full use of symbol and relocation information if
+X        it is present,  regardless of whether the file is executable or
+X        linkable,  and regardless of whether it has continuous or split
+X        I/D space;
+X
+X             (b)  Automatic generation of synthetic labels when no sym-
+X        bol table is available; and
+X
+X             (c)  Optional  output of address and object-code  informa-
+X        tion as assembler comment text.
+X
+X             Limitations of the current release are:
+X
+X             (a)  Numeric co-processor  (i.e., 8087)  mnemonics are not
+X        supported.  Instructions  for the co-processor are disassembled
+X        as CPU escape  sequences,  or as  interrupts,  depending on how
+X        they were assembled in the first place. This limitation will be
+X        addressed in a future release.
+X
+X             (b)  Symbolic  references  within the object  file's  data
+X        segment are not supported. Thus, for example, if a data segment
+X        location is initialized to point to a text segment address,  no
+X        reference to a text segment symbol will be detected. This limi-
+X        tation is likely to remain in future  releases,  because object
+X        code does not, in most cases, contain sufficient information to
+X        allow meaningful interpretation of pure data.  (Note,  however,
+X        that  symbolic  references  to the data segment from within the
+X        text segment are always supported.)
+X
+X             As a final caveat,  be aware that the PC/IX assembler does
+X        not recognize the  "esc"  mnemonic,  even though it refers to a
+X        completely  valid CPU operation  which is documented in all the
+X        Intel literature. Thus, the corresponding opcodes (0xd8 through
+X        0xdf) are disassembled as .byte directives. For reference, how-
+X        ever,  the syntactically-correct "esc" instruction is output as
+X        a comment.
+X
+X             To build the disassembler program, transfer all the source
+X        files,  together with the Makefile,  to a suitable  (preferably
+X        empty) PC/IX directory. Then, simply type "make".
+X
+X             To use dis88,  place it in a  directory  which  appears in
+X        your $PATH list.  It may then be invoked by name from  whatever
+X        directory you happen to be in.  As a minimum,  the program must
+X        be invoked with one command-line argument:  the name of the ob-
+X        ject file to be disassembled.  (Dis88 will complain if the file
+X        specified is not an object file.)  Optionally,  you may specify
+X        an output file; stdout is the default.  One command-line switch
+X        is available:  "-o",  which makes the program display addresses
+X        and object code along with its mnemonic disassembly.
+X
+X             The "-o" option is useful primarily for verifying the cor-
+X        rectness of the program's output. In particular, it may be used
+X        to check the accuracy of local  relative  jump  opcodes.  These
+X        jumps often  target  local  labels,  which are lost at assembly
+X        time;  thus,  the disassembly may contain cryptic  instructions
+X        like "jnz .+39".  As a user convenience,  all relative jump and
+X        call  opcodes are output with a comment  which  identifies  the
+X        physical target address.
+X
+X             By convention, the release level of the program as a whole
+X        is the SID of the file disrel.c, and this SID string appears in
+X        each disassembly.  Release 2.1 of the program is the first beta
+X        release to be distributed on Usenet.
+X
+END_OF_FILE
+if test 4898 -ne `wc -c <'README'`; then
+    echo shar: \"'README'\" unpacked with wrong size!
+fi
+# end of 'README'
+fi
+if test -f 'dis.h' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'dis.h'\"
+else
+echo shar: Extracting \"'dis.h'\" \(7563 characters\)
+sed "s/^X//" >'dis.h' <<'END_OF_FILE'
+X /*
+X ** @(#) dis.h, Ver. 2.1 created 00:00:00 87/09/01
+X */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  *  Copyright (C) 1987 G. M. Harding, all rights reserved  *
+X  *                                                         *
+X  * Permission to copy and  redistribute is hereby granted, *
+X  * provided full source code,  with all copyright notices, *
+X  * accompanies any redistribution.                         *
+X  *                                                         *
+X  * This file contains declarations and definitions used by *
+X  * the 8088 disassembler program. The program was designed *
+X  * for execution on a machine of its own type (i.e., it is *
+X  * not designed as a cross-disassembler);  consequently, A *
+X  * SIXTEEN-BIT INTEGER SIZE HAS BEEN ASSUMED. This assump- *
+X  * tion is not particularly important,  however, except in *
+X  * the machine-specific  portions of the code  (i.e.,  the *
+X  * handler  routines and the optab[] array).  It should be *
+X  * possible to override this assumption,  for execution on *
+X  * 32-bit machines,  by use of a  pre-processor  directive *
+X  * (see below); however, this has not been tested.         *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+X#include <stdio.h>      /* System standard I/O definitions  */
+X#include <fcntl.h>      /* System file-control definitions  */
+X#include <a.out.h>      /* Object file format definitions   */
+X
+X#if i8086 || i8088      /* For CPU's with 16-bit integers   */
+X#undef int
+X#else                   /* Defaults (for 32-bit CPU types)  */
+X#define int short
+X#endif
+X
+X#define MAXSYM 1500     /* Maximum entries in symbol table  */
+X
+extern struct nlist     /* Array to hold the symbol table   */
+X   symtab[MAXSYM];
+X
+extern struct reloc     /* Array to hold relocation table   */
+X   relo[MAXSYM];
+X
+extern int symptr;      /* Index into the symtab[] array    */
+X
+extern int relptr;      /* Index into the relo[] array      */
+X
+struct opcode           /* Format for opcode data records   */
+X   {
+X   char     *text;            /* Pointer to mnemonic text   */
+X   void     (*func)();        /* Pointer to handler routine */
+X   unsigned min;              /* Minimum # of object bytes  */
+X   unsigned max;              /* Maximum # of object bytes  */
+X   };
+X
+extern struct opcode    /* Array to hold the opcode table   */
+X  optab[256];
+X
+X /*
+X   +---------------------------------------------
+X   | The following  functions are the specialized
+X   | handlers for each opcode group. They are, of
+X   | course, highly MACHINE-SPECIFIC.  Each entry
+X   | in the opcode[]  array contains a pointer to
+X   | one of these  handlers.  The handlers in the
+X   | first group are in  dishand.c;  those in the
+X   | second group are in disfp.c.
+X   +---------------------------------------------
+X */
+X
+extern void dfhand(),   /* Default handler routine          */
+X            sbhand(),   /* Single-byte handler              */
+X            aohand(),   /* Arithmetic-op handler            */
+X            sjhand(),   /* Short-jump handler               */
+X            imhand(),   /* Immediate-operand handler        */
+X            mvhand(),   /* Simple move handler              */
+X            mshand(),   /* Segreg-move handler              */
+X            pohand(),   /* Pop memory/reg handler           */
+X            cihand(),   /* Intersegment call handler        */
+X            mihand(),   /* Immediate-move handler           */
+X            mqhand(),   /* Quick-move handler               */
+X            tqhand(),   /* Quick-test handler               */
+X            rehand(),   /* Return handler                   */
+X            mmhand(),   /* Move-to-memory handler           */
+X            srhand(),   /* Shift and rotate handler         */
+X            aahand(),   /* ASCII-adjust handler             */
+X            iohand(),   /* Immediate port I/O handler       */
+X            ljhand(),   /* Long-jump handler                */
+X            mahand(),   /* Misc. arithmetic handler         */
+X            mjhand();   /* Miscellaneous jump handler       */
+X
+extern void eshand(),   /* Bus-escape opcode handler        */
+X            fphand(),   /* Floating-point handler           */
+X            inhand();   /* Interrupt-opcode handler         */
+X
+extern char *REGS[];    /* Table of register names          */
+X
+extern char *REGS0[];   /* Mode 0 register name table       */
+X
+extern char *REGS1[];   /* Mode 1 register name table       */
+X
+X#define AL REGS[0]      /* CPU register manifests           */
+X#define CL REGS[1]
+X#define DL REGS[2]
+X#define BL REGS[3]
+X#define AH REGS[4]
+X#define CH REGS[5]
+X#define DH REGS[6]
+X#define BH REGS[7]
+X#define AX REGS[8]
+X#define CX REGS[9]
+X#define DX REGS[10]
+X#define BX REGS[11]
+X#define SP REGS[12]
+X#define BP REGS[13]
+X#define SI REGS[14]
+X#define DI REGS[15]
+X#define ES REGS[16]
+X#define CS REGS[17]
+X#define SS REGS[18]
+X#define DS REGS[19]
+X#define BX_SI REGS0[0]
+X#define BX_DI REGS0[1]
+X#define BP_SI REGS0[2]
+X#define BP_DI REGS0[3]
+X
+extern int symrank[6][6];     /* Symbol type/rank matrix    */
+X
+extern unsigned long PC;      /* Current program counter    */
+X
+extern int segflg;      /* Flag: segment override in effect */
+X
+extern int objflg;      /* Flag: output object as a comment */
+X
+X#define OBJMAX 8        /* Size of the object code buffer   */
+X
+extern unsigned char    /* Internal buffer for object code  */
+X   objbuf[OBJMAX];
+X
+extern void objini(),   /* Object-buffer init routine       */
+X            objout();   /* Object-code output routine       */
+X
+extern int objptr;      /* Index into the objbuf[] array    */
+X
+extern void badseq();   /* Bad-code-sequence function       */
+X
+extern char *getnam();  /* Symbol-name string function      */
+X
+extern char *lookup();  /* Symbol-table lookup function     */
+X
+extern int lookext();   /* Extern-definition lookup routine */
+X
+extern char *mtrans();  /* Interpreter for the mode byte    */
+X
+extern void mtrunc();   /* Mode string truncator function   */
+X
+extern char ADD[],      /* Opcode family mnemonic strings   */
+X            OR[],
+X            ADC[],
+X            SBB[],
+X            AND[],
+X            SUB[],
+X            XOR[],
+X            CMP[],
+X            NOT[],
+X            NEG[],
+X            MUL[],
+X            DIV[],
+X            MOV[],
+X            ESC[],
+X            TEST[],
+X            AMBIG[];
+X
+extern char *OPFAM[];   /* Indexed mnemonic family table    */
+X
+extern struct exec HDR; /* Holds the object file's header   */
+X
+X#define LOOK_ABS 0      /* Arguments to lookup() function   */
+X#define LOOK_REL 1
+X#define LOOK_LNG 2
+X
+X#define TR_STD 0        /* Arguments to mtrans() function   */
+X#define TR_SEG 8
+X
+X                        /* Macro for byte input primitive   */
+X#define FETCH(p) \
+X   ++PC; p = getchar() & 0xff; objbuf[objptr++] = p
+X
+extern int close();     /* System file-close primitive      */
+extern int fprintf();   /* Library file-output function     */
+extern long lseek();    /* System file-position primitive   */
+extern int open();      /* System file-open primitive       */
+extern int printf();    /* Library output-format function   */
+extern int read();      /* System file-read primitive       */
+extern int sprintf();   /* Library string-output function   */
+extern char *strcat();  /* Library string-join function     */
+extern char *strcpy();  /* Library string-copy function     */
+extern int strlen();    /* Library string-length function   */
+X
+X /* * * * * * * * * * *  END OF  dis.h  * * * * * * * * * * */
+X
+X
+END_OF_FILE
+if test 7563 -ne `wc -c <'dis.h'`; then
+    echo shar: \"'dis.h'\" unpacked with wrong size!
+fi
+# end of 'dis.h'
+fi
+if test -f 'dis88.1' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'dis88.1'\"
+else
+echo shar: Extracting \"'dis88.1'\" \(6174 characters\)
+sed "s/^X//" >'dis88.1' <<'END_OF_FILE'
+X.TH dis88 1 LOCAL
+X.SH "NAME"
+dis88 \- 8088 symbolic disassembler
+X.SH "SYNOPSIS"
+X\fBdis88\fP [ -o ] ifile [ ofile ]
+X.SH "DESCRIPTION"
+Dis88 reads ifile, which must be in PC/IX a.out format.
+It interprets the binary opcodes and data locations, and
+writes corresponding assembler source code to stdout, or
+to ofile if specified.  The program's output is in the
+format of, and fully compatible with, the PC/IX assembler,
+as(1).  If a symbol table is present in ifile, labels and
+references will be symbolic in the output.  If the input
+file lacks a symbol table, the fact will be noted, and the
+disassembly will proceed, with the disassembler generating
+synthetic labels as needed.  If the input file has split
+I/D space, or if it is executable, the disassembler will
+make all necessary adjustments in address-reference calculations.
+X.PP
+If the "-o" option appears, object code will be included
+in comments during disassembly of the text segment.  This
+feature is used primarily for debugging the disassembler
+itself, but may provide information of passing interest
+to users.
+X.PP
+The program always outputs the current machine address
+before disassembling an opcode.  If a symbol table is
+present, this address is output as an assembler comment;
+otherwise, it is incorporated into the synthetic label
+which is generated internally.  Since relative jumps,
+especially short ones, may target unlabelled locations,
+the program always outputs the physical target address
+as a comment, to assist the user in following the code.
+X.PP
+The text segment of an object file is always padded to
+an even machine address.  In addition, if the file has
+split I/D space, the text segment will be padded to a
+paragraph boundary (i.e., an address divisible by 16).
+As a result of this padding, the disassembler may produce
+a few spurious, but harmless, instructions at the
+end of the text segment.
+X.PP
+Disassembly of the data segment is a difficult matter.
+The information to which initialized data refers cannot
+be inferred from context, except in the special case
+of an external data or address reference, which will be
+reflected in the relocation table.  Internal data and
+address references will already be resolved in the object file,
+and cannot be recreated.  Therefore, the data
+segment is disassembled as a byte stream, with long
+stretches of null data represented by an appropriate
+X".zerow" pseudo-op.  This limitation notwithstanding,
+labels (as opposed to symbolic references) are always
+output at appropriate points within the data segment.
+X.PP
+If disassembly of the data segment is difficult, disassembly of the
+bss segment is quite easy, because uninitialized data is all
+zero by definition.  No data
+is output in the bss segment, but symbolic labels are
+output as appropriate.
+X.PP
+XFor each opcode which takes an operand, a particular
+symbol type (text, data, or bss) is appropriate.  This
+tidy correspondence is complicated somewhat, however,
+by the existence of assembler symbolic constants and
+segment override opcodes.  Therefore, the disassembler's
+symbol lookup routine attempts to apply a certain amount
+of intelligence when it is asked to find a symbol.  If
+it cannot match on a symbol of the preferred type, it
+may return a symbol of some other type, depending on
+preassigned (and somewhat arbitrary) rankings within
+each type.  Finally, if all else fails, it returns a
+string containing the address sought as a hex constant;
+this behavior allows calling routines to use the output
+of the lookup function regardless of the success of its
+search.
+X.PP
+It is worth noting, at this point, that the symbol lookup
+routine operates linearly, and has not been optimized in
+any way.  Execution time is thus likely to increase
+geometrically with input file size.  The disassembler is
+internally limited to 1500 symbol table entries and 1500
+relocation table entries; while these limits are generous
+X(/unix, itself, has fewer than 800 symbols), they are not
+guaranteed to be adequate in all cases.  If the symbol
+table or the relocation table overflows, the disassembly
+aborts.
+X.PP
+XFinally, users should be aware of a bug in the assembler,
+which causes it not to parse the "esc" mnemonic, even
+though "esc" is a completely legitimate opcode which is
+documented in all the Intel literature.  To accommodate
+this deficiency, the disassembler translates opcodes of
+the "esc" family to .byte directives, but notes the
+correct mnemonic in a comment for reference.
+X.PP
+In all cases, it should be possible to submit the output
+of the disassembler program to the assembler, and assemble
+it without error.  In most cases, the resulting object
+code will be identical to the original; in any event, it
+will be functionally equivalent.
+X.SH "SEE ALSO"
+adb(1), as(1), cc(1), ld(1).
+X.br
+X"Assembler Reference Manual" in the PC/IX Programmer's
+Guide.
+X.SH "DIAGNOSTICS"
+X"can't access input file" if the input file cannot be
+found, opened, or read.
+X.sp
+X"can't open output file" if the output file cannot be
+created.
+X.sp
+X"warning: host/cpu clash" if the program is run on a
+machine with a different CPU.
+X.sp
+X"input file not in object format" if the magic number
+does not correspond to that of a PC/IX object file.
+X.sp
+X"not an 8086/8088 object file" if the CPU ID of the
+file header is incorrect.
+X.sp
+X"reloc table overflow" if there are more than 1500
+entries in the relocation table.
+X.sp
+X"symbol table overflow" if there are more than 1500
+entries in the symbol table.
+X.sp
+X"lseek error" if the input file is corrupted (should
+never happen).
+X.sp
+X"warning: no symbols" if the symbol table is missing.
+X.sp
+X"can't reopen input file" if the input file is removed
+or altered during program execution (should never happen).
+X.SH "BUGS"
+Numeric co-processor (i.e., 8087) mnemonics are not currently supported.
+Instructions for the co-processor are
+disassembled as CPU escape sequences, or as interrupts,
+depending on how they were assembled in the first place.
+X.sp
+Despite the program's best efforts, a symbol retrieved
+from the symbol table may sometimes be different from
+the symbol used in the original assembly.
+X.sp
+The disassembler's internal tables are of fixed size,
+and the program aborts if they overflow.
+END_OF_FILE
+if test 6174 -ne `wc -c <'dis88.1'`; then
+    echo shar: \"'dis88.1'\" unpacked with wrong size!
+fi
+# end of 'dis88.1'
+fi
+if test -f 'disfp.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'disfp.c'\"
+else
+echo shar: Extracting \"'disfp.c'\" \(5589 characters\)
+sed "s/^X//" >'disfp.c' <<'END_OF_FILE'
+static char *sccsid =
+X   "@(#) disfp.c, Ver. 2.1 created 00:00:00 87/09/01";
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  *  Copyright (C) 1987 G. M. Harding, all rights reserved  *
+X  *                                                         *
+X  * Permission to copy and  redistribute is hereby granted, *
+X  * provided full source code,  with all copyright notices, *
+X  * accompanies any redistribution.                         *
+X  *                                                         *
+X  * This file contains handler routines for the numeric op- *
+X  * codes of the 8087 co-processor,  as well as a few other *
+X  * opcodes which are related to 8087 emulation.            *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+X#include "dis.h"              /* Disassembler declarations  */
+X
+X#define FPINT0 0xd8           /* Floating-point interrupts  */
+X#define FPINT1 0xd9
+X#define FPINT2 0xda
+X#define FPINT3 0xdb
+X#define FPINT4 0xdc
+X#define FPINT5 0xdd
+X#define FPINT6 0xde
+X#define FPINT7 0xdf
+X
+X                              /* Test for floating opcodes  */
+X#define ISFLOP(x) \
+X   (((x) >= FPINT0) && ((x) <= FPINT7))
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  handler for the escape  family of opcodes. *
+X  * These opcodes place the contents of a specified  memory *
+X  * location on the system bus,  for access by a peripheral *
+X  * or by a co-processor such as the 8087. (The 8087 NDP is *
+X  * accessed  only  via bus  escapes.)  Due to a bug in the *
+X  * PC/IX assembler,  the "esc" mnemonic is not recognized; *
+X  * consequently,  escape opcodes are disassembled as .byte *
+X  * directives,  with the appropriate  mnemonic and operand *
+X  * included as a comment.  FOR NOW, those escape sequences *
+X  * corresponding  to 8087  opcodes  are  treated as simple *
+X  * escapes.                                                *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+eshand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF eshand()  * * * * * * * * * */
+X
+X   register char *a;
+X   register int k;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   a = mtrans((j & 0xfd),(k & 0xc7),TR_STD);
+X
+X   mtrunc(a);
+X
+X   printf("\t.byte\t0x%02.2x\t\t| esc\t%s\n",j,a);
+X
+X   for (k = 1; k < objptr; ++k)
+X      printf("\t.byte\t0x%02.2x\n",objbuf[k]);
+X
+X}/* * * * * * * * * * * END OF eshand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler routine for floating-point opcodes. *
+X  * Since PC/IX must  accommodate  systems with and without *
+X  * 8087 co-processors, it allows floating-point operations *
+X  * to be  initiated  in either of two ways:  by a software *
+X  * interrput whose type is in the range 0xd8 through 0xdf, *
+X  * or by a CPU escape sequence, which is invoked by an op- *
+X  * code in the same range.  In either case, the subsequent *
+X  * byte determines the actual numeric operation to be per- *
+X  * formed.  However,  depending  on the  method of access, *
+X  * either  one or two code bytes will  precede  that byte, *
+X  * and the fphand()  routine has no way of knowing whether *
+X  * it was invoked by  interrupt or by an escape  sequence. *
+X  * Therefore, unlike all of the other handler routines ex- *
+X  * cept dfhand(),  fphand() does not initialize the object *
+X  * buffer, leaving that chore to the caller.               *
+X  *                                                         *
+X  * FOR NOW,  fphand()  does not disassemble floating-point *
+X  * opcodes to floating  mnemonics,  but simply outputs the *
+X  * object code as .byte directives.                        *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+fphand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF fphand()  * * * * * * * * * */
+X
+X   register int k;
+X
+X   segflg = 0;
+X
+X   FETCH(k);
+X
+X   printf("\t.byte\t0x%02.2x\t\t| 8087 code sequence\n",
+X    objbuf[0]);
+X
+X   for (k = 1; k < objptr; ++k)
+X      printf("\t.byte\t0x%02.2x\n",objbuf[k]);
+X
+X/* objout();                                       FOR NOW  */
+X
+X}/* * * * * * * * * * * END OF fphand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  handler for  variable  software  interrupt *
+X  * opcodes.  It is included in this file because PC/IX im- *
+X  * plements its software floating-point emulation by means *
+X  * of interrupts.  Any interrupt in the range 0xd8 through *
+X  * 0xdf is an  NDP-emulation  interrupt,  and is specially *
+X  * handled by the assembler.                               *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+inhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF inhand()  * * * * * * * * * */
+X
+X   register int k;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   if (ISFLOP(k))
+X      {
+X      fphand(k);
+X      return;
+X      }
+X
+X   printf("%s\t%d\n",optab[j].text,k);
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF inhand() * * * * * * * * * * */
+X
+X
+END_OF_FILE
+if test 5589 -ne `wc -c <'disfp.c'`; then
+    echo shar: \"'disfp.c'\" unpacked with wrong size!
+fi
+# end of 'disfp.c'
+fi
+if test -f 'dismain.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'dismain.c'\"
+else
+echo shar: Extracting \"'dismain.c'\" \(17384 characters\)
+sed "s/^X//" >'dismain.c' <<'END_OF_FILE'
+static char *sccsid =
+X   "@(#) dismain.c, Ver. 2.1 created 00:00:00 87/09/01";
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  *  Copyright (C) 1987 G. M. Harding, all rights reserved  *
+X  *                                                         *
+X  * Permission to copy and  redistribute is hereby granted, *
+X  * provided full source code,  with all copyright notices, *
+X  * accompanies any redistribution.                         *
+X  *                                                         *
+X  * This file  contains  the source  code for the  machine- *
+X  * independent  portions of a disassembler  program to run *
+X  * in a Unix (System III) environment.  It expects, as its *
+X  * input, a file in standard a.out format, optionally con- *
+X  * taining symbol table information.  If a symbol table is *
+X  * present, it will be used in the disassembly; otherwise, *
+X  * all address references will be literal (absolute).      *
+X  *                                                         *
+X  * The disassembler  program was originally written for an *
+X  * Intel 8088 CPU.  However, all details of the actual CPU *
+X  * architecture are hidden in three machine-specific files *
+X  * named  distabs.c,  dishand.c,  and disfp.c  (the latter *
+X  * file is specific to the 8087 numeric co-processor). The *
+X  * code in this file is generic,  and should require mini- *
+X  * mal revision if a different CPU is to be targeted. If a *
+X  * different version of Unix is to be targeted, changes to *
+X  * this file may be necessary, and if a completely differ- *
+X  * ent OS is to be targeted, all bets are off.             *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+X#include "dis.h"              /* Disassembler declarations  */
+X
+extern char *release;         /* Contains release string    */
+X
+static char *IFILE = NULL;    /* Points to input file name  */
+X
+static char *OFILE = NULL;    /* Points to output file name */
+X
+static char *PRG;             /* Name of invoking program   */
+X
+static unsigned long zcount;  /* Consecutive "0" byte count */
+X
+int objflg = 0;               /* Flag: output object bytes  */
+X
+X#if unix && i8086 && ibmpc    /* Set the CPU identifier     */
+static int cpuid = 1;
+X#else
+static int cpuid = 0;
+X#endif
+X
+X /* * * * * * * MISCELLANEOUS UTILITY FUNCTIONS * * * * * * */
+X
+static void
+usage(s)
+X   register char *s;
+X{
+X   fprintf(stderr,"\07usage: %s [-o] ifile [ofile]\n",s);
+X   exit(-1);
+X}
+X
+static void
+fatal(s,t)
+X   register char *s, *t;
+X{
+X   fprintf(stderr,"\07%s: %s\n",s,t);
+X   exit(-1);
+X}
+X
+static void
+zdump(beg)
+X   unsigned long beg;
+X{
+X   beg = PC - beg;
+X   if (beg > 1L)
+X      printf("\t.zerow\t%ld\n",(beg >> 1));
+X   if (beg & 1L)
+X      printf("\t.byte\t0\n");
+X}
+X
+static char *
+invoker(s)
+X   register char *s;
+X{
+X   extern int strlen();
+X   register int k;
+X
+X   k = strlen(s);
+X
+X   while (k--)
+X      if (s[k] == '/')
+X         {
+X         s += k;
+X         ++s;
+X         break;
+X         }
+X
+X   return (s);
+X}
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This rather tricky routine supports the disdata() func- *
+X  * tion.  Its job is to output the code for a sequence  of *
+X  * data bytes whenever the object buffer is full,  or when *
+X  * a symbolic label is to be output. However, it must also *
+X  * keep track of  consecutive  zero words so that  lengthy *
+X  * stretches of null data can be  compressed by the use of *
+X  * an  appropriate  assembler  pseudo-op.  It does this by *
+X  * setting and testing a file-wide  flag which counts suc- *
+X  * cessive full buffers of null data. The function returns *
+X  * a logical  TRUE value if it outputs  anything,  logical *
+X  * FALSE otherwise.  (This enables disdata()  to determine *
+X  * whether to output a new  synthetic  label when there is *
+X  * no symbol table.)                                       *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+static int
+objdump(c)
+X
+X   register char *c;
+X
+X{/* * * * * * * * * * START OF  objdump() * * * * * * * * * */
+X
+X   register int k;
+X   int retval = 0;
+X
+X   if (objptr == OBJMAX)
+X      {
+X      for (k = 0; k < OBJMAX; ++k)
+X         if (objbuf[k])
+X            break;
+X      if (k == OBJMAX)
+X         {
+X         zcount += k;
+X         objptr = 0;
+X         if (c == NULL)
+X            return (retval);
+X         }
+X      }
+X
+X   if (zcount)
+X      {
+X      printf("\t.zerow\t%ld\n",(zcount >> 1));
+X      ++retval;
+X      zcount = 0L;
+X      }
+X
+X   if (objptr)
+X      {
+X      printf("\t.byte\t");
+X      ++retval;
+X      }
+X   else
+X      return (retval);
+X
+X   for (k = 0; k < objptr; ++k)
+X      {
+X      printf("0x%02.2x",objbuf[k]);
+X      if (k < (objptr - 1))
+X         putchar(',');
+X      else
+X         putchar('\n');
+X      }
+X
+X   objptr = 0;
+X
+X   return (retval);
+X
+X}/* * * * * * * * * *  END OF  objdump()  * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This  routine,  called  at the  beginning  of the input *
+X  * cycle for each object byte,  and before any interpreta- *
+X  * tion is  attempted,  searches  the symbol table for any *
+X  * symbolic  name with a value  corresponding  to the cur- *
+X  * rent PC and a type  corresponding  to the segment  type *
+X  * (i.e.,  text, data, or bss) specified by the function's *
+X  * argument. If any such name is found, a pointer to it is *
+X  * returned; otherwise, a NULL pointer is returned.        *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+static char *
+getlab(type)
+X
+X   register int type;
+X
+X{/* * * * * * * * * *  START OF getlab()  * * * * * * * * * */
+X
+X   register int k;
+X   static char b[32], c[10];
+X
+X   if (symptr < 0)
+X      if ((type == N_TEXT)
+X       || ((type == N_DATA) && ( ! objptr ) && ( ! zcount )))
+X         {
+X         if (type == N_TEXT)
+X            sprintf(b,"T%05.5lx:",PC);
+X         else
+X            sprintf(b,"D%05.5lx:",PC);
+X         return (b);
+X         }
+X      else
+X         return (NULL);
+X
+X   for (k = 0; k <= symptr; ++k)
+X      if ((symtab[k].n_value == PC)
+X       && ((symtab[k].n_sclass & N_SECT) == type))
+X         {
+X         sprintf(b,"%s:\n",getnam(k));
+X         if (objflg && (type != N_TEXT))
+X            sprintf(c,"| %05.5lx\n",PC);
+X         strcat(b,c);
+X         return (b);
+X         }
+X
+X   return (NULL);
+X
+X}/* * * * * * * * * * * END OF getlab() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This routine  performs a preliminary scan of the symbol *
+X  * table,  before disassembly begins, and outputs declara- *
+X  * tions of globals and constants.                         *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+static void
+prolog()
+X
+X{/* * * * * * * * * *  START OF prolog()  * * * * * * * * * */
+X
+X   register int j, flag;
+X
+X   if (symptr < 0)
+X      return;
+X
+X   for (j = flag = 0; j <= symptr; ++j)
+X      if ((symtab[j].n_sclass & N_CLASS) == C_EXT)
+X         if (((symtab[j].n_sclass & N_SECT) > N_UNDF)
+X          && ((symtab[j].n_sclass & N_SECT) < N_COMM))
+X            {
+X            char *c = getnam(j);
+X            printf("\t.globl\t%s",c);
+X            if (++flag == 1)
+X               {
+X               putchar('\t');
+X               if (strlen(c) < 8)
+X                  putchar('\t');
+X               printf("| Internal global\n");
+X               }
+X            else
+X               putchar('\n');
+X            }
+X         else
+X            if (symtab[j].n_value)
+X               {
+X               char *c = getnam(j);
+X               printf("\t.comm\t%s,0x%08.8lx",c,
+X                symtab[j].n_value);
+X               if (++flag == 1)
+X                  printf("\t| Internal global\n");
+X               else
+X                  putchar('\n');
+X               }
+X
+X   if (flag)
+X      putchar('\n');
+X
+X   for (j = flag = 0; j <= relptr; ++j)
+X      if (relo[j].r_symndx < S_BSS)
+X         {
+X         char *c = getnam(relo[j].r_symndx);
+X         ++flag;
+X         printf("\t.globl\t%s",c);
+X         putchar('\t');
+X         if (strlen(c) < 8)
+X            putchar('\t');
+X         printf("| Undef: %05.5lx\n",relo[j].r_vaddr);
+X         }
+X
+X   if (flag)
+X      putchar('\n');
+X
+X   for (j = flag = 0; j <= symptr; ++j)
+X      if ((symtab[j].n_sclass & N_SECT) == N_ABS)
+X         {
+X         char *c = getnam(j);
+X         printf("%s=0x%08.8lx",c,symtab[j].n_value);
+X         if (++flag == 1)
+X            {
+X            printf("\t\t");
+X            if (strlen(c) < 5)
+X               putchar('\t');
+X            printf("| Literal\n");
+X            }
+X         else
+X            putchar('\n');
+X         }
+X
+X   if (flag)
+X      putchar('\n');
+X
+X}/* * * * * * * * * * * END OF prolog() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This function is  responsible  for  disassembly  of the *
+X  * object file's text segment.                             *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+static void
+distext()
+X
+X{/* * * * * * * * * * START OF  distext() * * * * * * * * * */
+X
+X   char *c;
+X   register int j;
+X   register void (*f)();
+X
+X   for (j = 0; j < (int)(HDR.a_hdrlen); ++j)
+X      getchar();
+X
+X   printf("| %s, %s\n\n",PRG,release);
+X
+X   printf("| @(");
+X
+X   printf("#)\tDisassembly of %s",IFILE);
+X
+X   if (symptr < 0)
+X      printf(" (no symbols)\n\n");
+X   else
+X      printf("\n\n");
+X
+X   if (HDR.a_flags & A_EXEC)
+X      printf("| File is executable\n\n");
+X
+X   if (HDR.a_flags & A_SEP)
+X      {
+X      printf("| File has split I/D space, and may have\n");
+X      printf("| extraneous instructions in text segment\n\n");
+X      }
+X
+X   prolog();
+X
+X   printf("\t.text\t\t\t| loc = %05.5lx, size = %05.5lx\n\n",
+X    PC,HDR.a_text);
+X
+X   segflg = 0;
+X
+X   for (PC = 0L; PC < HDR.a_text; ++PC)
+X      {
+X      j = getchar() & 0xff;
+X      if ((j == 0) && ((PC + 1L) == HDR.a_text))
+X         {
+X         ++PC;
+X         break;
+X         }
+X      if ((c = getlab(N_TEXT)) != NULL)
+X         printf("%s",c);
+X      f = optab[j].func;
+X      (*f)(j);
+X      }
+X
+X}/* * * * * * * * * *  END OF  distext()  * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This  function  handles the object file's data segment. *
+X  * There is no good way to disassemble a data segment, be- *
+X  * cause it is  impossible  to tell,  from the object code *
+X  * alone,  what each data byte refers to.  If it refers to *
+X  * an external symbol,  the reference can be resolved from *
+X  * the relocation table, if there is one.  However,  if it *
+X  * refers to a static symbol,  it cannot be  distinguished *
+X  * from numeric, character, or other pointer data. In some *
+X  * cases,  one might make a semi-educated  guess as to the *
+X  * nature of the data,  but such  guesses  are  inherently *
+X  * haphazard,  and they are  bound to be wrong a good por- *
+X  * tion of the time.  Consequently,  the data  segment  is *
+X  * disassembled  as a byte  stream,  which will satisfy no *
+X  * one but which, at least, will never mislead anyone.     *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+static void
+disdata()
+X
+X{/* * * * * * * * * * START OF  disdata() * * * * * * * * * */
+X
+X   register char *c;
+X   register int j;
+X   unsigned long end;
+X
+X   putchar('\n');
+X
+X   if (HDR.a_flags & A_SEP)
+X      {
+X      PC = 0L;
+X      end = HDR.a_data;
+X      }
+X   else
+X      end = HDR.a_text + HDR.a_data;
+X
+X   printf("\t.data\t\t\t| loc = %05.5lx, size = %05.5lx\n\n",
+X    PC,HDR.a_data);
+X
+X   segflg = 0;
+X
+X   for (objptr = 0, zcount = 0L; PC < end; ++PC)
+X      {
+X      if ((c = getlab(N_DATA)) != NULL)
+X         {
+X         objdump(c);
+X         printf("%s",c);
+X         }
+X      if (objptr >= OBJMAX)
+X         if (objdump(NULL) && (symptr < 0))
+X            printf("D%05.5lx:",PC);
+X      j = getchar() & 0xff;
+X      objbuf[objptr++] = j;
+X      }
+X
+X   objdump("");
+X
+X}/* * * * * * * * * *  END OF  disdata()  * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This  function  handles the object  file's bss segment. *
+X  * Disassembly of the bss segment is easy,  because every- *
+X  * thing in it is zero by definition.                      *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+static void
+disbss()
+X
+X{/* * * * * * * * * *  START OF disbss()  * * * * * * * * * */
+X
+X   register int j;
+X   register char *c;
+X   unsigned long beg, end;
+X
+X   putchar('\n');
+X
+X   if (HDR.a_flags & A_SEP)
+X      end = HDR.a_data + HDR.a_bss;
+X   else
+X      end = HDR.a_text + HDR.a_data + HDR.a_bss;
+X
+X   printf("\t.bss\t\t\t| loc = %05.5lx, size = %05.5lx\n\n",
+X    PC,HDR.a_bss);
+X
+X   segflg = 0;
+X
+X   for (beg = PC; PC < end; ++PC)
+X      if ((c = getlab(N_BSS)) != NULL)
+X         {
+X         if (PC > beg)
+X            {
+X            zdump(beg);
+X            beg = PC;
+X            }
+X         printf("%s",c);
+X         }
+X
+X   if (PC > beg)
+X      zdump(beg);
+X
+X}/* * * * * * * * * * * END OF disbss() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the program  entry  point.  The command line is *
+X  * searched for an input file name, which must be present. *
+X  * An optional output file name is also permitted; if none *
+X  * is found, standard output is the default.  One command- *
+X  * line option is available:  "-o",  which causes the pro- *
+X  * gram to include  object code in comments along with its *
+X  * mnemonic output.                                        *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+main(argc,argv)
+X
+X   int argc;                  /* Command-line args from OS  */
+X   register char **argv;
+X
+X{/* * * * * * * * * * * START OF main() * * * * * * * * * * */
+X
+X   char a[1024];
+X   register int fd;
+X   long taboff, tabnum;
+X   long reloff, relnum;
+X
+X   PRG = invoker(*argv);
+X
+X   while (*++argv != NULL)    /* Process command-line args  */
+X      if (**argv == '-')
+X         switch (*++*argv)
+X            {
+X            case 'o' :
+X               if (*++*argv)
+X                  usage(PRG);
+X               else
+X                  ++objflg;
+X               break;
+X            default :
+X               usage(PRG);
+X            }
+X      else
+X         if (IFILE == NULL)
+X            IFILE = *argv;
+X         else if (OFILE == NULL)
+X            OFILE = *argv;
+X         else
+X            usage(PRG);
+X
+X   if (IFILE == NULL)
+X      usage(PRG);
+X   else
+X      if ((fd = open(IFILE,O_RDONLY)) < 0)
+X         {
+X         sprintf(a,"can't access input file %s",IFILE);
+X         fatal(PRG,a);
+X         }
+X
+X   if (OFILE != NULL)
+X      if (freopen(OFILE,"w",stdout) == NULL)
+X         {
+X         sprintf(a,"can't open output file %s",OFILE);
+X         fatal(PRG,a);
+X         }
+X
+X   if ( ! cpuid )
+X      fprintf(stderr,"\07%s: warning: host/cpu clash\n",PRG);
+X
+X   read(fd,&HDR,sizeof(struct exec));
+X
+X   if (BADMAG(HDR))
+X      {
+X      sprintf(a,"input file %s not in object format",IFILE);
+X      fatal(PRG,a);
+X      }
+X
+X   if (HDR.a_cpu != A_I8086)
+X      {
+X      sprintf(a,"%s is not an 8086/8088 object file",IFILE);
+X      fatal(PRG,a);
+X      }
+X
+X   if (HDR.a_hdrlen <= A_MINHDR)
+X      HDR.a_trsize = HDR.a_drsize =
+X      HDR.a_tbase = HDR.a_dbase =
+X      HDR.a_lnums = HDR.a_toffs = 0L;
+X
+X   reloff = HDR.a_text        /* Compute reloc data offset  */
+X          + HDR.a_data
+X          + (long)(HDR.a_hdrlen);
+X
+X   relnum =
+X      (HDR.a_trsize + HDR.a_drsize) / sizeof(struct reloc);
+X
+X   taboff = reloff            /* Compute name table offset  */
+X          + HDR.a_trsize
+X          + HDR.a_drsize;
+X
+X   tabnum = HDR.a_syms / sizeof(struct nlist);
+X
+X   if (relnum > MAXSYM)
+X      fatal(PRG,"reloc table overflow");
+X
+X   if (tabnum > MAXSYM)
+X      fatal(PRG,"symbol table overflow");
+X
+X   if (relnum)                            /* Get reloc data */
+X      if (lseek(fd,reloff,0) != reloff)
+X         fatal(PRG,"lseek error");
+X      else
+X         {
+X         for (relptr = 0; relptr < relnum; ++relptr)
+X            read(fd,&relo[relptr],sizeof(struct reloc));
+X         relptr--;
+X         }
+X
+X   if (tabnum)                            /* Read in symtab */
+X      if (lseek(fd,taboff,0) != taboff)
+X         fatal(PRG,"lseek error");
+X      else
+X         {
+X         for (symptr = 0; symptr < tabnum; ++symptr)
+X            read(fd,&symtab[symptr],sizeof(struct nlist));
+X         symptr--;
+X         }
+X   else
+X      fprintf(stderr,"\07%s: warning: no symbols\n",PRG);
+X
+X   close(fd);
+X
+X   if (freopen(IFILE,"r",stdin) == NULL)
+X      {
+X      sprintf(a,"can't reopen input file %s",IFILE);
+X      fatal(PRG,a);
+X      }
+X
+X   distext();
+X
+X   disdata();
+X
+X   disbss();
+X
+X   exit(0);
+X
+X}/* * * * * * * * * * *  END OF main()  * * * * * * * * * * */
+X
+X
+END_OF_FILE
+if test 17384 -ne `wc -c <'dismain.c'`; then
+    echo shar: \"'dismain.c'\" unpacked with wrong size!
+fi
+# end of 'dismain.c'
+fi
+if test -f 'disrel.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'disrel.c'\"
+else
+echo shar: Extracting \"'disrel.c'\" \(742 characters\)
+sed "s/^X//" >'disrel.c' <<'END_OF_FILE'
+static char *copyright =
+X   "@(#) Copyright (C) 1987 G. M. Harding, all rights reserved";
+X
+static char *sccsid =
+X   "@(#) disrel.c, Ver. 2.1 created 00:00:00 87/09/01";
+X
+char *release =
+X   "release 2.1 (PC/IX)";
+X
+X /*
+X **
+X ** This file documents the major revisions to the 8088 sym-
+X ** bolic disassembler. It also contains the release string
+X ** which is output at the head of each disassembly, and the
+X ** copyright string which must be incorporated in any code
+X ** distribution.
+X **
+X ** Permission to copy and redistribute is hereby granted,
+X ** provided full source code, with all copyright notices,
+X ** accompanies any redistribution.
+X **
+X ** REVISION HISTORY:
+X **
+X ** SEP 87:
+X **    After internal shakeout, released on Usenet.
+X **
+X */
+X
+END_OF_FILE
+if test 742 -ne `wc -c <'disrel.c'`; then
+    echo shar: \"'disrel.c'\" unpacked with wrong size!
+fi
+# end of 'disrel.c'
+fi
+echo shar: End of archive 1 \(of 2\).
+cp /dev/null ark1isdone
+MISSING=""
+for I in 1 2 ; do
+    if test ! -f ark${I}isdone ; then
+	MISSING="${MISSING} ${I}"
+    fi
+done
+if test "${MISSING}" = "" ; then
+    echo You have unpacked both archives.
+    rm -f ark[1-9]isdone
+else
+    echo You still need to unpack the following archives:
+    echo "        " ${MISSING}
+fi
+##  End of shell archive.
+exit 0

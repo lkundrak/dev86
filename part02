@@ -1,0 +1,1812 @@
+Subject:  v15i007:  Symbolic disassembler for PC/IX, Part02/02
+Newsgroups: comp.sources.unix
+Approved: rsalz@uunet.UU.NET
+
+Submitted-by: "G. M. Harding" <gm@uts.amdahl.com>
+Posting-number: Volume 15, Issue 7
+Archive-name: dis88/part02
+
+#! /bin/sh
+# This is a shell archive.  Remove anything before this line, then unpack
+# it by saving it into a file and typing "sh file".  To overwrite existing
+# files, type "sh file -c".  You can also feed this as standard input via
+# unshar, or by typing "sh <file", e.g..  If this archive is complete, you
+# will see the following message at the end:
+#		"End of archive 2 (of 2)."
+PATH=/bin:/usr/bin:/usr/ucb ; export PATH
+if test -f 'dishand.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'dishand.c'\"
+else
+echo shar: Extracting \"'dishand.c'\" \(25688 characters\)
+sed "s/^X//" >'dishand.c' <<'END_OF_FILE'
+static char *sccsid =
+X   "@(#) dishand.c, Ver. 2.1 created 00:00:00 87/09/01";
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  *  Copyright (C) 1987 G. M. Harding, all rights reserved  *
+X  *                                                         *
+X  * Permission to copy and  redistribute is hereby granted, *
+X  * provided full source code,  with all copyright notices, *
+X  * accompanies any redistribution.                         *
+X  *                                                         *
+X  * This file contains the source code for most of the spe- *
+X  * cialized handler routines of the disassembler  program. *
+X  * (The file disfp.c contains handler routines specific to *
+X  * the 8087 numeric  co-processor.)  Each handler  routine *
+X  * interprets the opcode byte  (and subsequent data bytes, *
+X  * if any)  of a particular family of opcodes,  and is re- *
+X  * sponsible for generating appropriate output. All of the *
+X  * code in this file is highly MACHINE-SPECIFIC, and would *
+X  * have to be rewritten for a different  CPU.  The handler *
+X  * routines are accessed  only via pointers in the optab[] *
+X  * array, however, so machine dependencies are confined to *
+X  * this file, its sister file "disfp.c", and the data file *
+X  * "distabs.c".                                            *
+X  *                                                         *
+X  * All of the code in this file is based on the assumption *
+X  * of sixteen-bit integers.                                *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+X#include "dis.h"              /* Disassembler declarations  */
+X
+int segflg;                   /* Segment-override flag      */
+X
+unsigned char objbuf[OBJMAX]; /* Buffer for object code     */
+X
+int objptr;                   /* Index into objbuf[]        */
+X
+unsigned long PC;             /* Current program counter    */
+X
+X /* * * * * *  MISCELLANEOUS SUPPORTING ROUTINES  * * * * * */
+X
+X
+void
+objini(j)                     /* Object code init routine   */
+X
+X   register int j;
+X
+X{
+X   if ((segflg == 1) || (segflg == 2))
+X      segflg *= 3;
+X   else
+X      segflg = 0;
+X   objptr = 0;
+X   objbuf[objptr++] = (unsigned char)(j);
+X}
+X
+X
+void
+objout()                      /* Object-code output routine */
+X
+X{
+X    register int k;
+X
+X   if ( ! objflg )
+X      return;
+X   else
+X      {
+X      printf("\t|");
+X      if (symptr >= 0)
+X         printf(" %05.5lx:",(PC + 1L - (long)(objptr)));
+X      for (k = 0; k < objptr; ++k)
+X         printf(" %02.2x",objbuf[k]);
+X      putchar('\n');
+X      }
+X}
+X
+X
+void
+badseq(j,k)                   /* Invalid-sequence routine   */
+X
+X   register int j, k;
+X
+X{
+X   printf("\t.byte\t0x%02.2x\t\t| invalid code sequence\n",j);
+X   printf("\t.byte\t0x%02.2x\n",k);
+X}
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This  routine  is the first of several  opcode-specific *
+X  * handlers,  each of which is  dedicated  to a particular *
+X  * opcode family.  A pointer to a handler  routine is con- *
+X  * tained in the second field of each optab[]  entry.  The *
+X  * dfhand()  routine is the default handler,  invoked when *
+X  * no other handler is appropriate (generally, when an in- *
+X  * valid opcode is encountered).                           *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+dfhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF dfhand()  * * * * * * * * * */
+X
+X   segflg = 0;
+X
+X   printf("\t.byte\t0x%02.2x",j);
+X
+X   if (optab[j].min || optab[j].max)
+X      putchar('\n');
+X   else
+X      printf("\t\t| unimplemented opcode\n");
+X
+X}/* * * * * * * * * * * END OF dfhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  single-byte  handler,  invoked  whenever a *
+X  * one-byte opcode is encountered.                         *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+sbhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF sbhand()  * * * * * * * * * */
+X
+X   objini(j);
+X
+X   if (j == 0x2e)                               /* seg cs   */
+X      segflg = 1;
+X
+X   if ((j == 0x26)                              /* seg es   */
+X    || (j == 0x36)                              /* seg ss   */
+X    || (j == 0x3e))                             /* seg ds   */
+X      segflg = 2;
+X
+X   printf("%s\n",optab[j].text);
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF sbhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for most of the processor's regular *
+X  * arithmetic operations.                                  *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+aohand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF aohand()  * * * * * * * * * */
+X
+X   register int k;
+X   int m, n;
+X   char b[64];
+X
+X   objini(j);
+X
+X   switch (j & 7)
+X      {
+X      case 0 :
+X      case 1 :
+X      case 2 :
+X      case 3 :
+X         printf("%s\t",optab[j].text);
+X         FETCH(k);
+X         printf("%s\n",mtrans(j,k,TR_STD));
+X         break;
+X      case 4 :
+X         FETCH(k);
+X         printf("%s\tal,*0x%02.2x\n",optab[j].text,k);
+X         break;
+X      case 5 :
+X         FETCH(m);
+X         FETCH(n);
+X         k = (n << 8) | m;
+X         if (lookext((long)(k),(PC - 1),b))
+X            printf("%s\tax,#%s\n",optab[j].text,b);
+X         else
+X            printf("%s\tax,#0x%04.4x\n",optab[j].text,k);
+X         break;
+X      default :
+X         dfhand(j);
+X         break;
+X      }
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF aohand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  handler for opcodes  which  perform  short *
+X  * (eight-bit) relative jumps.                             *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+sjhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF sjhand()  * * * * * * * * * */
+X
+X   register int k;
+X   int m;
+X
+X   objini(j);
+X
+X   FETCH(m);
+X
+X   if (m & 0x80)
+X      k = 0xff00;
+X   else
+X      k = 0;
+X
+X   k |= m;
+X
+X   printf("%s\t%s\t\t| loc %05.5lx\n",optab[j].text,
+X    lookup((PC + k + 1L),N_TEXT,LOOK_REL,-1L),
+X    (PC + k + 1L));
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF sjhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  handler for a  loosely-knit  family of op- *
+X  * codes which perform  arithmetic and logical operations, *
+X  * and which take immediate  data.  The routine's logic is *
+X  * rather complex,  so,  in an effort to avoid  additional *
+X  * complexity,  the search for external  references in the *
+X  * relocation table has been dispensed with. Eager hackers *
+X  * can try their hand at coding such a search.             *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+imhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF imhand()  * * * * * * * * * */
+X
+X   unsigned long pc;
+X   register int k;
+X   int offset, oflag, immed, iflag, mod, opi, w, rm;
+X   int m, n;
+X   static char a[100], b[30];
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   pc = PC + 1;
+X
+X   offset = 0;
+X   mod = (k & 0xc0) >> 6;
+X   opi = (k & 0x38) >> 3;
+X   w = j & 1;
+X   rm = k & 7;
+X
+X   if ((j & 2)
+X    && ((opi == 1)
+X     || (opi == 4)
+X     || (opi == 6)))
+X      {
+X      badseq(j,k);
+X      return;
+X      }
+X
+X   strcpy(a,OPFAM[opi]);
+X
+X   if ( ! w )
+X      strcat(a,"b");
+X
+X   if ((oflag = mod) > 2)
+X      oflag = 0;
+X
+X   if ((mod == 0) && (rm == 6))
+X      {
+X      FETCH(m);
+X      FETCH(n);
+X      offset = (n << 8) | m;
+X      }
+X   else if (oflag)
+X      if (oflag == 2)
+X         {
+X         FETCH(m);
+X         FETCH(n);
+X         offset = (n << 8) | m;
+X         }
+X      else
+X         {
+X         FETCH(m);
+X         if (m & 0x80)
+X            n = 0xff00;
+X         else
+X            n = 0;
+X         offset = n | m;
+X         }
+X
+X   switch (j & 3)
+X      {
+X      case 0 :
+X      case 2 :
+X         FETCH(immed);
+X         iflag = 0;
+X         break;
+X      case 1 :
+X         FETCH(m);
+X         FETCH(n);
+X         immed = (n << 8) | m;
+X         iflag = 1;
+X         break;
+X      case 3 :
+X         FETCH(immed);
+X         if (immed & 0x80)
+X            immed &= 0xff00;
+X         iflag = 0;
+X         break;
+X      }
+X
+X   strcat(a,"\t");
+X
+X   switch (mod)
+X      {
+X      case 0 :
+X         if (rm == 6)
+X            strcat(a,
+X             lookup((long)(offset),N_DATA,LOOK_ABS,pc));
+X         else
+X            {
+X            sprintf(b,"(%s)",REGS0[rm]);
+X            strcat(a,b);
+X            }
+X         break;
+X      case 1 :
+X      case 2 :
+X         if (mod == 1)
+X            strcat(a,"*");
+X         else
+X            strcat(a,"#");
+X         sprintf(b,"%d(",offset);
+X         strcat(a,b);
+X         strcat(a,REGS1[rm]);
+X         strcat(a,")");
+X         break;
+X      case 3 :
+X         strcat(a,REGS[(w << 3) | rm]);
+X         break;
+X      }
+X
+X   strcat(a,",");
+X   if (iflag)
+X      strcat(a,"#");
+X   else
+X      strcat(a,"*");
+X   sprintf(b,"%d",immed);
+X   strcat(a,b);
+X
+X   printf("%s\n",a);
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF imhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  handler  for  various  "mov"-type  opcodes *
+X  * which use the mod,  reg,  and r/m  fields of the second *
+X  * code byte in a standard, straightforward way.           *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+mvhand(j)
+X
+X   int j;                     /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF mvhand()  * * * * * * * * * */
+X
+X   register int k, m = j;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   if ((m == 0x84) || (m == 0x85)      /* Kind of kludgey   */
+X    || (m == 0xc4) || (m == 0xc5)
+X    || (m == 0x8d))
+X      if (m & 0x40)
+X         m |= 0x03;
+X      else
+X         m |= 0x02;
+X
+X   printf("%s\t%s\n",optab[j].text,mtrans(m,k,TR_STD));
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF mvhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for segment-register "mov" opcodes. *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+mshand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF mshand()  * * * * * * * * * */
+X
+X   register int k;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   if (k & 0x20)
+X      {
+X      badseq(j,k);
+X      return;
+X      }
+X
+X   printf("%s\t%s\n",optab[j].text,mtrans(j,k,TR_SEG));
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF mshand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  handler for pops,  other than  single-byte *
+X  * pops.  (The 8088 allows  popping into any register,  or *
+X  * directly into memory,  accessed  either  immediately or *
+X  * through a register and an index.)                       *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+pohand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF pohand()  * * * * * * * * * */
+X
+X   char *a;
+X   register int k;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   if (k & 0x38)
+X      {
+X      badseq(j,k);
+X      return;
+X      }
+X
+X   printf("%s\t",optab[j].text);
+X
+X   a = mtrans((j & 0xfd),k,TR_STD);
+X
+X   mtrunc(a);
+X
+X   printf("%s\n",a);
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF pohand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler routine for intersegment  calls and *
+X  * jumps.  Its output is never symbolic,  because the host *
+X  * linker  does not allow  symbolic  intersegment  address *
+X  * references except by means of symbolic  constants,  and *
+X  * any such  constants in the symbol  table,  even if they *
+X  * are of the  appropriate  value,  may be misleading.  In *
+X  * compiled code,  intersegment  references  should not be *
+X  * encountered,  and even in assembled  code,  they should *
+X  * occur infrequently. If and when they do occur, however, *
+X  * they will be disassembled in absolute form.             *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+cihand(j)
+X
+X   int j;                     /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF cihand()  * * * * * * * * * */
+X
+X   register int m, n;
+X
+X   objini(j);
+X
+X   printf("%s\t",optab[j].text);
+X
+X   FETCH(m);
+X   FETCH(n);
+X
+X   printf("#0x%04.4x,",((n << 8) | m));
+X
+X   FETCH(m);
+X   FETCH(n);
+X
+X   printf("#0x%04.4x\n",((n << 8) | m));
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF cihand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for  "mov"  opcodes with  immediate *
+X  * data.                                                   *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+mihand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF mihand()  * * * * * * * * * */
+X
+X   register int k;
+X   int m, n;
+X   char b[64];
+X
+X   objini(j);
+X
+X   printf("%s",optab[j].text);
+X
+X   if (j & 8)
+X      {
+X      FETCH(m);
+X      FETCH(n);
+X      k = ((n << 8) | m);
+X      if (lookext((long)(k),(PC - 1),b))
+X         printf("#%s\n",b);
+X      else
+X         printf("#%d\n",k);
+X      }
+X   else
+X      {
+X      FETCH(m);
+X      printf("*%d\n",m);
+X      }
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF mihand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for a family of quick-move opcodes. *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+mqhand(j)
+X
+X   int j;                     /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF mqhand()  * * * * * * * * * */
+X
+X   unsigned long pc;
+X   register int m, n;
+X
+X   objini(j);
+X
+X   pc = PC + 1;
+X
+X   FETCH(m);
+X   FETCH(n);
+X
+X   m = (n << 8) | m;
+X
+X   printf("%s\t",optab[j].text);
+X
+X   if (j & 2)
+X      printf("%s,%s\n",
+X       lookup((long)(m),N_DATA,LOOK_ABS,pc),
+X       REGS[(j & 1) << 3]);
+X   else
+X      printf("%s,%s\n",
+X       REGS[(j & 1) << 3],
+X       lookup((long)(m),N_DATA,LOOK_ABS,pc));
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF mqhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for a family of quick-test opcodes. *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+tqhand(j)
+X
+X   int j;                     /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF tqhand()  * * * * * * * * * */
+X
+X   register int m, n;
+X   int k;
+X   char b[64];
+X
+X   objini(j);
+X
+X   printf("%s\t%s,",optab[j].text,REGS[(j & 1) << 3]);
+X
+X   FETCH(m);
+X
+X   if (j & 1)
+X      {
+X      FETCH(n);
+X      k = ((n << 8) | m);
+X      if (lookext((long)(k),(PC - 1),b))
+X         printf("#%s\n",b);
+X      else
+X         printf("#%d\n",k);
+X      }
+X   else
+X      {
+X      if (m & 80)
+X         m |= 0xff00;
+X      printf("*%d\n",m);
+X      }
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF tqhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for multiple-byte "return" opcodes. *
+X  * The 8088 allows returns to take an optional  16-bit ar- *
+X  * gument,  which  reflects  the  amount to be added to SP *
+X  * after  the pop of the  return  address.  The idea is to *
+X  * facilitate  the use of local  parameters  on the stack. *
+X  * After some  rumination,  it was decided to  disassemble *
+X  * any such arguments as absolute quantities,  rather than *
+X  * rummaging  through the symbol table for possible corre- *
+X  * sponding constants.                                     *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+rehand(j)
+X
+X   int j;                     /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF rehand()  * * * * * * * * * */
+X
+X   register int m, n;
+X
+X   objini(j);
+X
+X   FETCH(m);
+X   FETCH(n);
+X
+X   m = (n << 8) | m;
+X
+X   printf("%s\t#0x%04.4x\n",optab[j].text,m);
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF rehand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for "mov"  opcodes involving memory *
+X  * and immediate data.                                     *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+mmhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF mmhand()  * * * * * * * * * */
+X
+X   char *a;
+X   register int k;
+X   char b[64];
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   if (k & 0x38)
+X      {
+X      badseq(j,k);
+X      return;
+X      }
+X
+X   printf("%s",optab[j].text);
+X
+X   if ( ! (j & 1) )
+X      putchar('b');
+X
+X   a = mtrans((j & 0xfd),(k & 0xc7),TR_STD);
+X
+X   mtrunc(a);
+X
+X   printf("\t%s,",a);
+X
+X   if (j & 1)
+X      {
+X      FETCH(j);
+X      FETCH(k);
+X      k = (k << 8) | j;
+X      if (lookext((long)(k),(PC - 1),b))
+X         printf("#%s\n",b);
+X      else
+X         printf("#%d\n",k);
+X      }
+X   else
+X      {
+X      FETCH(k);
+X      printf("*%d\n",k);
+X      }
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF mmhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  handler  for the 8088  family of shift and *
+X  * rotate instructions.                                    *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+srhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF srhand()  * * * * * * * * * */
+X
+X   char *a;
+X   register int k;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   if ((k & 0x38) == 0x30)
+X      {
+X      badseq(j,k);
+X      return;
+X      }
+X
+X   printf("%s",OPFAM[((k & 0x38) >> 3) + 16]);
+X
+X   if ( ! (j & 1) )
+X      putchar('b');
+X
+X   a = mtrans((j & 0xfd),(k & 0xc7),TR_STD);
+X
+X   mtrunc(a);
+X
+X   printf("\t%s",a);
+X
+X   if (j & 2)
+X      printf(",cl\n");
+X   else
+X      printf(",*1\n");
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF srhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for the ASCII-adjust opcodes.       *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+aahand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF aahand()  * * * * * * * * * */
+X
+X   register int k;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   if (k != 0x0a)
+X      {
+X      badseq(j,k);
+X      return;
+X      }
+X
+X   printf("%s\n",optab[j].text);
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF aahand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for port I/O opcodes  which specify *
+X  * the port address as an immediate operand.               *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+iohand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF iohand()  * * * * * * * * * */
+X
+X   register int k;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   printf("%s\t0x%02.2x\n",optab[j].text,k);
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF iohand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the  handler  for opcodes  which  perform  long *
+X  * (sixteen-bit) relative jumps and calls.                 *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+ljhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF ljhand()  * * * * * * * * * */
+X
+X   register int k;
+X   int m, n;
+X
+X   objini(j);
+X
+X   FETCH(m);
+X   FETCH(n);
+X
+X   k = (n << 8) | m;
+X
+X   printf("%s\t%s\t\t| loc %05.5lx\n",optab[j].text,
+X    lookup((PC + k + 1L),N_TEXT,LOOK_LNG,(PC - 1L)),
+X    (PC + k + 1L));
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF ljhand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for a pair of oddball opcodes (0xf6 *
+X  * and 0xf7) which perform miscellaneous arithmetic opera- *
+X  * tions not dealt with elsewhere.                         *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+mahand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF mahand()  * * * * * * * * * */
+X
+X   char *a;
+X   register int k;
+X   char b[64];
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   a = mtrans((j & 0xfd),(k & 0xc7),TR_STD);
+X
+X   mtrunc(a);
+X
+X   switch (((k = objbuf[1]) & 0x38) >> 3)
+X      {
+X      case 0 :
+X         printf("\ttest");
+X         break;
+X      case 1 :
+X         badseq(j,k);
+X         return;
+X      case 2 :
+X         printf("\tnot");
+X         break;
+X      case 3 :
+X         printf("\tneg");
+X         break;
+X      case 4 :
+X         printf("\tmul");
+X         break;
+X      case 5 :
+X         printf("\timul");
+X         break;
+X      case 6 :
+X         printf("\tdiv");
+X         break;
+X      case 7 :
+X         printf("\tidiv");
+X         break;
+X      }
+X
+X   if ( ! (j & 1) )
+X      putchar('b');
+X
+X   printf("\t%s",a);
+X
+X   if (k & 0x38)
+X      putchar('\n');
+X   else
+X      if (j & 1)
+X         {
+X         FETCH(j);
+X         FETCH(k);
+X         k = (k << 8) | j;
+X         if (lookext((long)(k),(PC - 1),b))
+X            printf(",#%s\n",b);
+X         else
+X            printf(",#%d\n",k);
+X         }
+X      else
+X         {
+X         FETCH(k);
+X         printf(",*%d\n",k);
+X         }
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF mahand() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This is the handler for miscellaneous jump, call, push, *
+X  * and increment/decrement opcodes  (0xfe and 0xff)  which *
+X  * are not dealt with elsewhere.                           *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+mjhand(j)
+X
+X   register int j;            /* Pointer to optab[] entry   */
+X
+X{/* * * * * * * * * *  START OF mjhand()  * * * * * * * * * */
+X
+X   char *a;
+X   register int k;
+X
+X   objini(j);
+X
+X   FETCH(k);
+X
+X   a = mtrans((j & 0xfd),(k & 0xc7),TR_STD);
+X
+X   mtrunc(a);
+X
+X   switch (((k = objbuf[1]) & 0x38) >> 3)
+X      {
+X      case 0 :
+X         printf("\tinc");
+X         if ( ! (j & 1) )
+X            putchar('b');
+X         putchar('\t');
+X         break;
+X      case 1 :
+X         printf("\tdec");
+X         if ( ! (j & 1) )
+X            putchar('b');
+X         putchar('\t');
+X         break;
+X      case 2 :
+X         if (j & 1)
+X            printf("\tcall\t@");
+X         else
+X            goto BAD;
+X         break;
+X      case 3 :
+X         if (j & 1)
+X            printf("\tcalli\t@");
+X         else
+X            goto BAD;
+X         break;
+X      case 4 :
+X         if (j & 1)
+X            printf("\tjmp\t@");
+X         else
+X            goto BAD;
+X         break;
+X      case 5 :
+X         if (j & 1)
+X            printf("\tjmpi\t@");
+X         else
+X            goto BAD;
+X         break;
+X      case 6 :
+X         if (j & 1)
+X            printf("\tpush\t");
+X         else
+X            goto BAD;
+X         break;
+X      case 7 :
+X BAD :
+X         badseq(j,k);
+X         return;
+X      }
+X
+X   printf("%s\n",a);
+X
+X   objout();
+X
+X}/* * * * * * * * * * * END OF mjhand() * * * * * * * * * * */
+X
+X
+END_OF_FILE
+if test 25688 -ne `wc -c <'dishand.c'`; then
+    echo shar: \"'dishand.c'\" unpacked with wrong size!
+fi
+# end of 'dishand.c'
+fi
+if test -f 'distabs.c' -a "${1}" != "-c" ; then 
+  echo shar: Will not clobber existing file \"'distabs.c'\"
+else
+echo shar: Extracting \"'distabs.c'\" \(30238 characters\)
+sed "s/^X//" >'distabs.c' <<'END_OF_FILE'
+static char *sccsid =
+X   "@(#) distabs.c, Ver. 2.1 created 00:00:00 87/09/01";
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  *  Copyright (C) 1987 G. M. Harding, all rights reserved  *
+X  *                                                         *
+X  * Permission to copy and  redistribute is hereby granted, *
+X  * provided full source code,  with all copyright notices, *
+X  * accompanies any redistribution.                         *
+X  *                                                         *
+X  * This file  contains  the  lookup  tables and other data *
+X  * structures for the Intel 8088 symbolic disassembler. It *
+X  * also contains a few global  routines  which  facilitate *
+X  * access to the tables,  for use primarily by the handler *
+X  * functions.                                              *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+X#include "dis.h"              /* Disassembler declarations  */
+X
+struct exec HDR;              /* Used to hold header info   */
+X
+struct nlist symtab[MAXSYM];  /* Array of symbol table info */
+X
+struct reloc relo[MAXSYM];    /* Array of relocation info   */
+X
+int symptr = -1,              /* Index into symtab[]        */
+X    relptr = -1;              /* Index into relo[]          */
+X
+char *REGS[] =                /* Table of register names    */
+X   {
+X   "al", "cl", "dl", "bl", "ah", "ch", "dh", "bh",
+X   "ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
+X   "es", "cs", "ss", "ds"
+X   };
+X
+char *REGS0[] =               /* Mode 0 register name table */
+X   {
+X   "bx_si", "bx_di", "bp_si", "bp_di", "si", "di", "", "bx"
+X   };
+X
+char *REGS1[] =               /* Mode 1 register name table */
+X   {
+X   "bx_si", "bx_di", "bp_si", "bp_di", "si", "di", "bp", "bx"
+X   };
+X
+int symrank[6][6] =           /* Symbol type/rank matrix    */
+X   {
+X              /* UND  ABS  TXT  DAT  BSS  COM */
+X   /* UND */      5,   4,   1,   2,   3,   0,
+X   /* ABS */      1,   5,   4,   3,   2,   0,
+X   /* TXT */      4,   1,   5,   3,   2,   0,
+X   /* DAT */      3,   1,   2,   5,   4,   0,
+X   /* BSS */      3,   1,   2,   4,   5,   0,
+X   /* COM */      2,   0,   1,   3,   4,   5
+X   };
+X
+X /* * * * * * * * * * * * OPCODE DATA * * * * * * * * * * * */
+X
+char ADD[]   = "\tadd",             /* Mnemonics by family  */
+X     OR[]    = "\tor",
+X     ADC[]   = "\tadc",
+X     SBB[]   = "\tsbb",
+X     AND[]   = "\tand",
+X     SUB[]   = "\tsub",
+X     XOR[]   = "\txor",
+X     CMP[]   = "\tcmp",
+X     NOT[]   = "\tnot",
+X     NEG[]   = "\tneg",
+X     MUL[]   = "\tmul",
+X     DIV[]   = "\tdiv",
+X     MOV[]   = "\tmov",
+X     ESC[]   = "\tesc",
+X     TEST[]  = "\ttest",
+X     AMBIG[] = "",
+X     ROL[]   = "\trol",
+X     ROR[]   = "\tror",
+X     RCL[]   = "\trcl",
+X     RCR[]   = "\trcr",
+X     SAL[]   = "\tsal",
+X     SHR[]   = "\tshr",
+X     SHL[]   = "\tshl",
+X     SAR[]   = "\tsar";
+X
+char *OPFAM[] =                     /* Family lookup table  */
+X   {
+X   ADD, OR, ADC, SBB, AND, SUB, XOR, CMP,
+X   NOT, NEG, MUL, DIV, MOV, ESC, TEST, AMBIG,
+X   ROL, ROR, RCL, RCR, SAL, SHR, SHL, SAR
+X   };
+X
+struct opcode optab[] =             /* Table of opcode data */
+X   {
+X   ADD,              aohand,  2,    4,             /* 0x00  */
+X   ADD,              aohand,  2,    4,             /* 0x01  */
+X   ADD,              aohand,  2,    4,             /* 0x02  */
+X   ADD,              aohand,  2,    4,             /* 0x03  */
+X   ADD,              aohand,  2,    2,             /* 0x04  */
+X   ADD,              aohand,  3,    3,             /* 0x05  */
+X   "\tpush\tes",     sbhand,  1,    1,             /* 0x06  */
+X   "\tpop\tes",      sbhand,  1,    1,             /* 0x07  */
+X   OR,               aohand,  2,    4,             /* 0x08  */
+X   OR,               aohand,  2,    4,             /* 0x09  */
+X   OR,               aohand,  2,    4,             /* 0x0a  */
+X   OR,               aohand,  2,    4,             /* 0x0b  */
+X   OR,               aohand,  2,    2,             /* 0x0c  */
+X   OR,               aohand,  3,    3,             /* 0x0d  */
+X   "\tpush\tcs",     sbhand,  1,    1,             /* 0x0e  */
+X   NULL,             dfhand,  0,    0,             /* 0x0f  */
+X   ADC,              aohand,  2,    4,             /* 0x10  */
+X   ADC,              aohand,  2,    4,             /* 0x11  */
+X   ADC,              aohand,  2,    4,             /* 0x12  */
+X   ADC,              aohand,  2,    4,             /* 0x13  */
+X   ADC,              aohand,  2,    2,             /* 0x14  */
+X   ADC,              aohand,  3,    3,             /* 0x15  */
+X   "\tpush\tss",     sbhand,  1,    1,             /* 0x16  */
+X   "\tpop\tss",      sbhand,  1,    1,             /* 0x17  */
+X   SBB,              aohand,  2,    4,             /* 0x18  */
+X   SBB,              aohand,  2,    4,             /* 0x19  */
+X   SBB,              aohand,  2,    4,             /* 0x1a  */
+X   SBB,              aohand,  2,    4,             /* 0x1b  */
+X   SBB,              aohand,  2,    2,             /* 0x1c  */
+X   SBB,              aohand,  3,    3,             /* 0x1d  */
+X   "\tpush\tds",     sbhand,  1,    1,             /* 0x1e  */
+X   "\tpop\tds",      sbhand,  1,    1,             /* 0x1f  */
+X   AND,              aohand,  2,    4,             /* 0x20  */
+X   AND,              aohand,  2,    4,             /* 0x21  */
+X   AND,              aohand,  2,    4,             /* 0x22  */
+X   AND,              aohand,  2,    4,             /* 0x23  */
+X   AND,              aohand,  2,    2,             /* 0x24  */
+X   AND,              aohand,  3,    3,             /* 0x25  */
+X   "\tseg\tes",      sbhand,  1,    1,             /* 0x26  */
+X   "\tdaa",          sbhand,  1,    1,             /* 0x27  */
+X   SUB,              aohand,  2,    4,             /* 0x28  */
+X   SUB,              aohand,  2,    4,             /* 0x29  */
+X   SUB,              aohand,  2,    4,             /* 0x2a  */
+X   SUB,              aohand,  2,    4,             /* 0x2b  */
+X   SUB,              aohand,  2,    2,             /* 0x2c  */
+X   SUB,              aohand,  3,    3,             /* 0x2d  */
+X   "\tseg\tcs",      sbhand,  1,    1,             /* 0x2e  */
+X   "\tdas",          sbhand,  1,    1,             /* 0x2f  */
+X   XOR,              aohand,  2,    4,             /* 0x30  */
+X   XOR,              aohand,  2,    4,             /* 0x31  */
+X   XOR,              aohand,  2,    4,             /* 0x32  */
+X   XOR,              aohand,  2,    4,             /* 0x33  */
+X   XOR,              aohand,  2,    2,             /* 0x34  */
+X   XOR,              aohand,  3,    3,             /* 0x35  */
+X   "\tseg\tss",      sbhand,  1,    1,             /* 0x36  */
+X   "\taaa",          sbhand,  1,    1,             /* 0x37  */
+X   CMP,              aohand,  2,    4,             /* 0x38  */
+X   CMP,              aohand,  2,    4,             /* 0x39  */
+X   CMP,              aohand,  2,    4,             /* 0x3a  */
+X   CMP,              aohand,  2,    4,             /* 0x3b  */
+X   CMP,              aohand,  2,    2,             /* 0x3c  */
+X   CMP,              aohand,  3,    3,             /* 0x3d  */
+X   "\tseg\tds",      sbhand,  1,    1,             /* 0x3e  */
+X   "\taas",          sbhand,  1,    1,             /* 0x3f  */
+X   "\tinc\tax",      sbhand,  1,    1,             /* 0x40  */
+X   "\tinc\tcx",      sbhand,  1,    1,             /* 0x41  */
+X   "\tinc\tdx",      sbhand,  1,    1,             /* 0x42  */
+X   "\tinc\tbx",      sbhand,  1,    1,             /* 0x43  */
+X   "\tinc\tsp",      sbhand,  1,    1,             /* 0x44  */
+X   "\tinc\tbp",      sbhand,  1,    1,             /* 0x45  */
+X   "\tinc\tsi",      sbhand,  1,    1,             /* 0x46  */
+X   "\tinc\tdi",      sbhand,  1,    1,             /* 0x47  */
+X   "\tdec\tax",      sbhand,  1,    1,             /* 0x48  */
+X   "\tdec\tcx",      sbhand,  1,    1,             /* 0x49  */
+X   "\tdec\tdx",      sbhand,  1,    1,             /* 0x4a  */
+X   "\tdec\tbx",      sbhand,  1,    1,             /* 0x4b  */
+X   "\tdec\tsp",      sbhand,  1,    1,             /* 0x4c  */
+X   "\tdec\tbp",      sbhand,  1,    1,             /* 0x4d  */
+X   "\tdec\tsi",      sbhand,  1,    1,             /* 0x4e  */
+X   "\tdec\tdi",      sbhand,  1,    1,             /* 0x4f  */
+X   "\tpush\tax",     sbhand,  1,    1,             /* 0x50  */
+X   "\tpush\tcx",     sbhand,  1,    1,             /* 0x51  */
+X   "\tpush\tdx",     sbhand,  1,    1,             /* 0x52  */
+X   "\tpush\tbx",     sbhand,  1,    1,             /* 0x53  */
+X   "\tpush\tsp",     sbhand,  1,    1,             /* 0x54  */
+X   "\tpush\tbp",     sbhand,  1,    1,             /* 0x55  */
+X   "\tpush\tsi",     sbhand,  1,    1,             /* 0x56  */
+X   "\tpush\tdi",     sbhand,  1,    1,             /* 0x57  */
+X   "\tpop\tax",      sbhand,  1,    1,             /* 0x58  */
+X   "\tpop\tcx",      sbhand,  1,    1,             /* 0x59  */
+X   "\tpop\tdx",      sbhand,  1,    1,             /* 0x5a  */
+X   "\tpop\tbx",      sbhand,  1,    1,             /* 0x5b  */
+X   "\tpop\tsp",      sbhand,  1,    1,             /* 0x5c  */
+X   "\tpop\tbp",      sbhand,  1,    1,             /* 0x5d  */
+X   "\tpop\tsi",      sbhand,  1,    1,             /* 0x5e  */
+X   "\tpop\tdi",      sbhand,  1,    1,             /* 0x5f  */
+X   NULL,             dfhand,  0,    0,             /* 0x60  */
+X   NULL,             dfhand,  0,    0,             /* 0x61  */
+X   NULL,             dfhand,  0,    0,             /* 0x62  */
+X   NULL,             dfhand,  0,    0,             /* 0x63  */
+X   NULL,             dfhand,  0,    0,             /* 0x64  */
+X   NULL,             dfhand,  0,    0,             /* 0x65  */
+X   NULL,             dfhand,  0,    0,             /* 0x66  */
+X   NULL,             dfhand,  0,    0,             /* 0x67  */
+X   NULL,             dfhand,  0,    0,             /* 0x68  */
+X   NULL,             dfhand,  0,    0,             /* 0x69  */
+X   NULL,             dfhand,  0,    0,             /* 0x6a  */
+X   NULL,             dfhand,  0,    0,             /* 0x6b  */
+X   NULL,             dfhand,  0,    0,             /* 0x6c  */
+X   NULL,             dfhand,  0,    0,             /* 0x6d  */
+X   NULL,             dfhand,  0,    0,             /* 0x6e  */
+X   NULL,             dfhand,  0,    0,             /* 0x6f  */
+X   "\tjo",           sjhand,  2,    2,             /* 0x70  */
+X   "\tjno",          sjhand,  2,    2,             /* 0x71  */
+X   "\tjc",           sjhand,  2,    2,             /* 0x72  */
+X   "\tjnc",          sjhand,  2,    2,             /* 0x73  */
+X   "\tjz",           sjhand,  2,    2,             /* 0x74  */
+X   "\tjnz",          sjhand,  2,    2,             /* 0x75  */
+X   "\tjna",          sjhand,  2,    2,             /* 0x76  */
+X   "\tja",           sjhand,  2,    2,             /* 0x77  */
+X   "\tjs",           sjhand,  2,    2,             /* 0x78  */
+X   "\tjns",          sjhand,  2,    2,             /* 0x79  */
+X   "\tjp",           sjhand,  2,    2,             /* 0x7a  */
+X   "\tjnp",          sjhand,  2,    2,             /* 0x7b  */
+X   "\tjl",           sjhand,  2,    2,             /* 0x7c  */
+X   "\tjnl",          sjhand,  2,    2,             /* 0x7d  */
+X   "\tjng",          sjhand,  2,    2,             /* 0x7e  */
+X   "\tjg",           sjhand,  2,    2,             /* 0x7f  */
+X   AMBIG,            imhand,  3,    5,             /* 0x80  */
+X   AMBIG,            imhand,  4,    6,             /* 0x81  */
+X   AMBIG,            imhand,  3,    5,             /* 0x82  */
+X   AMBIG,            imhand,  3,    5,             /* 0x83  */
+X   TEST,             mvhand,  2,    4,             /* 0x84  */
+X   TEST,             mvhand,  2,    4,             /* 0x85  */
+X   "\txchg",         mvhand,  2,    4,             /* 0x86  */
+X   "\txchg",         mvhand,  2,    4,             /* 0x87  */
+X   MOV,              mvhand,  2,    4,             /* 0x88  */
+X   MOV,              mvhand,  2,    4,             /* 0x89  */
+X   MOV,              mvhand,  2,    4,             /* 0x8a  */
+X   MOV,              mvhand,  2,    4,             /* 0x8b  */
+X   MOV,              mshand,  2,    4,             /* 0x8c  */
+X   "\tlea",          mvhand,  2,    4,             /* 0x8d  */
+X   MOV,              mshand,  2,    4,             /* 0x8e  */
+X   "\tpop",          pohand,  2,    4,             /* 0x8f  */
+X   "\tnop",          sbhand,  1,    1,             /* 0x90  */
+X   "\txchg\tax,cx",  sbhand,  1,    1,             /* 0x91  */
+X   "\txchg\tax,dx",  sbhand,  1,    1,             /* 0x92  */
+X   "\txchg\tax,bx",  sbhand,  1,    1,             /* 0x93  */
+X   "\txchg\tax,sp",  sbhand,  1,    1,             /* 0x94  */
+X   "\txchg\tax,bp",  sbhand,  1,    1,             /* 0x95  */
+X   "\txchg\tax,si",  sbhand,  1,    1,             /* 0x96  */
+X   "\txchg\tax,di",  sbhand,  1,    1,             /* 0x97  */
+X   "\tcbw",          sbhand,  1,    1,             /* 0x98  */
+X   "\tcwd",          sbhand,  1,    1,             /* 0x99  */
+X   "\tcalli",        cihand,  5,    5,             /* 0x9a  */
+X   "\twait",         sbhand,  1,    1,             /* 0x9b  */
+X   "\tpushf",        sbhand,  1,    1,             /* 0x9c  */
+X   "\tpopf",         sbhand,  1,    1,             /* 0x9d  */
+X   "\tsahf",         sbhand,  1,    1,             /* 0x9e  */
+X   "\tlahf",         sbhand,  1,    1,             /* 0x9f  */
+X   MOV,              mqhand,  3,    3,             /* 0xa0  */
+X   MOV,              mqhand,  3,    3,             /* 0xa1  */
+X   MOV,              mqhand,  3,    3,             /* 0xa2  */
+X   MOV,              mqhand,  3,    3,             /* 0xa3  */
+X   "\tmovb",         sbhand,  1,    1,             /* 0xa4  */
+X   "\tmovw",         sbhand,  1,    1,             /* 0xa5  */
+X   "\tcmpb",         sbhand,  1,    1,             /* 0xa6  */
+X   "\tcmpw",         sbhand,  1,    1,             /* 0xa7  */
+X   TEST,             tqhand,  2,    2,             /* 0xa8  */
+X   TEST,             tqhand,  3,    3,             /* 0xa9  */
+X   "\tstob",         sbhand,  1,    1,             /* 0xaa  */
+X   "\tstow",         sbhand,  1,    1,             /* 0xab  */
+X   "\tlodb",         sbhand,  1,    1,             /* 0xac  */
+X   "\tlodw",         sbhand,  1,    1,             /* 0xad  */
+X   "\tscab",         sbhand,  1,    1,             /* 0xae  */
+X   "\tscaw",         sbhand,  1,    1,             /* 0xaf  */
+X   "\tmov\tal,",     mihand,  2,    2,             /* 0xb0  */
+X   "\tmov\tcl,",     mihand,  2,    2,             /* 0xb1  */
+X   "\tmov\tdl,",     mihand,  2,    2,             /* 0xb2  */
+X   "\tmov\tbl,",     mihand,  2,    2,             /* 0xb3  */
+X   "\tmov\tah,",     mihand,  2,    2,             /* 0xb4  */
+X   "\tmov\tch,",     mihand,  2,    2,             /* 0xb5  */
+X   "\tmov\tdh,",     mihand,  2,    2,             /* 0xb6  */
+X   "\tmov\tbh,",     mihand,  2,    2,             /* 0xb7  */
+X   "\tmov\tax,",     mihand,  3,    3,             /* 0xb8  */
+X   "\tmov\tcx,",     mihand,  3,    3,             /* 0xb9  */
+X   "\tmov\tdx,",     mihand,  3,    3,             /* 0xba  */
+X   "\tmov\tbx,",     mihand,  3,    3,             /* 0xbb  */
+X   "\tmov\tsp,",     mihand,  3,    3,             /* 0xbc  */
+X   "\tmov\tbp,",     mihand,  3,    3,             /* 0xbd  */
+X   "\tmov\tsi,",     mihand,  3,    3,             /* 0xbe  */
+X   "\tmov\tdi,",     mihand,  3,    3,             /* 0xbf  */
+X   NULL,             dfhand,  0,    0,             /* 0xc0  */
+X   NULL,             dfhand,  0,    0,             /* 0xc1  */
+X   "\tret",          rehand,  3,    3,             /* 0xc2  */
+X   "\tret",          sbhand,  1,    1,             /* 0xc3  */
+X   "\tles",          mvhand,  2,    4,             /* 0xc4  */
+X   "\tlds",          mvhand,  2,    4,             /* 0xc5  */
+X   MOV,              mmhand,  3,    5,             /* 0xc6  */
+X   MOV,              mmhand,  4,    6,             /* 0xc7  */
+X   NULL,             dfhand,  0,    0,             /* 0xc8  */
+X   NULL,             dfhand,  0,    0,             /* 0xc9  */
+X   "\treti",         rehand,  3,    3,             /* 0xca  */
+X   "\treti",         sbhand,  1,    1,             /* 0xcb  */
+X   "\tint",          sbhand,  1,    1,             /* 0xcc  */
+X   "\tint",          inhand,  2,    2,             /* 0xcd  */
+X   "\tinto",         sbhand,  1,    1,             /* 0xce  */
+X   "\tiret",         sbhand,  1,    1,             /* 0xcf  */
+X   AMBIG,            srhand,  2,    4,             /* 0xd0  */
+X   AMBIG,            srhand,  2,    4,             /* 0xd1  */
+X   AMBIG,            srhand,  2,    4,             /* 0xd2  */
+X   AMBIG,            srhand,  2,    4,             /* 0xd3  */
+X   "\taam",          aahand,  2,    2,             /* 0xd4  */
+X   "\taad",          aahand,  2,    2,             /* 0xd5  */
+X   NULL,             dfhand,  0,    0,             /* 0xd6  */
+X   "\txlat",         sbhand,  1,    1,             /* 0xd7  */
+X   ESC,              eshand,  2,    2,             /* 0xd8  */
+X   ESC,              eshand,  2,    2,             /* 0xd9  */
+X   ESC,              eshand,  2,    2,             /* 0xda  */
+X   ESC,              eshand,  2,    2,             /* 0xdb  */
+X   ESC,              eshand,  2,    2,             /* 0xdc  */
+X   ESC,              eshand,  2,    2,             /* 0xdd  */
+X   ESC,              eshand,  2,    2,             /* 0xde  */
+X   ESC,              eshand,  2,    2,             /* 0xdf  */
+X   "\tloopne",       sjhand,  2,    2,             /* 0xe0  */
+X   "\tloope",        sjhand,  2,    2,             /* 0xe1  */
+X   "\tloop",         sjhand,  2,    2,             /* 0xe2  */
+X   "\tjcxz",         sjhand,  2,    2,             /* 0xe3  */
+X   "\tin",           iohand,  2,    2,             /* 0xe4  */
+X   "\tinw",          iohand,  2,    2,             /* 0xe5  */
+X   "\tout",          iohand,  2,    2,             /* 0xe6  */
+X   "\toutw",         iohand,  2,    2,             /* 0xe7  */
+X   "\tcall",         ljhand,  3,    3,             /* 0xe8  */
+X   "\tjmp",          ljhand,  3,    3,             /* 0xe9  */
+X   "\tjmpi",         cihand,  5,    5,             /* 0xea  */
+X   "\tj",            sjhand,  2,    2,             /* 0xeb  */
+X   "\tin",           sbhand,  1,    1,             /* 0xec  */
+X   "\tinw",          sbhand,  1,    1,             /* 0xed  */
+X   "\tout",          sbhand,  1,    1,             /* 0xee  */
+X   "\toutw",         sbhand,  1,    1,             /* 0xef  */
+X   "\tlock",         sbhand,  1,    1,             /* 0xf0  */
+X   NULL,             dfhand,  0,    0,             /* 0xf1  */
+X   "\trepnz",        sbhand,  1,    1,             /* 0xf2  */
+X   "\trepz",         sbhand,  1,    1,             /* 0xf3  */
+X   "\thlt",          sbhand,  1,    1,             /* 0xf4  */
+X   "\tcmc",          sbhand,  1,    1,             /* 0xf5  */
+X   AMBIG,            mahand,  2,    5,             /* 0xf6  */
+X   AMBIG,            mahand,  2,    6,             /* 0xf7  */
+X   "\tclc",          sbhand,  1,    1,             /* 0xf8  */
+X   "\tstc",          sbhand,  1,    1,             /* 0xf9  */
+X   "\tcli",          sbhand,  1,    1,             /* 0xfa  */
+X   "\tsti",          sbhand,  1,    1,             /* 0xfb  */
+X   "\tcld",          sbhand,  1,    1,             /* 0xfc  */
+X   "\tstd",          sbhand,  1,    1,             /* 0xfd  */
+X   AMBIG,            mjhand,  2,    4,             /* 0xfe  */
+X   AMBIG,            mjhand,  2,    4              /* 0xff  */
+X   };
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This simple routine  returns the name field of a symbol *
+X  * table entry as a printable string.                      *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+char *
+getnam(k)
+X
+X   register int k;
+X
+X{/* * * * * * * * * *  START OF getnam()  * * * * * * * * * */
+X
+X   register int j;
+X   static char a[9];
+X
+X   for (j = 0; j < 8; ++j)
+X      if ( ! symtab[k].n_name[j] )
+X         break;
+X      else
+X         a[j] = symtab[k].n_name[j];
+X
+X   a[j] = '\0';
+X
+X   return (a);
+X
+X}/* * * * * * * * * * * END OF getnam() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This function is  responsible  for mucking  through the *
+X  * relocation  table in  search of  externally  referenced *
+X  * symbols to be output as  operands.  It accepts two long *
+X  * arguments: the code-segment location at which an extern *
+X  * reference  is  expected,  and the offset value which is *
+X  * embedded  in the  object  code and used at link time to *
+X  * bias the external value.  In the most typical case, the *
+X  * function will be called by lookup(), which always makes *
+X  * a check for external names before  searching the symbol *
+X  * table proper.  However,  it may also be called directly *
+X  * by any function  (such as the  move-immediate  handler) *
+X  * which wants to make an independent check for externals. *
+X  * The caller is expected to supply, as the third argument *
+X  * to the function,  a pointer to a character buffer large *
+X  * enough to hold any possible  output  string.  Lookext() *
+X  * will fill this  buffer and return a logical  TRUE if it *
+X  * finds an extern reference;  otherwise, it will return a *
+X  * logical FALSE, leaving the buffer undisturbed.          *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+int
+lookext(off,loc,buf)
+X
+X   long off, loc;
+X   char *buf;
+X
+X{/* * * * * * * * * * START OF  lookext() * * * * * * * * * */
+X
+X   register int k;
+X   char c[16];
+X
+X   if ((loc != -1L) && (relptr >= 0))
+X      for (k = 0; k <= relptr; ++k)
+X         if ((relo[k].r_vaddr == loc)
+X          && (relo[k].r_symndx < S_BSS))
+X            {
+X            strcpy(buf,getnam(relo[k].r_symndx));
+X            if (off)
+X               {
+X               if (off < 0)
+X                  sprintf(c,"%ld",off);
+X               else
+X                  sprintf(c,"+%ld",off);
+X               strcat(buf,c);
+X               }
+X            return (1);
+X            }
+X
+X   return (0);
+X
+X}/* * * * * * * * * *  END OF  lookext()  * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This  function  finds an entry in the  symbol  table by *
+X  * value.  Its input is a (long) machine address,  and its *
+X  * output is a pointer to a string  containing  the corre- *
+X  * sponding symbolic name. The function first searches the *
+X  * relocation table for a possible external reference;  if *
+X  * none is found,  a linear  search of the symbol table is *
+X  * undertaken. If no matching symbol has been found at the *
+X  * end of these searches,  the function  returns a pointer *
+X  * to a string  containing the ASCII equivalent of the ad- *
+X  * dress which was to be located,  so that,  regardless of *
+X  * the success of the search,  the function's return value *
+X  * is suitable for use as a memory-reference operand.  The *
+X  * caller specifies the type of symbol to be found  (text, *
+X  * data, bss, undefined,  absolute, or common) by means of *
+X  * the function's  second  parameter.  The third parameter *
+X  * specifies  the  format to be used in the event of a nu- *
+X  * meric output:  zero for absolute format,  one for short *
+X  * relative  format,  two for long  relative  format.  The *
+X  * fourth  parameter is the address  which would appear in *
+X  * the relocation table for the reference in question,  or *
+X  * -1 if the relocation  table is not to be searched.  The *
+X  * function attempts to apply a certain amount of intelli- *
+X  * gence in its  selection  of symbols,  so it is possible *
+X  * that,  in the absence of a type match,  a symbol of the *
+X  * correct value but different type will be returned.      *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+char *
+lookup(addr,type,kind,ext)
+X
+X   long addr;              /* Machine address to be located */
+X
+X   int type,               /* Type of symbol to be matched  */
+X       kind;               /* Addressing output mode to use */
+X
+X   long ext;               /* Value for extern ref, if any  */
+X
+X{/* * * * * * * * * *  START OF lookup()  * * * * * * * * * */
+X
+X   register int j, k;
+X   static char b[64];
+X
+X   struct
+X      {
+X      int   i;
+X      int   t;
+X      }
+X   best;
+X
+X   if (lookext(addr,ext,b))
+X      return (b);
+X
+X   if (segflg)
+X      if (segflg & 1)
+X         type = N_TEXT;
+X      else
+X         type = N_DATA;
+X
+X   for (k = 0, best.i = -1; k <= symptr; ++k)
+X      if (symtab[k].n_value == addr)
+X         if ((j = symtab[k].n_sclass & N_SECT) == type)
+X            {
+X            best.t = j;
+X            best.i = k;
+X            break;
+X            }
+X         else if (segflg || (HDR.a_flags & A_SEP))
+X            continue;
+X         else if (best.i < 0)
+X            best.t = j, best.i = k;
+X         else if (symrank[type][j] > symrank[type][best.t])
+X            best.t = j, best.i = k;
+X
+X   if (best.i >= 0)
+X      return (getnam(best.i));
+X
+X   if (kind == LOOK_ABS)
+X      sprintf(b,"0x%05.5x",addr);
+X   else
+X      {
+X      long x = addr - (PC - kind);
+X      if (x < 0)
+X         sprintf(b,".%ld",x);
+X      else
+X         sprintf(b,".+%ld",x);
+X      }
+X
+X   return (b);
+X
+X}/* * * * * * * * * * * END OF lookup() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This function  translates an 8088  addressing mode byte *
+X  * to an equivalent assembler string,  returning a pointer *
+X  * thereto.  If necessary,  it performs  successive inputs *
+X  * of bytes from the object file in order to obtain offset *
+X  * data,  adjusting PC  accordingly.  (The addressing mode *
+X  * byte  appears in several  8088  opcodes;  it is used to *
+X  * specify source and destination operand locations.)  The *
+X  * third  argument to the function is zero if the standard *
+X  * registers are to be used,  or eight if the segment reg- *
+X  * isters are to be used; these constants are defined sym- *
+X  * bolically in dis.h.  NOTE:  The mtrans()  function must *
+X  * NEVER be called except  immediately  after fetching the *
+X  * mode byte.  If any additional  object bytes are fetched *
+X  * after  the fetch of the mode  byte,  mtrans()  will not *
+X  * produce correct output!                                 *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+char *
+mtrans(c,m,type)
+X
+X   register int c;            /* Primary instruction byte   */
+X   register int m;            /* Addressing mode byte       */
+X
+X   int type;                  /* Type code: standard or seg */
+X
+X{/* * * * * * * * * *  START OF mtrans()  * * * * * * * * * */
+X
+X   unsigned long pc;
+X   int offset, oflag, dir, w, mod, reg, rm;
+X   static char a[100];
+X   static char b[30];
+X
+X   offset = 0;
+X   dir = c & 2;
+X   w = c & 1;
+X   mod = (m & 0xc0) >> 6;
+X   reg = (m & 0x38) >> 3;
+X   rm = m & 7;
+X   pc = PC + 1;
+X
+X   if (type)
+X      w = 1;
+X
+X   if ((oflag = mod) > 2)
+X      oflag = 0;
+X
+X   if (oflag)
+X      {
+X      int j, k;
+X      if (oflag == 2)
+X         {
+X         FETCH(j);
+X         FETCH(k);
+X         offset = (k << 8) | j;
+X         }
+X      else
+X         {
+X         FETCH(j);
+X         if (j & 0x80)
+X            k = 0xff00;
+X         else
+X            k = 0;
+X         offset = k | j;
+X         }
+X      }
+X
+X   if (dir)
+X      {
+X      strcpy(a,REGS[type + ((w << 3) | reg)]);
+X      strcat(a,",");
+X      switch (mod)
+X         {
+X         case 0 :
+X            if (rm == 6)
+X               {
+X               int j, k;
+X               FETCH(j);
+X               FETCH(k);
+X               offset = (k << 8) | j;
+X               strcat(a,
+X                lookup((long)(offset),N_DATA,LOOK_ABS,pc));
+X               }
+X            else
+X               {
+X               sprintf(b,"(%s)",REGS0[rm]);
+X               strcat(a,b);
+X               }
+X            break;
+X         case 1 :
+X         case 2 :
+X            if (mod == 1)
+X               strcat(a,"*");
+X            else
+X               strcat(a,"#");
+X            sprintf(b,"%d(",offset);
+X            strcat(a,b);
+X            strcat(a,REGS1[rm]);
+X            strcat(a,")");
+X            break;
+X         case 3 :
+X            strcat(a,REGS[(w << 3) | rm]);
+X            break;
+X         }
+X      }
+X   else
+X      {
+X      switch (mod)
+X         {
+X         case 0 :
+X            if (rm == 6)
+X               {
+X               int j, k;
+X               FETCH(j);
+X               FETCH(k);
+X               offset = (k << 8) | j;
+X               strcpy(a,
+X                lookup((long)(offset),N_DATA,LOOK_ABS,pc));
+X               }
+X            else
+X               {
+X               sprintf(b,"(%s)",REGS0[rm]);
+X               strcpy(a,b);
+X               }
+X            break;
+X         case 1 :
+X         case 2 :
+X            if (mod == 1)
+X               strcpy(a,"*");
+X            else
+X               strcpy(a,"#");
+X            sprintf(b,"%d(",offset);
+X            strcat(a,b);
+X            strcat(a,REGS1[rm]);
+X            strcat(a,")");
+X            break;
+X         case 3 :
+X            strcpy(a,REGS[(w << 3) | rm]);
+X            break;
+X         }
+X      strcat(a,",");
+X      strcat(a,REGS[type + ((w << 3) | reg)]);
+X      }
+X
+X   return (a);
+X
+X}/* * * * * * * * * * * END OF mtrans() * * * * * * * * * * */
+X
+X /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+X  *                                                         *
+X  * This simple routine  truncates a string returned by the *
+X  * mtrans() function, removing its source operand. This is *
+X  * useful in handlers which ignore the "reg"  field of the *
+X  * mode byte.                                              *
+X  *                                                         *
+X  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+X
+void
+mtrunc(a)
+X
+X   register char *a;          /* Ptr. to string to truncate */
+X
+X{/* * * * * * * * * *  START OF mtrunc()  * * * * * * * * * */
+X
+X   register int k;
+X
+X   for (k = strlen(a) - 1; k >= 0; --k)
+X      if (a[k] == ',')
+X         {
+X         a[k] = '\0';
+X         break;
+X         }
+X
+X}/* * * * * * * * * * * END OF mtrunc() * * * * * * * * * * */
+X
+X
+END_OF_FILE
+if test 30238 -ne `wc -c <'distabs.c'`; then
+    echo shar: \"'distabs.c'\" unpacked with wrong size!
+fi
+# end of 'distabs.c'
+fi
+echo shar: End of archive 2 \(of 2\).
+cp /dev/null ark2isdone
+MISSING=""
+for I in 1 2 ; do
+    if test ! -f ark${I}isdone ; then
+	MISSING="${MISSING} ${I}"
+    fi
+done
+if test "${MISSING}" = "" ; then
+    echo You have unpacked both archives.
+    rm -f ark[1-9]isdone
+else
+    echo You still need to unpack the following archives:
+    echo "        " ${MISSING}
+fi
+##  End of shell archive.
+exit 0
