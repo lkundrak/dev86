@@ -67,9 +67,15 @@ BCCARCH =-Mf -O
 #endif
 
 # Alter these if for some reason you don't want this done as root.
+#ifdef __BCC__
+INDAT=-o root -g root -m 644
+INEXE=-o root -g root -m 755
+INSCR=-o root -g root -m 755
+#else
 INDAT=-o root -g root -m 644
 INEXE=-o root -g root -m 755 -s
 INSCR=-o root -g root -m 755
+#endif
 
 #ifdef GNUMAKE
 all: check_config bcc unproto copt as86 ar86 ld86 objdump86 \

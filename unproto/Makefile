@@ -89,7 +89,7 @@ CCFLAGS = $(CFLAGS) -w $(PIPE) $(SKIP) $(BELL) $(MAP) $(ALIAS) -DREOPEN
 #CFLAGS	= -g $(PIPE) $(SKIP) $(BELL) $(MAP) $(ALIAS) -DDEBUG
 
 $(PROG): $(OBJECTS)
-	$(CC) $(CCFLAGS) $(LDFLAGS) -o $@ $(OBJECTS) $(MALLOC)
+	$(CC) $(CCFLAGS) $(LDFLAGS) -o $@ $^ $(MALLOC)
 
 .c.o:
 	$(CC) $(CCFLAGS) -c $< -o $@

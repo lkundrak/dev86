@@ -1,6 +1,6 @@
 
 copt: copt.c
-	$(CC) $(CFLAGS) $(LDFLAGS) -o copt copt.c
+	$(CC) $(ANSI) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 realclean clean:
 	rm -f *.o copt

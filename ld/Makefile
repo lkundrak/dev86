@@ -21,11 +21,11 @@ OBJS= dumps.o io.o ld.o readobj.o table.o typeconv.o linksyms.o \
 all: ld86 objchop catimage objdump86
 
 ld86: $(OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 install: ld86
 	install -d $(LIBDIR)
-	install -m 755 ld86 $(LIBDIR)
+	install -m 755 $^ $(LIBDIR)
 
 clean realclean clobber:
 	rm -f *.o ld86 ld86r objchop catimage objdump86
@@ -39,7 +39,7 @@ ar.h:
 	ln ../libc/include/ar.h .
 
 writebin.o: writebin.c
-	$(CC) $(CFLAGS) $(DEFS) $(NATIVE) -c writebin.c
+	$(CC) $(CFLAGS) $(DEFS) $(NATIVE) -c $<
 
 writerel.o: writebin.c
 

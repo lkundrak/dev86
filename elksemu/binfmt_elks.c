@@ -5,7 +5,6 @@
  *  original #!-checking implemented by tytso.
  *  ELKS hack added by Chad Page...
  *  Cleaned up some more by Robert de Bath 
- *                            I can't make it work with 1.2.13 tho! :-(
  */
 
 #include <linux/module.h>

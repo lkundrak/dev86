@@ -2,7 +2,6 @@
 # This file is part of the Linux-8086 Development environment and is
 # distributed under the GNU General Public License.
 
-xCC=bcc -0
 LIBDIR	=/usr/bin
 CFLAGS	=-O
 LDFLAGS	=
@@ -12,7 +11,7 @@ OBJS= ar.o
 all: ar86
 
 ar86: $(OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 install: ar86
 	install -d $(LIBDIR)

@@ -5,11 +5,11 @@ getent:+:
 gtermcap:+:
 i386fp:+:
 i386sys:+:
-malloc1:+:
+malloc:+:
 misc:+:
 msdos:+:
 regexp:+:
-stdio2:+:
+stdio:+:
 string:+:
 syscall:+:
 termios:+:

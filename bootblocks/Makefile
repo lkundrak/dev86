@@ -54,6 +54,12 @@ boottar.sys: $(MSRC) $(MINC) tarboot.bin
 	mv monitor.out boottar.sys
 	@rm -f $(MOBJ)
 
+bootminix.sys: $(MSRC) $(MINC) tarboot.bin
+	@rm -f $(MOBJ)
+	make 'CFLAGS=$(CFLAGS) -DMINFLOPPY -i-' monitor.out
+	mv monitor.out bootminix.sys
+	@rm -f $(MOBJ)
+
 monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
 	make 'CFLAGS=-ansi -H0x8000' monitor.out

@@ -26,16 +26,16 @@ install: all
 	install -m 755 bcc-cc1 $(LIBDIR)/bcc-cc1
 
 bcc: bcc.c
-	$(CC) $(ANSI) $(CFLAGS) $(BCCDEFS) $(LDFLAGS) bcc.c -o $@
+	$(CC) $(ANSI) $(CFLAGS) $(BCCDEFS) $(LDFLAGS) $^ -o $@
 
 ncc: bcc.c
-	$(CC) $(ANSI) $(CFLAGS) -DL_TREE -DDEFARCH=0 $(LDFLAGS) bcc.c -o $@
+	$(CC) $(ANSI) $(CFLAGS) -DL_TREE -DDEFARCH=0 $(LDFLAGS) $^ -o $@
 
 bcc09: bcc.c
-	$(CC) $(ANSI) $(CFLAGS) -DMC6809 $(BCCDEFS) $(LDFLAGS) bcc.c -o $@
+	$(CC) $(ANSI) $(CFLAGS) -DMC6809 $(BCCDEFS) $(LDFLAGS) $^ -o $@
 
 ccc: bcc.c
-	$(CC) $(ANSI) $(CFLAGS) -DCCC $(BCCDEFS) $(LDFLAGS) bcc.c -o $@
+	$(CC) $(ANSI) $(CFLAGS) -DCCC $(BCCDEFS) $(LDFLAGS) $^ -o $@
 
 bcc-cc1: $(OBJS)
 	$(CC) $(BCCARCH) $(LDFLAGS) $(OBJS) -o bcc-cc1

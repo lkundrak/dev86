@@ -19,6 +19,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __STDC__
+#include <unistd.h>
+#include <string.h>
+#include <utime.h>
+#endif
 #include <fcntl.h>
 #include <time.h>
 #include <sys/types.h>
@@ -214,6 +219,7 @@ struct ar_hdr symdef_header;
 /* Name this program was run with. */
 char *program_name;
 
+#ifndef __STDC__
 char *xmalloc (), *xrealloc ();
 void free ();
 
@@ -236,6 +242,57 @@ void update_symdefs ();
 void delete_members (), move_members (), replace_members ();
 void quick_append ();
 char *basename ();
+void print_modes ();
+char *make_tempname ();
+void copy_out_member ();
+#else
+/* Grrr. */
+extern void error ();
+extern void fatal ();
+extern void extract_members ();
+
+extern char *basename (char *path);
+extern char *concat (char *s1, char *s2, char *s3);
+extern char *make_tempname (char *name);
+extern char *xmalloc (unsigned int size);
+extern char *xrealloc (char *ptr, unsigned int size);
+extern int filter_symbols (struct nlist *syms, unsigned int symcount);
+extern int insert_in_map (char *name, struct mapelt *map, struct mapelt *after);
+extern int main (int argc, char **argv);
+extern int move_in_map (char *name, struct mapelt *map, struct mapelt *after);
+extern int read_header_info (struct mapelt *mapelt, int desc, long int offset, long int *syms_offset, unsigned int *syms_size, long int *strs_offset, unsigned int *strs_size);
+extern struct mapelt *find_mapelt (struct mapelt *map, char *name);
+extern struct mapelt *find_mapelt_noerror (struct mapelt *map, register char *name);
+extern struct mapelt *last_mapelt (struct mapelt *map);
+extern struct mapelt *make_map (int nonexistent_ok);
+extern struct mapelt *prev_mapelt (struct mapelt *map, struct mapelt *elt);
+extern void add_to_map (struct member_desc member);
+extern void close_archive (void);
+extern void copy_out_member (struct mapelt *mapelt, int archive_indesc, int outdesc, char *outname);
+extern void delete_from_map (char *name, struct mapelt *map);
+extern void delete_members (void);
+extern void error_with_file (char *string, struct mapelt *mapelt);
+extern void extract_member (struct member_desc member, FILE *istream);
+extern void header_from_map (struct ar_hdr *header, struct mapelt *mapelt);
+extern void lock_for_update (void);
+extern void make_new_symdefs (struct mapelt *mapelt, int archive_indesc);
+extern void move_members (void);
+extern void mywrite (int desc, char *buf, int bytes, char *file);
+extern void perror_with_name (char *name);
+extern void pfatal_with_name (char *name);
+extern void print_contents (struct member_desc member, FILE *istream);
+extern void print_descr (struct member_desc member);
+extern void print_modes (int modes);
+extern void quick_append (void);
+extern void read_old_symdefs (struct mapelt *map, int archive_indesc);
+extern void replace_members (void);
+extern void touch_symdef_member (int outdesc, char *outname);
+extern void two_operations (void);
+extern void update_symdefs (struct mapelt *map, int archive_indesc);
+extern void usage (char *s1, char *s2);
+extern void write_archive (struct mapelt *map, int appendflag);
+extern void write_symdef_member (struct mapelt *mapelt, struct mapelt *map, int outdesc, char *outname);
+#endif
 
 /* Output BYTES of data at BUF to the descriptor DESC.
    FILE is the name of the file (for error messages).  */
@@ -539,8 +596,6 @@ scan (function, crflag)
   fclose (arcstream);
 }
 
-void print_modes ();
-
 void
 print_descr (member)
      struct member_desc member;
@@ -871,9 +926,6 @@ close_archive ()
  should call `lock_for_update' before beginning
  to do any I/O on the archive file.
 */
-
-char *make_tempname ();
-void copy_out_member ();
 
 void
 write_archive (map, appendflag)
@@ -1327,7 +1379,7 @@ replace_members ()
   change_map = change_map->next;
   if (!changed && (!symdef_flag || symdef_exists))
     /* Nothing changed.  */
-    close_archive (change_map);
+    close_archive ();
   else
     write_archive (change_map, 0);
 }

@@ -10,11 +10,6 @@ ifeq ($(CC),ncc)
 CFLAGS=-Ml -ansi -s $(DEFS)
 endif
 
-# For gcc
-ifeq ($(CC),gcc)
-CFLAGS=-O2 -fno-strength-reduce -Wall -idirafter . $(DEFS)
-endif
-
 # Default
 ifeq ($(CFLAGS),)
 CFLAGS=-O
@@ -29,7 +24,7 @@ endif
 OBJ=elks.o elks_sys.o elks_signal.o minix.o
 
 elksemu:	$(OBJ)
-		$(CC) $(CFLAGS) -o elksemu $(OBJ)
+		$(CC) $(CFLAGS) -o $@ $^
 
 elks_sys.o:	call_tab.v
 $(OBJ):		elks.h
@@ -40,13 +35,14 @@ call_tab.v:	dummy
 
 dummy:
 
-# The kernel patch or module _requires_ this location.
+# The kernel patch or module _requires_ this location but binfmt-misc is easy
+# to redirect.
 install: elksemu
 	install -d $(DIST)/lib
 	install -s -o root -g root -m 4555 elksemu $(DIST)/lib/elksemu
 
 clean realclean:
-	rm -f $(OBJ) elksemu call_tab.v defn_tab.v
+	rm -f $(OBJ) binfmt_elks.o elksemu call_tab.v defn_tab.v
 
 module: binfmt_elks.o
 

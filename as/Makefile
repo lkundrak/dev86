@@ -12,13 +12,13 @@ OBJS		=as.o assemble.o error.o express.o \
 all: as86 as86_encap
 
 as86: $(OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) -o as86
+	$(CC) $(LDFLAGS) $(OBJS) -o $@
 
 as86_encap: as86_encap.sh
 	sed -e "s:%%LIBDIR%%:$(LIBDIR):" -e "s:%%BINDIR%%:$(BINDIR):" \
-		< as86_encap.sh > tmp
-	@mv -f tmp as86_encap
-	chmod +x as86_encap
+		< $^ > tmp
+	@mv -f tmp $@
+	chmod +x $@
 	
 install: all
 	install -d $(LIBDIR)
