@@ -1,0 +1,55 @@
+Here's a short list of bits that are required.  If you want to do one of 
+these it's probably best to post to the list <linux-8086@vger.rutgers.edu>.
+
+Add more to this todo list!
+
+
+TODO for libc-8086:
+Item                            Notes
+---------------------------------------------------------------------------
+Header Files            - This will take some time, also some files should
+                                 be kernel.
+Floating Point          - Bruce is on this (Yes that one) Initially it'll
+			  assume an FPU is available. "int" version soon
+			  after.
+dirent   &co            - Directory listing - Partial.
+hsearch  &co		-
+tsearch  &co		-
+locale processing       - multi national, unicode (string stuff has a couple
+                                of stubs)
+login                   - getpass and friends - Some, rest soon.
+rpc                     - 
+syslog   &co            - make stubs to splatter to console.
+time calcs              - mktime gmtime localtime etc, Nat
+timezone                - Probably V simplistic, List of UTC's
+                                offsets & STDvDST
+i386 support		- For both GCC and BCC-386.
+
+Stdio                   - Joel is on this. (stdio1) (RDB stdio2)
+getgrent &co            - Nat -Done
+getpwent &co            - Nat -Done
+utmp/wtmp		- Nat -Done
+setjmp                  - Done, Rob
+shadow password         - Do we need ? Do we want :-) [No! Ick! ;) -Nat]
+termcap                 - and curses; what does ncurses need ?  (150kb!!)
+crypt			- TEA version, first cut.
+signal stuff            - Got a basic 'signal' appears to work correctly.
+getenv/setenv		- Done
+bsearch                 - Grabbed (Public Domain)
+lsearch                 - Grabbed (Public Domain)
+random numbers		- Got ZX81 version (better than some) (And 2nd now)
+Build environment	- Good first cut is now available.
+
+Other projects:
+Project                         Notes
+---------------------------------------------------------------------------
+Optimiser for BCC       - A lot of work, but lucrative.
+			   (assembler level one started, by?)
+Tiny vi editor          - Use 'ae' ?
+Shells: Bourne, Csh, 
+menu, silly             - ash now compiles, Rob.
+Tiny Perl               - :-) :-) You first ;)
+User commands           - Everything in /bin /usr/bin - will existing PD/GPL
+                          compile in 16 bit ? Or do smaller ones exist,
+                          need to be written ?
+

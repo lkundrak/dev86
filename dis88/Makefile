@@ -40,12 +40,10 @@ install:	/usr/bin/dis88
 /usr/bin/dis88:	dis88
 	install -cs -o bin dis88 $@
 
-disrel.o:	disrel.c
-dismain.o:	dismain.c dis.h
-distabs.o:	distabs.c dis.h
-dishand.o:	dishand.c dis.h
-disfp.o:	disfp.c dis.h
+$(OBJ): dis.h a.out.h
 
+a.out.h:
+	ln -s ../libc/include/a.out.h .
 
 clean:	
-	rm -f *.bak *.o core dis88
+	rm -f *.bak *.o core dis88 a.out.h

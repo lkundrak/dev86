@@ -9,8 +9,8 @@ WALL=-Wno-comment
 CCFLAGS	=-Wall $(WALL) -O2 -fno-strength-reduce
 LDFLAGS	=-s
 
-BCCHOME =/usr/bcc
-LIBDIR	=$(BCCHOME)/lib/bcc
-BINDIR	=/usr/bin
+export BCCHOME =/usr/bcc
+export LIBDIR	=$(BCCHOME)/lib/bcc
+export BINDIR	=/usr/bin
 CC	=gcc
 CFLAGS  =$(CCFLAGS)

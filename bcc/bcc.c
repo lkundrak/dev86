@@ -190,6 +190,7 @@ char **argv;
 #ifdef BCC86
     char *crt0;
 #endif
+    char *libc = "-lc";
     bool_T debug = FALSE;
     bool_T echo = FALSE;
     unsigned errcount = 0;
@@ -348,6 +349,24 @@ char **argv;
 		break;
 	    case 'L':
 		addarg(&ldargs, arg);
+		break;
+	    case 'M':
+	        switch(arg[2])
+		{
+		case 'd': /* DOS compile */
+#ifndef CCC
+		   addarg(&ccargs, "-D__MSDOS__");
+#endif
+		   addarg(&cppargs, "-D__MSDOS__");
+		   addarg(&ldargs, "-d");
+		   libc= "-ldos";
+		   break;
+		case 'f': /* Caller saves+ax is first arg */
+		   libc= "-lc_f";
+		   addarg(&ccargs, "-f");
+		   addarg(&ccargs, "-c");
+		   break;
+		}
 		break;
 	    case 'P':
 		addarg(&cppargs, arg + 2);
@@ -642,7 +661,7 @@ char **argv;
 	else
 #endif
 	{
-	    addarg(&ldargs, "-lc");
+	    addarg(&ldargs, libc);
 	    run((char *) NUL_PTR, f_out, &ldargs);
 	}
     }

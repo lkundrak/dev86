@@ -17,6 +17,10 @@ Once this is done new files will be /lib/elksemu, /usr/bcc/* and /usr/bin/bcc
 The bcc command defaults to using /usr/bcc/include and /usr/bcc/lib. Beware
 that /usr/bcc/include is a symlink into this directory.
 
+It is now also possible to make libc.a versions for MSDOS and a more compact
+version with 'CALLER_SAVES' and 'FIRST_ARG_IN_AX'. "Make install-lib2" does
+this and 'bcc -Md x.c -o x.com" or "bcc x.c -Mf x.c -o x" uses the libs.
+
 The as86 and ld86 with this are _different_ from the ones needed for the
 linux-i386 kernel but can replace them, the kernel-i386 ones _will_ _not_
 work correctly here!

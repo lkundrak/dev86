@@ -9,7 +9,8 @@ include $(TOPDIR)/Make.defs
 BCCDEFS=-DLOCALPREFIX="\"$(BCCHOME)\"" -DDEFARCH=0
 else
 CC=bcc
-LDFLAGS=-s
+CFLAGS=-Mf
+LDFLAGS=-s -M
 endif
 
 OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \

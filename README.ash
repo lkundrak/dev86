@@ -1,7 +1,7 @@
 Building /bin/ash
 
 After doing make install for 'bcc' unpack ash-linux-0.2.tar.gz; within this
-rename builtins to builtings.in then patch with this patchfile.
+rename builtins to builtins.in then patch with this patchfile.
 
 You'll also need to turn on 'JOBS' on line 58 of shell.h when libc can
 provide the functions.
