@@ -117,6 +117,10 @@ char * fname;
       use_fatbuf = 0;
 #endif
 
+#ifndef NOCOMMAND
+   more_char(-1);
+#endif
+
    /* Scan the root directory for the file */
    for(i=0; i<dir_nentry; i++)
    {
@@ -129,8 +133,6 @@ char * fname;
          break;
 #else
 	 int dtime = 0;
-	 char lbuf[90];
-	 *lbuf = 0;
 
 	 if( *d > ' ' && *d <= '~' ) switch(d[11]&0x18)
 	 {
@@ -151,14 +153,16 @@ char * fname;
 	    break;
 	 }
 	 if( dtime )
-	    printf(dtime, " %02d/%02d/%04d %02d:%02d\n",
+	 {
+	    printf(" %02d/%02d/%04d %02d:%02d",
 	           (get_uint(d,24)&0x1F),
 	           ((get_uint(d,24)>>5)&0xF),
 	           ((get_uint(d,24)>>9)&0x7F)+1980,
 	           ((get_uint(d,22)>>11)&0x1F),
 	           ((get_uint(d,22)>>5)&0x3F)
 	        );
-	 if( more_strn(lbuf, sizeof(lbuf)) < 0 ) break;
+	    if( more_char('\n') < 0 ) break;
+	 }
 #endif
       }
       else if( memcmp(d, conv_name, 11) == 0 && (d[11]&0x18) == 0 )

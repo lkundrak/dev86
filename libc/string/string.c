@@ -382,8 +382,9 @@ size_t l;
 
   mov	ax,di
 #endif
-  		; If di is odd mov 1 byte before doing word move
-		; this will speed slightly but
+  		; If di is odd we could mov 1 byte before doing word move
+		; as this would speed the copy slightly but its probably
+		; too rare to be worthwhile.
 		; NB 8086 has no problem with mis-aligned access.
 
   shr	cx,#1	; Do this faster by doing a mov word
@@ -647,8 +648,16 @@ unsigned int srcseg, srcoff, destseg, destoff, len;
   mov	di,[bp+8]
   mov	cx,[bp+10]
 #endif
+
+  ; Would it me a good idea to normalise the pointers ?
+  ; How about allowing for overlapping moves ?
+
+  shr	cx,#1	; Do this faster by doing a mov word
   rep
-   movsb
+  movsw
+  adc	cx,cx	; Retrieve the leftover 1 bit from cflag.
+  rep
+  movsb
 
   ! cli			! Are we _really_ paranoid ?
   

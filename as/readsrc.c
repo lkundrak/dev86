@@ -275,6 +275,8 @@ PUBLIC void pproceof()
 
 	if(pass==last_pass)
 	   binheader();
+
+	line_zero();
     }
     else
 	finishup();

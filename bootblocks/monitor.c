@@ -33,18 +33,18 @@ static char minibuf[2] = " ";
 
    init_prog();
 #ifdef __STANDALONE__
-#if 0
 #ifndef NOCOMMAND
    if( __get_ds() != 0x1000 )
    {
+      /* First to top of RAM */
       relocator(-1);
-      relocator(1);
+      /* Then align DS to 64k boundry -> DMA is simple. */
+      relocator(0x1000-__get_ds()+__get_cs());
+
+      /* Oops, relocate down didn't work, try a little higher. */
       if( __get_ds() > 0x1000 ) relocator(2);
       printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
    }
-#endif
-#else
-   printf("Loaded at CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
 #endif
 
    if( (__argr.x.dx & 0xFF) == 0 )
@@ -54,9 +54,8 @@ static char minibuf[2] = " ";
       cmd_type("help.txt");
 #else
       display_help(0);
-      if( x86 > 2 && !x86_emu )	/* Check some basics */
 #endif
-         cmd_bzimage((void*)0);
+      cmd_bzimage((void*)0);
    }
 
 #ifdef NOCOMMAND

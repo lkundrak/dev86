@@ -46,4 +46,5 @@ grab:
 	mkdir man
 	cp -p ../man/ld86.1 man
 	cp -p ../man/as86.1 man
+	touch -r ChangeLog . as ld man
 

@@ -37,12 +37,13 @@ Contents
 
 1.2 ) Dosfs boot sector
 
-   Install with makeboot, there is also a version for 16 bit FAT floppies
-   (eg LS-120 disks) This boot sector loads and executes a binary
-   BOOTFILE.SYS from the root directory of the floppy.  The file can
-   be any length and is loaded at $07C00. Because of the load address
-   this boot sector can be configured to load another boot sector,
-   for example LILO can be succesfully used in this way.
+   Install with makeboot, there is also a version for 16 bit FAT
+   filesystems for big floppies (eg LS-120 disks) or hard disk
+   partitions. This boot sector loads and executes a binary BOOTFILE.SYS
+   from the root directory of the floppy.  The file can be any length
+   and is loaded at $07C00. Because of the load address this boot sector
+   can be configured to load another boot sector, for example LILO can
+   be succesfully used in this way.
 
    In fact LILO can be succesfully used in this way on a 2M disk, but 
    you must create the floppy with the real dos 2M package as superformat
@@ -53,8 +54,8 @@ Contents
    as my testing has gone this is only significant on 8086 machines, all
    others (286 8Mhz +) are fast enough to keep up at a 1-1 interleve.
 
-   Unfortunatly the most recent versions of superformat (5.0+) defeat this 
-   because they do not correctly calculate intersector gaps.
+   But beware some older versions of superformat defeat this because
+   they do not correctly calculate intersector gaps.
 
 1.3 ) Minixfs boot block
 
@@ -74,9 +75,9 @@ Contents
 
 1.4 ) Tar boot sector		-- Cool Man!!
 
-   This boot sector converts a tar file with a GNU Volume lable into a
+   This boot sector converts a tar file with a GNU Volume label into a
    bootable floppy image. The boot sector loads and executes the first
-   item in the tar file after the lable:
+   item in the tar file after the label:
 
    $ tar cvfV the_file.tar ENIAC monitor.out item2 item3
    $ makeboot tar the_file.tar
@@ -119,9 +120,9 @@ Contents
 
    None of the boot blocks can _directly_ boot a Linux-i386 kernel the
    program 'monitor.out' must loaded by the boot sector and this can
-   load a zimage or bzimage from an MSDOS or Tar floppy.
+   load a zimage or bzimage from an MSDOS, Minix or Tar floppy.
 
-   This example is for and MSDOS floppy, Tar is very similer except that
+   This example is for and MSDOS floppy, Tar is very similar except that
    'monitor.out' must be the first file in the tar and can have any name.
 
    Note also for a tar file the 'ramdisk.gz' file must start on the first

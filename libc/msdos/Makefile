@@ -11,11 +11,11 @@ AOBJ= \
 
 BSRC=i86.c
 BOBJ= __seg_regs.o __peek_es.o __poke_es.o __deek_es.o __doke_es.o	\
-      __strnget_es.o __strchr_es.o __strlen_es.o
+      __strnget_es.o __strchr_es.o __strlen_es.o int86.o int86x.o segread.o
 
 ifeq ($(LIB_CPU),i86)
 ifeq ($(LIB_OS),DOS)
-OBJ=$(AOBJ) $(BOBJ) time.o
+OBJ=$(AOBJ) $(BOBJ) time.o sound.o
 else
 OBJ=$(BOBJ)
 endif

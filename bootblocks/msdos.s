@@ -49,6 +49,9 @@ org ORGADDR
 start:
 include sysboot.s
 
+org dos_sysid
+   .ascii "DOSFS"	! System ID
+
 !---------------------------------------------------------------------------
 ! Data into the temp area, 30 clear bytes
 org floppy_temp
@@ -333,6 +336,7 @@ maincode:
 
   xor	dx,dx		! DX=0 => floppy drive
   push	dx		! CX=0 => partition offset = 0
+  mov	si,[dos_spt]	! SI=Sectors pet track
 
   mov	bx,#LOADSEG
   mov	ds,bx		! DS = loadaddress

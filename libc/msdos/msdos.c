@@ -180,7 +180,7 @@ int __argc;
 char ** __argv;
 {
    int length, i, argc=1, s=0;
-   char *ptr, *p;
+   unsigned char *ptr, *p;
    __set_es(__psp);			/* Pointer to the args */
    length = __peek_es(0x80); 		/* Length of cmd line */
    if( length > 0 )
@@ -190,25 +190,25 @@ char ** __argv;
       for(i=0; i<length; i++)		/* Copy it in. */
       {
 	ptr[i] = __peek_es(0x81+i);
-/* Replaced because freedos adds \r to args.
-	if( ptr[i] != ' ' && s == 0 ) { argc++; s=1; }
-	if( ptr[i] == ' ' && s == 1 ) s=0;
- */
-	if( (ptr[i]&0xE0) != 0 && s == 0 ) { argc++; s=1; }
-	if( (ptr[i]&0xE0) == 0 && s == 1 ) s=0;
+	if( ptr[i] >  ' ' && s == 0 ) { argc++; s=1; }
+	if( ptr[i] <= ' ' && s == 1 ) s=0;
       }
       ptr[length]=0;
 
       p= __argv[0];
       __argv = (char**) sbrk((argc+1)*sizeof(char*));
-      __argv[0] = p;		/* FIXME: The real command can be found */
+      __argv[0] = p;		/* TODO: The real command can be found */
       __argc=argc;
+
+      /*
+       * TODO: This needs to understand quoting and wildcards 
+       */
 
       argc=1; s=0;
       for(i=0; i<length; i++)
       {
-	if( ptr[i] != ' ' && s == 0 ) { __argv[argc++] = ptr+i; s=1; }
-	if( ptr[i] == ' ' && s == 1 ) { ptr[i] = '\0'; s=0; }
+	if( ptr[i] >  ' ' && s == 0 ) { __argv[argc++] = ptr+i; s=1; }
+	if( ptr[i] <= ' ' && s == 1 ) { ptr[i] = '\0'; s=0; }
       }
       __argv[argc] = 0;
    }
@@ -233,7 +233,10 @@ int __argc;
 char ** __argv;
 char ** __envp;
 {
-    /* FIXME !!! */
+    /* FIXME !!!
+     * 
+     * Note must write to __envp argument but not touch __argv or __argc
+     */
 }
 #endif
 
@@ -383,6 +386,19 @@ int cmode;
    int creat_mode = 0;
    int rv;
 
+static int xlate_mode[] = {
+#ifdef OPEN_LIKE_UNIX
+   O_RDONLY|O_DENYNONE,
+   O_WRONLY|O_DENYNONE,
+   O_RDWR|O_DENYNONE,
+#else
+   O_RDONLY|O_DENYNONE,
+   O_WRONLY|O_DENYWRITE,
+   O_RDWR|O_DENYALL,
+#endif
+   3
+};
+
    if( (cmode & 0222) == 0 ) creat_mode = 1;
 
    /* BzzzT. Assume these flags both mean the merge of them */
@@ -391,8 +407,13 @@ int cmode;
       rv = __dos_creat(nname, creat_mode);
 
    else
-   /* Warn, this assumes the standard vals for O_RDWR, O_RDONLY, O_WRONLY */
-      rv = __dos_open(nname, type&O_ACCMODE);
+   {
+      /* If we would open in compatibility mode make it a little more unixy */
+      if( type & O_DENYMODE )
+         rv = __dos_open(nname, type&(O_ACCMODE|O_DENYMODE|O_SETFD));
+      else
+         rv = __dos_open(nname, xlate_mode[type&O_ACCMODE]);
+   }
    return rv;
 }
 

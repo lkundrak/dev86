@@ -56,7 +56,7 @@ struct __stdio_file {
 
 #define EOF	(-1)
 #ifndef NULL
-#define NULL	(0)
+#define NULL	((void*)0)
 #endif
 
 typedef struct __stdio_file FILE;

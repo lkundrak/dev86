@@ -1,8 +1,0 @@
-
-opendir
-
-closedir
-
-readdir 
-
-rewinddir

@@ -3,13 +3,15 @@
 
 #ifndef MINI_BUF
 
-/* #define DEBUG 1 */
+/* #define DEBUG 1 /**/ 
 
 int disk_drive = 0;
 int disk_spt   = 7;
-int disk_heads = 2;
+int disk_heads = 0;
 int disk_cyls  = 0;
-long disk_partition_offset = 0; /* FIXME: fetch from __argr */
+long disk_partition_offset = 0;
+
+int check_motor = 1;
 
 static int    last_drive = -1;
 static int    data_len = 0;
@@ -24,17 +26,32 @@ static long   get_dpt();
 
 void reset_disk()
 {
+#ifdef DEBUG
+   fprintf(stderr, "Reset Disk: ");
+#endif
    if( data_buf1 ) free(data_buf1);
    if( data_buf2 ) free(data_buf2);
    data_buf1 = data_buf2 = 0;
    last_drive = disk_drive;
    bad_track = -1;
 
+   disk_spt   = 7;	/* Defaults for reading floppy boot area. */
+   disk_heads = 0;
+   disk_cyls  = 0;
+
    if( !(disk_drive & 0x80 ) )
    {
-      disk_spt   = 7;	/* Defaults for reading Boot area. */
-      disk_heads = 2;
-      disk_cyls  = 0;
+#ifdef __STANDALONE__
+      if( disk_drive == __argr.h.dl && __argr.x.si >= 9 && __argr.x.si <= 63 )
+      {
+	 disk_spt = __argr.x.si;
+	 disk_heads = 2;
+	 disk_cyls = 80;
+      }
+#endif
+
+      /* Floppy -> no partitions */
+      /* Even if there were we couldn't deal with it anyway! */
       disk_partition_offset = 0;
    }
 #if defined(__MSDOS__) || defined(__STANDALONE__)
@@ -51,23 +68,24 @@ void reset_disk()
       }
 #endif
 
-      disk_spt   = 17;	/* Defaults for reading Boot area. */
-      disk_heads = 1;
-      disk_cyls  = 0;
-
       dpt = get_dpt(disk_drive);
       v = ((dpt>>16) & 0xFF);
-      if( v == 0xFF || v <= (disk_drive&0x7F) ) return; /* Bad dpt */
+      if( v != 0xFF && v > (disk_drive&0x7F) )
+      {
+         disk_spt   = (dpt & 0x3F); 		/* Max sector number 1-63 */
+         if( disk_spt == 0 ) disk_spt = 64;	/* 1-64 ? */
+         disk_heads = ((dpt>>24) & 0xFF) + 1;	/* Head count 1-256 */
+         disk_cyls  = ((dpt>>8) & 0xFF) + ((dpt<<2) & 0x300) + 1;
 
-      disk_spt   = (dpt & 0x3F); 		/* Max sector number 1-63 */
-      if( disk_spt == 0 ) disk_spt = 64;	/* 1-64 ? */
-      disk_heads = ((dpt>>24) & 0xFF) + 1;	/* Head count 1-256 */
-      disk_cyls  = ((dpt>>8) & 0xFF) + ((dpt<<2) & 0x300) + 1;
-
-      /* Cyls count, unchecked, only needs != 0, if AMI 386 bios can be
-       * upto 4096 cylinder, otherwise BIOS limit is 1024 cyl.
-       */
+         /* Cyls count, unchecked, only needs != 0, if AMI 386 bios can be
+          * upto 4096 cylinder, otherwise BIOS limit is 1024 cyl.
+          */
+      }
    }
+#endif
+
+#ifdef DEBUG
+   fprintf(stderr, "%d/%d/%d\n", disk_spt, disk_heads, disk_cyls);
 #endif
 }
 
@@ -81,7 +99,11 @@ long sectno;
    int phy_h = 0;
    int phy_c = 0;
 
-   if( disk_drive != last_drive || sectno == 0 ) reset_disk();
+   rv = 0;
+   if( disk_drive != last_drive )  rv = 1;
+   else if( check_motor )          rv = ( motor_running() == 0 );
+   else if( sectno == 0 )          rv = 1;
+   if( rv ) reset_disk();
 
    if( disk_partition_offset > 0 )
       sectno += disk_partition_offset;
@@ -89,8 +111,6 @@ long sectno;
    if( disk_spt < 0 || disk_spt > 63 || disk_heads < 1 )
    {
       phy_s = sectno;
-      reset_disk();
-
 #if DEBUG > 1
       fprintf(stderr, "read_sector(%ld = %d,%d,%d)\n",
                                    sectno, phy_c, phy_h, phy_s+1);
@@ -121,10 +141,6 @@ long sectno;
    }
 
 #ifdef DEBUG
-   fprintf(stderr, "WARNING: Single sector read\n");
-#endif
-
-#ifdef DEBUG
      fprintf(stderr, "phy_read(%d,%d,%d,%d,%d,0x%x)\n",
 	   disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
 #endif
@@ -138,6 +154,8 @@ long sectno;
    if( rv ) printf("Disk error 0x%02x %d:%d:%d:%d[%2d] -> 0x%04x[]\n",
 		    rv, disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
 
+   check_motor = motor_running();
+
    if(rv) return 0; else return data_buf1;
 }
 
@@ -146,7 +164,7 @@ int phy_c, phy_h, phy_s;
 {
    long trk_no, t;
    char * p;
-   int tries = 3;
+   int tries = 6;
    int rv, nlen;
 
    /* Big tracks get us short of memory so limit it. */
@@ -158,7 +176,7 @@ int phy_c, phy_h, phy_s;
 
    trk_no = (long)(phy_c*disk_heads+phy_h)*((disk_spt+4)/nlen)+phy_s/nlen+1;
 
-#if DEBUG > 1
+#if DEBUG > 2
    fprintf(stderr, "Info len=%d,%d trk=%ld,%ld,%ld\n", 
 	 data_len,nlen, trk_no,data_trk1,data_trk2);
 #endif
@@ -232,6 +250,8 @@ int phy_c, phy_h, phy_s;
    if( rv ) printf("Disk error 0x%02x %d:%d:%d:%d[%2d] -> 0x%04x[]\n",
 	  rv, disk_drive, phy_c, phy_h, phy_s/data_len+1, data_len, data_buf1);
 
+   check_motor = motor_running();
+
    /* Disk error, it'll try one at a time, _very_ slowly! */
    if(rv)
    {
@@ -280,6 +300,8 @@ phy_read(drive, cyl, head, sect, length, buffer)
   jc	read_err
   mov	ax,#0
 read_err:
+  xchg	ah,al
+  xor	ah,ah
 
   pop	es
   pop	bp
@@ -309,6 +331,20 @@ func_ok:
   pop	es
   pop	di
   pop	bp
+#endasm
+}
+
+motor_running()
+{
+#asm
+  push	es
+  mov	ax,#$40
+  mov	es,ax
+  seg	es
+  mov	al,[$3f]
+  xor	ah,ah
+  and	al,#$0F
+  pop	es
 #endasm
 }
 #endif

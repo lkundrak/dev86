@@ -1,4 +1,12 @@
-/* Is this BIOS keyboard io ? */
+/* Copyright (C) 1999 Robert de Bath <rdebath@cix.compulink.co.uk>
+ * This file is part of the Linux-8086 C library and is distributed
+ * under the GNU Library General Public License.
+ */
+
+/* 
+ * I'm not sure if these should be BIOS or dos calls, so I'll assume they're
+ * BIOS calls but I may have to do something about Ctrl-C.
+ */
 
 getch()
 {
@@ -50,6 +58,8 @@ char * str;
    while(*str) putch(*str++);
 }
 
+#if 0
+
 cgets()
 {
 }
@@ -70,4 +80,4 @@ gotoxy()
 {
 }
 
-
+#endif

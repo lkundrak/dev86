@@ -36,7 +36,7 @@ from the source file.
 .TP
 .B -ansi
 Pass the C source through
-.B unprotoize(1)
+.B unprotoize
 after preprocessing and before code generation. This will allow
 .I some
 ansi C to be compiled but it is definitly
@@ -112,6 +112,9 @@ to produce standalone Linux-86 executables
 .TP
 .B -Ml
 switches to i386-Linux code generator and library.
+This configuration accepts the
+.B -z
+flag to generate QMAGIC a.out files instead of the normal OMAGIC.
 .TP
 .B -N
 makes the linker produce a native a.out file (Linux OMAGIC) if combined
@@ -340,12 +343,8 @@ and
 are in /usr/bin.
 
 .SH SEE ALSO
-unprotoize(1), as86(1), ld86(1), elksemu(1)
+as86(1), ld86(1), elksemu(1)
 .SH BUGS
-The compiler cannot generate 8086 floating point code, if it's made to
-try it produces a nasty mixture of 8086 and 80386 code that really
-upsets the assembler.
-
 The bcc.c compiler driver source is very untidy.
 
 The linker, ld86, produces a broken a.out object file if given one input and

@@ -1,3 +1,11 @@
 #define remove(x) unlink(x)
 
+opendir
+
+closedir
+
+readdir 
+
+rewinddir
+
 See also the other files, many parts are incomplete.

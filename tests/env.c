@@ -34,6 +34,8 @@ char ** envp;
    p = (char*) &argc;
 
    putstr("ARGC="); phex(argc); putstr("\n");
+   putstr("ARGV="); phex(argv); putstr("\n");
+   putstr("ENVP="); phex(envp); putstr("\n");
    for(i=0; i<argc; i++)
    {
       phex(argv[i]);

@@ -12,7 +12,7 @@
 #define X_CALC_CRC
 
 #ifdef __STANDALONE__
-#define COLOUR
+#define NO_COLOUR
 
 extern union REGS __argr;
 #endif
@@ -30,6 +30,19 @@ extern union REGS __argr;
 #define read_block  tar_read_block
 #endif
 
+#ifdef MINFLOPPY
+#define SINGLEFS
+#define NOMONITOR
+#define NOCOMMAND
+#define MINI_BUF
+
+#define open_file   min_open_file
+#define rewind_file min_rewind_file
+#define close_file  min_close_file
+#define file_length min_file_length
+#define read_block  min_read_block
+#endif
+
 #ifdef DOSFLOPPY
 #define SINGLEFS
 #define NOMONITOR
@@ -44,7 +57,7 @@ extern union REGS __argr;
 #define read_block  dos_read_block
 #endif
 
-#if 1
+#ifdef __STANDALONE__
 #undef  putchar
 #define putchar   cputchar
 #define printf    cprintf

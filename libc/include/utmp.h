@@ -39,9 +39,9 @@ struct utmp
 extern void             setutent __P ((void));
 extern void             utmpname __P ((__const char *));
 extern struct utmp *    getutent __P ((void));
-extern struct utmp *    getutid __P ((struct utmp *));
-extern struct utmp *    getutline __P ((struct utmp *));
-extern struct utmp *    pututline __P ((struct utmp *));
+extern struct utmp *    getutid __P ((__const struct utmp *));
+extern struct utmp *    getutline __P ((__const struct utmp *));
+extern struct utmp *    pututline __P ((__const struct utmp *));
 extern void             endutent __P ((void));
 
 #ifdef __LIBC__

@@ -53,9 +53,10 @@ time_t *timer;
   rv >>= 8; year = (rv & 0xFFFF) - 1970;
 
   if (month <= 1 || year & 3)	/* if before Feb or not a leap year	*/
-	day--;			/* don't add day for leap year		*/
+	day--;			/* don't add day for this leap year	*/
   day += mdays[month];		/* day in year				*/
-  day += (year + 3) >> 2;	/* add a day for each leap year		*/
+  day += (year + 3) >> 2;	/* add a day for each leap year, but 	*/
+  				/* don't worry about 2100 		*/
   t += ((year * 365L) + day) * SECSPERDAY;
   if (timer)
 	*timer = t;

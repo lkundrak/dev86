@@ -675,6 +675,11 @@ char *mode;
    {
       if (nfp)
 	 free(nfp);
+      if (fp)
+      {
+	 fp->mode |= fopen_mode;
+	 fclose(fp);			/* Deallocate if required */
+      }
       return 0;
    }
 
@@ -730,12 +735,15 @@ FILE *fp;
       errno = EINVAL;
       return EOF;
    }
-   if (fflush(fp))
-      return EOF;
+   if (fp->fd != -1)
+   {
+      if (fflush(fp))
+	 return EOF;
 
-   if (close(fp->fd))
-      rv = EOF;
-   fp->fd = -1;
+      if (close(fp->fd))
+	 rv = EOF;
+      fp->fd = -1;
+   }
 
    if (fp->mode & __MODE_FREEBUF)
    {

@@ -103,7 +103,7 @@ char * command_line;
               (int)(len/1024), (int)(len*10/1024%10));
       return -1;
    }
-   if( main_mem_top <= 3072 )
+   if( main_mem_top < 3072 )
       printf("RTFM warning: Linux needs at least 4MB of memory.\n");
 #endif
 
@@ -191,7 +191,7 @@ char * command_line;
    close_file();
 
 #ifdef CALC_CRC
-   load_crc = display_crc(0);
+   load_crc = display_crc("Loaded crc =");
 #endif
 
 #ifdef CALC_CRC

@@ -61,13 +61,14 @@ char **argv;
     inst_keywords();
     initbin();
     initobj();
-    initsource();		/* only nec to init for unsupported mem file */
+    initsource();
     typeconv_init(INT_BIG_ENDIAN, LONG_BIG_ENDIAN);
     as_warn.global = TRUE;		/* constant */
     as_warn.semaphore = -1;
     last_pass=1;
     process_args(argc, argv);
     initscan();
+    line_zero();
 
     assemble();			/* doesn't return, maybe use setjmp */
 
@@ -133,8 +134,12 @@ PUBLIC void initp1p2()
 	lcp->data = lcdata = RELBIT;	/* lc relocatable until 1st ORG */
 	lcp->lc = lc = 0;
     }
-    if( textseg > 0 )
-        lcdata |= textseg;
+}
+
+PUBLIC void line_zero()
+{
+   if( textseg >= 0 )
+      ptext();
 }
 
 PRIVATE int my_creat(name, message)
@@ -297,8 +302,6 @@ char **argv;
 #ifdef I80386
     origcpuid = cpuid;
 #endif
-    if( textseg > 0 )
-        lcdata |= textseg;
     inidata = (~binaryg & inidata) | (RELBIT | UNDBIT);
 }				/* IMPBIT from inidata unless binaryg */
 

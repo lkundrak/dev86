@@ -26,12 +26,12 @@
 #ifndef STANDARD_GNU_A_OUT
 
 # ifndef C_EXT
-  #define BSD_A_OUT
+#  define BSD_A_OUT
 # endif
 
 /* Not sure about this one ... it works here ... */
 # if defined(BSD_A_OUT) && defined(N_MAGIC)
-  #define STANDARD_GNU_A_OUT
+#  define STANDARD_GNU_A_OUT
 # endif
 
 #endif

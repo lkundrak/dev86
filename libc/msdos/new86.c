@@ -31,11 +31,11 @@ int portno;
 {
 }
 
-outp(
+outp(...)
 {
 }
 
-outpw(
+outpw(...)
 {
 }
 
@@ -58,12 +58,3 @@ pokeb(segment, offset, value)
 unsigned segment, offset, value;
 {
 }
-
-
-
-
-
-
-
-
-

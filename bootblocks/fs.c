@@ -8,7 +8,7 @@ int fs_type = 0;
 open_file(fname)
 char * fname;
 {
-#ifdef __ELKS__
+#ifdef DEBUG
    fprintf(stderr, "Open file %s\n", fname);
 #endif
    if( fs_type ) close_file();
@@ -21,7 +21,7 @@ char * fname;
 
 rewind_file()
 {
-#ifdef __ELKS__
+#ifdef DEBUG
    fprintf(stderr, "Rewind file (%d)\n", fs_type);
 #endif
    switch(fs_type)
@@ -36,7 +36,7 @@ rewind_file()
 close_file()
 {
    int rv = -1;
-#ifdef __ELKS__
+#ifdef DEBUG
    fprintf(stderr, "Close file (%d)\n", fs_type);
 #endif
    switch(fs_type)
@@ -52,7 +52,7 @@ close_file()
 long
 file_length()
 {
-#ifdef __ELKS__
+#ifdef DEBUG
    fprintf(stderr, "File length (%d)\n", fs_type);
 #endif
    switch(fs_type)
@@ -67,7 +67,7 @@ file_length()
 read_block(buffer)
 char * buffer;
 {
-#ifdef __ELKS__
+#ifdef DEBUG
    fprintf(stderr, "read block into (%d) (%d)\n", buffer, fs_type);
 #endif
    switch(fs_type)

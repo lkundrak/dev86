@@ -157,7 +157,11 @@ bool_pt arguzp;
     if (uzp)
     {
 	if (btextoffset == 0)
+#ifdef QMAGIC
+	    btextoffset = page_size()+HEADERLEN;
+#else
 	    btextoffset = page_size();
+#endif
 	if (bdataoffset == 0 && sepid)
 	    bdataoffset = page_size();
     }
@@ -284,6 +288,14 @@ bool_pt arguzp;
 	etextpadoff = ld_roundup(etextoffset, 0x10, bin_off_t);
 	segadj[1] += etextpadoff - bdataoffset;
     }
+#ifdef QMAGIC
+    else if (uzp && bdataoffset == 0)
+    {
+	bdataoffset = ld_roundup(etextoffset, page_size(), bin_off_t);
+	etextpadoff = ld_roundup(etextoffset, page_size(), bin_off_t);
+	segadj[1] += etextpadoff - bdataoffset;
+    }
+#endif
     else if (bdataoffset == 0)
 	bdataoffset = etextpadoff;
     segpos[1] = segbase[1] = edataoffset = bdataoffset;
@@ -318,6 +330,15 @@ bool_pt arguzp;
 					     & ~(bin_off_t) 0xFF;
 	}
 #endif
+
+#ifdef QMAGIC
+	if(seg==3 && uzp && !stripflag) /* XXX Stripped last seek needed */
+	{
+	   bin_off_t val;
+	   val = ld_roundup(segbase[seg]+segsz[seg], page_size(), bin_off_t);
+	   segsz[seg] = val - segbase[seg];
+	}
+#endif 
 	combase[seg] = segbase[seg] + segsz[seg];
 	segadj[seg] = segadj[seg - 1];
     }
@@ -944,6 +965,11 @@ PRIVATE void writeheader()
     memset(&header, 0, sizeof header);
 #ifdef STANDARD_GNU_A_OUT
 #ifdef N_SET_MAGIC
+#ifdef QMAGIC
+    if(uzp)
+       N_SET_MAGIC(header, QMAGIC);
+    else
+#endif
     N_SET_MAGIC(header, OMAGIC);
 #else
     *(unsigned short *) &header.a_magic = OMAGIC;  /* XXX - works for 386BSD */
@@ -984,12 +1010,19 @@ PRIVATE void writeheader()
 #ifndef STANDARD_GNU_A_OUT
     header.a_hdrlen = FILEHEADERLENGTH;
 #endif
+#ifdef QMAGIC
+    if (uzp)
+       offtocn((char *) &header.a_text, etextpadoff - btextoffset+HEADERLEN,
+	       sizeof header.a_text);
+    else
+#endif
     offtocn((char *) &header.a_text, etextpadoff - btextoffset,
 	    sizeof header.a_text);
     offtocn((char *) &header.a_data, edataoffset - bdataoffset,
 	    sizeof header.a_data);
     offtocn((char *) &header.a_bss, endoffset - edataoffset,
 	    sizeof header.a_bss);
+
 #ifdef REL_OUTPUT
     if (!reloc_output)
 #endif

@@ -216,7 +216,8 @@ PRIVATE void asline()
     getsym();
     if (sym != IDENT)		/* expect label, mnemonic or macro */
     {	
-       if( sym != EOLSYM )
+       /* Warn if not a comment marker or a hash (for /lib/cpp) */
+       if( sym != EOLSYM && sym != IMMEDIATE )
           list_force = TRUE;
        return;			/* anything else is a comment */
     }

@@ -22,6 +22,15 @@ void reset_disk()
    disk_heads = 0;
    disk_cyls  = 0;
    bad_track  = -1;
+
+#ifdef __STANDALONE__
+   if( disk_drive == __argr.h.dl && __argr.x.si >= 9 && __argr.x.si <= 63 )
+   {
+      disk_spt = __argr.x.si;
+      disk_heads = 2;
+      disk_cyls = 80;
+   }
+#endif
 }
 
 char * read_lsector(sectno)
@@ -35,7 +44,7 @@ long sectno;
    int phy_c = 0; 
    int ltrack;
 
-   if( sectno == 0 ) reset_disk();
+   if( sectno == 0 || disk_heads == 0 ) reset_disk();
    if( buf_len != disk_spt ) track_no = -1;
 
    if( disk_spt < 1 || disk_heads < 1 )

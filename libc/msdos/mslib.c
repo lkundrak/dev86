@@ -79,6 +79,44 @@ char * path;
 }
 #endif
 
+/*************************************************************************
+  TO TEST ...  
+*/
+
+#ifdef L_sleep
+sleep(secs)
+unsigned secs;
+{
+   int counter = 0;
+   int es = __get_es();
+
+   __set_es(0x40);
+
+   while(secs>0)
+   {
+      int c = __peek_es(0x6C);
+      while( c == __peek_es(0x6C) ) ;
+
+      counter += 549;
+      if( counter > 10000 )
+      {
+	 secs--;
+	 counter -= 10000;
+      }
+
+      /* Interrupt on ctrl-break */
+      if( __peek_es(0x71) & 0x80 ) break;
+   }
+   __set_es(es);
+
+   return secs;
+}
+#endif
+
+/*************************************************************************
+  TODO ...  
+*/
+
 #ifdef L_dos_access
 access(filename, amode)
 char * filename;
@@ -89,7 +127,8 @@ int amode;
 #endif
 
 #ifdef L__dos_allocmem
-_dos_allocmem(size
+_dos_allocmem(size ...)
+{
 
 }
 #endif
@@ -263,25 +302,9 @@ getpid()
 }
 #endif
 
-#ifdef  L_int86
- XXX;
-#endif
-
-#ifdef  L_int86x
- XXX;
-#endif
-
 #ifdef L_rename
 rename(oldname, newpath)
 char *oldpath, *newpath;
-{
-   XXX;
-}
-#endif
-
-#ifdef L_segread
-segread(segp)
-struct SREGS * segp;
 {
    XXX;
 }
@@ -295,13 +318,6 @@ int fd, amode;
 }
 #endif
 
-#ifdef L_sleep
-sleep(secs)
-unsigned secs;
-{
-   XXX;
-}
-#endif
 
 #ifdef L_system
 system(cmd)
@@ -316,6 +332,9 @@ umask(mode)
 int mode;
 {
    XXX;
+   /*
+    * save umask value for open() use it for read-only bit.
+    */
 }
 #endif
 

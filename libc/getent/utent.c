@@ -19,10 +19,13 @@ static const char * ut_name=_PATH_UTMP;
 static int ut_fd=-1;
 
 struct utmp *
-__getutent(int utmp_fd)
+getutent(void)
 {
   static struct utmp utmp;
-  if (read(utmp_fd, (char *) &utmp, sizeof(struct utmp))!=sizeof(struct utmp))
+  if (ut_fd==-1) setutent();
+  if (ut_fd==-1) return NULL;
+
+  if (read(ut_fd, (char *) &utmp, sizeof(struct utmp))!=sizeof(struct utmp))
     return NULL;
   return &utmp;
 }
@@ -30,13 +33,20 @@ __getutent(int utmp_fd)
 void
 setutent(void)
 {
+  int xerrno = errno;
   if (ut_fd!=-1)
-    close(ut_fd);
-  if ((ut_fd=open(ut_name, O_RDONLY))<0)
+    close(ut_fd); /* ... Should this be an Lseek ? */
+
+  if ((ut_fd=open(ut_name, O_RDWR))<0)
     {
-      perror("setutent: Can't open utmp file");
-      ut_fd=-1;
+      if (errno!=EACCES || (ut_fd=open(ut_name, O_RDONLY))<0)
+        {
+	   /* No, this is a library function, it should not do this! */
+           /* perror("setutent: Can't open utmp file"); */
+           ut_fd=-1;
+        }
     }
+  if (ut_fd!= -1) errno=xerrno;
 }
 
 void
@@ -48,26 +58,11 @@ endutent(void)
 }
 
 struct utmp *
-getutent(void)
-{
-  if (ut_fd==-1)
-    setutent();
-  if (ut_fd==-1)
-    return NULL;
-  return __getutent(ut_fd);
-}
-
-struct utmp *
-getutid(struct utmp * utmp_entry)
+getutid(const struct utmp * utmp_entry)
 {
   struct utmp * utmp;
   
-  if (ut_fd==-1)
-    setutent();
-  if (ut_fd==-1)
-    return NULL;
-
-  while ((utmp=__getutent(ut_fd))!=NULL)
+  while ((utmp=getutent())!=NULL)
     {
       if ((utmp_entry->ut_type==RUN_LVL   ||
 	   utmp_entry->ut_type==BOOT_TIME ||
@@ -79,7 +74,7 @@ getutid(struct utmp * utmp_entry)
 	   utmp_entry->ut_type==DEAD_PROCESS ||
 	   utmp_entry->ut_type==LOGIN_PROCESS ||
 	   utmp_entry->ut_type==USER_PROCESS) &&
-	  !strcmp(utmp->ut_id, utmp_entry->ut_id))
+	  !strncmp(utmp->ut_id, utmp_entry->ut_id,sizeof(utmp->ut_id)))
 	return utmp;
     }
 
@@ -87,21 +82,17 @@ getutid(struct utmp * utmp_entry)
 }
 
 struct utmp *
-getutline(struct utmp * utmp_entry)
+getutline(const struct utmp * utmp_entry)
 {
   struct utmp * utmp;
 
-  if (ut_fd==-1)
-    setutent();
-  if (ut_fd==-1)
-    return NULL;
-
 #if 0 /* This is driving me nuts.  It's not an implementation problem -
 	 it's a matter of how things _SHOULD_ behave.  Groan. */
-  lseek(ut_fd, SEEK_CUR, -sizeof(struct utmp));
+  if (ut_fd!=-1)
+     lseek(ut_fd, (off_t) -sizeof(struct utmp), SEEK_CUR);
 #endif
 
-  while ((utmp=__getutent(ut_fd))!=NULL)
+  while ((utmp=getutent())!=NULL)
     {
       if ((utmp->ut_type==USER_PROCESS  ||
 	   utmp->ut_type==LOGIN_PROCESS) &&
@@ -113,40 +104,47 @@ getutline(struct utmp * utmp_entry)
 }
 
 struct utmp *
-pututline(struct utmp * utmp_entry)
+pututline(const struct utmp * utmp_entry)
 {
   struct utmp * ut;
+  int xerrno=errno;
 
+#if 0
   /* Ignore the return value.  That way, if they've already positioned
      the file pointer where they want it, everything will work out. */
-  (void) lseek(ut_fd, (off_t) -sizeof(utmp_entry), SEEK_CUR);
+  if (ut_fd!=-1)
+  (void) lseek(ut_fd, (off_t) -sizeof(struct utmp), SEEK_CUR);
+#endif
 
   if ((ut=getutid(utmp_entry))!=NULL)
-    {
-      lseek(ut_fd, (off_t) -sizeof(utmp_entry), SEEK_CUR);
-      if (write(ut_fd, (char *) utmp_entry, sizeof(utmp_entry))
-	  != sizeof(utmp_entry))
-	return NULL;
-    }
+      lseek(ut_fd, (off_t) -sizeof(struct utmp), SEEK_CUR);
+  else if( ut_fd==-1 )
+      return NULL;
   else
-    {
       lseek(ut_fd, (off_t) 0, SEEK_END);
-      if (write(ut_fd, (char *) utmp_entry, sizeof(utmp_entry))
-	  != sizeof(utmp_entry))
-	return NULL;
-    }
 
+  /*
+   * At this point I could make sure the offset we're at is an exact multiple
+   * of the sizeof struct utmp. Should I? Up or down?  --RdB
+   */
+
+  if (write(ut_fd, (char *) utmp_entry, sizeof(struct utmp))
+      != sizeof(struct utmp))
+    return NULL;
+
+  /* I think this final lseek gets the result Nat was after ... RdB */
+  lseek(ut_fd, (off_t) -sizeof(struct utmp), SEEK_CUR);
+
+  /* Ignoring untrapped errors */
+  errno=xerrno;
   return utmp_entry;
 }
 
 void
 utmpname(const char * new_ut_name)
 {
+  endutent();
+
   if (new_ut_name!=NULL)
     ut_name=new_ut_name;
-
-  if (ut_fd!=-1)
-    close(ut_fd);
 }
-
-

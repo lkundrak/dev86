@@ -63,16 +63,16 @@ char ** argv;
 
    if( memcmp(buffer+DOS4_FATTYPE, "FAT16", 5) )
    {
-      for(i=0; i<msdos_dosfs_stat; i++)
+      for(i=0; i<msdos_dosfs_stat - msdos_start; i++)
 	 buffer[i] = msdos_data[i];
-      for(i=msdos_codestart; i<512; i++)
+      for(i=msdos_codestart - msdos_start; i<512; i++)
 	 buffer[i] = msdos_data[i];
    }
    else
    {
-      for(i=0; i<msdos16_dosfs_stat; i++)
+      for(i=0; i<msdos16_dosfs_stat - msdos_start; i++)
 	 buffer[i] = msdos16_data[i];
-      for(i=msdos_codestart; i<512; i++)
+      for(i=msdos_codestart - msdos_start; i<512; i++)
 	 buffer[i] = msdos16_data[i];
    }
 

@@ -1,5 +1,7 @@
 For version 0.15.0.
 
+> Bugfixes on utmpent and friends.
+
 > A bit more in the manpages on how to use the assembler etc.
 
 > Bug fixes in stdio, fp->mode cached too much, buffer type mixup.
@@ -7,9 +9,15 @@ For version 0.15.0.
 > Altered initial make variables, you only need to modify 'PREFIX=' to allow
   installs into /usr/local.
 
+> The BIOS library has a simple MSDOS fs file reader now, based on the code
+  from monitor.out.
+
 > Added bin86-0.... source distribution archive.
 
-> Fixed bug in -t option to as
+> Fixed bug in -t option to as/bcc (for moving the text segment)
+
+> Lines that have a unexpected character are now listed by the assembler
+  not just ignored.
 
 > Added assembly externals in as86_encap generated code.
 

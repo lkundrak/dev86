@@ -5,6 +5,7 @@ int main P((int argc, char **argv));
 void as_abort P((char *message));
 void finishup P((void));
 void initp1p2 P((void));
+void line_zero P((void));
 
 /* assemble.c */
 void assemble P((void));

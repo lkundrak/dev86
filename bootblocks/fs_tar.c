@@ -54,11 +54,6 @@ char * fname;
 #endif
    int sectno;
 
-#ifdef __STANDALONE__
-   if( disk_drive != __argr.h.dl ) return -1;	/* Only the one booted off */
-   if( __argr.x.si < 9 || __argr.x.si > 63 ) return -1;	/* SPT good */
-#endif
-
    sptr = read_sector(0);
 
    /* Is it a tar disk ? */

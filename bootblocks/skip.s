@@ -10,6 +10,9 @@ org ORGADDR
 start:
 include sysboot.s
 
+org dos_sysid
+   .ascii "BOOT C"       ! System ID
+
 org codestart
   cli			! Assume _nothing_!
   cld

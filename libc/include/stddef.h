@@ -10,7 +10,7 @@
 #include <sys/types.h>
 
 #ifndef NULL
-#define NULL 0
+#define NULL ((void*)0)
 #endif
 
 #endif /* __STDDEF_H */

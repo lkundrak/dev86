@@ -218,4 +218,181 @@ char * str;
 }
 #endif
 
+#ifdef  L_int86
+int
+int86(intr, in_regs, out_regs)
+int intr;
+union REGS* in_regs;
+union REGS* out_regs;
+{
+#asm
+  push	bp
+  mov	bp,sp
+  push	ds			! save ds
+  				! es too ?
+  push	bp			! same for new bp
+
+  pushf				! iret flags
+  mov	ax,[bp-6]		! flags for simulated int
+  push	cs			! iret address segment
+  mov	bx,#ret_addr		! iret address offset
+  push	bx
+  and	ah,#$0C			! simulate interrupt flags
+  push	ax			! flags are pushed first
+
+  xor	bx,bx
+  mov	es,bx			! interrupt vectors in seg 0
+  mov	bl,[bp+4]
+  shl	bx,#1
+  shl	bx,#1			! intr*4 => interrupt vector address
+  seg	es
+  push	[bx+2]			! fetch interrupt segment
+  seg	es
+  push	[bx]			! fetch interrupt offset
+  mov	bx,[bp+6]		! input union REGS*
+
+  mov	ax,[bx]
+  mov	cx,[bx+4]
+  mov	dx,[bx+6]
+  mov	si,[bx+8]
+  mov	di,[bx+10]
+  mov	bx,[bx+2]
+  ! Ignore cflag/flags ?
+
+  iret				! simulate interrupt.
+  				! But won't be nice for protected mode ...
+ret_addr:
+  ! Int $25/6 would need resetting sp:ss too ... should I ?
+
+  pop	bp			! unzapped versions
+  pop	ds			! paranoia
+
+  pushf				! save interrupt flags
+  push	bx			! save pointer register
+  mov	bx,[bp+8]		! output union REGS*
+
+  mov	[bx],ax
+  pop	[bx+2]
+  mov	[bx+4],cx
+  mov	[bx+6],dx
+  mov	[bx+8],si
+  mov	[bx+10],di
+  mov	word [bx+12],#0		! cflag
+  jnc	no_carry
+  mov	byte [bx+12],#1
+no_carry:
+  pop	[bx+14]			! flags
+
+  pop	bp
+#endasm
+}
+
+#endif
+
+#ifdef  L_int86x
+int
+int86x(intr, in_regs, out_regs, segr)
+int intr;
+union REGS* in_regs;
+union REGS* out_regs;
+struct SREGS * segr;
+{
+#asm
+  push	bp
+  mov	bp,sp
+  push	ds			! save ds
+  				! es too ?
+  push	bp			! same for new bp
+
+  pushf				! iret flags
+  mov	ax,[bp-6]		! flags for simulated int
+  push	cs			! iret address segment
+  mov	bx,#ret_addr		! iret address offset
+  push	bx
+  and	ah,#$0C			! simulate interrupt flags
+  push	ax			! flags are pushed first
+
+  xor	bx,bx
+  mov	es,bx			! interrupt vectors in seg 0
+  mov	bl,[bp+4]
+  shl	bx,1
+  shl	bx,1			! intr*4 => interrupt vector address
+  seg	es
+  push	word [bx+2]		! fetch interrupt segment
+  seg	es
+  push	word [bx]		! fetch interrupt offset
+
+  mov	bx,[bp+10]		! struct SREGS*
+  mov	es,[bx]
+  push	[bx+6]			! ds
+ 
+  mov	bx,[bp+6]		! input union REGS*
+
+  mov	ax,[bx]
+  mov	cx,[bx+4]
+  mov	dx,[bx+6]
+  mov	si,[bx+8]
+  mov	di,[bx+10]
+  mov	bx,[bx+2]
+  ! Ignore cflag/flags ?
+
+  pop	ds
+
+  iret				! simulate interrupt
+  				! But won't be nice for protected mode ...
+
+ret_addr:
+  ! Int $25/6 would need resetting sp:ss too ... should I ?
+
+  pop	bp			! in case it was zapped
+
+  pushf				! save interrupt flags
+
+  push	cx			! save work register
+  mov	cx,ds
+  push	bx			! save pointer register
+
+  mov	ds,word [bp-2]		! restore original ds
+  mov	bx,[bp+10]		! struct SREGS*
+  mov	[bx],es
+  mov	[bx+6],cx
+ 
+  mov	bx,[bp+8]		! output union REGS*
+  mov	[bx],ax
+  pop	[bx+2]			! bx
+  pop	[bx+4]			! cx
+  mov	[bx+6],dx
+  mov	[bx+8],si
+  mov	[bx+10],di
+  mov	word [bx+12],#0		! cflag
+  jnc	no_carry
+  mov	byte [bx+12],#1
+no_carry:
+  pop	[bx+14]			! flags
+
+  pop	ds
+  pop	bp
+#endasm
+}
+#endif
+
+#ifdef L_segread
+segread(segp)
+struct SREGS * segp;
+{
+#asm
+#if __FIRST_ARG_IN_AX__
+  mov	bx,ax
+#else
+  mov	bx,sp
+  mov	bx,[bx+2]
+#endif
+  mov	[bx],es
+  mov	[bx+2],cs
+  mov	[bx+4],ss
+  mov	[bx+6],ds
+#endasm
+}
+#endif
+
 #endif /* __AS386_16__ */

@@ -25,7 +25,7 @@ unsigned char buffer[1024];
 #define FS_MBR  6	/* Boot sector is an MBR */
 
 #ifndef __MSDOS__
-#define NOT_HAS_2M20
+#define X_HAS_2M20
 #endif
 
 struct bblist {
@@ -43,7 +43,7 @@ struct bblist {
 { "dosfs","Boot file BOOTFILE.SYS from dos floppy",
            msdos_data, msdos_size,
 	   1, msdos_boot_name-msdos_start,		FS_DOS, 12},
-{ "dos16","Boot file BOOTFILE.SYS from 16 bit dos floppy",
+{ "dos16","Boot file BOOTFILE.SYS from 16 bit dos filesystem",
            msdos16_data, msdos16_size,
 	   1, msdos16_boot_name-msdos16_start,		FS_DOS, 16},
 { "none", "No OS bootblock, just message",  
@@ -628,8 +628,8 @@ static char * fieldnames[] = {
 	 for(j=0; j<dosflds[i].length; j++)
 	 {
 	    ch = bootsect[dosflds[i].offset+j];
-	    if( ch <= ' ' || ch > '~' ) putchar('.');
-	    else                        putchar(ch);
+	    if( ch < ' ' || ch > '~' ) putchar('.');
+	    else                       putchar(ch);
 	 }
 	 putchar('\n');
       }

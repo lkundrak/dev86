@@ -39,30 +39,48 @@ You use the other libraries like this:
    Standalone	$ bcc -Ms prog.c -o prog.sys
    Linux-i386	$ bcc -Ml prog.c -o prog
 
-The Linux-i386 version generates static Linux a.out programs, they need
-neither elksemu nor a.out shared libries to run. If you want you can
-convert them to an odd ELF executable with:
-    $ bcc -Ml prog.c -o prog
-    $ objcopy -O elf32-i386 prog
+The 'Fast' and 'Caller saves' versions alter the function call assember 
+in an effort to make it smaller and faster.
+
+The 'MSDOS' version creates _small_ model (64k+64k) COM files. Because
+of DOS limitations the filesize is limited to about 65000 bytes but
+the BSS and Stack can be upto 64k on top of that.
+
+The 'standalone' version creates executables like normal ELKS a.out
+files but with no operating system calls, just BIOS ones. These 
+files are suitable for running on a bare machine started by one of
+the boot blocks in the bootblocks subdirectory.
+
+The Linux-i386 version generates static Linux OMAGIC a.out programs,
+they need neither elksemu nor a.out shared libraries to run. Unfortunatly
+these can no longer be converted to ELF executables as Linux will not
+execute unpageable ELF executables. To allow conversion to ELF if you
+pass the '-z' flag to 'bcc -Ml' the linker will now create QMAGIC a.out
+executables, these are somewhat larger but can be converted with objcopy.
 
 If you want to install everything in one go just login as root an do:
 $ make install-all
 
-The as86 and ld86 with this are _different_ from the ones needed for the
-linux-i386 kernel but can replace them, the kernel-i386 ones _will_ _not_
-work correctly here!
+The as86 and ld86 with this are _different_ from the minimum version
+needed for the linux-i386 kernel and can replace them, versions before
+0.12.0 will not work with this version of bcc.
 
-I _strongly_ suggest you install the kernel patch or load the module in
-the elksemu directory in your Linux-i386 kernel, it makes things _much_
-easier.  If you're using a post 2.1.43 kernel the module you need is
-the binfmt_misc driver as described in elksemu/README. 
+I _strongly_ suggest you install the kernel patch or load the module
+to allow transparent execution of elks executables.  If you're using
+a post 2.1.43 or 2.0.36 kernel the module you need is the binfmt_misc
+driver configured like this:
+
+echo ':i86-elks:M::\x01\x03\x20\x00:\xff\xff\xff\x83:/lib/elksemu:' \
+     > /proc/sys/fs/binfmt_misc/register
+
+Previous versions need a special module or patch described in elksemu/README
 (All the options need the elksemu executable installed correctly)
 
 Copyrights
 ----------
 The `bcc', 'as' and `ld' parts of the distribution are now covered by
 the GPL.  The `bccfp' library now in the libc/i386fp directory is under
-the LGPL. (Copyright holder Bruce Evans)
+the LGPL. (Primary copyright holder Bruce Evans)
 
 The contents of the libc and libbsd subdirectories are under the LGPL
 with a few noted exceptions.  The programs in 'tests', elksemu, copt
@@ -77,7 +95,7 @@ not under LGPL, the former is 'freely distributable' the latter is public
 domain.
 
 See the COPYING file in this directory for the GPL and the COPYING file
-in the libc directories for the LGPL.
+in the libc directory for the LGPL.
 
 --
 Rob.                           (Robert de Bath <rdebath@poboxes.com>)

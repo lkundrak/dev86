@@ -42,6 +42,7 @@ monitor.out: $(MOBJ)
 	$(CC) $(CFLAGS) -H0x10000 $(MOBJ) -o monitor.out -M > monitor.sym
 
 $(MOBJ): $(MINC) version.h
+fs_min.o: minix.h
 
 monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)

@@ -61,6 +61,7 @@ typedef char gid;		/* group id */
 
 /* Miscellaneous constants */
 #define SUPER_MAGIC   0x137F	/* magic number contained in super-block */
+#define SUPER_MAGIC2  0x138F	/* Secondary magic 30 char names */
 
 #define BOOT_BLOCK  (block_nr)0	/* block number of boot block */
 #define SUPER_BLOCK (block_nr)1	/* block number of super block */

@@ -565,10 +565,7 @@ PUBLIC void objheader()
 	}
 	putobj1(0);
     }
-    if( textseg >= 0 )
-       putobj1(OBJ_SET_SEG | textseg);	/* default segment, |0010|SEGM| */
-    else
-       putobj1(OBJ_SET_SEG | 0);	/* default segment 0, |0010|SEGM| */
+    putobj1(OBJ_SET_SEG | 0);	/* default segment 0, |0010|SEGM| */
 }
 
 /* write trailer to object file */

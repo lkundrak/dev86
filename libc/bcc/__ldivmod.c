@@ -21,7 +21,7 @@
 
 
 ! let dividend = a, divisor = b, quotient = q, remainder = r
-!	a = b * q + r  mod 2^32
+!	a = b * q + r  mod 2**32
 ! where:
 
 ! if b = 0, q = 0 and r = a

@@ -5,7 +5,7 @@
 ld86 \- Linker for as86(1)
 .SH SYNOPSIS
 .BR ld86
-.RB [ -03MNdimrstz [-]]
+.RB [ -03MNdimrstyz [-]]
 .RB [ -llib_extension ]
 .RB [ -o\ outfile ]
 .RB [ -Ccrtfile ]
@@ -59,7 +59,9 @@ print symbols linked on stdout
 .TP
 .B -N
 Create a native Linux OMAGIC output file. If the contents are i386 code the
-binary can be either linked by GCC or executed by linux.
+binary can be either linked by GCC or executed by linux. If the
+.B -z
+option is also included the linker can generate a QMAGIC executable.
 .TP
 .B -Ox
 add library libdir-from-search/x to list of files linked
@@ -90,8 +92,12 @@ if possible.
 .B -t
 trace modules being looked at on stdout
 .TP
+.B -y
+Alter the symbol tables to add label 'extensions' so that labels with
+more than 8 characters can be stored in elks executables.
+.TP
 .B -z
-produce "unmapped zero page" executables
+produce "unmapped zero page" or "QMAGIC" executables
 .P
 All the options not taking an argument may be turned off by following the
 option letter by a '-', as for cc1.

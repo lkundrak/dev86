@@ -5,7 +5,7 @@
 
 union REGS
 {
-   struct { unsigned int ax, bx, cx, dx, si, di, cflag; } x;
+   struct { unsigned int ax, bx, cx, dx, si, di, cflag, flags; } x;
    struct { unsigned char al, ah, bl, bh, cl, ch, dl, dh; } h;
 };
 

@@ -16,7 +16,7 @@
 #include <malloc.h>
 #include <string.h>
 
-FILE * ifd = stdin;
+FILE * ifd;
 char * ifname;
 
 #ifdef __STDC__
@@ -62,6 +62,8 @@ char ** argv;
 {
    int ar;
    char * p;
+
+   ifd = stdin;	/* In Libc6 stdin is weird */
 
    p = strrchr(argv[0], '/');
    if(p) p++; else p=argv[0];

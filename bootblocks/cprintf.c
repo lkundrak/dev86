@@ -18,23 +18,21 @@ cprintf(char * fmt, ...)
    long val;
    char * cp;
    char padch=' ';
-   int  minsize = 0;
+   int  minsize, maxsize;
    va_list ap;
 
    va_start(ap, fmt);
 
    while(c=*fmt++)
    {
+      count++;
       if(c!='%')
-      {
 	 cputchar(c);
-	 count++;
-      }
       else
       {
 	 type=1;
 	 padch = *fmt;
-	 minsize=0;
+	 maxsize=minsize=0;
 	 if(padch == '-') fmt++;
 
 	 for(;;)
@@ -44,7 +42,13 @@ cprintf(char * fmt, ...)
 	    minsize*=10; minsize+=c-'0';
 	 }
 
-	 while( c=='.' || (c>='0' && c<='9')) { c=*fmt++; }
+	 if( c == '.' )
+	    for(;;)
+	    {
+	       c=*fmt++;
+	       if( c<'0' || c>'9' ) break;
+	       maxsize*=10; maxsize+=c-'0';
+	    }
 
 	 if( padch == '-' ) minsize = -minsize;
 	 else
@@ -79,16 +83,22 @@ cprintf(char * fmt, ...)
 	    case 's':
 	          cp=va_arg(ap, char *);
 	       }
+	       count--;
+	       c = strlen(cp);
+	       if( !maxsize ) maxsize = c;
 	       if( minsize > 0 )
 	       {
-		  minsize -= strlen(cp);
-		  while(minsize>0) { cputchar(padch); minsize--; }
+		  minsize -= c;
+		  while(minsize>0) { cputchar(padch); count++; minsize--; }
 		  minsize=0;
 	       }
-	       if( minsize < 0 ) minsize= -minsize-strlen(cp);
-	       while(*cp)
+	       if( minsize < 0 ) minsize= -minsize-c;
+	       while(*cp && maxsize-->0 )
+	       {
 		  cputchar(*cp++);
-	       while(minsize>0) { cputchar(' '); minsize--; }
+		  count++;
+	       }
+	       while(minsize>0) { cputchar(' '); count++; minsize--; }
 	       break;
 	    case 'c':
 	       cputchar(va_arg(ap, int));

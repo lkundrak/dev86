@@ -1,3 +1,17 @@
+Fri Jun 11 13:08:27 BST 1999 Robert de Bath (rdebath@poboxes.com)
+
+	* objdump86 program included.
+
+	* Updated for libc6
+
+	* As86 fixes for multi-segment (The linker can't really cope tho)
+
+Sat Mar 13 16:45:42 GMT 1999 Robert de Bath (rdebath@poboxes.com)
+
+	* Vsn 0.15.0, more documentation!
+
+	* Linker can now generate QMAGIC 386 executables.
+
 Fri Jul 31 09:33:18 BST 1998 Robert de Bath (rdebath@poboxes.com)
 
 	* version 0.14.4, This package is based on the ELKS dev86 package

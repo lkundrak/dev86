@@ -4,6 +4,10 @@
  *
  * Copyright (C) 1990-1998 Robert de Bath, distributed under the GPL Version 2
  * Based on minix filesystem definitions.
+ *
+ * TODO:
+ *       Alter nogood() to do a mov sp,... so the helper program can override
+ *       the panic message.
  */
 
 #include <a.out.h>
@@ -55,7 +59,7 @@ org start	! The lowest available address, again.
   j	skip_vars
 
 org dos_sysid
-  .ascii "MINIXFS BOOT (C) 1990-1997,  Robert de Bath"
+  .ascii "MINIXFS BOOT (C) 1990-1999,  Robert de Bath"
 
   org codestart
 #endif
@@ -76,7 +80,7 @@ _dinode: .word	1		! ROOT_INODE
 #endif
 
 export	bootfile		! File to boot, make this whatever you like,
-bootfile:			! 'boot' is good too.
+bootfile:			! 'boot' is good, 'linux' too.
 _bootfile:
    .ascii	"boot"
    .byte	0,0,0,0,0,0,0,0,0,0
@@ -95,7 +99,7 @@ skip_vars:
 
 #ifndef HARDDISK
 loopy:
-  mov	ax,#$0204		! Read 4 sectors, code + superblock.
+  mov	ax,#$0203		! Read 3 sectors, code + superblock.
   mov	bx,#start		! Where this _should_ be
   mov	cx,#$0001		! From sector 1
   xor	dx,dx			! Of the floppy drive head zero
@@ -113,11 +117,11 @@ loopy:
   mov	[bootpart],bx	! Save the partition sector offset (and drive)
   mov	[bootpart+2],dx
 
-  ! Read first 3 sectors of hd.
+  ! Read next 2 sectors of hd.
   xor	dx,dx
   mov	cx,#1
   mov	bx,#ORGADDR+$200
-  mov	al,#3
+  mov	al,#2
 
   call	load_sect
 #endif
@@ -153,6 +157,7 @@ extern unsigned ldaddr;
 /* Directory reading */
 extern dir_struct * dirptr;
 extern unsigned flength;
+extern unsigned dir_32;
 
 #ifndef HARDDISK
 /* The 'shape' of the floppy - intuit from superblock or try to read max */
@@ -182,7 +187,7 @@ _lastsect:  .word	0
 #endif
 
   block start+0x400
-_b_super:	.blkb 1024
+_b_super:	.blkb 512
 
 #ifndef MIN_SPACE
 export helper
@@ -524,6 +529,12 @@ got_sectors:
 
 	ret
 #endasm
+#else
+probe_sectors()
+{
+   /* Guess the number of sectors based on the size of the file system */
+   if( (n_sectors = b_super.s_nzones / 40) > 11 ) n_sectors /= 2;
+}
 #endif
 #endif
 
@@ -705,7 +716,12 @@ loadprog()
 #ifdef DOTS
    prt_dot();
 #endif
-   if( b_super.s_magic != SUPER_MAGIC ) nogood();
+   if( b_super.s_magic == SUPER_MAGIC2 ) 
+      dir_32 = 1;
+   else if( b_super.s_magic == SUPER_MAGIC )
+      dir_32 = 0;
+   else
+      nogood();
 
 #ifdef zone_shift
    if( zone_shift != b_super.s_log_zone_size) nogood();
@@ -714,11 +730,9 @@ loadprog()
 #endif
 
 #ifndef HARDDISK
-#ifdef TRY_FLOPPY
    probe_sectors();
-#else
-   if( (n_sectors = b_super.s_nzones / 40) > 11 ) n_sectors /= 2;
-#endif
+
+   /* if( (n_sectors = b_super.s_nzones / 40) > 11 ) n_sectors /= 2; */
 
    set_bpb();
 #endif
@@ -800,6 +814,11 @@ register char * p = dirptr->d_name;
 	 }
 	 flength -= 16;
 	 dirptr++;
+	 if( dir_32 )
+	 {
+	    flength -= 16;
+	    dirptr++;
+	 }
       }
       nogood();
    }
@@ -897,6 +916,7 @@ _indirect:	.blkw 1
 _ldaddr:	.blkw 1
 _dirptr:	.blkw 1
 _flength:	.blkw 1
+_dir_32:	.blkw 1
 varend:
 #ifdef MIN_SPACE
   endb

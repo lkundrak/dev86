@@ -192,6 +192,14 @@ pop	ax
 seg	es
 mov	[%1],al
 
+pmov	ax,%[#|*]0%1
+push	ax
+call	___poke_es
+add	sp,*4
+=
+seg	es
+mov	[%1],al
+
 push	%0[%1]
 call	___poke_es
 add	sp,*4
@@ -232,6 +240,14 @@ call	___doke_es
 add	sp,*4
 =
 pop	ax
+seg	es
+mov	[%1],ax
+
+pmov	ax,%[#|*]0%1
+push	ax
+call	___doke_es
+add	sp,*4
+=
 seg	es
 mov	[%1],ax
 
