@@ -85,14 +85,24 @@ struct symstruct *source;
 #endif
 	source->storage = BREG;
     }
-    else if (source->type->scalar & DOUBLE)
-	source->storage = doublreturnregs & ~DREG;
-#if 0
-    else if (source->type->scalar & FLOAT)
-	source->storage = floatreturnregs /* XXX? & ~DREG */;
-#endif
+#ifdef I80386
+    else if (i386_32)
+    {
+        if (source->type->scalar & DOUBLE)
+	    source->storage = doublreturnregs & ~DREG;
+        else
+	    source->storage = RETURNREG;
+    }
     else
-	source->storage = RETURNREG;
+#endif
+    {
+        if (source->type->scalar & DOUBLE)
+	    source->storage = doublreturnregs;
+        else if (source->type->scalar & FLOAT)
+	    source->storage = RETURNREG|DATREG2;
+        else
+	    source->storage = RETURNREG;
+    }
     source->offset.offi = source->indcount = 0;
     if (source->level == OFFKLUDGELEVEL)
 	source->level = EXPRLEVEL;
@@ -186,14 +196,26 @@ PUBLIC void loadretexpression()
     }
     else
 #endif
-    if (returntype->scalar & DOUBLE)
-	loadexpression(doublreturnregs & ~DREG, returntype);
-#if 0
-    else if (returntype->scalar & FLOAT)
-	loadexpression(floatreturnregs /* XXX? & ~DREG */, returntype);
+    {
+#ifdef I80386
+        if (i386_32)
+        {
+            if (returntype->scalar & DOUBLE)
+	        loadexpression(doublreturnregs & ~DREG, returntype);
+            else
+	        loadexpression(RETURNREG, returntype);
+        }
+        else
 #endif
-    else
-	loadexpression(RETURNREG, returntype);
+	{
+            if (returntype->scalar & DOUBLE)
+	        loadexpression(doublreturnregs, returntype);
+            else if (returntype->scalar & FLOAT)
+	        loadexpression(/* REURNREG|*/ DATREG2, returntype);
+            else
+	        loadexpression(RETURNREG, returntype);
+        }
+    }
 }
 
 PUBLIC void listo(target, lastargsp)

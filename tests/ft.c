@@ -25,7 +25,7 @@
 #include <grp.h>
 
 #if defined(S_IFSOCK) && !defined(__BCC__)
-#defined __HAS_SOCKETS
+#define __HAS_SOCKETS
 #endif
 #ifndef S_IFLNK
 #define lstat stat

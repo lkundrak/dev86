@@ -1,114 +1,165 @@
 
-To install the tarfile bootsector
----------------------------------
+Contents
 
- Create the makeboot program:
+1.0 ) Boot sectors
+1.1 ) Master boot sector
+1.2 ) Dosfs boot sector
+1.3 ) Minixfs boot block
+1.4 ) Tar boot sector
+1.5 ) Skip boot sector
+1.6 ) Panic boot sector
 
-$ make makeboot
+2.1 ) Booting i86 standalone executable
+2.2 ) Booting Elks kernel
+2.3 ) Booting Linux-i386 [b]zImage
 
-Create the tarfile
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-$ tar cvfV /dev/fd0 ENIAC monitor.out item2 item3
+1.0 ) Boot sectors
 
-Make it bootable
+   These boot sectors are mostly designed for floppy use, the exceptions
+   being the MinixFS and Master boot sectors.
 
-$ makeboot tar /dev/fd0
+   The makeboot program makes them very easy to install just format the
+   disk add the correct filesystem then run a command like ...
 
-Note, the distribution tar file is made using this procedure and can be booted
-if uncompressed and copied onto a raw floppy.
+   $ makeboot minix /dev/fd0
 
-To install the dosfs boot sector
---------------------------------
+   As far as I know all boot sectors and programs are 8086 clean, with
+   the exception that, obviously, the Linux-i386 loader needs access to
+   extended memory.
 
-$ make makeboot
-$ makeboot dosfs /dev/fd0
+1.1 ) Master boot sector
 
-or 
-$ make makeboot.com
-C:\> makeboot dos a:
+   This MBR is a very simple one with no frills, being less that 254 bytes
+   long is can be used as an MBR for a disk with old style 'Disk manager'
+   partitions. All 16 partitions are bootable.
 
-   Place a Linux-8086 executable in the root directory of the floppy.
+1.2 ) Dosfs boot sector
 
-$ make monitor.out
-$ mcopy monitor.out a:BOOTFILE.SYS
+   Install with makeboot, the boot sector requires the floppy to be double
+   sided and makeboot checks for this. This boot sector loads and executes
+   a binary BOOTFILE.SYS from the root directory of the floppy.  The file
+   can be any length and is loaded at $07C00. Because of the load address
+   this boot sector can be configured to load another boot sector, for
+   example LILO can be succesfully used in this way.
 
-or 
-C:\> copy monitor.out a:\bootfile.sys
+   In fact LILO can be succesfully used in this way on a 2M disk, but 
+   you must create the floppy with the real dos 2M package as superformat
+   does not create correct bootable 2M disks. Also beware that mounting
+   a 2M floppy can ... be interesting ...
 
-   This works on my 3 1/5 floppy and my 5 1/4, and it _should_ work on
-   any double sided drive. (It does work on a 3.5/720k floppy too)
-   For single sided floppies you need to alter msdos.s (the heads var)
-   and remove the check in makeboot.c
+   Note this boot sector loads the executable 1 sector at a time, as far
+   as my testing has gone this is only significant on 8086 machines, all
+   others (286 8Mhz +) are fast enough to keep up at a 1-1 interleve.
 
-To install the minixfs boot sector
-----------------------------------
+1.3 ) Minixfs boot block
 
-   Make a minix filesystem on the floppy:
+   This boot block has varients for floppy and harddisk and works similarly
+   for both. For the hard disk it must be installed in the partition boot
+   block with a normal MBR in sector zero of the disk. This boot sector can
+   be installed with makeboot or simply by copying the 1k file to the start
+   of the partition (or floppy) to be booted.
 
-$ mkfs -t minix /dev/fd0 1440
-or 
-$ mkfs -t minix /dev/fd0 1200
+   The sector looks for a file or directory called 'boot' if it's a
+   directory it loads that and does the search again. When it finds a
+   file it loads it at location $10000 and executes it, beware this
+   is limited to a file size of 519k.
 
-   Make the bootblock program.
+   There is also support for a helper boot which mean this is the only
+   boot sector able to load an ELKS image (almost) directly.
 
-$ make minix.bin
+1.4 ) Tar boot sector		-- Cool Man!!
 
-   Install it
+   This boot sector converts a tar file with a GNU Volume lable into a
+   bootable floppy image. The boot sector loads and executes the first
+   item in the tar file after the lable:
 
-$ cp minix.bin /dev/fd0
+   $ tar cvfV the_file.tar ENIAC monitor.out item2 item3
+   $ makeboot tar the_file.tar
+   $ cp the_file.tar /dev/fd0
 
-   Place a Linux-8086 executable in the root directory.
+   This sequence makes a bootable floppy that tar sees as a normal labeled
+   tar file but when booted from will load and execute 'monitor.out' at
+   location $00800  (Yes thats 2k!)
 
-$ make monitor.out
-$ mount -t minix /dev/fd0 /mnt
-$ cp monitor.out /mnt/linux
-$ umount /dev/fd0
+1.5 ) Skip boot sector
 
-   This works on my 3 1/4 floppy, and it _should_ work on any double sided
-   drive. Be sure to make the filesystem the full size of the floppy.
+   This bootsector displays a message then loads and executes the hard disk
+   MBR at location $07C00
 
+1.6 ) Panic boot sector
 
-Booting a Linux-386 bzImage
----------------------------
+   Displays the message 'PANIC! NO OS Found!' and freezes.
 
-NOTE: This only works with bzImage files NOT zImage files.
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Take 1 msdos floppy.
+2.1 ) Booting i86 standalone executable
 
-$ makeboot dos /dev/fd0
-$ mount -t msdos /dev/fd0 /mnt
-$ cp monitor.out /mnt/bootfile.sys
+   All the boot sectors (dos, minix, tar) check for a ELKS-i86 magic number
+   at the start of the file they load and will correctly set the segment
+   registers before calling. The executable should be a 'standalone'
+   executable compiled with 'bcc -Ms ...' or similar.
 
-$ cp /usr/src/linux/arch/i386/boot/bzImage /mnt/vmlinuz
-$ echo 'root=/dev/ram ramdisk_file=ramdisk.gz mem=80M' > /mnt/vmlinuz.cmd
-$ cp /archive/ramdisk.gz /mnt/ramdisk.gz
-$ umount /dev/fd0
+2.2 ) Booting Elks kernel
 
-The stuff about ramdisk is only if you want an init ramdisk. You can also use:
+   Only the minix boot sector can directly boot an elks kernel and even that
+   needs a helper function because of the complexity. The helper is called
+   'minix_elks.bin' and needs to be copied onto the disk as '/boot/boot'
+   with the ELKS image copied on as '/boot/linux'. This works, with the
+   correct boot block, on either floppy or harddisk.
 
-vmlinuz.app:	Arguments prepended to the Linux command line.
-vmlinuz.cmd:	Arguments appended to the Linux command line.
-vmlinux.dfl:	Arguments appended to the Linux command line.
+2.3 ) Booting Linux-i386 [b]zImage
 
-If there's a *.cmd file you won't be asked anything. If there's a *.dfl or
-neither you'll be asked:
+   None of the boot blocks can _directly_ boot a Linux-i386 kernel the
+   program 'monitor.out' must loaded by the boot sector and this can
+   load a zimage or bzimage from an MSDOS or Tar floppy.
 
-vmlinuz:
+   This example is for and MSDOS floppy, Tar is very similer except that
+   'monitor.out' must be the first file in the tar and can have any name.
 
-where you can type a command line to override the *.dfl file. If there's
-a *.cmd file the *.dfl file is ignored, the *.app file is placed at the
-start of the line whichever you do.
+   Note also for a tar file the 'ramdisk.gz' file must start on the first
+   disk but can extend across as many floppies as is needed.
 
-If the file isn't called 'vmlinuz' you can still boot it by typing "=linux"
-at the prompt '>' where 'linux' is the name of the bzImage file.
+   $ mformat a:
+   $ makeboot dos /dev/fd0
+   $ mount -t msdos /dev/fd0 /mnt
+   $ cp monitor.out /mnt/bootfile.sys
 
-Escape or ^C will interrupt the boot and drop you to the '>' prompt.
-Esacpe or ^C at the '>' prompt will reboot
-   (This may be a little sensitive :-)
+   $ cp /usr/src/linux/arch/i386/boot/zImage /mnt/vmlinuz
+   $ echo 'root=/dev/ram ramdisk_file=ramdisk.gz mem=80M' > /mnt/vmlinuz.cmd
+   $ cp /archive/ramdisk.gz /mnt/ramdisk.gz
+   $ umount /dev/fd0
 
-A file called 'help.txt' will be displayed upto the first line that starts
-with a '%', chunks after that (seperated by '%'s) will be displayed when
-the user presses a function key, home, page up or page down. (Note it's
-best if you try to ensure 'help.txt' is completely contained on one track
-so the file is entirely in the track buffer)
+   The stuff about ramdisk is only if you want an init ramdisk, if the ramdisk
+   name begins with a '+' the program will ask for another disk first.
 
+   You can also use:
+
+   vmlinuz.app:	Arguments prepended to the Linux command line.
+   vmlinuz.cmd:	Arguments appended to the Linux command line.
+   vmlinux.dfl:	Arguments appended to the Linux command line.
+
+   If there's a *.cmd file you won't be asked anything. If there's a *.dfl or
+   neither you'll be asked:
+
+   vmlinuz:
+
+   where you can type a command line to override the *.dfl file. If there's
+   a *.cmd file the *.dfl file is ignored, the *.app file is placed at the
+   start of the line whichever you do.
+
+   If the file isn't called 'vmlinuz' you can still boot it by typing "=linux"
+   at the prompt '>' where 'linux' is the name of the bzImage file.
+
+   Escape or ^C will interrupt the boot and drop you to the '>' prompt.
+   Esacpe or ^C at the '>' prompt will reboot
+      (This may be a little sensitive :-)
+
+   A file called 'help.txt' will be displayed upto the first line that starts
+   with a '%', chunks after that (seperated by '%'s) will be displayed when
+   the user presses a function key, home, page up or page down.
+
+-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+Robert de Bath <rdebath@poboxes.com> 22 Mar 1998

@@ -61,11 +61,33 @@ struct symstruct *target;
 	    {
 		/* XXX - 386 only */
 		storereg(DREG, target);
+#ifdef I80386
+		if (i386_32)
+		{
+		    if (tscalar & DOUBLE)
+		    {
+		        target->indcount = 1;  /* XXX outnnadr clobbers this */
+		        target->offset.offi += accregsize;
+		        storereg(doubleregs & ~DREG, target);
+		    }
+		}
+		else
+#endif
 		if (tscalar & DOUBLE)
 		{
-		    target->indcount = 1;  /* XXX - outnnadr clobbers this */
+		    int i;
+		    for(i=1; i; i<<=1) if( i!= DREG && (doubleregs & i) )
+		    {
+		       target->indcount = 1;  /* XXX outnnadr clobbers this */
+		       target->offset.offi += accregsize;
+		       storereg(i, target);
+		    }
+		}
+		else if (tscalar & FLOAT)
+		{
+		    target->indcount = 1;  /* XXX outnnadr clobbers this */
 		    target->offset.offi += accregsize;
-		    storereg(doubleregs & ~DREG, target);
+		    storereg(DATREG2, target);
 		}
 		target->storage = source->storage;
 		target->offset.offi = 0;

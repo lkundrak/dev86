@@ -17,7 +17,10 @@ static open_fd()
 {
    phy_fd = open("/dev/fd0", 0);
    if( phy_fd < 0 )
+   {
       fprintf(stderr, "Cannot open /dev/fd0\n");
+      phy_fd= -2;
+   }
 }
 
 phy_read(drive, cyl, head, sect, len, buffer)
@@ -30,6 +33,7 @@ extern long lseek();
    int i;
 
    if( phy_fd == -1 ) open_fd();
+   if( phy_fd <  0  ) return -1;
 
    offset = (((cyl*2 + head)*18L + sect-1)*512L);
 
@@ -130,8 +134,11 @@ int len;
    }
 }
 
-display_crc()
+display_crc(str)
+char * str;
 {
-   printf("Image CRC value = %u\n", crc);
+   if( str )
+      printf("%s 0x%04x\n", str, crc);
+   return crc;
 }
 

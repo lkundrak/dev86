@@ -1,9 +1,7 @@
+#ifndef __ARCH_8086_STAT_H
+#define __ARCH_8086_STAT_H
 
-#ifndef _ARCH_STAT_H
-#define _ARCH_STAT_H
-
-struct stat
-{
+struct stat {
 	dev_t st_dev;
 	ino_t st_ino;
 	mode_t st_mode;
@@ -16,4 +14,5 @@ struct stat
 	time_t st_mtime;
 	time_t st_ctime;
 };
+
 #endif

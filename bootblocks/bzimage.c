@@ -12,6 +12,8 @@ int auto_flag = 1;
 char * append_line = 0;		/* A preset append line value */
 
 static char * initrd_name = 0;	/* Name of init_ramdisk to load */
+static long initrd_start = 0;
+static long initrd_length = 0;
 static int vga_mode = -1;	/* SVGA_MODE = normal */
 
 static int  is_zimage = 0;
@@ -21,10 +23,12 @@ static long image_size;		/* Length of image file in bytes */
 static char * read_cmdfile();
 static char * input_cmd();
 
-#define ZIMAGE_LOAD_SEG	 0x1000	/* Segment that zImage data is loaded */
+#define ZIMAGE_LOAD_SEG	 0x10000 /* Segment that zImage data is loaded */
 #define COMMAND_LINE_POS 0x4000 /* Offset in segment 0x9000 of command line */
+#define CALC_CRC
 
 int has_command_line = 0;
+int load_crc = 0;
 
 cmd_bzimage(ptr)
 char * ptr;
@@ -58,6 +62,11 @@ char * command_line;
    char * ptr;
    int low_sects;
    unsigned int address;
+   
+   initrd_name = 0;
+   initrd_start = initrd_length = 0;
+   vga_mode = -1;
+   is_zimage = 0;
 
    if( open_file(fname) < 0 )
    {
@@ -101,6 +110,17 @@ char * command_line;
    address = 0x900;
 
 #ifndef __ELKS__
+#if ZIMAGE_LOAD_SEG == 0x10000
+   if( is_zimage )
+   {
+      if( image_length > 0x7FF0/32 )
+      {
+         printf("This zImage file is too large, maximum is %ld bytes\n",
+                 (0x7FF0/32 + low_sects)*512L );
+         return -1;
+      }
+   }
+#else
    if( is_zimage )
    {
       relocator(8);	/* Need space in low memory */
@@ -113,10 +133,13 @@ char * command_line;
       }
    }
 #endif
+#endif
 
    /* load the blocks */
    rewind_file();
+#ifdef CALC_CRC
    reset_crc();
+#endif
    for(len = file_length(); len>0; len-=1024)
    {
       int v;
@@ -137,7 +160,9 @@ char * command_line;
 	 return -1;
       }
 
+#ifdef CALC_CRC
       if( len > 1024 ) addcrc(buffer, 1024); else addcrc(buffer, (int)len);
+#endif
       for(v=0; v<1024; v+=512)
       {
          if( putsect(buffer+v, address) < 0 )
@@ -150,13 +175,22 @@ char * command_line;
 	    low_sects--;
 	    if( low_sects == 0 )
 	    {
+#if ZIMAGE_LOAD_SEG != 0x10000
 	       if( is_zimage ) address = ZIMAGE_LOAD_SEG/16;
-	       else            address = 0x1000;
+	       else            
+#endif
+	                       address = 0x1000;
 	    }
 	 }
       }
    }
-   display_crc();
+#ifdef CALC_CRC
+   load_crc = display_crc(0);
+#endif
+
+#ifdef CALC_CRC
+   if( check_crc() < 0 && !keep_going() ) return -1;
+#endif
 
    /* Yesss, loaded! */
    printf("Loaded, "); fflush(stdout);
@@ -169,13 +203,9 @@ char * command_line;
       if( load_initrd(address) < 0 )
          return -1;
 
-   check_crc();
-
-   if( is_zimage )
-   {
-      printf("Sorry, zImage's don't seem to be working at the moment.\n");
-      if( !keep_going() ) return -1;
-   }
+#ifdef CALC_CRC
+   if( check_crc() < 0 && !keep_going() ) return -1;
+#endif
 
    printf("Starting ...\n");
 
@@ -212,12 +242,13 @@ char * command_line;
       __doke_es(0x0022, COMMAND_LINE_POS);	
    }
 
+#if ZIMAGE_LOAD_SEG != 0x10000
 #if ZIMAGE_LOAD_SEG != 0x1000
    if( is_zimage )
    {
 #if ZIMAGE_LOAD_SEG != 0x100
       /* Tell setup that we've loaded the kernel somewhere */
-      __poke_es(0x20C, ZIMAGE_LOAD_SEG);
+      __doke_es(0x20C, ZIMAGE_LOAD_SEG);
 #else
       /* Tell setup it's a bzImage _even_ tho it's a _zImage_ because we have
        * actually loaded it where it's supposed to end up!
@@ -228,8 +259,22 @@ char * command_line;
 #endif
    }
 #endif
+#endif
 
-   if( !is_zimage )
+   /* Tell the kernel where it is */
+   if( initrd_name )
+   {
+      __set_es(0x9000);
+
+      __doke_es(0x218, (unsigned) initrd_start);
+      __doke_es(0x21A, (unsigned)(initrd_start>>16));
+
+      __doke_es(0x21C, (unsigned) initrd_length);
+      __doke_es(0x21E, (unsigned)(initrd_length>>16));
+   }
+
+
+   if( !is_zimage || initrd_name )
       __poke_es(0x210, 0xFF); /* Patch setup to deactivate safety switch */
 
    /* Set SVGA_MODE if not 'normal' */
@@ -237,6 +282,13 @@ char * command_line;
 
    /* Default boot drive is auto-detected floppy */
    if( __peek_es(508) == 0 ) __poke_es(508, 0x200);
+
+#if ZIMAGE_LOAD_SEG == 0x10000
+   if( is_zimage )
+      /* Copy 512k from high memory then start */
+      start_zimage();
+   else
+#endif
 
    /* Finally do the deed */
    {
@@ -247,8 +299,8 @@ char * command_line;
   outb
 
   ! Setup required registers and go ...
-  mov	ax,$9000
-  mov	bx,$4000-12	! Fix this to use boot_mem_top
+  mov	ax,#$9000
+  mov	bx,#$4000-12	! Fix this to use boot_mem_top
   mov	es,ax
   mov	fs,ax
   mov	gs,ax
@@ -313,7 +365,7 @@ unsigned int address;
 
 retry:
    tc--;
-#if 1
+#if 0
    if( x86_emu )
       return 0;	/* In an EMU we can't write to high mem but
                    we'll pretend we can for debuggering */
@@ -539,7 +591,7 @@ static char * image_str = "BOOT_IMAGE=";
 #ifdef __ELKS__
    fprintf(stderr, "Command line: '%s'\n", ptr+1);
 #else
-/*
+/* Commented to allow for CRC check.
    __set_es(0x9000);
    __doke_es(0x0020, 0xA33F);
    __doke_es(0x0022, COMMAND_LINE_POS);	
@@ -637,29 +689,20 @@ unsigned int k_top;
    }
    printf("Loaded, ");
 
-   /* Tell the kernel where it is */
-   {
-      long tmp = ((long)rd_start << 8);
-
-      __set_es(0x9000);
-      __doke_es(0x218, (unsigned) tmp);
-      __doke_es(0x21A, (unsigned)(tmp>>16));
-
-      __doke_es(0x21C, (unsigned) file_len);
-      __doke_es(0x21E, (unsigned)(file_len>>16));
-   }
+   initrd_start  = ((long) rd_start <<8);
+   initrd_length = file_len;
 
    return 0;
 }
 
+#ifdef CALC_CRC
 check_crc()
 {
    char buffer[512];
    int low_sects;
    unsigned int address = 0x900;
    long len;
-
-   if( !is_zimage ) return;
+   int re_crc;
 
    reset_crc();
 
@@ -668,8 +711,16 @@ check_crc()
 
    for(len=image_size; len>0; len-=512)
    {
-      if( address >= 0xA00 ) return;
-      __movedata(address*16, 0, __get_ds(), buffer, 512);
+      if( address >= 0xA00 )
+      {
+         if( ext_get(address, buffer, 512) != 0 )
+	 {
+	    printf("Unable to read back for CRC check\n");
+	    return;
+	 }
+      }
+      else
+         __movedata(address*16, 0, __get_ds(), buffer, 512);
 
       if( len > 512 ) addcrc(buffer, 512); else addcrc(buffer, (int)len);
       
@@ -679,10 +730,34 @@ check_crc()
 	 low_sects--;
 	 if( low_sects == 0 )
 	 {
+#if ZIMAGE_LOAD_SEG != 0x10000
 	    if( is_zimage ) address = ZIMAGE_LOAD_SEG/16;
-	    else            address = 0x1000;
+	    else            
+#endif
+	                    address = 0x1000;
 	 }
       }
    }
-   display_crc();
+   re_crc = display_crc("Images CRC check value =");
+
+   if( re_crc != load_crc )
+   {
+      printf("Error: CRC doesn't match value written to memory!\n");
+      return -1;
+   }
+   return 0;
 }
+#endif
+
+#if ZIMAGE_LOAD_SEG == 0x10000
+start_zimage()
+{
+#include "zimage.v"
+   __movedata(__get_ds(), zimage_data, 0, zimage_start, zimage_size);
+   {
+#asm
+  callf	zimage_start,0
+#endasm
+   }
+}
+#endif

@@ -194,7 +194,7 @@ char *archentry;
 		symptr->flags &= ~(flags_t) SEGM_MASK | (flags & SEGM_MASK);
 	    else if ((flags & SEGM_MASK) == SEGM_MASK)
 		flags &= ~(flags_t) SEGM_MASK | (symptr->flags & SEGM_MASK);
-	    if ((flags ^ symptr->flags) & (N_MASK | A_MASK | SEGM_MASK))
+	    if ((flags ^ symptr->flags) & (A_MASK | SEGM_MASK))
 	    {
 		redefined(symname, " with different segment or relocatability",
 			  archentry, symptr->modptr->filename,

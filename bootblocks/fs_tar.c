@@ -1,8 +1,5 @@
 
-#ifdef __ELKS__
 #include <stdio.h>
-#endif
-
 #include <dos.h>
 #include "readfs.h"
 
@@ -22,17 +19,44 @@ typedef union {
 	char m_checksum[8];
 	char m_linked;
 	char m_link[NAME_SIZE];
+	char m_ustar[8];
+	char m_uname[32];
+	char m_gname[32];
+
+	char m_major[8];	/* GNU fields */
+	char m_minor[8];
+	char m_atime[12];
+	char m_ctime[12];
+	char m_offset[12];
+	/* An so forth */
   } member;
 } HEADER;
+
+long tar_convert();
+int  valid_tar_checksum();
+void tar_set_drive();
+
+static int disk_size = 0;
 
 #ifdef __STANDALONE__
 extern union REGS __argr;
 #endif
 
+struct tx {
+   char name[NAME_SIZE];
+   int  first_sectno;
+   int  cur_sectno;
+   int  sectcount;
+   int  diskoffset;
+   long file_length;
+} tar_status;
+
 tar_open_file(fname)
 char * fname;
 {
    HEADER * sptr;
+   int dodir = 0;
+   int sectno;
 
 #ifdef __STANDALONE__
    if( disk_drive != __argr.h.dl ) return -1;	/* Only the one booted off */
@@ -41,43 +65,154 @@ char * fname;
 
    sptr = read_sector(0);
 
-   /* Boot sector a volume label ? */
-   if( sptr->member.m_linked != 'V' ) return -1;
+   /* Is it a tar disk ? */
    if( !valid_tar_checksum(sptr) ) return -1;
 
-#ifdef __STANDALONE__
-   disk_spt = __argr.x.si;
-#else
-   disk_spt = 18;	/* Testing only */
-#endif
+   tar_set_drive();
 
-#ifdef __ELKS__
-   fprintf(stderr, "Got vaild tar header\n");
-#endif
+   if( strcmp(fname, ".") == 0 )
+      dodir=1;
+   else
+   {
+      if( tar_status.diskoffset == 0 && strcmp(fname, tar_status.name) == 0 )
+         return tar_rewind_file();
+   }
+
+   tar_close_file();
+
+   for(sectno=0;;)
+   {
+      long fl, v;
+
+      if(sectno) sptr = read_sector(sectno);
+      if(!sptr || !*sptr->member.m_name) break;
+
+      if( !valid_tar_checksum(sptr) )
+      {
+         printf("Checksum error on tar header\n");
+         return -1;
+      }
+
+      fl = tar_convert(sptr->member.m_size, 12);
+      v = (fl+511)/512 + 1;
+
+      if( sptr->member.m_linked != 0 && sptr->member.m_linked != '0' )
+         ;
+      else if( dodir )
+          printf("%s %d tape blocks\n", sptr->member.m_name, (int)v-1);
+      else if( strcmp(fname, sptr->member.m_name, NAME_SIZE) == 0 )
+      {
+         strncpy(tar_status.name, sptr->member.m_name, NAME_SIZE);
+	 tar_status.first_sectno = sectno+1;
+	 tar_status.cur_sectno = sectno+1;
+	 tar_status.file_length = fl;
+	 tar_status.sectcount = v-1;
+	 tar_status.diskoffset = 0;
+	 return 0;
+      }
+
+      if( v < 1 || (sectno += v) > disk_size ) break;
+   }
 
    return -1;
 }
 
 tar_rewind_file()
 {
-   return -1;
+   if( tar_status.name[0] == '\0' || tar_status.diskoffset != 0 )
+   {
+      tar_close_file();
+      return -1;
+   }
+
+   tar_status.cur_sectno = tar_status.first_sectno;
+   return 0;
 }
 
 tar_close_file()
 {
-   return -1;
+   tar_status.name[0] = 0;
+   tar_status.first_sectno = -1;
+   tar_status.cur_sectno = -1;
+   tar_status.file_length = -1;
+   tar_status.diskoffset = -1;
+
+   return 0;
 }
 
 long
 tar_file_length()
 {
-   return -1;
+   if( tar_status.name[0] == '\0' ) return -1;
+
+   return tar_status.file_length;
 }
 
 tar_read_block(buffer)
 char * buffer;
 {
-   return -1;
+   char * ptr;
+   HEADER * sptr;
+   int i;
+   if( tar_status.name[0] == '\0' ) return -1;
+
+   for(i=0; i<2; i++)
+   {
+      if( tar_status.cur_sectno - tar_status.first_sectno >= tar_status.sectcount )
+      {
+         memset(buffer, '\0', 512);
+      }
+      else
+      {
+	 if( tar_status.cur_sectno >= tar_status.diskoffset+disk_size )
+	 {
+	    int k;
+	    tar_status.diskoffset += disk_size-2;
+
+	    for(;;)
+	    {
+	       printf("Please insert next disk and press return:");
+	       fflush(stdout);
+	       while( (k=(bios_getc() & 0x7F)) != '\r' && k != '\n')
+	          if( k == 27 || k == 3 )
+		  {
+		     printf("... Aborting\n");
+		     return -1;
+	          }
+	       printf("\n");
+
+	       sptr = read_sector(0);
+	       if( !valid_tar_checksum(sptr) )
+	       {
+	          printf("Checksum failed reading volume label\n");
+		  continue;
+	       }
+	       tar_set_drive();
+	       sptr = read_sector(1);
+	       if( !valid_tar_checksum(sptr)
+	         || sptr->member.m_linked != 'M'
+		 || 512*(long)(tar_status.cur_sectno-tar_status.first_sectno)
+		    != tar_convert(sptr->member.m_offset, 12)
+	         )
+	       {
+	          printf("Wrong disk inserted, ");
+		  continue;
+	       }
+	       break;
+	    }
+            ptr = read_sector(tar_status.cur_sectno-tar_status.diskoffset);
+	 }
+	 else
+            ptr = read_sector(tar_status.cur_sectno-tar_status.diskoffset);
+         if( ptr == 0 ) return -1;
+   
+         memcpy(buffer, ptr, 512);
+      }
+      buffer+=512;
+      tar_status.cur_sectno++;
+   }
+
+   return 0;
 }
 
 long 
@@ -115,6 +250,27 @@ HEADER * sptr;
 
    ac -= tar_convert(sptr->member.m_checksum, sizeof(sptr->member.m_checksum));
    return ac == 0;
+}
+
+void
+tar_set_drive()
+{
+#ifdef __STANDALONE__
+   disk_spt = __argr.x.si;
+
+   /* Choose some formats, note Boot block only sees a few SPT.
+    *      9x40=360k, 15x80=1200k, 18x80=1440k, 21x82=1722k, 36x80=2880k
+    */
+   if( disk_spt <= 9 )			 disk_cyls = 40;
+   if( disk_spt == 21 || disk_spt > 36 ) disk_cyls = 82;
+   else					 disk_cyls = 80;
+#else
+   disk_spt = 18;	/* Testing only */
+   disk_cyls= 80;
+#endif
+   disk_heads=2;
+
+   disk_size = disk_spt*disk_cyls*disk_heads;
 }
 
 #if 0

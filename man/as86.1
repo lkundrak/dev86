@@ -139,24 +139,61 @@ Address of the start of the current line.
 Either of these marks the start of a comment. In addition any 'unexpected'
 character at the start of a line is assumed to be a comment.
 .TP
-.B #
-Prefix for immediate operands.
-.TP
 .B $
 Prefix for hexadecimal numbers, the 'C' syntax, eg\ 0x1234, is also accepted.
 .TP
 .B %
 Prefix for binary numbers.
 .TP
+.B #
+Prefix for immediate operands.
+.TP
 .B [ ]
 Specifies an indirect operand.
 .br
-Offsets from registers are represented by adding the register to the
-expression inside the
-.B [ ] 
-brackets. eg:
+Unlike MASM the assembler has no type information on labels just a
+segment and offset. This means that the way this operator and the
+immediate prefix work are like traditional assemblers.
+.sp
+Examples:
 .br
-	MOV AX,[BX+Table]
+	mov     ax,bx
+.br
+	jmp     bx
+.br
+Direct register addressing, the jump copies BX into PC.
+.sp
+.nf
+	mov ax,[bx]
+	jmp [bx]
+.fi
+Simple indirect register addressing, the jump moves the contents of the location specified by BX into the PC.
+.sp
+	mov ax,#1234
+.br
+Immediate value, ax becomes 1234.
+.sp
+.nf
+	mov ax,1234
+	mov ax,_hello
+	mov ax,[_hello]
+.fi
+Absolute addressing, ax is set to contents of location 1234. Note the
+third option is not strictly consistant but is in place mainly for asld
+compatibility.
+
+.sp
+.nf
+	mov ax,_table[bx]
+	mov ax,_table[bx+si]
+	mov eax,_table[ebx*4]
+
+	mov ax,[bx+_table]
+	mov ax,[bx+si+_table]
+	mov eax,[ebx*4+_table]
+.fi
+Indexed addressing, both formats are ok, I think the first is more correct
+but I tend to used the second. :-)
 .br
 .P
 Conditionals
@@ -186,7 +223,7 @@ Label type definition
 Export label defined in this object
 .TP
 .B ENTRY
-Force linker to include label in a.out
+Force linker to include the specified label in a.out
 .TP
 .B .GLOBL .GLOBAL
 Define label as external and force import even if it isn't used.
@@ -312,8 +349,19 @@ TR3 TR4 TR5 TR6 TR7 ST
 .TP
 Operand type specifiers
 BYTE DWORD FWORD FAR PTR PWORD QWORD TBYTE WORD NEAR
+.sp
+The 'near and 'far' do not allow multi-segment programming, all 'far'
+operations are specified explicitly through the use of the instructions:
+jmpi, jmpf, callf, retf, etc. The 'Near' operator can be used to force
+the use of 80386 16bit conditional branches. The 'Dword' and 'word' 
+operators can control the size of operands on far jumps and calls.
+
 .TP
-General instructions understood.
+General instructions.
+These are in general the same as the instructions found in any 8086 assembler,
+the main exceptions being a few 'Bcc' (BCC, BNE, BGE, etc) instructions
+which are shorthands for a short branch plus a long jump.
+.sp
 AAA AAD AAM AAS ADC ADD AND ARPL BCC BCS BEQ BGE BGT BHI BHIS BLE BLO
 BLOS BLT BMI BNE BOUND BPC BPL BPS BR BVC BVS CALL CALLF CALLI CBW CLC
 CLD CLI CMC CMP CMPS CMPSB CMPSD CMPSW CMPW CSEG CWD CWDE CDQ DAA DAS

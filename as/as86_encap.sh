@@ -44,23 +44,34 @@ RV=0
 
 $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
 
+echo '#ifndef __ASSEMBLY__'	 > _$$.0
+echo 				>> _$$.0
+echo '#else'			 > _$$.3
+echo 				>> _$$.3
+echo '#endif'			 > _$$.5
+
 [ "$RV" = 0 ] && {
   (
     sort _$$.sym
     echo %%%%
     od -v -t uC _$$.bin
   ) | \
-  awk > _$$.v -v prefix=$PREFIX ' BEGIN{
+  awk -v prefix=$PREFIX -v ofile=_$$ ' BEGIN{
        sname = prefix "start";
+       sn_file= ofile ".1";
+       bn_file= ofile ".2";
+       as_file= ofile ".4";
     }
     /^%%%%$/ { flg++; 
        if( flg == 1 )
        {
 	  if( !started )
-	     printf "#define %s 0\n", sname;
+	  {
+	     printf "#define %s 0\n", sname > sn_file;
+	     printf "%s = 0\n", sname > as_file;
+	  }
 
-	  printf "\n";
-	  printf "static char %sdata[] = {\n", prefix;
+	  printf "static char %sdata[] = {\n", prefix >bn_file;
           bincount=0;
        }
        next;
@@ -70,30 +81,33 @@ $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
        if( substr($2,1,4) == "0000" ) $2=substr($2,5);
        if( $1 == "+" && $4 == "$start" )
        {
-          printf "#define %s 0x%s\n", sname, $2;
+          printf "#define %s 0x%s\n", sname, $2 > sn_file;
+          printf "%s = $%s\n", sname, $2 > as_file;
 	  started = 1;
        }
        else if( substr($3, 1, 1) == "E" && $4 != "start" && $4 != "size" && $4 != "data" )
        {
-          printf "#define %s%s 0x%s\n", prefix, $4, $2;
+          printf "#define %s%s 0x%s\n", prefix, $4, $2 > sn_file;
+          printf "%s%s = $%s\n", prefix, $4, $2 > as_file;
        }
        next;
     }
     flg==1 {
         if(NF == 0) next;
-	printf "   ";
+	printf "   " > bn_file;
 	for(i=2;i<=NF;i++) {
 	   if( $i >= 32 && $i < 127 && $i != 39 && $i != 92 )
-	      printf("\047%c\047,", $i);
+	      printf("\047%c\047,", $i) > bn_file;
 	   else
-	      printf("%3d,", $i);
+	      printf("%3d,", $i) > bn_file;
 	   bincount++;
 	}
-	printf "\n";
+	printf "\n" > bn_file;
     }
     END {
-       printf "};\n\n";
-       printf "#define %ssize %d\n", prefix, bincount;
+       printf "};\n\n" > bn_file;
+       printf "#define %ssize %d\n\n", prefix, bincount > sn_file;
+       printf "%ssize = $%04x\n\n", prefix, bincount > as_file;
     }
   '
   RV=$?
@@ -101,8 +115,8 @@ $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
 
 [ "$RV" = 0 ] && {
    if [ "X$OFILE" = "X-" ]
-   then cat _$$.v
-   else mv -f _$$.v "$OFILE" || RV=$?
+   then cat _$$.[0-9]
+   else cat _$$.[0-9] > "$OFILE" || RV=$?
    fi
 }
 

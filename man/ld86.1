@@ -95,6 +95,44 @@ produce "unmapped zero page" executables
 .P
 All the options not taking an argument may be turned off by following the
 option letter by a '-', as for cc1.
+.SH PREDEFINED LABELS
+The linker predefines several labels that can be imported into user programs.
+.TP
+.B __etext
+Standard C variable for the end of the text segment.
+.TP
+.B __edata
+Standard C variable for the end of the initilised data.
+.TP
+.B __end
+Standard C variable for the end of the bss area.
+.TP
+.B __segoff
+The offset within the executable file between the start of the text segment
+and the start of the data segment in 16 byte 'paragraphs'. Note this is
+.B zero
+for impure (tiny model) executables and is adjusted for executables that
+don't start at offset 0 within the segment.
+.TP
+.B __segXDL
+The lowest address with data in segment 'X'. (eg __seg0DL is for segment zero
+or the text segment, __seg3DL is for the data segment)
+The value 'X' is a hex digit.
+.TP
+.B __segXDH
+The top of segment 'X's data area.
+.TP
+.B __segXCL
+The bottom of segment 'X's 'common data' or unitilised data area. Each 
+segment has both an initilised and unitilised data area.
+.TP
+.B __segXCH
+The top of segment 'X's common area.
+.TP
+.B __segXSO
+This is the adjusted offset from segment 0 of the start of segment 'X'
+in 'paragraphs'.
+
 .SH HISTORY
 
 The 6809 version does not support -i.

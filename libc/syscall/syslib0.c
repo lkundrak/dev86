@@ -22,7 +22,7 @@ char ** environ;
 #asm
   loc	2
 call_main:
-  .word _main		! Segment 2 is the trailing pointers, main and the
+  .word run_main	! Segment 2 is the trailing pointers, main and the
   .word	call_exit	! routine to call exit.
 #if __FIRST_ARG_IN_AX__
   .data
@@ -70,6 +70,9 @@ no_entry:
   inc	bx		! next
   inc	bx
   jmp	auto_run	! And round for the next.
+
+run_main:
+  br	_main
 
 call_exit:		! Last item called by above.
   pop	bx		! Be tidy.

@@ -113,6 +113,7 @@ bindir: $(MAKEX)
 	@rm -f include
 	@ln -s libc/include include 2>/dev/null || true
 #ifndef GNUMAKE
+	@rm -f include/linuxmt include/arch || true
 	@ln -s ../kinclude/linuxmt include/linuxmt 2>/dev/null || true
 	@ln -s ../kinclude/arch    include/arch    2>/dev/null || true
 #endif

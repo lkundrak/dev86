@@ -42,9 +42,9 @@ PUBLIC bool_t arg1inreg = FALSE;
 PUBLIC store_pt calleemask = INDREG1 | INDREG2;
 PUBLIC bool_t callersaves = FALSE;
 PUBLIC char *callstring = "call\t";
-PUBLIC store_pt doubleargregs = DREG | INDREG0 | INDREG1 | INDREG2;
-PUBLIC store_pt doubleregs = DREG | INDREG0 | INDREG1 | INDREG2;
-PUBLIC store_pt doublreturnregs = DREG | INDREG0 | INDREG1 | INDREG2;
+PUBLIC store_pt doubleargregs = DREG | INDREG0 | DATREG1 | DATREG2;
+PUBLIC store_pt doubleregs = DREG | INDREG0 | DATREG1 | DATREG2;
+PUBLIC store_pt doublreturnregs = DREG | INDREG0 | DATREG1 | DATREG2;
 PUBLIC offset_T jcclonger = 3;
 PUBLIC offset_T jmplonger = 1;
 PUBLIC char *jumpstring = "br \t";
@@ -546,7 +546,7 @@ struct nodestruct *exp;
 		if (regmark & doublreturnregs)
 		    savelist = doublreturnregs;
 	    }
-	    else if (regmark & RETURNREG)
+	    else if (regmark & RETURNREG)	/* XXX size long == float ? */
 		savelist = exp->nodetype->scalar & DLONG
 			   ? LONGRETURNREGS : RETURNREG;
 	    if (savelist != 0)

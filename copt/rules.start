@@ -17,3 +17,7 @@ ret
 =
 proc_end
 
+push	%1
+mov	%1,%2
+=
+pmov	%1,%2

@@ -10,8 +10,9 @@
 #include "tarboot.v"
 #include "minix.v"
 #include "minixhd.v"
+#include "mbr.v"
 
-char buffer[1024];
+unsigned char buffer[1024];
 
 #define FS_NONE	0	/* Bootsector is complete */
 #define FS_ADOS	1	/* Bootsector needs 'normal' DOS FS */
@@ -19,6 +20,7 @@ char buffer[1024];
 #define FS_TAR	3	/* Bootsector needs GNU-tar volume label */
 #define FS_STAT	4	/* DOS bootsector is checked */
 #define FS_ZERO 5	/* Boot sector must be Zapped */
+#define FS_MBR  6	/* Boot sector is an MBR */
 
 struct bblist {
    char * name;
@@ -33,6 +35,7 @@ struct bblist {
 { "skip", "Bypasses floppy boot with message",   skip_data, skip_size, FS_DOS},
 { "minix","Minix floppy FS booter",            minix_data, minix_size, FS_ZERO},
 { "hdmin","Minix Hard disk FS booter",     minixhd_data, minixhd_size, FS_ZERO},
+{ "mbr",  "Master boot record for HD",              mbr_data,mbr_size, FS_MBR},
 { "stat", "Display dosfs superblock",                           0,  0, FS_STAT},
 { "copy", "Copy boot block to makeboot.sav",                    0,  0, FS_STAT},
 { "Zap",  "Clear boot block to NULs",                        0,  1024, FS_NONE},
@@ -99,6 +102,9 @@ char ** argv;
    case FS_ZERO:
       check_zapped();
       break;
+   case FS_MBR:
+      check_mbr();
+      break;
 
    default:
       fprintf(stderr, "Program error, unknown filesystem requirement\n");
@@ -123,6 +129,10 @@ char ** argv;
 
    case FS_TAR:
       copy_tarblock();
+      break;
+
+   case FS_MBR:
+      copy_mbr(ptr->data);
       break;
 
    case FS_NONE:
@@ -158,9 +168,9 @@ Usage()
       progname = "makeboot";
 
 #ifdef __MSDOS__
-   fprintf(stderr, "Usage: %s bootname a:\n", progname);
+   fprintf(stderr, "Usage: %s [-f] bootname a:\n", progname);
 #else
-   fprintf(stderr, "Usage: %s bootname /dev/fd0\n", progname);
+   fprintf(stderr, "Usage: %s [-f] bootname /dev/fd0\n", progname);
 #endif
    fprintf(stderr, "Blocks\n");
    for(;ptr->name; ptr++)
@@ -386,7 +396,8 @@ char *s;
 
 check_tar()
 {
-   char vbuf[100], *p;
+   char vbuf[100];
+   unsigned char *p;
    unsigned int csum = 0;
    long osum = -1;
 
@@ -429,7 +440,7 @@ not_zapped:
 copy_tarblock()
 {
    char lbuf[20];
-   char * p;
+   unsigned char * p;
    unsigned int csum = 0;
    int i;
 
@@ -687,6 +698,41 @@ check_simpledos()
    if(!force) exit(2);
 }
 
+check_mbr()
+{
+   int i = 0;
+
+   if( buffer[510] == 0x55 && buffer[511] == 0xAA )
+      i = 512;
+
+   for(; i<512; i++)
+      if( buffer[i] )
+         break;
+
+   if( i != 512 )
+   {
+      if(force)
+         fprintf(stderr, "That doesn't look like an MBR zapping\n");
+      else
+      {
+         fprintf(stderr, "That doesn't look like an MBR, -f will zap\n");
+         exit(1);
+      }
+
+      memset(buffer, '\0', 512);
+   }
+}
+
+copy_mbr(mbr_data)
+char * mbr_data;
+{
+   if( buffer[252] != 0xAA || buffer[253] != 0x55 )
+      memcpy(buffer, mbr_data, 446);
+   else
+      memcpy(buffer, mbr_data, 254);
+   memcpy(buffer+510, mbr_data+510, 2);
+}
+
 /**************************************************************************/
 
 char boot_sector_2m_23_82[] = {
@@ -926,15 +972,27 @@ char program_2m_vsn_20[] = {
 do_2m_write()
 {
    int i;
-   if( !force && ( disk_trck != 82 || disk_sect != 22 ))
-   {
-      fprintf(stderr, "A bootable 2M disk must be 22 sectors 82 tracks\n");
+
+   if( read_sector(bs_offset+1, buffer+512) != 0 )
       exit(1);
+
+   if( memcmp(buffer+512, program_2m_vsn_20, 16) == 0 )
+   {
+      /* Seems to be properly formatted already */
+
+      write_sector(bs_offset, buffer);
+      return;
+   }
+   else if( disk_trck != 82 || disk_sect != 22 )
+   {
+      fprintf(stderr, "To be bootable a 2M disk must be 22 sectors 82 tracks or formatted with 2m20.\n");
+      if( !force ) exit(1);
+      fprintf(stderr, "But I'll try it\n");
    }
    write_sector(bs_offset, buffer);
 
    /* This needs to be altered to allow for the disk format description to
-      be cpied from the old boot sector */
+      be copied from the old boot sector */
 
    for(i=0; i<sysboot_dosfs_stat; i++)
       buffer[i] = boot_sector_2m_22_82[i];

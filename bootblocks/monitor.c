@@ -55,7 +55,7 @@ static char minibuf[2] = " ";
       relocator(-1);
       relocator(1);
       if( __get_ds() > 0x1000 ) relocator(2);
-      printf("Relocated to CS=$%04x DS=%04x\n", __get_cs(), __get_ds());
+      printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
    }
 
 #ifdef __STANDALONE__
@@ -66,8 +66,10 @@ static char minibuf[2] = " ";
 
       if( x86 > 2 && !x86_emu )	/* Check some basics */
          cmd_bzimage((void*)0);
+#if 0
       else
          printf("System is not an 80386 compatible in real mode, load aborted.\nUse 'bzimage' command to attempt load.\n");
+#endif
    }
 
    for (;;)
@@ -319,7 +321,7 @@ char * ptr;
    {
       printf("%04x:%04x:", es, current_address);
       for(j=0; j<16; j++)
-         printf(" %02x", rmem(j));
+         printf(" %s%02x", (j==8)?" ":"", rmem(j));
       printf("  ");
       for(j=0; j<16; j++)
 	 if( rmem(j) >= ' ' && rmem(j) <= '~' )
@@ -383,9 +385,9 @@ char * ptr;
 
    relocator(nseg);
    if( __get_cs() == cs )
-      printf("Didn't relocate; CS=$%04x DS=%04x\n", __get_cs(), __get_ds());
+      printf("Didn't relocate; CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
    else
-      printf("Relocated to CS=$%04x DS=%04x\n", __get_cs(), __get_ds());
+      printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
 }
 
 int cmd_dir(ptr)
@@ -465,6 +467,7 @@ struct t_cmd_list cmd_list[] =
    {"#",      cmd_nop},
    {"help",   cmd_help},    /* Display from help.txt */
    {"?",      cmd_help},    /* Display from help.txt */
+   {"zimage", cmd_bzimage}, /* Load and run 386 zimage file */
    {"bzimage",cmd_bzimage}, /* Load and run 386 bzimage file */
    {"=",      cmd_bzimage}, /* Load and run 386 bzimage file */
    {"dir",    cmd_dir},     /* Display directory */
@@ -495,7 +498,6 @@ struct t_cmd_list cmd_list[] =
    {"load",   cmd_load},    Load file of inode
    {"stat",   cmd_stat},    Stat info of inode
 
-   {"zimage", cmd_zimage},  Load and run 386 zimage file
    {"image",  cmd_image},   Load and run 8086 image file
 
    {"read",   cmd_read},    Read sector

@@ -5,14 +5,15 @@ BCC=bcc
 
 CC=$(BCC)
 CFLAGS=-ansi -Ms -Oi -O -s
+# CFLAGS=-ansi -Ms
 ASFLAGS=-0 -w
 MDEFS=-DDOTS
 # LST=-l $*.lst
 # CLST=-A-l -A$*.lst
 
-default: makeboot makeboot.com monitor.out
+default: makeboot makeboot.com monitor.out minix_elks.bin
 
-all: default tgz bin 
+all: default tgz bin  minix_elks.bin
 
 CSRC=minix.c
 SSRC=sysboot.s \
@@ -28,9 +29,10 @@ MSRC=monitor.c i86_funcs.c relocate.c help.c bzimage.c trk_buf.c unix.c \
      fs.c fs_tar.c fs_min.c fs_dos.c
 MINC=i86_funcs.h readfs.h
 
-BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v tarboot.v minix.v minixhd.v
+BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v tarboot.v minix.v minixhd.v mbr.v
 
-EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s bootelks.c
+EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s \
+       zimage.s minix_elks.c crc.c
 
 install:
 
@@ -45,11 +47,13 @@ monitor: $(MSRC) $(MINC)
 	mv monitor.out monitor
 	@rm -f $(MOBJ)
 
-bootelks.out: bootelks.o relocate.o
-	$(CC) $(CFLAGS) -i- bootelks.o relocate.o -o bootelks.out
+bzimage.o: bzimage.c zimage.v
 
 minix.s: minix.c Makefile
 	$(BCC) -Mf -O -DTRY_FLOPPY $(MDEFS) -S minix.c
+
+minix_elks.s: minix_elks.c Makefile minix.v
+	$(BCC) -Mf -O $(MDEFS) -S minix_elks.c
 
 minixhd.s: minix.c Makefile
 	$(BCC) -Mf -O -DHARDDISK $(MDEFS) -S minix.c -o minixhd.s
@@ -66,7 +70,7 @@ version.h:
 
 clean realclean:
 	rm -f monitor makeboot bootblocks.tar.gz
-	rm -f minix.s minixhd.s version.h
+	rm -f minix.s minixhd.s minix_elks.s version.h
 	rm -f *.com *.o *.bin *.out *.lst *.sym *.v *.tmp
 
 tgz: minix.bin monitor.out makeboot.com makeboot

@@ -11,7 +11,7 @@ int   fd;
    struct stat st, dst;
    DIR  *fp;
    struct dirent *d;
-   static char name[MAXNAMLEN];
+   static char name[16]; /* should be MAXNAMLEN but that's overkill */
    int noerr = errno;
 
    if (fstat(fd, &st) < 0)
@@ -30,6 +30,8 @@ int   fd;
 
    while ((d = readdir(fp)) != 0)
    {
+      if( strlen(d->d_name) > sizeof(name) - sizeof(dev) - 1);
+         continue;
       strcpy(name + sizeof(dev), d->d_name);
       if (stat(name, &dst) == 0
          && st.st_dev == dst.st_dev && st.st_ino == dst.st_ino)

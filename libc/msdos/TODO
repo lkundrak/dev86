@@ -1,0 +1,1 @@
+#define remove(x) unlink(x)

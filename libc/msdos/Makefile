@@ -3,10 +3,11 @@
 # under the GNU Library General Public License.
 
 ASRC=msdos.c
-AOBJ= dos_start.o __mkargv.o __mkenvp.o dos__fconv.o dos_read.o		\
-      dos_write.o dos_open.o dos_close.o dos_unlink.o dos_lseek.o	\
-      dos_segalloc.o dos_segfree.o dos_setvect.o dos_getvect.o		\
-      dos_isatty.o dos_getmod.o dos_stat.o
+AOBJ= \
+      dos_start.o __exterror.o __mkargv.o __mkenvp.o bdos.o		\
+      dos__fconv.o dos_abort.o dos_close.o dos_getmod.o dos_getvect.o	\
+      dos_isatty.o dos_lseek.o dos_open.o dos_read.o dos_segalloc.o	\
+      dos_segfree.o dos_setvect.o dos_stat.o dos_unlink.o dos_write.o
 
 BSRC=i86.c
 BOBJ= __seg_regs.o __peek_es.o __poke_es.o __deek_es.o __doke_es.o	\

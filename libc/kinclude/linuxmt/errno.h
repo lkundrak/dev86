@@ -1,1 +1,1 @@
-#include "../arch/errno.h"
+#include <arch/errno.h>

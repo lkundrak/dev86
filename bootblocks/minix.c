@@ -2,7 +2,7 @@
  * This bootblock loads the linux-8086 executable in the file 'boot'
  * from the root directory of a minix filesystem.
  *
- * Copyright (C) 1990-1997 Robert de Bath, distributed under the GPL Version 2
+ * Copyright (C) 1990-1998 Robert de Bath, distributed under the GPL Version 2
  * Based on minix filesystem definitions.
  */
 
@@ -13,41 +13,14 @@
 /* #define HARDDISK	/* Define for hard disk version */
 /* #define TRY_FLOPPY	/* To do trial reads to find floppy size */
 
-/* These two are just too big! */
-/* Also they have the problem that they can't load an odd number of 
-   sectors into the setup area.
- */
-/* #define ELKS_SETUP	/* Assume first SETUPSIZE bytes for SETUPSEG */
-/* #define IMAGE_MAGIC	/* Check for elks Image magic nos. */
+/* #define MIN_SPACE	   */
 
-#ifdef IMAGE_MAGIC
-#define MIN_SPACE
-#endif
-
-#define zone_shift 0	/* for any < 32M (non-zero not supported yet) */
+#define zone_shift 0	/* for any < 32M (!= 0 not supported yet, if ever) */
 #define seg_at(k) ((k)*64)
 #define seg_of(p) ((unsigned int)p >>4)
 #define BOOTSEG	  (0x07c0)
 #define LOADSEG   (0x1000)
-
-#ifdef ELKS_SETUP
-/* Can't do this .. SETUPSEGSIZE isn't in there! */
-/*
- * #include <linuxmt/config.h>
- * #define SETUPSEG  (DEF_SETUPSEG)
- * #define SETUPSIZE (DEF_SETUPSIZE)
- * #define ORGADDR   (SETUPSEG*16+SETUPSEGSIZE)
- */
-#define SETUPSEG  (0x0120)
-#define SETUPSIZE (4*512)
 #define ORGADDR   (0x0500)
-#else
-#define ORGADDR   (0x0500)
-#endif
-
-#ifdef IMAGE_MAGIC
-#define SETUPSEG  (0x0120)
-#endif
 
 #ifdef HARDDISK
 #define get_now()
@@ -78,12 +51,37 @@ start:
 #ifndef MIN_SPACE
   include sysboot.s
 
+org start	! The lowest available address, again.
+  j	skip_vars
+
 org dos_sysid
   .ascii "MINIXFS BOOT (C) 1990-1997,  Robert de Bath"
 
   org codestart
 #endif
 
+! A few variables we need to know the positions of for patching, so export
+! them and as86_encaps will make some variables. Put them here at the start
+! so they're in the same place for both Floppy and harddisk versions as they
+! will be used by helper programs.
+
+export	inode			! Inode to search
+inode:
+_inode: .word	1		! ROOT_INODE
+
+#ifndef MIN_SPACE
+export	dinode			! Inode of directory file was found in.
+dinode:
+_dinode: .word	1		! ROOT_INODE
+#endif
+
+export	bootfile		! File to boot, make this whatever you like,
+bootfile:			! 'boot' is good too.
+_bootfile:
+   .ascii	"boot"
+   .byte	0,0,0,0,0,0,0,0,0,0
+
+skip_vars:
 #ifdef HARDDISK
   mov	bx,[si+8]	! Fetch the linear address of part from DS:SI
   mov	dh,[si+10]	! DL is drive number
@@ -136,6 +134,7 @@ loopy:
 /* The name of the file and inode to start */
 extern char bootfile[];
 extern inode_nr inode;
+extern inode_nr dinode;
 
 /* For multi-sector reads */
 extern sect_nr lastsect;
@@ -160,12 +159,6 @@ extern unsigned flength;
 extern unsigned n_sectors;
 #endif
 
-#ifdef IMAGE_MAGIC
-extern unsigned checkflg;
-extern unsigned aout_flg;
-extern unsigned segend;
-#endif
-
 extern struct super_block b_super;
 extern d_inode            b_inode[INODES_PER_BLOCK];
 extern zone_nr            b_zone[NR_INDIRECTS];
@@ -177,18 +170,7 @@ extern dir_struct         directory[];
 /****************************************************************************/
 
 #asm
-! A few variables we need to know the positions of for patching, so export
-! them and as86_encaps will make some variables.
 .text
-export	inode			! Inode to search
-inode:
-_inode: .word	1		! ROOT_INODE
-
-export	bootfile		! File to boot, make this whatever you like,
-bootfile:			! 'boot' is good too.
-_bootfile:
-   .ascii	"boot"
-   .byte	0,0,0,0,0,0,0,0,0,0
 
 #ifdef HARDDISK
 bootpart:   .long	0
@@ -201,8 +183,17 @@ _lastsect:  .word	0
 
   block start+0x400
 _b_super:	.blkb 1024
+
+#ifndef MIN_SPACE
+export helper
+helper:		.blkb 1024
+export helper_end
+helper_end:
+#endif
+
 _b_inode:	.blkb 1024
 _b_zone:	.blkb 1024
+
 #ifdef MIN_SPACE
 temp_space:	.blkb 512
 #endif
@@ -239,7 +230,7 @@ min_eos:		! Wait for a key then reboot
 
 fail_fs:
   .byte		13,10
-#if defined(HARDDISK) && !defined(IMAGE_MAGIC)
+#if defined(HARDDISK)
   .asciz	"Initial boot failed, press return to reboot\r\n"
 #else
   .asciz	"Boot failed:"
@@ -605,13 +596,20 @@ zero_block(address)
 _load_block:
   push	bp
   mov	bp,sp
+#if __FIRST_ARG_IN_AX__
+  ! Fetch load location
+  mov	es,ax
 
+  ! Test for block zero
+  mov	ax,4[bp]
+#else
   ! Fetch load location
   mov	ax,[bp+4]
   mov	es,ax
 
   ! Test for block zero
   mov	ax,6[bp]
+#endif
   test	ax,ax
   jne 	real_block
 
@@ -631,7 +629,9 @@ func_exit:
 
 real_block:
 #ifdef DOTS
+  push	ax
   call	_prt_dot
+  pop	ax
 #endif
 
 ! Load a real block.
@@ -660,47 +660,6 @@ code:
 #endasm
 
 /****************************************************************************/
-/* Section prog_magic */
-/****************************************************************************/
-
-#ifdef IMAGE_MAGIC
-#asm
-; mfetch(0) != 0x301 && mfetch(486) == 'E'+'L'*256 && mfetch(488) == 'K'+'S'*256 )
-.text
-export	_mcheck
-_mcheck:
-  mov	ax,#LOADSEG
-  mov	es,ax
-  xor	ax,ax
-  mov	bx,ax
-  cmp	[bx],#0x301
-  jz	doret
-  cmp	[bx+486],#'E+'L*256
-  jnz	doret
-  cmp	[bx+488],#'K+'S*256
-  jnz	doret
-  inc	ax
-doret:
-  ret
-
-.text
-export	_mfetch
-_mfetch:
-#if __FIRST_ARG_IN_AX__
-  mov	bx,ax
-#else
-  mov	bx,sp
-  mov	bx,2[bx]
-#endif
-  mov	ax,#LOADSEG
-  mov	es,ax
-  seg	es
-  mov	ax,[bx]
-  ret
-#endasm
-#endif
-
-/****************************************************************************/
 /* Section prt_dots */
 /****************************************************************************/
 #ifdef DOTS
@@ -718,34 +677,6 @@ outch:
   int	$10
   ret
 #endasm
-#endif
-
-/****************************************************************************/
-/* Section bbcopy */
-/****************************************************************************/
-#ifdef IMAGE_MAGIC
-bbcopy()
-{
-#asm
-  push	ds
-
-  mov	ax,_ldaddr
-  sub	ax,#512/16
-  mov	es,ax
-
-  mov	ax,#LOADSEG
-  mov	ds,ax
-
-  xor	di,di
-  xor	si,si
-  mov	cx,#$100
-
-  rep
-   movsw
-
-  pop	ds
-#endasm
-}
 #endif
 
 /****************************************************************************/
@@ -769,13 +700,19 @@ end_of_part1:
 /* Section prog_load */
 /****************************************************************************/
 
-static
 loadprog()
 {
 #ifdef DOTS
    prt_dot();
 #endif
    if( b_super.s_magic != SUPER_MAGIC ) nogood();
+
+#ifdef zone_shift
+   if( zone_shift != b_super.s_log_zone_size) nogood();
+#else
+   zone_shift = b_super.s_log_zone_size;
+#endif
+
 #ifndef HARDDISK
 #ifdef TRY_FLOPPY
    probe_sectors();
@@ -787,12 +724,6 @@ loadprog()
 #endif
 
 try_again:;
-#ifdef zone_shift
-   if( zone_shift != b_super.s_log_zone_size) nogood();
-#else
-   zone_shift = b_super.s_log_zone_size;
-#endif
-
    inode--;
    load_block(seg_of(b_inode), inode/INODES_PER_BLOCK
                           + b_super.s_imap_blocks
@@ -800,14 +731,7 @@ try_again:;
                           + 2);
    get_now();
 
-#ifndef ELKS_SETUP
    ldaddr = LOADSEG;		/* Load at 64k mark */
-#else
-   ldaddr = SETUPSEG;		/* Load where ELKS setup expects to be */
-#endif
-#ifdef IMAGE_MAGIC
-   aout_flg = checkflg = 1;
-#endif
 
    {
       register d_inode * i_ptr;
@@ -817,6 +741,9 @@ try_again:;
       if( (i_ptr->i_mode & I_TYPE) == I_DIRECTORY )
       {
 	 ldaddr = seg_of(directory);
+#ifndef MIN_SPACE
+	 dinode  = inode+1;	/* Remember current directory */
+#endif
 	 inode  = 0;		/* Mark - we've no _file_ inode yet */
       }
    }
@@ -841,24 +768,6 @@ try_again:;
       load_zone(ldaddr, *next_zone);
       next_zone++;
       ldaddr += (seg_at(1) << zone_shift);
-#ifdef ELKS_SETUP
-      /* finished with setup segment? */
-      if (ldaddr == (SETUPSEG+seg_of(SETUPSIZE))) ldaddr = LOADSEG;
-#endif
-#ifdef IMAGE_MAGIC
-      if (inode && checkflg)
-      {
-         get_now();
-	 checkflg=0;
-	 if( mcheck() )
-	 {
-	     segend = (ldaddr = mfetch(495)) + mfetch(497)*(512/16);
-	     aout_flg = 0;
-	     bbcopy();
-         }
-      }
-      if (ldaddr == segend) ldaddr = LOADSEG;
-#endif
    }
    get_now();
 
@@ -867,9 +776,6 @@ try_again:;
 #endif
    if(!inode)
    {
-#ifdef DOTS
-      prt_dot();
-#endif
       dirptr = directory;
       while(flength > 0)
       {
@@ -921,21 +827,6 @@ runprog()
   mov	si,[_n_sectors]	! Save for monitor.out
 #endif
 
-#ifdef ELKS_SETUP
-  mov	bx,#SETUPSEG
-  mov	ds,bx		! DS = execute address
-  xor	di,di
-#else
-#ifdef IMAGE_MAGIC
-  mov	ax,[_aout_flg]
-  test	ax,ax
-  jnz	load_aout
-  mov	ds,bx		! DS = execute address
-  xor	di,di
-  j	binfile
-  mov	bx,#SETUPSEG
-load_aout:
-#endif
   mov	bx,#LOADSEG
   mov	ds,bx		! DS = loadaddress
   xor	di,di		! Zero
@@ -957,7 +848,6 @@ impure:
   mov	sp,[di+24]	! Chmem value
   mov	ds,ax
 binfile:
-#endif
 
   push	bx
   push	di		!  jmpi	0,#LOADSEG+2
@@ -1007,11 +897,6 @@ _indirect:	.blkw 1
 _ldaddr:	.blkw 1
 _dirptr:	.blkw 1
 _flength:	.blkw 1
-#ifdef IMAGE_MAGIC
-_checkflg:	.blkw 1
-_aout_flg:	.blkw 1
-_segend:	.blkw 1
-#endif
 varend:
 #ifdef MIN_SPACE
   endb

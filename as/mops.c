@@ -17,6 +17,7 @@
 FORWARD void mshort2 P((void));
 FORWARD reg_pt regchk P((void));
 FORWARD void reldata P((void));
+FORWARD void segadj P((void));
 
 #ifdef I80386
 
@@ -1059,6 +1060,7 @@ PRIVATE void lbranch(backamount)
 int backamount;
 {
     mcount += defsize + 0x1;
+    segadj();
     if (pass2)
     {
 	reldata();
@@ -2739,6 +2741,7 @@ PUBLIC void mlong()
 {
     mcount += 0x3;		/* may be 0x0 or 0x1 here */
     expres();
+    segadj();
     if (pass2)
     {
 	reldata();
@@ -2925,4 +2928,13 @@ PRIVATE void reldata()
     }
     else			/* same file, segment and relocation */
 	lastexp.data = (lastexp.data | lcdata) & ~(RELBIT | SEGM);
+}
+
+PRIVATE void segadj()
+{
+    if ((lastexp.data & UNDBIT) && textseg >= 0 )
+    {
+        lastexp.sym->data &= ~SEGM;
+        lastexp.sym->data |= (lcdata & SEGM);
+    }
 }

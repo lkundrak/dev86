@@ -1,1 +1,1 @@
-#include "../arch/ioctl.h"
+#include <arch/ioctl.h>

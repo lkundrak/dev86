@@ -5,10 +5,16 @@
 ! In addition it has the facility to load and execute a small program
 ! (of 8 extents) before the boot blocks are checked.
 !
+! Or
+!
+! Space for 12 extra partitions in a form that Linux _does_ understand.
+!
 
 ! Lowest available is $0500, MSDOS appears to use $0600 ... I wonder why?
 ORGADDR=$0500
-preboot=0	! Include the pre-boot loader ?
+preboot=0	! Include the pre-boot loader.
+diskman=1	! Disk manager partitions, allows 16 partitions but
+		! don't overwrite this with a LILO BB.
 
 ! Include standard layout
 org ORGADDR
@@ -19,11 +25,15 @@ public partition_2
 public partition_3
 public partition_4
 
+ if diskman=0
 org ORGADDR+$3
 .ascii "ELKS MBR     Copyright 1996, Robert de Bath"
 
 ! Start after dos fsstat data, not strictly required.
 org codestart
+ else
+org ORGADDR
+ endif
   cli			! Assume _nothing_!
   cld
   mov	bx,#$7C00	! Pointer to start of BB.
@@ -79,6 +89,21 @@ bad_boot:
   add	si,#partition_2-partition_1
   cmp	si,#bootblock_magic
   jnz	check_active
+
+  # Check for Disk manager partitions (12 more!)
+ if diskman
+  cmp	word ptr diskman_magic,#$55AA
+  jnz	no_diskman
+  mov	si,#partition_1
+check_next:
+  sub	si,#partition_2-partition_1
+  cmp	byte [si],#$80			! Flag for activated partition
+  jz	found_active
+  cmp	si,#low_partition
+  jnz	check_next
+
+no_diskman:
+ endif
 
   mov	si,#no_bootpart		! Message & boot
   jmp	no_boot
@@ -152,6 +177,42 @@ pre_boot_table:
   ! .word $7C00, $7C00,$0002,$0000,$0210, $0000
   .word return
   .word	0
+ endif
+
+ if diskman
+  if *>ORGADDR+0xfc
+   fail! Disk manager partition overlap
+  endif
+
+  org ORGADDR+0xFC
+public diskman_magic
+diskman_magic:
+  .word $55AA
+low_partition:
+public partition_16
+partition_16 = low_partition+0x00
+public partition_15
+partition_15 = low_partition+0x10
+public partition_14
+partition_14 = low_partition+0x20
+public partition_13
+partition_13 = low_partition+0x30
+public partition_12
+partition_12 = low_partition+0x40
+public partition_11
+partition_11 = low_partition+0x50
+public partition_10
+partition_10 = low_partition+0x60
+public partition_9
+partition_9 = low_partition+0x70
+public partition_8
+partition_8 = low_partition+0x80
+public partition_7
+partition_7 = low_partition+0x90
+public partition_6
+partition_6 = low_partition+0xA0
+public partition_5
+partition_5 = low_partition+0xB0
  endif
 
 ! Now make sure this isn't to big!

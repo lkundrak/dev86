@@ -7,6 +7,12 @@
  *    dal@syntel.UUCP                         United States of America
  *  "It's not reality that's important, but how you perceive things."
  */
+
+/*
+ * Sun Feb  8 21:02:15 EST 1998 claudio@pos.inf.ufpr.br (Claudio Matsuoka)
+ * Changed sort direction
+ */
+
 #include <string.h>
 
 char *_qbuf = 0;		/* pointer to storage for qsort() */
@@ -35,10 +41,10 @@ register int (*cmp) ();
       base[i] = *p;
       while (i < j)
       {
-	 while (((*cmp) ((base + j), p)) > 0)
+	 while (((*cmp) ((base + j), p)) <= 0)
 	    --j;
 	 base[i] = base[j];
-	 while ((i < j) && (((*cmp) ((base + i), p)) <= 0))
+	 while ((i < j) && (((*cmp) ((base + i), p)) > 0))
 	    ++i;
 	 base[j] = base[i];
       }
@@ -77,10 +83,10 @@ register int (*cmp) ();
       base[i] = *p;
       while (i < j)
       {
-	 while (((*cmp) ((base + j), p)) > 0)
+	 while (((*cmp) ((base + j), p)) <= 0)
 	    --j;
 	 base[i] = base[j];
-	 while ((i < j) && (((*cmp) ((base + i), p)) <= 0))
+	 while ((i < j) && (((*cmp) ((base + i), p)) > 0))
 	    ++i;
 	 base[j] = base[i];
       }
@@ -120,10 +126,10 @@ register int (*cmp) ();
       p = _qbuf;
       while (i < j)
       {
-	 while (((*cmp) ((base + size * j), p)) > 0)
+	 while (((*cmp) ((base + size * j), p)) <= 0)
 	    --j;
 	 moveitem((base + size * i), (base + size * j), size);
-	 while ((i < j) && (((*cmp) ((base + size * i), p)) <= 0))
+	 while ((i < j) && (((*cmp) ((base + size * i), p)) > 0))
 	    ++i;
 	 moveitem((base + size * j), (base + size * i), size);
       }

@@ -986,7 +986,7 @@ PUBLIC void ptext()
     if( textseg <= 0 )
        setloc(TEXTLOC);
     else
-       setloc(BSSLOC+textseg);
+       setloc(textseg);
 }
 
 /* .WARN pseudo-op */

@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <errno.h>
 int errno;
+unsigned _doserrno;
 
 #ifdef L_dos_start
 
@@ -279,6 +280,52 @@ static char buf1[66], buf2[66], *str = 0;
 }
 #endif
 
+#ifdef L___exterror
+
+static char errno_xlate[] = {
+   0, EINVAL, ENOENT, ENOENT, EMFILE, EACCES, EBADF, EFAULT, ENOMEM,
+   EFAULT, ENOMEM, EINVAL, EINVAL, EINVAL, EINVAL, ENODEV, EPERM, EXDEV,
+   ENFILE, EROFS, ENODEV, ENXIO, EINVAL, EIO, EINVAL, ESPIPE, EIO, EIO,
+   EAGAIN, EIO, EIO, EIO, EBUSY, EBUSY, ENODEV, EFAULT, ENOLCK, EFAULT,
+   EFAULT, ENOSPC
+};
+
+__exterror()
+{
+#asm
+export exterror
+exterror:
+  push	ds
+  push	es
+  push	di
+  push	si
+  push	bp
+  xor	bx,bx
+  mov	ah,#$59
+  int	$21
+  pop	bp
+  pop	si
+  pop	di
+  pop	es
+  pop	ds
+  mov	__doserrno,ax
+#endasm
+  {
+     int nerrno;
+     extern unsigned _doserrno;
+
+     if( _doserrno == 0 )
+        /* No error? No change. */;
+     else if( _doserrno >= sizeof(errno_xlate)
+           || errno_xlate[_doserrno] == EFAULT )
+        errno = 16384+_doserrno;
+     else
+        errno = errno_xlate[_doserrno];
+  }
+  return -1;
+}
+#endif
+
 #ifdef L_dos_read
 int
 read(fd, ptr, len)
@@ -294,7 +341,7 @@ unsigned len;
   mov	ah,#$3f
   int	#$21
   jnc	readok
-  mov	ax,#-1
+  br	exterror
 readok:
 #endasm
 }
@@ -315,7 +362,7 @@ unsigned len;
   mov	ah,#$40
   int	#$21
   jnc	writeok
-  mov	ax,#-1
+  br	exterror
 writeok:
 #endasm
 }
@@ -342,7 +389,6 @@ int cmode;
    else
    /* Warn, this assumes the standard vals for O_RDWR, O_RDONLY, O_WRONLY */
       rv = __dos_open(nname, type&O_ACCMODE);
-   if( rv < 0 ) errno=ENOENT;
    return rv;
 }
 
@@ -355,7 +401,7 @@ __dos_open(fname, mode)
   mov	ah,#$3d                 ;ask for a open
   int	#$21
   jnc   openok                  ;return handle if no error
-  mov   ax,#-1                   ;return -1 if error
+  br	exterror
 openok: 
 #endasm
 }
@@ -370,7 +416,7 @@ char * fname;
   mov     ah,#$3c                 ;ask for a create
   int     #$21
   jnc     creok                   ;return handle if no error
-  mov     ax,#-1                   ;return -1 if error
+  br	exterror
 creok:
 #endasm
 }
@@ -386,7 +432,7 @@ close(fd)
   int     #$21
   mov     ax,0                ;return 0 if no error
   jnc     closeok
-  mov     ax,#-1                   ;return -1 if error
+  br	exterror
 closeok:
 #endasm
 }
@@ -407,7 +453,7 @@ char * fname;
   int	#$21
   mov	ax,0                    ;assume no errors
   jnc	unlok
-  mov	ax,#-1                   ;return -1 if error
+  br	exterror
 unlok:
 #endasm
 }
@@ -428,7 +474,7 @@ long offset;
   mov     ah,#$42
   int     #$21              ;do the lseek
   jnc     seekok
-  mov     ax,#-1             ;return -1 if error
+  call	  exterror
   mov     dx,ax
 seekok:
 #endasm
@@ -527,7 +573,7 @@ __dos_getmod(fname)
   mov	ax,#$4300
   int	#$21
   jnc	statok
-  mov	cx,#-1
+  br	exterror
 statok:
   mov	ax,cx
 #endasm
@@ -584,6 +630,38 @@ int fd;
   jz	not_tty
   inc	ax
 not_tty:
+#endasm
+}
+#endif
+
+#ifdef L_dos_abort
+abort()
+{
+   write(2, "Abnormal program termination\r\n", 30);
+   _exit(3);
+}
+#endif
+
+#ifdef L_bdos
+bdos(dosfn, dosdx, dosal)
+int dosfn;
+unsigned dosdx, dosal;
+{
+#asm
+_bdosptr = _bdos
+  mov	bx,sp
+  push	si
+  push	di
+
+  mov	dx,_bdos.dosdx[bx]
+  mov	cx,_bdos.dosfn[bx]
+  mov	ax,_bdos.dosal[bx]
+  mov	ah,cl
+
+  int	$21
+
+  pop	di
+  pop	si
 #endasm
 }
 #endif

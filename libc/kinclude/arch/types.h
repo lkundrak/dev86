@@ -1,7 +1,7 @@
 /* arch/i86/include/asm/types.h - Basic Linux/MT data types. */
 
-#ifndef __LINUXMT_8086_TYPES
-#define __LINUXMT_8086_TYPES
+#ifndef __ARCH_8086_TYPES
+#define __ARCH_8086_TYPES
 
 #include <asm/types.h>
 	

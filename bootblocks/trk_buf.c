@@ -27,6 +27,7 @@ void reset_disk()
    if( data_buf2 ) free(data_buf2);
    data_buf1 = data_buf2 = 0;
    last_drive = disk_drive;
+   bad_track = -1;
 
    if( !(disk_drive & 0x80 ) )
    {
@@ -71,7 +72,7 @@ long sectno;
    int phy_h = 0;
    int phy_c = 0;
 
-   if( disk_drive != last_drive ) reset_disk();
+   if( disk_drive != last_drive || sectno == 0 ) reset_disk();
 
    if( disk_spt < 0 || disk_spt > 63 || disk_heads < 1 )
    {
@@ -115,10 +116,10 @@ long sectno;
    {
      rv = phy_read(disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
      tries--;
-     if( rv ) printf("Error in phy_read(%d,%d,%d,%d,%d,%d);\n",
-		      disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
    }
    while(rv && tries > 0);
+   if( rv ) printf("Disk error 0x%02x %d:%d:%d:%d[%2d] -> 0x%04x[]\n",
+		    rv, disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
 
    if(rv) return 0; else return data_buf1;
 }
@@ -132,7 +133,7 @@ int phy_c, phy_h, phy_s;
    int rv, nlen;
 
    /* Big tracks get us short of memory so limit it. */
-   nlen = (disk_spt-1)/22;
+   nlen = (disk_spt-1)/24;
    nlen = (disk_spt+nlen)/(nlen+1);
    trk_no = (long)phy_c*disk_heads*4+phy_h*4+phy_s/nlen+1;
 
@@ -176,7 +177,6 @@ int phy_c, phy_h, phy_s;
       data_buf1 = data_buf2; data_buf2 = 0; data_trk2 = -1;
    }
 
-   bad_track = -1;
    data_trk1 = -1;
 
    /* Not enough memory for track read. */
@@ -187,10 +187,10 @@ int phy_c, phy_h, phy_s;
      rv = phy_read(disk_drive, phy_c, phy_h, phy_s/data_len+1, data_len,
                    data_buf1);
      tries--;
-     if( rv ) printf("Error in phy_read(%d,%d,%d,%d,%d,%d);\n",
-	     disk_drive, phy_c, phy_h, phy_s/data_len+1, data_len, data_buf1);
    }
    while(rv && tries > 0);
+   if( rv ) printf("Disk error 0x%02x %d:%d:%d:%d[%2d] -> 0x%04x[]\n",
+	  rv, disk_drive, phy_c, phy_h, phy_s/data_len+1, data_len, data_buf1);
 
    /* Disk error, it'll try one at a time, _very_ slowly! */
    if(rv)

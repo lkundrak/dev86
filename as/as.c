@@ -68,7 +68,6 @@ char **argv;
     last_pass=1;
     process_args(argc, argv);
     initscan();
-    ptext();
 
     assemble();			/* doesn't return, maybe use setjmp */
 
@@ -130,11 +129,12 @@ PUBLIC void initp1p2()
     macptop = (macpar = hid_mcpar) + MACPSIZ;
     lctabtop = (lcptr = lctab = hid_lctab) + NLOC;
     for (lcp = lctab; lcp < lctabtop; ++lcp)
-	/* init of lcdata/lc (many times) in loop to save space */
     {
 	lcp->data = lcdata = RELBIT;	/* lc relocatable until 1st ORG */
 	lcp->lc = lc = 0;
     }
+    if( textseg > 0 )
+        lcdata |= textseg;
 }
 
 PRIVATE int my_creat(name, message)
@@ -165,6 +165,7 @@ char **argv;
 #ifdef I80386
     setcpu(0xF);
 #endif
+    textseg = -1;
 
     if (argc <= 1)
 	usage();
@@ -260,7 +261,7 @@ char **argv;
 	    case 't':
 		if (!isnextarg || binfil != 0)
 		    usage();
-		textseg = atoi(nextarg);
+		textseg = atoi(nextarg); if(textseg>0) textseg+=BSSLOC;
 		--argc;
 		++argv;
 		break;
@@ -296,6 +297,8 @@ char **argv;
 #ifdef I80386
     origcpuid = cpuid;
 #endif
+    if( textseg > 0 )
+        lcdata |= textseg;
     inidata = (~binaryg & inidata) | (RELBIT | UNDBIT);
 }				/* IMPBIT from inidata unless binaryg */
 

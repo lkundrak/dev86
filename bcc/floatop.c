@@ -22,18 +22,38 @@ struct symstruct *target;
     {
 	if (target->storage == CONSTANT)
 	{
-	    /* XXX - more for non-386 */
-	    if (target->type->scalar & FLOAT)
+#ifdef I80386
+	    if (i386_32)
 	    {
-		float val;
+		if (target->type->scalar & FLOAT)
+		{
+		    float val;
 
-		val = *target->offset.offd;
-		push(constsym(((value_t *) &val)[0]));
+		    val = *target->offset.offd;
+		    push(constsym(((value_t *) &val)[0]));
+		}
+		else
+		{
+		    push(constsym(((value_t *) target->offset.offd)[1]));
+		    push(constsym(((value_t *) target->offset.offd)[0]));
+		}
 	    }
 	    else
+#endif
 	    {
-		push(constsym(((value_t *) target->offset.offd)[1]));
-		push(constsym(((value_t *) target->offset.offd)[0]));
+		if (target->type->scalar & FLOAT)
+		{
+		    float val = *target->offset.offd;
+		    push(constsym( ((unsigned short*) &val)[1] ));
+		    push(constsym( ((unsigned short*) &val)[0] ));
+		}
+		else
+		{
+		    push(constsym(((unsigned short*) target->offset.offd)[3]));
+		    push(constsym(((unsigned short*) target->offset.offd)[2]));
+		    push(constsym(((unsigned short*) target->offset.offd)[1]));
+		    push(constsym(((unsigned short*) target->offset.offd)[0]));
+		}
 	    }
 	}
 	else if (target->type->scalar & FLOAT)

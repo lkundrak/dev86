@@ -348,9 +348,24 @@ store_pt targreg;
 	    return;
 	if (source->storage == CONSTANT)
 	{
-	    /* XXX - more for non-386 */
-	    loadconst(((offset_T *) source->offset.offd)[0], DREG);
-	    loadconst(((offset_T *) source->offset.offd)[1], targreg);
+	    if (i386_32)
+	    {
+	       loadconst(((offset_T *) source->offset.offd)[0], DREG);
+	       loadconst(((offset_T *) source->offset.offd)[1], targreg&~DREG);
+	    }
+	    else /* XXX - more for non-386 */
+	    {
+	       int regs, i, off=1;
+	       loadconst(((unsigned short *) source->offset.offd)[0], DREG);
+	       regs = (targreg&~DREG);
+	       for(i=1; i; i<<=1)
+	       {
+		  if( regs&i )
+	              loadconst(
+		         ((unsigned short *) source->offset.offd)[off++],
+		         i);
+	       }
+	    }
 	}
 	else
 	{
@@ -369,7 +384,28 @@ store_pt targreg;
 	float val;
 
 	val = *source->offset.offd;
-	loadconst(((offset_T *) &val)[0], targreg);
+#ifdef I80386
+	if (i386_32)
+	   loadconst(((offset_T *) &val)[0], targreg);	/* XXX 386 */
+	else
+#endif
+	{
+	   loadconst(((unsigned short *) &val)[0], DREG);
+	   loadconst(((unsigned short *) &val)[1], targreg&~DREG);
+	}
+    }
+    else if (!i386_32 && source->type->scalar & FLOAT)
+    {
+	/* Treat a float just like a long ... */
+	if (source->indcount == 0)
+	{
+	    if (source->storage != (store_t) targreg)
+		transfer(source, targreg);
+	    if (source->offset.offi != 0)
+		bugerror("loading direct float with offset not implemented");
+	}
+	else
+	    loadlongindirect(source, targreg);
     }
     else if (source->indcount == 0 && source->storage != CONSTANT)
 	loadadr(source, targreg);
@@ -937,7 +973,19 @@ store_pt reg;
 	break;
 #endif
     default:
-	outstr(badregstr);
+	{ int i;
+	   if (reg)
+	      for(i=1; i; i<<=1)
+	      {
+	         if( reg&i )
+		 {
+		    outregname(i);
+		    outstr(" ");
+		 }
+	      }
+	   else
+              outstr(badregstr);
+	}
 	break;
     }
 }

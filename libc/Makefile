@@ -11,7 +11,7 @@ endif
 
 VERMAJOR=0
 VERMINOR=14
-VERPATCH=0
+VERPATCH=3
 VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
 
 CC=bcc
@@ -76,10 +76,12 @@ clean:
 ############################################################################
 
 install_incl:
-	rm -rf $(BCCHOME)/include
+	# rm -rf $(BCCHOME)/include
+	rm -rf $(BCCHOME)/include/linuxmt $(BCCHOME)/include/arch
 	cp -pr include $(BCCHOME)/include
 	if [ -f kinclude/Used ] ; \
 	then cp -pr kinclude/arch $(BCCHOME)/include/arch ; \
+	     cp -pr kinclude/linuxmt $(BCCHOME)/include/linuxmt ; \
 	else rm -rf $(BCCHOME)/include/linuxmt $(BCCHOME)/include/arch ; \
 	     ln -s $(ELKSSRC)/include/linuxmt $(BCCHOME)/include ; \
 	     ln -s $(ELKSSRC)/include/arch $(BCCHOME)/include ; \

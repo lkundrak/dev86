@@ -311,7 +311,14 @@ read_syms()
 	 case 0x0180: putchar('N'); break;
 	 case 0x0010: putchar('a'); break;
 	 case 0x0090: putchar('A'); break;
-	 default:     putchar('?'); break;
+	 default:     
+	              if((symtype & ~0xF) == 0x40 )
+		          putchar('u');
+	              else if((symtype & ~0xF) == 0x80 )
+                          printf("%c", "T12D456789abcdeU"[symtype&0xF]); 
+		      else
+		          putchar('?');
+		      break;
 	 }
          printf(" %s\n", symnames[i]);
       }
@@ -632,7 +639,10 @@ nm_aout()
       if( (n_numaux = getc(ifd)) == EOF ) return;
       n_type = get_word();
 
-      printf("%08lx ", n_value);
+      if( n_sclass == 0x10 )
+         printf("         ");
+      else
+         printf("%08lx ", n_value);
       switch(n_sclass)
       {
       case 0x01: printf("a "); break;      
@@ -642,6 +652,7 @@ nm_aout()
       case 0x1a: printf("t "); break;
       case 0x1b: printf("d "); break;
       case 0x1c: printf("b "); break;
+      case 0x10: printf("U "); break;
       default:   if( display_mode )
                  {
 		    printf("? "); break;

@@ -151,6 +151,7 @@ static struct {
    unsigned short dst_len;
    long           dst_seg;
    unsigned short dpad;
+   char gdt4[8];
    char gdt5[8];
 } GDT = {
   "","",

@@ -355,8 +355,7 @@ ts_s_macstring += 2;
 	oldlevel();
 	locptr = locmark;
     }
-    if (asmmode)
-	equ(sname, macstring);
+/*  if (asmmode) equ(sname, macstring); */
 
     if ((symptr = findlorg(sname)) != NULL && symptr->flags == DEFINITION)
     {

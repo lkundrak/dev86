@@ -379,6 +379,8 @@ PUBLIC void objheader()
 		    }
 		    *copyptr++ = symptr;
 		    strsiz += symptr->length + 1;
+		    if (textseg>=0 && (symptr->data & SEGM) == textseg)
+		       strsiz+=2;
 #if SIZEOF_OFFSET_T > 2
 		    if (isge4byteoffset(symptr->value_reg_or_op.value))
 			size = 4 + 4;
@@ -544,6 +546,8 @@ PUBLIC void objheader()
 	if (size != 0)
 	    putobjoffset(symptr->value_reg_or_op.value, size);
 	offset += symptr->length + 1;
+	if (textseg>=0 && (symptr->data & SEGM) == textseg)
+	   offset+=2;
     }
 
     /* strings */
@@ -554,9 +558,17 @@ PUBLIC void objheader()
     {
 	symptr = *copyptr++;
 	writeobj(symptr->name, symptr->length);
+	if (textseg>=0 && (symptr->data & SEGM) == textseg)
+	{
+	   putobj1('.');
+	   putobj1(hexdigit[textseg]);
+	}
 	putobj1(0);
     }
-    putobj1(OBJ_SET_SEG | 0);	/* default segment 0, |0010|SEGM| */
+    if( textseg >= 0 )
+       putobj1(OBJ_SET_SEG | textseg);	/* default segment, |0010|SEGM| */
+    else
+       putobj1(OBJ_SET_SEG | 0);	/* default segment 0, |0010|SEGM| */
 }
 
 /* write trailer to object file */

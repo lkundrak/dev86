@@ -11,20 +11,30 @@ mov	%[ax|bx|cx|dx]1,%2
 =
 mov	%2,%1
 
+# Breaks:  a = b = 125;
+# mov	%[ax|bx|cx|dx]3,%[#|*]0%1
+# mov	%2[%4],%[ax|bx|cx|dx]3
+# =
+# mov	word ptr %2[%4],%0%1
+
+# This gets a few back.
 mov	%[ax|bx|cx|dx]3,%[#|*]0%1
 mov	%2[%4],%[ax|bx|cx|dx]3
+mov	%[ax|bx|cx|dx]3,%5
 =
 mov	word ptr %2[%4],%0%1
+mov	%3,%5
 
 mov	%[ax|bx|cx|dx]3,%[#|*]0%1
 mov	%[ax|bx|cx|dx]2,%[ax|bx|cx|dx]3
 =
 mov	%2,%0%1
 
-mov	al,%[#|*]0%1
-mov	%2,al
-=
-mov	byte ptr %2,%0%1
+# Breaks: a = b = 'a';
+# mov	al,%[#|*]0%1
+# mov	%2,al
+# =
+# mov	byte ptr %2,%0%1
 
 xor	ax,ax
 mov	bx,%[#|*]0%1
@@ -286,7 +296,6 @@ push	%1
 =
 mov	%1,%2
 push	%2
-
 
 # Rules to remove superflous mov instructions
 

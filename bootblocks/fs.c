@@ -36,7 +36,7 @@ rewind_file()
 
 close_file()
 {
-   int rv;
+   int rv = -1;
 #ifdef __ELKS__
    fprintf(stderr, "Close file (%d)\n", fs_type);
 #endif
@@ -47,7 +47,7 @@ close_file()
    case 3: rv = dos_close_file(); break;
    }
    fs_type = 0;
-   return -1;
+   return rv;
 }
 
 long

@@ -68,28 +68,6 @@ cont:
 ! DONT Need to fix BPB for fd0 to correct sectors (Like linux bootblock does)
 ! as we only ever read one sector at a time.
 
-!  mov	di,#bios_disk
-!  mov	bp,#0x78		
-!! 0:bx is parameter table address
-!  push	ds
-!  lds	si,[bp]
-!
-!! ds:si is source
-!
-!  mov	cx,#6			
-!! copy 12 bytes
-!  push	di
-!  rep
-!   movsw
-!  pop	di
-!  pop	ds
-!
-!! New BPB is 0:di
-!  mov	[bp],di
-!  mov	2[bp],ax
-!
-!  mov	al,[dos_spt]	! Finally, correct spt.
-!  mov	4[di],al
 
 ! For each sector in root dir
 ! For each dir entry
