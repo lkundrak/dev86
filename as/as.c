@@ -221,7 +221,9 @@ char **argv;
 #ifdef I80386
 	    case 'j':
 		jumps_long = flag_state;
-		if( jumps_long ) ++last_pass;
+		break;
+	    case 'O':
+		if( flag_state ) last_pass = 2;
 		else             last_pass = 1;
 		break;
 #endif
@@ -328,7 +330,7 @@ PRIVATE void usage()
 {
     as_abort(
 #ifdef I80386
-"usage: as [-03agjuw] [-b [bin]] [-lm [list]] [-n name] [-o obj] [-s sym] src");
+"usage: as [-03agjuwO] [-b [bin]] [-lm [list]] [-n name] [-o obj] [-s sym] src");
 #else
     "usage: as [-guw] [-b [bin]] [-lm [list]] [-n name] [-o obj] [-s sym] src");
 #endif

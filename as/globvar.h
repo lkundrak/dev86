@@ -65,6 +65,8 @@ EXTERN unsigned char lcdata;	/* shows how lc is bound */
 				/* FORBIT is set if lc is forward referenced */
 				/* RELBIT is is if lc is relocat. (not ASEG) */
 EXTERN offset_t lcjump; 	/* lc jump between lines */
+
+EXTERN offset_t oldlabel; 	/* Used for checking for moving labels */
 #ifdef LOW_BYTE
 #define mcount (((unsigned char *) &lcjump)[LOW_BYTE])
 				/* low byte of lcjump */

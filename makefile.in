@@ -39,11 +39,7 @@ WALL  =-Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
 WALL  =-Wstrict-prototypes
 
 CC	=gcc
-#ifdef __i386__
-CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O2 -m486 -g
-#else
 CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O6 -g
-#endif
 #endif
 
 #ifndef GNUMAKE

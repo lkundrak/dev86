@@ -1,3 +1,13 @@
+For version 0.16.0.
+
+> Seperated the multi-pass optimisation from the jump extension. We now have
+  the -j back to it's old meaning and -O added to help shorten instructions.
+
+> Fix for nested conditionals.
+
+> Fix for listing to unusual locations; assembler tried to list non-existant 
+  lines.
+
 For version 0.15.0.
 
 > Added support for archives to nm86/objdump86 and size86.

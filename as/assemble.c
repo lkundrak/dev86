@@ -9,7 +9,6 @@
 #include "scan.h"
 
 PRIVATE bool_t nocolonlabel;	/* set for labels not followed by ':' */
-PRIVATE offset_t oldlabel = 0;
 PRIVATE void (*routine) P((void));
 PRIVATE pfv rout_table[] =
 {
@@ -164,7 +163,7 @@ PUBLIC void assemble()
 	    if (nocolonlabel)
 		error(NEEDENDLABEL);
 #endif
-	    if( label->value_reg_or_op.value != oldlabel)
+	    if(pass && label->value_reg_or_op.value != oldlabel)
 	    {
 	       dirty_pass = TRUE;
 	       if( pass == last_pass )
@@ -246,21 +245,7 @@ PRIVATE void asline()
 		labelerror(RELAB);
 	    label = symptr;
 
-#if 0
-if(pass==last_pass)
-{
-   if( ((label->data^lcdata)&~FORBIT) || label->value_reg_or_op.value != lc)
-   {
-    printf("Movement %x:%d -> %x:%d\n", 
-         label->data,
-	 label->value_reg_or_op.value,
-	 lcdata,
-	 lc);
-   }
-}
-#endif
-	    	/* This is a bit dodgy, I think it's ok but ... */
-	    if (pass && (label->data & RELBIT))
+	    if (pass /* && last_pass>1 */)
 	    {
 	       label->data = (label->data & FORBIT) | lcdata;
 	       label->value_reg_or_op.value = lc;

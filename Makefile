@@ -70,7 +70,7 @@ Uninstall:
 	@# TO HERE
 
 distribution:
-	@[ `id -u` -eq 0 ] || fakeroot --nomixedlibhack -c $(MAKE) do_dist
+	@[ `id -u` -eq 0 ] || fakeroot -- $(MAKE) do_dist
 	@[ `id -u` -ne 0 ] || $(MAKE) do_dist
 
 do_dist:

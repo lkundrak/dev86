@@ -83,17 +83,22 @@ a valid instruction)
 only put global symbols in object or symbol file
 .TP
 .B -j
-replace short jumps that don't reach with 5 byte sequences, this causes the
-assembler to add an extra pass to try to determine if the long jump is
-really needed. If you add a second
-.B -j
-the assembler will keep adding passes until the labels all stabilise (to
-a maximum of 30 passes)
-Don't use this with hand written assembler use the explicit
+replace all short jumps with similar 16 or 32 bit jumps, the 16 bit
+conditional branches are encoded as a short conditional and a long
+unconditional branch.
+.TP
+.B -O 
+this causes the assembler to add extra passes to try to use forward
+references to reduce the bytes needed for some instructions. 
+If the labels move on the last pass the assembler will keep adding passes
+until the labels all stabilise (to a maximum of 30 passes)
+It's probably not a good idea to use this with hand written assembler 
+use the explicit
 .B br\ bmi\ bcc
 style opcodes for 8086 code or the
 .B jmp\ near
-style for conditional i386 instructions.
+style for conditional i386 instructions and make sure all variables are
+defined before they are used.
 .TP
 .B -l
 produce list file, filename may follow

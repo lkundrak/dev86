@@ -15,7 +15,7 @@
 /*
  * Ok, lots of hack & slash here.
  * 1) Added BIG buffer to load entire _primary_ file into memory.
- * 2) This means primay file can be standard input.
+ * 2) This means the primary file can be standard input.
  * 3) Fixed so 'get/include' processing now works.
  * 4) Altered for a 'normal' style buffer otherwise (MINIBUF)
  * 5) Have the option of completely unbuffered if you need the last Kb.
@@ -244,7 +244,7 @@ PUBLIC void pproceof()
     else if (pass!=last_pass)
     {
 	pass++;
-	if( last_pass>2 && last_pass<30 && dirty_pass && pass==last_pass )
+	if( last_pass>1 && last_pass<30 && dirty_pass && pass==last_pass )
 	   last_pass++;
 
 	if( pass==last_pass )

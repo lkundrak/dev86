@@ -35,12 +35,13 @@ dos_heads:	.blkw 1		! Heads
 dos_hidden:	.blkw 2		! Hidden sectors
 
 ! Here down is DOS 4+ and probably not needed for floppy boots.
-floppy_temp:
 
 dos4_maxsect:	.blkw 2		! Large FS sector count
 dos4_phy_drive:	.blkb 1		! Phys drive
 .blkb 1		! Reserved
 .blkb 1		! DOS 4
+
+floppy_temp:
 dos4_serial:	.blkw 2		! Serial number
 dos4_label:	.blkb 11	! Disk Label (DOS 4+)
 dos4_fattype:	.blkb 8		! FAT type

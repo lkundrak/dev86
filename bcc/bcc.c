@@ -572,6 +572,8 @@ char **argv;
 	    addarg(&ldargs, DEFAULT_LIBDIR0);
     }
 
+    if (optimize)
+       addarg(&asargs, "-O");
     addarg(&optargs, OPTIM_RULES);
     temp=optflags; optflags=stralloc2(optflags,",end"); free(temp);
     for(temp=strtok(optflags,","); temp; temp=strtok((char*)0,","))

@@ -1068,7 +1068,8 @@ int backamount;
 	if (!(lastexp.data & (RELBIT | UNDBIT)))
 	{
 	    lastexp.offset = lastexp.offset - lc - lcjump;
-	    if (backamount != 0x0 && !(lastexp.data & IMPBIT) &&
+	    if ( last_pass<2 && backamount != 0x0 && 
+	        !(lastexp.data & IMPBIT) &&
 		lastexp.offset + backamount < 0x80 + backamount)
 		error(SHORTB);	/* -0x8? to 0x7F, warning */
 	}
@@ -1206,7 +1207,8 @@ PUBLIC void mcall()
     else if (opcode == JMP_SHORT_OPCODE)
     {
 	if (jumps_long &&
-	    (pass!=0 && !is8bitsignedoffset(lastexp.offset - lc - 2)))
+	    ((pass!=0 && !is8bitsignedoffset(lastexp.offset - lc - 2)) ||
+	     (last_pass==1)))
 	{
 	    opcode = JMP_OPCODE;
 	    lbranch(0x83);
@@ -1945,7 +1947,8 @@ PUBLIC void mjcc()
         getea(&target);
 	lastexp = target.displ;
 
-	if (pass!=0 && !is8bitsignedoffset(lastexp.offset - lc - 2))
+	if ( (pass!=0 && !is8bitsignedoffset(lastexp.offset - lc - 2)) ||
+	      last_pass==1)
 	{
            if (target.indcount >= 0x2 || target.base != NOREG)
 	       kgerror(REL_REQ);
@@ -2749,7 +2752,7 @@ PUBLIC void mlong()
 	if (!(lastexp.data & (RELBIT | UNDBIT)))
 	{
 	    lastexp.offset = lastexp.offset - lc - lcjump;
-	    if (!(lastexp.data & IMPBIT) &&
+	    if ( last_pass<2 && !(lastexp.data & IMPBIT) &&
 		lastexp.offset + 0x81 < 0x101)
 		error(SHORTB);	/* -0x81 to 0x7F, warning */
 	}

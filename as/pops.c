@@ -175,6 +175,12 @@ pfv func;
 		elseflag = FALSE;
 	    }
 	}
+	else
+	{
+	    /* Skip to EOL */
+	    while (sym != EOLSYM)
+	        getsym();
+	}
     }
 }
 
@@ -213,6 +219,13 @@ unsigned char labits;
     labptr->data = lastexp.data;
     labptr->value_reg_or_op.value = lastexp.offset;
     showlabel();
+
+    if(pass && !(labits & VARBIT) && labptr->value_reg_or_op.value != oldlabel)
+    {
+       dirty_pass = TRUE;
+       if( pass == last_pass )
+           error(UNSTABLE_LABEL);
+    }
 }
 
 /* common routine for ENTRY/EXPORT */
@@ -397,6 +410,12 @@ pfv func;
 		ifflag = FALSE;	/* not assembling */
 		elseflag = TRUE;/* but ELSE will change that */
 	    }
+	}
+	else
+	{
+	    /* Skip to EOL */
+	    while (sym != EOLSYM)
+	        getsym();
 	}
     }
 }

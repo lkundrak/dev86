@@ -17,11 +17,11 @@
 unsigned char buffer[1024];
 
 #define FS_NONE	0	/* Bootsector is complete */
-#define FS_ADOS	1	/* Bootsector needs 'normal' DOS FS */
-#define FS_DOS	2	/* Bootsector needs any DOS FS */
+#define FS_DOS	1	/* Bootsector needs 'normal' DOS FS */
+#define FS_ADOS	2	/* Bootsector likes any DOS FS */
 #define FS_TAR	3	/* Bootsector needs GNU-tar volume label */
-#define FS_STAT	4	/* DOS bootsector is checked */
-#define FS_ZERO 5	/* Boot sector must be Zapped */
+#define FS_STAT	4	/* Any bootsector is checked */
+#define FS_ZERO 5	/* Boot sector must be already Zapped */
 #define FS_MBR  6	/* Boot sector is an MBR */
 
 #ifndef __MSDOS__
@@ -40,29 +40,35 @@ struct bblist {
 } bblocks[] = {
 { "tar",  "Bootable GNU tar volume lable",
    	   tarboot_data, tarboot_size, 0, 0, 		FS_TAR},
-{ "dosfs","Boot file BOOTFILE.SYS from dos floppy",
+{ "dos12","Boot file BOOTFILE.SYS from dos floppy",
            msdos_data, msdos_size,
 	   1, msdos_boot_name-msdos_start,		FS_DOS, 12},
-{ "dos16","Boot file BOOTFILE.SYS from 16 bit dos filesystem",
+{ "dos16","Boot file BOOTFILE.SYS from FAT16 hard disk or floppy",
            msdos16_data, msdos16_size,
 	   1, msdos16_boot_name-msdos16_start,		FS_DOS, 16},
-{ "none", "No OS bootblock, just message",  
+{ "none", "No OS bootblock, just display message",  
            noboot_data, noboot_size, 
-	   2, noboot_boot_message-noboot_start, 	FS_DOS},
+	   2, noboot_boot_message-noboot_start, 	FS_ADOS},
 { "skip", "Bypasses floppy boot with message",  
            skip_data, skip_size,  
-	   2, skip_mesg-skip_start,			FS_DOS},
+	   2, skip_mesg-skip_start,			FS_ADOS},
 { "minix","Minix floppy FS booter",           
            minix_data, minix_size, 
 	   2, minix_bootfile-minix_start,		FS_ZERO},
 { "hdmin","Minix Hard disk FS booter",    
            minixhd_data, minixhd_size, 
 	   2, minixhd_bootfile-minixhd_start,		FS_ZERO},
+#ifdef mbr_Banner
+{ "mbr",  "Master boot record for HD (with optional message)",             
+           mbr_data,mbr_size, 
+	   2, mbr_Banner-mbr_start, 			FS_MBR},
+#else
 { "mbr",  "Master boot record for HD",             
            mbr_data,mbr_size, 0, 0, 			FS_MBR},
+#endif
 { "stat", "Display dosfs superblock",                          
            0, 0, 0, 0, 					FS_STAT},
-{ "copy", "Copy boot block to makeboot.sav",                   
+{ "copy", "Copy boot block to makeboot.sav or named file",                   
            0, 0, 0, 0, 					FS_STAT},
 { "Zap",  "Clear boot block to NULs",                       
            0, 1024, 0, 0, 				FS_NONE},
@@ -121,9 +127,10 @@ char ** argv;
    switch(ptr->fstype)
    {
    case FS_NONE:	/* override */
-   	break;
-   case FS_DOS:
    case FS_STAT:
+   case FS_ADOS:
+      break;
+   case FS_DOS:
       check_msdos();
       if(ptr->fsmod) check_simpledos(ptr->fsmod);
       break;
@@ -145,12 +152,14 @@ char ** argv;
    switch(ptr->fstype)
    {
    case FS_STAT:
-      print_super(buffer);
       if( strcmp(ptr->name, "copy") == 0 )
          save_super(buffer);
+      else
+         print_super(buffer);
       close_disk();
       exit(0);
    case FS_DOS:
+   case FS_ADOS:
       for(i=0; i<sysboot_dosfs_stat; i++)
          buffer[i] = ptr->data[i];
       for(i=sysboot_codestart; i<512; i++)
@@ -186,7 +195,7 @@ char ** argv;
       set_asciz(ptr->boot_name);
       break;
    default:
-      fprintf(stderr, "Cannot specify boot file for this block\n");
+      fprintf(stderr, "Cannot specify boot name for this block\n");
       exit(1);
    }
 
@@ -212,11 +221,12 @@ Usage()
       progname = "makeboot";
 
 #ifdef __MSDOS__
-   fprintf(stderr, "Usage: %s [-f] bootblock[=bootname] a:\n", progname);
+   fprintf(stderr, "Usage: %s [-f] bootblock[=bootname] a:\n\n", progname);
+   fprintf(stderr, "The 'a:' can be any drive or file or @: for the MBR.\n");
 #else
-   fprintf(stderr, "Usage: %s [-f] bootblock[=bootname] /dev/fd0\n", progname);
+   fprintf(stderr, "Usage: %s [-f] bootblock[=bootname] /dev/fd0\n\n", progname);
 #endif
-   fprintf(stderr, "\nThe bootname is a filename to use with the block,\n");
+   fprintf(stderr, "The bootname is a filename or message to use with the block,\n");
    fprintf(stderr, "the blocks are:\n");
    for(;ptr->name; ptr++)
        fprintf(stderr, "\t%s\t%s\n", ptr->name, ptr->desc);
@@ -233,14 +243,22 @@ char * diskname;
    /* Freedos fix */
    if( diskname[2] == '\r' ) diskname[2] = 0;
 
-   if( strcmp("a:", diskname) == 0 ) { disktype = 1; return 0; }
-   if( strcmp("b:", diskname) == 0 ) { disktype = 2; return 0; }
-   if( strcmp("A:", diskname) == 0 ) { disktype = 1; return 0; }
-   if( strcmp("B:", diskname) == 0 ) { disktype = 2; return 0; }
+   if( diskname[2] == 0 && diskname[1] == ':' )
+   {
+      if (isalpha(diskname[0])) {
+	 disktype = toupper(diskname[0])-'A'+1;
+	 return 0;
+      }
+      if (diskname[0] =='@') {
+	 disktype = 129;
+	 return 0;
+      }
+   }
 #endif
    disktype = 0;
-   diskfd = fopen(diskname, "r+");
-   if( diskfd == 0 ) diskfd = fopen(diskname, "r");
+   diskfd = fopen(diskname, "r+b");
+   if( diskfd == 0 ) diskfd = fopen(diskname, "rb");
+   if( diskfd == 0 && force ) diskfd = fopen(diskname, "w+b");
    if( diskfd == 0 )
    {
       fprintf(stderr, "Cannot open '%s'\n", diskname);
@@ -262,7 +280,7 @@ int sectno;
 char * loadaddr;
 {
 #ifdef __MSDOS__
-   if( disktype == 1 || disktype == 2 )
+   if( disktype == 1 || disktype == 2 || disktype == 129 )
    {
       int tries, rv;
       int s,h,c;
@@ -271,11 +289,29 @@ char * loadaddr;
       c = sectno/disk_sect/disk_head;
 
       for(tries=0; tries<6; tries++)
-         if( (rv = dos_sect_write(disktype-1, c, h, s, loadaddr)) == 0 )
+         if( (rv = bios_sect_write(disktype-1, c, h, s, loadaddr)) == 0 )
             break;
       if( rv )
       {
-         fprintf(stderr, "Error writing sector %d, (%d)\n", sectno, rv/256);
+	 if (rv/256 == 3)
+	    fprintf(stderr, "Write protect error writing sector %d\n", sectno);
+	 else
+	    fprintf(stderr, "Error writing sector %d, (%d)\n", sectno, rv/256);
+	 return -1;
+      }
+      return 0;
+   }
+   if( disktype )
+   {
+      int tries, rv;
+
+      for(tries=0; tries<6; tries++)
+         if( (rv = dos_sect_write(disktype-1, sectno, loadaddr)) == 0 )
+            break;
+      if( rv )
+      {
+         fprintf(stderr, "Error writing sector %d, (0x%04d)\n", sectno, rv);
+         memset(loadaddr, '\0', 512);
 	 return -1;
       }
       return 0;
@@ -303,7 +339,7 @@ char * loadaddr;
 {
    int cc;
 #ifdef __MSDOS__
-   if( disktype == 1 || disktype == 2 )
+   if( disktype == 1 || disktype == 2 || disktype == 129 )
    {
       int tries, rv;
       int s,h,c;
@@ -312,11 +348,26 @@ char * loadaddr;
       c = sectno/disk_sect/disk_head;
 
       for(tries=0; tries<6; tries++)
-         if( (rv = dos_sect_read(disktype-1, c, h, s, loadaddr)) == 0 )
+         if( (rv = bios_sect_read(disktype-1, c, h, s, loadaddr)) == 0 )
             break;
       if( rv )
       {
          fprintf(stderr, "Error reading sector %d, (%d)\n", sectno, rv/256);
+         memset(loadaddr, '\0', 512);
+	 return -1;
+      }
+      return 0;
+   }
+   if( disktype )
+   {
+      int tries, rv;
+
+      for(tries=0; tries<6; tries++)
+         if( (rv = dos_sect_read(disktype-1, sectno, loadaddr)) == 0 )
+            break;
+      if( rv )
+      {
+         fprintf(stderr, "Error reading sector %d, (0x%04d)\n", sectno, rv);
          memset(loadaddr, '\0', 512);
 	 return -1;
       }
@@ -337,10 +388,11 @@ char * loadaddr;
    }
    return 0;
 }
+
 /**************************************************************************/
 
 #ifdef __MSDOS__
-dos_sect_read(drv, track, head, sector, loadaddr)
+bios_sect_read(drv, track, head, sector, loadaddr)
 {
 #asm
   push	bp
@@ -349,26 +401,24 @@ dos_sect_read(drv, track, head, sector, loadaddr)
   push	ds
   pop	es
 
-  mov	dh,[bp+2+_dos_sect_read.head]
-  mov	dl,[bp+2+_dos_sect_read.drv]
-  mov	cl,[bp+2+_dos_sect_read.sector]
-  mov	ch,[bp+2+_dos_sect_read.track]
+  mov	dh,[bp+2+_bios_sect_read.head]
+  mov	dl,[bp+2+_bios_sect_read.drv]
+  mov	cl,[bp+2+_bios_sect_read.sector]
+  mov	ch,[bp+2+_bios_sect_read.track]
 
-  mov	bx,[bp+2+_dos_sect_read.loadaddr]
+  mov	bx,[bp+2+_bios_sect_read.loadaddr]
 
   mov	ax,#$0201
   int	$13
-  jc	read_err
+  jc	bios_read_err
   mov	ax,#0
-read_err:
+bios_read_err:
 
   pop	bp
 #endasm
 }
-#endif
 
-#ifdef __MSDOS__
-dos_sect_write(drv, track, head, sector, loadaddr)
+bios_sect_write(drv, track, head, sector, loadaddr)
 {
 #asm
   push	bp
@@ -377,24 +427,130 @@ dos_sect_write(drv, track, head, sector, loadaddr)
   push	ds
   pop	es
 
-  mov	dh,[bp+2+_dos_sect_write.head]
-  mov	dl,[bp+2+_dos_sect_write.drv]
-  mov	cl,[bp+2+_dos_sect_write.sector]
-  mov	ch,[bp+2+_dos_sect_write.track]
+  mov	dh,[bp+2+_bios_sect_write.head]
+  mov	dl,[bp+2+_bios_sect_write.drv]
+  mov	cl,[bp+2+_bios_sect_write.sector]
+  mov	ch,[bp+2+_bios_sect_write.track]
 
-  mov	bx,[bp+2+_dos_sect_write.loadaddr]
+  mov	bx,[bp+2+_bios_sect_write.loadaddr]
 
   mov	ax,#$0301
   int	$13
-  jc	write_err
+  jc	bios_write_err
   mov	ax,#0
-write_err:
+bios_write_err:
 
   pop	bp
 #endasm
 }
 #endif
 
+/**************************************************************************/
+
+#ifdef __MSDOS__
+
+/* All this mess just to read one sector!! */
+
+struct disk_packet {
+   long	sector;
+   int	count;
+   long	addr;
+} disk_packet;
+
+dos_sect_read(drv, sector, loadaddr)
+{
+#asm
+  push	bp
+  mov	bp,sp
+
+  mov	al,[bp+2+_dos_sect_read.drv]
+  mov	cx,#1
+  mov	dx,[bp+2+_dos_sect_read.sector]
+  mov	bx,[bp+2+_dos_sect_read.loadaddr]
+
+  int	$25
+  pop	bx
+  jnc	dos_read_ok
+
+  mov	bp,sp
+
+  ! Fill the disk packet
+  mov	ax,[bp+2+_dos_sect_read.sector]
+  mov	[_disk_packet],ax
+  xor	ax,ax
+  mov	[_disk_packet+2],ax
+  inc	ax
+  mov	[_disk_packet+4],ax
+  mov	ax,[bp+2+_dos_sect_read.loadaddr]
+  mov	[_disk_packet+6],ax
+  mov	ax,ds
+  mov	[_disk_packet+8],ax
+
+  mov	dl,[bp+2+_dos_sect_read.drv]
+  inc	dl
+  mov	bx,#_disk_packet
+  mov	cx,#0xFFFF
+  mov	si,#0
+  mov	ax,#0x7305
+
+  int	$21
+
+  jc	dos_read_err
+dos_read_ok:
+  mov	ax,#0
+dos_read_err:
+
+  pop	bp
+#endasm
+}
+
+dos_sect_write(drv, sector, loadaddr)
+{
+#asm
+  push	bp
+  mov	bp,sp
+
+  mov	al,[bp+2+_dos_sect_write.drv]
+  mov	cx,#1
+  mov	dx,[bp+2+_dos_sect_write.sector]
+  mov	bx,[bp+2+_dos_sect_write.loadaddr]
+
+  int	$26
+  pop	bx
+  jnc	dos_write_ok
+
+  mov	bp,sp
+
+  ! Fill the disk packet
+  mov	ax,[bp+2+_dos_sect_write.sector]
+  mov	[_disk_packet],ax
+  xor	ax,ax
+  mov	[_disk_packet+2],ax
+  inc	ax
+  mov	[_disk_packet+4],ax
+  mov	ax,[bp+2+_dos_sect_write.loadaddr]
+  mov	[_disk_packet+6],ax
+  mov	ax,ds
+  mov	[_disk_packet+8],ax
+
+  mov	dl,[bp+2+_dos_sect_write.drv]
+  inc	dl
+  mov	bx,#_disk_packet
+  mov	cx,#0xFFFF
+  mov	si,#1
+  mov	ax,#0x7305
+
+  int	$21
+
+  jc	dos_write_err
+dos_write_ok:
+  mov	ax,#0
+dos_write_err:
+
+  pop	bp
+#endasm
+}
+#endif
 /**************************************************************************/
 
 check_zapped()
@@ -551,11 +707,20 @@ copy_tarblock()
 #define DOS_SPT		9
 #define DOS_HEADS	10
 #define DOS_HIDDEN	11
+
 #define DOS4_MAXSECT	12
 #define DOS4_PHY_DRIVE	13
 #define DOS4_SERIAL	14
 #define DOS4_LABEL	15
 #define DOS4_FATTYPE	16
+
+#define DOS7_MAXSECT	17
+#define DOS7_FAT32LEN	18
+#define DOS7_FLAGS	19
+#define DOS7_VERSION	20
+#define DOS7_ROOT_CLUST	21
+#define DOS7_INFO_SECT	22
+#define DOS7_BOOT2	23
 
 struct bootfields {
    int offset;
@@ -577,11 +742,21 @@ struct bootfields {
    { 0x18, 2, 0},
    { 0x1A, 2, 0},
    { 0x1C, 4, 0},
-   { 0x20, 4, 0},
+
+   { 0x20, 4, 0},	/* DOS4+ */
    { 0x24, 1, 0},
    { 0x27, 4, 0},
    { 0x2B, 11, 0},
    { 0x36, 8, 0},
+
+   { 0x20, 4, 0},	/* DOS7 FAT32 */
+   { 0x24, 4, 0},
+   { 0x28, 2, 0},
+   { 0x2A, 2, 0},
+   { 0x2C, 4, 0},
+   { 0x30, 2, 0},
+   { 0x32, 2, 0},
+
    { -1,0,0}
 };
 
@@ -595,24 +770,39 @@ static char * fieldnames[] = {
    "Reserved sectors",
    "FAT count",
    "Root dir entries",
-   "Sector count (=0 if large FS)",
+   "Sector count",
    "Media code",
    "FAT length",
    "Sect/Track",
    "Heads",
    "Hidden sectors (Partition offset)",
+
    "Large FS sector count",
    "Phys drive",
    "Serial number",
    "Disk Label (DOS 4+)",
    "FAT type",
+
+   "FAT32 FS sector count",
+   "FAT32 FAT length",
+   "FAT32 Flags",
+   "FAT32 version",
+   "FAT32 Root Cluster",
+   "FAT32 Info Sector",
+   "FAT32 Backup Boot",
+
    0
 };
    int i;
+   long numclust = 0xFFFF;
+   int fatbits = 0;
+   int fat_len = -1;
 
    for(i=0; dosflds[i].offset >= 0; i++)
    {
-      printf("%-35s", fieldnames[i]);
+      if( i>= DOS4_MAXSECT && (fat_len==0) != (i>=DOS7_MAXSECT) )
+	 continue;
+
       if( dosflds[i].length <= 4 )
       {
          long v = 0; int j;
@@ -620,11 +810,23 @@ static char * fieldnames[] = {
 	 {
 	    v = v*256 + (0xFF&( bootsect[dosflds[i].offset+j] ));
 	 }
-	 printf("%ld\n", v);
+
+	 if( i==DOS_FATLEN )
+	    fat_len = v;
+
+	 if (v==0 && 
+	  (i==DOS_FATLEN || i==DOS_MAXSECT || i==DOS4_MAXSECT || i==DOS_NROOT))
+	    continue;
+
+         printf("%-35s%ld\n", fieldnames[i], v);
+
+	 if (i==DOS_SECT && v!=512 && v!=1024 && v!=2048)
+	    break;
       }
       else
       {
          int ch, j;
+         printf("%-35s", fieldnames[i]);
 	 for(j=0; j<dosflds[i].length; j++)
 	 {
 	    ch = bootsect[dosflds[i].offset+j];
@@ -643,6 +845,13 @@ char * bootsect;
 
    for(i=0; dosflds[i].offset >= 0; i++)
    {
+      if( i>= DOS4_MAXSECT && 
+	    (dosflds[DOS_FATLEN].value==0) != (i>=DOS7_MAXSECT) )
+      {
+	 dosflds[i].lvalue = dosflds[i].value = 0;
+	 continue;
+      }
+
       if( dosflds[i].length <= 4 )
       {
          long v = 0; int j;
@@ -654,7 +863,7 @@ char * bootsect;
 	 dosflds[i].lvalue = v;
       }
       else
-	 dosflds[i].value = 0;
+	 dosflds[i].lvalue = dosflds[i].value = 0;
    }
 }
 
@@ -680,7 +889,10 @@ check_msdos()
       dosflds[DOS_CLUST].value = 1;
 
    if( dosflds[DOS_MEDIA].value < 0xF0 )
-      fprintf(stderr, "Dos media descriptor is invalid\n");
+   {
+      if (!force)
+         fprintf(stderr, "Dos media descriptor is invalid\n");
+   }
    else if( dosflds[DOS_MEDIA].value != (0xFF&buffer[512])
          && dosflds[DOS_RESV].value == 1 )
       fprintf(stderr, "Dos media descriptor check failed\n");
@@ -728,7 +940,7 @@ check_msdos()
 check_simpledos(bb_fatbits)
 int bb_fatbits;
 {
-   unsigned numclust = 0xFFFF;
+   long numclust = 0xFFFF;
    char * err = 0;
    int fatbits = 0;
 
@@ -739,19 +951,24 @@ int bb_fatbits;
                    - dosflds[DOS_NFAT].value * dosflds[DOS_FATLEN].value
                    - ((dosflds[DOS_NROOT].value+15)/16)
                  ) / dosflds[DOS_CLUST].value + 2;
-   else
+   else if( dosflds[DOS4_MAXSECT].value > 0 )
       numclust = ( dosflds[DOS4_MAXSECT].lvalue
                    - dosflds[DOS_RESV].value
                    - dosflds[DOS_NFAT].value * dosflds[DOS_FATLEN].value
                    - ((dosflds[DOS_NROOT].value+15)/16)
                  ) / dosflds[DOS_CLUST].value + 2;
+   else
+      numclust = ( dosflds[DOS7_MAXSECT].lvalue
+                   - dosflds[DOS_RESV].value
+                   - dosflds[DOS_NFAT].value * dosflds[DOS7_FAT32LEN].value
+                 ) / dosflds[DOS_CLUST].value;
 
    if( memcmp(buffer+dosflds[DOS4_FATTYPE].offset, "FAT12", 5) == 0 )
       fatbits=12;
    else if( memcmp(buffer+dosflds[DOS4_FATTYPE].offset, "FAT16", 5) == 0 )
       fatbits=16;
    else
-      fatbits=12+4*(numclust > 0xFF0);
+      fatbits=12+4*(numclust > 0xFF0) + 16*(numclust > 0xFFF0L);
 
    if( dosflds[DOS_NFAT].value > 2 )
       err = "Too many fat copies on disk";
@@ -759,15 +976,19 @@ int bb_fatbits;
       err = "Root directory has unreasonable size.";
    else if( dosflds[DOS_SECT].value != 512 )
       err = "Drive sector size isn't 512 bytes sorry no-go.";
+   else if( fatbits == 16 && numclust < 0xFF0 )
+      err = "Weirdness, FAT16 but less than $FF0 clusters";
    else if( fatbits != bb_fatbits )
       err = "Filesystem has the wrong fat type for this bootblock.";
    else if( numclust * dosflds[DOS_CLUST].lvalue / 
 	    dosflds[DOS_SPT].value > 65535 )
-      err = "Maximum of 65535 tracks allowed, sorry";
+      err = "Boot sector untested with more than 65535 tracks";
 
    if( !err && bb_fatbits == 12 )
    {
-      if( (0x7C00-msdos_start-512)/512 < dosflds[DOS_FATLEN].value )
+      if( dosflds[DOS4_PHY_DRIVE].value != 0 )
+         err = "This boot sector is only for floppies";
+      else if( (0x7C00-msdos_start-512)/512 < dosflds[DOS_FATLEN].value )
          err = "The FAT is too large to load in the available space.";
       else if( dosflds[DOS_RESV].value + dosflds[DOS_FATLEN].value > 
                dosflds[DOS_SPT].value )
@@ -819,7 +1040,7 @@ int boot_name;
 
    if( strlen(boot_id) > i )
    {
-      fprintf(stderr, "Filename '%s' is too long for bootblock\n");
+      fprintf(stderr, "Name '%s' is too long for bootblock\n");
       exit(1);
    }
    else
@@ -840,6 +1061,10 @@ int boot_name;
 	       default:  buffer[j++] = boot_id[i]; break;
 	    }
 	 }
+#ifdef __MSDOS__
+	 else if(boot_id[i] == '_')   buffer[j++] = ' ';
+	 else if(boot_id[i] == '^') { buffer[j++] = '\r'; buffer[j++] = '\n'; }
+#endif
 	 else buffer[j++] = boot_id[i];
       }
       buffer[j] = 0;
@@ -857,28 +1082,37 @@ check_mbr()
       if( buffer[i] )
          break;
 
+   /* Check for Disk Manager partition tables */
+   if( buffer[252] == 0xAA && buffer[253] == 0x55 )
+   {
+      if( (unsigned char)mbr_data[252] != 0xAA || mbr_data[253] != 0x55 )
+	 i = 252;
+   }
+
    if( i != 512 )
    {
       if(force)
-         fprintf(stderr, "That doesn't look like an MBR zapping\n");
+         fprintf(stderr, "That doesn't look like a compatible MBR but ...\n");
       else
       {
-         fprintf(stderr, "That doesn't look like an MBR, -f will zap\n");
+         fprintf(stderr, "That doesn't look like a compatible MBR\n");
          exit(1);
       }
-
-      memset(buffer, '\0', 512);
    }
 }
 
 copy_mbr(mbr_data)
 char * mbr_data;
 {
-   if( buffer[252] != 0xAA || buffer[253] != 0x55 )
+   if( buffer[252] != 0xAA || buffer[253] != 0x55 ||
+       (unsigned char)mbr_data[252] != 0xAA || mbr_data[253] != 0x55 )
       memcpy(buffer, mbr_data, 446);
    else
       memcpy(buffer, mbr_data, 254);
-   memcpy(buffer+510, mbr_data+510, 2);
+
+   buffer[510] = 0x55;
+   buffer[511] = 0xAA;
+   write_zero = 1;
 }
 
 /**************************************************************************/
@@ -1142,7 +1376,7 @@ do_2m_write()
 #ifdef HAS_2M20
    else if( disk_trck != 82 || disk_sect != 22 )
    {
-      fprintf(stderr, "To be bootable a 2M disk must be 22 sectors 82 tracks or formatted with 2m20.\n");
+      fprintf(stderr, "To be bootable a 2M disk must be 22 sectors 82 tracks or formatted with DOS 2m.\n");
       if( !force ) exit(1);
       fprintf(stderr, "But I'll try it\n");
    }
@@ -1166,7 +1400,7 @@ do_2m_write()
       write_sector(bs_offset+i/512+1, program_2m_vsn_20+i);
    }
 #else
-   fprintf(stderr, "To be bootable a 2M disk must be formatted with the 2m20 device driver.\n");
+   fprintf(stderr, "To be bootable a 2M disk must be formatted with the DOS 2m driver.\n");
    exit(1);
 #endif
 }

@@ -19,10 +19,9 @@
 !
 ! All these are true for mtools created floppies on normal PC drives.
 !
-! In addition this now has a compile time option for 16 bit FAT floppies
-! TODO: Hard partition (dos_hidden != 0)
-!       Zip disks (floppy with dos_hidden != 0)
-!       Auto detect disk type
+! In addition this now has a compile time option for FAT16 partitions.
+! TODO: Auto detect disk type
+!       FAT32
 !
 !---------------------------------------------------------------------------
 ORGADDR=$0500
@@ -36,6 +35,13 @@ fatbits=12		! Set to 12 or 16 (16 for LS-120 disks)
 
 export heads
 heads=0			! This can be 0,1 or 2. 0 is dynamic.
+
+export harddisk
+ if fatbits=12
+harddisk=0
+ else
+harddisk=1		! Allow for hard disks, but will only work with 
+ endif			! disks formatted >= MSDOS 4.0
 
 !---------------------------------------------------------------------------
 ! Absolute position macro, fails if code before it is too big.
@@ -185,6 +191,9 @@ linsect2:
   and   al,#$C0
   or    cl,al
  endif
+ if harddisk
+  mov	dl,[dos4_phy_drive]
+ endif
   ret
 
 !---------------------------------------------------------------------------
@@ -332,13 +341,18 @@ got_fsect:
 !---------------------------------------------------------------------------
 ! File is now loaded, execute it.
 maincode:
+ if harddisk=0
   mov	bx,#7
   mov	ax,#$0E3E
   int	$10		! Marker printed to say bootblock succeeded.
+ endif
 
   xor	dx,dx		! DX=0 => floppy drive
+ if harddisk
+  mov	dl,[dos4_phy_drive]
+ endif
   push	dx		! CX=0 => partition offset = 0
-  mov	si,[dos_spt]	! SI=Sectors pet track
+  mov	si,[dos_spt]	! SI=Sectors per track
 
   mov	bx,#LOADSEG
   mov	ds,bx		! DS = loadaddress
@@ -390,12 +404,9 @@ boot_name:
 name_end:
 !        NNNNNNNNEEE
 
-if fatbits =16
 locn(510)
-  .word 0	! This is a floppy so it should not need the magic _but_
+  .word $AA55	! This is a floppy so it should not need the magic _but_
   		! the debian MBR requires the magic even on floppies
-		! so only clear on a superfloppy (LS-120).
-endif
 
 fat_table:	! This is the location that the fat table is loaded.
 		! Note: The fat must be entirely on track zero if 12 bit.
