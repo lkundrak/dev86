@@ -11,7 +11,7 @@ endif
 
 VERMAJOR=0
 VERMINOR=12
-VERPATCH=0
+VERPATCH=4
 VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
 
 CC=bcc
@@ -44,7 +44,8 @@ crt0.o: crt0.c Makefile
 	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VER)"' -o $@ crt0.c
 
 crtX.o:
-	@echo "You need to define the 'PLATFORM=...' variable"
+	@echo "You need to define the 'PLATFORM=...' variable,"
+	@echo "Preferably by doing make from `dirname \`pwd\``"
 	@exit 1
 
 ############################################################################

@@ -42,7 +42,7 @@ module: binfmt_elks.o
 
 # HOW to compile the module...
 
-# This matches my compile (2.0.0); yours may be different.
+# This matches my compile (2.0.x); yours may be different.
 MODCFLAGS=-D__KERNEL__ -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer \
           -fno-strength-reduce -pipe -m486 -DCPU=486 -DMODULE -DMODVERSIONS \
 	  -include /usr/include/linux/modversions.h

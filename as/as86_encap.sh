@@ -19,9 +19,11 @@
 trap "rm -f _$$.* ; exit 99" 1 2 3 15 
 
 LIBDIR='%%LIBDIR%%'	# Set by make install
+BINDIR='%%BINDIR%%'	# Set by make install
 
 # If the one set by install fails then try a couple of others.
 [ -x "$LIBDIR/as86" ] || LIBDIR="`dirname $0`"
+[ -x "$LIBDIR/as86" ] || LIBDIR="$BINDIR"
 [ -x "$LIBDIR/as86" ] || LIBDIR="`dirname $0`/../lib"
 [ -x "$LIBDIR/as86" ] || LIBDIR=/usr/bin
 
@@ -81,7 +83,7 @@ $LIBDIR/as86 "$@" "$IFILE" -b _$$.bin -s _$$.sym || RV=$?
         if(NF == 0) next;
 	printf "   ";
 	for(i=2;i<=NF;i++) {
-	   if( $i >= 32 && $i <= 127 && $i != 39 && $i != 92 )
+	   if( $i >= 32 && $i < 127 && $i != 39 && $i != 92 )
 	      printf("\047%c\047,", $i);
 	   else
 	      printf("%3d,", $i);

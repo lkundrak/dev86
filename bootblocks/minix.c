@@ -7,6 +7,7 @@
  */
 
 #include <a.out.h>
+#include "minix.h"
 
 #undef DOTS		/* define to have dots printed */
 #define zone_shift 0	/* for any < 32M (non-zero not supported yet) */
@@ -16,8 +17,18 @@
 #define BOOTSEG	  (0x07c0)
 #define LOADSEG   (0x1000)
 
+#define TRY_FLOPPY
+
 #ifdef HARDDISK
 #define get_now()
+#endif
+
+#ifdef zone_shift
+#if zone_shift == 0
+#define load_zone load_block
+#endif
+#else
+static short     zone_shift;
 #endif
 
 #asm 
@@ -57,11 +68,13 @@ org dos_sysid
   mov	sp,ax
 
 #ifndef HARDDISK
+loopy:
   mov	ax,#$0204		! Read 4 sectors, code + superblock.
   mov	bx,#start		! Where this _should_ be
   mov	cx,#$0001		! From sector 1
   xor	dx,dx			! Of the floppy drive head zero
   int	$13
+  jc	loopy
 #else
 
   mov	cx,#$100	! Move 256 words
@@ -88,117 +101,7 @@ org dos_sysid
 #endasm
 
 /****************************************************************************/
-/* Super block table.  The root file system and every mounted file system
- * has an entry here.  The entry holds information about the sizes of the bit
- * maps and inodes.  The s_ninodes field gives the number of inodes available
- * for files and directories, including the root directory.  Inode 0 is 
- * on the disk, but not used.  Thus s_ninodes = 4 means that 5 bits will be
- * used in the bit map, bit 0, which is always 1 and not used, and bits 1-4
- * for files and directories.  The disk layout is:
- *
- *      Item        # blocks
- *    boot block      1
- *    super block     1
- *    inode map     s_imap_blocks
- *    zone map      s_zmap_blocks
- *    inodes        (s_ninodes + 1 + INODES_PER_BLOCK - 1)/INODES_PER_BLOCK
- *    unused        whatever is needed to fill out the current zone
- *    data zones    (s_nzones - s_firstdatazone) << s_log_zone_size
- *
- * A super_block slot is free if s_dev == NO_DEV. 
- */
-
-#define BLOCK_SIZE      1024	/* # bytes in a disk block */
-
-/* Flag bits for i_mode in the inode. */
-#define I_TYPE          0170000	/* this field gives inode type */
-#define I_REGULAR       0100000	/* regular file, not dir or special */
-#define I_BLOCK_SPECIAL 0060000	/* block special file */
-#define I_DIRECTORY     0040000	/* file is a directory */
-#define I_CHAR_SPECIAL  0020000	/* character special file */
-#define I_SET_UID_BIT   0004000	/* set effective uid on exec */
-#define I_SET_GID_BIT   0002000	/* set effective gid on exec */
-#define ALL_MODES       0006777	/* all bits for user, group and others */
-#define RWX_MODES       0000777	/* mode bits for RWX only */
-#define R_BIT           0000004	/* Rwx protection bit */
-#define W_BIT           0000002	/* rWx protection bit */
-#define X_BIT           0000001	/* rwX protection bit */
-#define I_NOT_ALLOC     0000000	/* this inode is free */
-
-/* Type definitions */
-typedef unsigned short unshort;	/* must be 16-bit unsigned */
-typedef unshort block_nr;	/* block number */
-typedef unshort inode_nr;	/* inode number */
-typedef unshort zone_nr;	/* zone number */
-typedef unshort bit_nr;		/* if inode_nr & zone_nr both unshort,
-				   then also unshort, else long */
-
-typedef unshort sect_nr;
-
-typedef long zone_type;		/* zone size */
-typedef unshort mask_bits;	/* mode bits */
-typedef unshort dev_nr;		/* major | minor device number */
-typedef char links;		/* number of links to an inode */
-typedef long real_time;		/* real time in seconds since Jan 1, 1970 */
-typedef long file_pos;		/* position in, or length of, a file */
-typedef short uid;		/* user id */
-typedef char gid;		/* group id */
-
-/* Tables sizes */
-#define NR_ZONE_NUMS       9	/* # zone numbers in an inode */
-#define NAME_SIZE         14	/* # bytes in a directory component */
-
-/* Miscellaneous constants */
-#define SUPER_MAGIC   0x137F	/* magic number contained in super-block */
-
-#define BOOT_BLOCK  (block_nr)0	/* block number of boot block */
-#define SUPER_BLOCK (block_nr)1	/* block number of super block */
-#define ROOT_INODE  (inode_nr)1	/* inode number for root directory */
-
-/* Derived sizes */
-#define NR_DZONE_NUM     (NR_ZONE_NUMS-2)		/* # zones in inode */
-#define INODES_PER_BLOCK (BLOCK_SIZE/sizeof(d_inode))	/* # inodes/disk blk */
-#define NR_INDIRECTS     (BLOCK_SIZE/sizeof(zone_nr))	/* # zones/indir blk */
-#define INTS_PER_BLOCK   (BLOCK_SIZE/sizeof(int))	/* # integers/blk */
-
-struct super_block {
-  inode_nr s_ninodes;		/* # usable inodes on the minor device */
-  zone_nr s_nzones;		/* total device size, including bit maps etc */
-  unshort s_imap_blocks;	/* # of blocks used by inode bit map */
-  unshort s_zmap_blocks;	/* # of blocks used by zone bit map */
-  zone_nr s_firstdatazone;	/* number of first data zone */
-  short s_log_zone_size;	/* log2 of blocks/zone */
-  file_pos s_max_size;		/* maximum file size on this device */
-  short s_magic;		/* magic number to recognize super-blocks */
-
-} ;
-
-/* Type definitions local to the File System. */
-typedef struct {		/* directory entry */
-  inode_nr d_inum;		/* inode number */
-  char d_name[NAME_SIZE];	/* character string */
-} dir_struct;
-
-/* Declaration of the disk inode used in rw_inode(). */
-typedef struct {		/* disk inode.  Memory inode is in "inotab.h" */
-  mask_bits i_mode;		/* file type, protection, etc. */
-  uid i_uid;			/* user id of the file's owner */
-  file_pos i_size;		/* current file size in bytes */
-  real_time i_modtime;		/* when was file data last changed */
-  gid i_gid;			/* group number */
-  links i_nlinks;		/* how many links to this file */
-  zone_nr i_zone[NR_ZONE_NUMS];	/* block nums for direct, ind, and dbl ind */
-} d_inode;
-
-/****************************************************************************/
-
-#ifdef zone_shift
-#if zone_shift == 0
-#define load_zone load_block
-#endif
-#else
-static short     zone_shift;
-#endif
+/* /* */
 
 /* The name of the file and inode to start */
 extern char bootfile[];
@@ -222,8 +125,10 @@ extern unsigned ldaddr;
 extern dir_struct * dirptr;
 extern unsigned flength;
 
+#ifndef HARDDISK
 /* The 'shape' of the floppy - intuit from superblock */
 extern unsigned n_sectors;
+#endif
 
 /*
  * #define b_super	(*(struct super_block *) 1024)
@@ -237,16 +142,19 @@ extern zone_nr            b_zone[NR_INDIRECTS];
 extern dir_struct         directory[];
 
 /****************************************************************************/
+/* /* */
 
 #asm
 ! A few variables we need to know the positions of for patching, so export
 ! them and as86_encaps will make some variables.
 .text
-export	_inode			! Inode to search
+export	inode			! Inode to search
+inode:
 _inode: .word	1		! ROOT_INODE
 
-export	_bootfile		! File to boot, make this whatever you like,
-_bootfile:			! 'boot' is good too.
+export	bootfile		! File to boot, make this whatever you like,
+bootfile:			! 'boot' is good too.
+_bootfile:
    .ascii	"linux"
    .byte	0,0,0,0,0,0,0,0,0
 
@@ -266,6 +174,9 @@ code:
 
 #endasm
 
+/************************************/
+/* Hard disk device driver          */
+/************************************/
 #ifdef HARDDISK
 
 #asm
@@ -319,7 +230,7 @@ real_block:
 
 !
 ! Load AL sectors from linear sector DX:CX into location ES:BX
-! Linear sector zero is a [bootpart]
+! Linear sector zero is at [bootpart]
 ! This loads one sector at a time, but that's OK cause even in the _very_
 ! worst case it'll take no more that 5 seconds to load a 16 bit executable.
 !
@@ -384,10 +295,20 @@ onesect:
   pop	bx	! ES:BX for int 1302
   pop	es
 
+  mov	di,#5	! Lots of retries for a hd
+retry:
   mov	ax,#$0201
   int	$13
-  jc	_nogood
+  jnc	got_hd_sect
 
+  xor	ax,ax	! Reset between each try.
+  int	$13
+
+  dec	di
+  jnz	retry
+  jmp	_nogood
+
+got_hd_sect:
   pop	dx
   pop	cx
   pop	si
@@ -402,62 +323,9 @@ onesect:
 #endasm
 
 #else
-#asm
-_set_bpb:
-bios_tabl=dosfs_stat		! Temp space.
-bios_disk=dosfs_stat+4		!
-
-#ifndef __CALLER_SAVES__
-  push	si
-  push	di
-#endif
-
-  mov	di,#bios_disk
-  mov	bx,#0x78		
-! 0:bx is parameter table address
-
-  push	ds
-  push	di
-
-  mov	si,[bx]
-  mov	ax,[bx+2]
-  mov	[bios_tabl],si
-  mov	[bios_tabl+2],ax
-  push	ax
-
-  pop	ds
-! ds:si is source
-
-! copy 12 bytes
-  mov	cl,#6			
-  cld
-  rep
-  movsw
-
-  pop	di
-  pop	ds
-  mov	ax,[_n_sectors]
-  movb	4[di],al		! patch sector count
-
-  mov	[bx],di
-  mov	2[bx],es
-
-#ifndef __CALLER_SAVES__
-  pop	si
-  pop	di
-#endif
-  ret
-
-_unset_bpb:
-! 0:0x78 is parameter table address
-
-  mov	ax,[bios_tabl]
-  mov	[0x78],ax
-  mov	ax,[bios_tabl+2]
-  mov	[0x78+2],ax
-  ret
-
-#endasm
+/************************************/
+/* Floppy disk device driver        */
+/************************************/
 
 static
 load_block(address, blkno)
@@ -505,6 +373,8 @@ static
 get_now()
 {
 #asm
+  mov	si,#5
+retry_get:
   xor	dx,dx
   mov	cx,[_firstsect]
   shr	ch,#1
@@ -515,8 +385,13 @@ get_now()
   test	ax,ax
   jz	no_load
   mov	ah,#2
+  int	$13		! Try fetch
+  jnc	no_load
+  xor	ax,ax		! Bad, retry.
   int	$13
-  jc	nogood
+  dec	si
+  jnz	retry_get
+  jmp	nogood
 no_load:
   xor	ax,ax
   mov	[_loadcount],ax
@@ -548,7 +423,47 @@ zero_block(address)
 #endasm
 }
 
-#endif /* !HARDDISK */
+#ifdef TRY_FLOPPY
+#asm
+!-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+!
+! These are the number of sectors per track that will be scanned for.
+! For 3.5 inch floppies 36 is 2.88 Mb, 18 is 1.44Mb, 21 is 1.68Mb on
+! a 1.44Mb floppy drive. 15 and 9 are for 5.25 inch floppies.
+
+disksizes: .byte 36,21,18,15,9
+
+! It seems that there is no BIOS call to get the number of sectors.  Guess
+! 36 sectors if sector 36 can be read, 18 sectors if sector 18 can be read,
+! 15 if sector 15 can be read.  Otherwise guess 9.
+
+_probe_sectors:
+	mov	si,#disksizes		! table of sizes to try
+
+probe_loop:
+	lodsb
+	cbw				! extend to word
+	mov	_n_sectors, ax
+	cmp	al,#9
+	je	got_sectors		! if all else fails, try 9
+	xchg	ax, cx			! cx = track and sector
+	xor	dx, dx			! drive 0, head 0
+	mov	bx,#probe_buf 		! address after setup (es = cs)
+	mov	ax,#0x0201		! service 2, 1 sector
+	int	0x13
+	jc	probe_loop		! try next value
+got_sectors:
+
+	ret
+#endasm
+#else
+probe_sectors()
+{
+   n_sectors = b_super.s_nzones / 80;
+   if( n_sectors < 5 ) n_sectors = b_super.s_nzones / 40;
+}
+#endif
+#endif
 
 #ifdef DOTS
 static
@@ -566,10 +481,10 @@ bios_putc(c)
 }
 #endif
 
+#if defined(HARDDISK) && !defined(SKIPBOOT)
 static
 nogood()
 {
-#ifdef HARDDISK
 #asm
   mov	si,#fail_fs
 min_nextc:
@@ -589,7 +504,13 @@ min_eos:		! Wait for a key then reboot
 fail_fs:
   .asciz	"Inital boot failed, press return to reboot\r\n"
 #endasm
+}
+
 #else
+
+static
+nogood()
+{
 /* This didn't work, chain the boot sector of the HD */
 #asm
   push	cs
@@ -603,8 +524,8 @@ hcode:
   jc	hcode			! Keep trying forever!
   jmpi	BOOTADDR,0
 #endasm
-#endif
 }
+#endif
 
 /****************************************************************************/
 #asm
@@ -616,6 +537,8 @@ end_of_part1:
 #endasm
 
 /****************************************************************************/
+/* Part two, code to load directories then a file into memory from the device 
+ */
 
 static
 loadprog()
@@ -624,10 +547,9 @@ loadprog()
    bios_putc('+');
 #endif
    if( b_super.s_magic != SUPER_MAGIC ) nogood();
-   n_sectors = b_super.s_nzones / 80;
-   if( n_sectors < 5 ) n_sectors = b_super.s_nzones / 40;
-
 #ifndef HARDDISK
+   probe_sectors();
+
    set_bpb();
 #endif
 
@@ -723,20 +645,80 @@ register char * p = dirptr->d_name;
 #endif
 }
 
+#ifndef HARDDISK
+#asm
+_set_bpb:
+bios_tabl=dosfs_stat		! Temp space.
+bios_disk=dosfs_stat+4		!
+
+#ifndef __CALLER_SAVES__
+  push	si
+  push	di
+#endif
+
+  mov	di,#bios_disk
+  mov	bx,#0x78		
+! 0:bx is parameter table address
+
+  push	ds
+  push	di
+
+  mov	si,[bx]
+  mov	ax,[bx+2]
+  mov	[bios_tabl],si
+  mov	[bios_tabl+2],ax
+  push	ax
+
+  pop	ds
+! ds:si is source
+
+! copy 12 bytes
+  mov	cl,#6			
+  cld
+  rep
+  movsw
+
+  pop	di
+  pop	ds
+  mov	ax,[_n_sectors]
+  movb	4[di],al		! patch sector count
+
+  mov	[bx],di
+  mov	2[bx],es
+
+#ifndef __CALLER_SAVES__
+  pop	si
+  pop	di
+#endif
+  ret
+
+_unset_bpb:
+! 0:0x78 is parameter table address
+
+  mov	ax,[bios_tabl]
+  mov	[0x78],ax
+  mov	ax,[bios_tabl+2]
+  mov	[0x78+2],ax
+  ret
+
+#endasm
+#endif
+
 static
 runprog()
 {
-/* This did work, run the loaded executable */
+/* It all worked, run the loaded executable */
 #asm
 #ifdef HARDDISK
   mov	dx,[bootpart+2]
   xchg	dh,dl		! DX => hard drive
   push	[bootpart]	! CX => partition offset
+  xor	si,si
 #else
   xor	dx,dx		! DX=0 => floppy drive
   push	dx		! CX=0 => partition offset = 0
-#endif
   mov	si,[_n_sectors]	! Save for monitor.out
+#endif
 
   mov	bx,#LOADSEG
   mov	ds,bx		! DS = loadaddress
@@ -787,7 +769,9 @@ islu:
 libend:
 
 vars:
+#ifndef HARDDISK
 _n_sectors:	.word 0
+#endif
 _next_zone:	.word 0
 _end_zone:	.word 0
 _indirect:	.word 0
@@ -798,7 +782,7 @@ varend:
 
 end_of_prog:
   if *>start+0x400
-     fail
+     fail! Part 2 too large!
   endif
 
   .blkb	0x3FF+start-*
@@ -807,6 +791,7 @@ end_of_prog:
 _b_super:	.blkb 1024
 _b_inode:	.blkb 1024
 _b_zone:	.blkb 1024
+probe_buf:
 _directory:	.blkb 32768
 
 #endasm

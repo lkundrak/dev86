@@ -1,12 +1,11 @@
 
-#define VERSION "0.1.1-ALPHA"
-
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
 #include <dos.h>
 #include "i86_funcs.h"
 #include "readfs.h"
+#include "version.h"
 
 #ifdef __STANDALONE__
 #define NOT_VT52COLOUR
@@ -60,7 +59,7 @@ static char minibuf[2] = " ";
       if( x86 > 2 && !x86_emu )	/* Check some basics */
          cmd_bzimage((void*)0);
       else
-         printf("System is not a 386+ in real mode, load aborted.\nUse 'bzimage' command toattempt load.\n");
+         printf("System is not an 80386 compatible in real mode, load aborted.\nUse 'bzimage' command to attempt load.\n");
    }
 
    for (;;)
@@ -135,7 +134,11 @@ void init_prog()
 #ifdef VT52COLOUR
    printf("\033E\033Rg\033Sa\033J");
 #endif
-   printf("Linux x86 boot monitor Version %s\n", VERSION);
+#ifdef VERSION
+   printf("Linux x86 boot monitor, Version %s.\n", VERSION);
+#else
+   printf("Linux x86 boot monitor.\n");
+#endif
 
    cpu_check();
    mem_check();

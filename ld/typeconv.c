@@ -156,6 +156,8 @@ unsigned count;
 {
     switch (count)
     {
+    case 0:
+    	return 0;
     case 1:
 	return buf[0] & 0xFF;
     case 2:
@@ -174,6 +176,8 @@ unsigned count;
 {
     switch (count)
     {
+    case 0:
+	return 0;
     case 1:
 	return buf[0] & 0xFF;
     case 2:

@@ -1,4 +1,8 @@
-/*
+/* Copyright (C) 1989,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
+ * This file is part of the Linux-8086 C library and is distributed
+ * under the terms of the GNU Library General Public License.
+ **********************************************************************
+ *
  * This does a determination of the cpu type that is actually being used.
  * It can determine the CPU on anything upto and including a 386 accuratly
  * whatever mode the CPU is in (This is 16 bit code)
@@ -12,18 +16,6 @@
  * $ cputype	       # Call cputype(0) and interpret
  * $ cputype +	       # Call cputype(1) get a SIGILL (or perhaps interpret)
  *
- * NOTE: This code is COPYRIGHT and not under the GNU Lib copyright, this
- *	 may be distributed freely as source or as a standalone binary
- *	 compiled from this unmodified source.
- *
- *	 You may use the cputype() function in your own personal code.
- *	 You may distribute a binary version of code containing the
- *	 cputype() function if either you distribute this source with
- *	 the binary version or distribute a clear reference to a freely
- *	 available copy of this source code and the source code to the
- *	 rest of your package with the binary version of the package.
- *
- *  (C) Copyright R de Bath 1989-1996
  */
 
 #ifdef STANDALONE

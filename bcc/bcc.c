@@ -22,7 +22,7 @@
 #define PUBLIC
 #define TRUE	1
 
-#ifdef __STDC__
+#if __STDC__ == 1
 #define P(x)	x
 #define HASHIT(x) #x
 #define QUOT(x) HASHIT(x)
@@ -45,7 +45,7 @@
 #define EXESUF
 #endif
 
-#if defined(__minix) || defined(_AIX)
+#if defined(__minix) || defined(_AIX) || defined(__BCC__)
 #define realpath(x,y) 0
 #endif
 
@@ -76,7 +76,11 @@
 #define STANDARD_CRT0_0_PREFIX	"~/lib/bcc/i86/"
 #define STANDARD_CRT0_3_PREFIX	"~/lib/bcc/i386/"
 #define STANDARD_EXEC_PREFIX	"~/lib/bcc/"
+#ifdef BINDIR
+#define STANDARD_EXEC_PREFIX_2	QUOT(BINDIR) "/"
+#else
 #define STANDARD_EXEC_PREFIX_2	"/usr/bin/"
+#endif
 #define DEFAULT_INCLUDE         "-I~/include"
 #define DEFAULT_LIBDIR0         "-L~/lib/bcc/i86/"
 #define DEFAULT_LIBDIR3         "-L~/lib/bcc/i386/"
@@ -1094,9 +1098,15 @@ int mode;
 	}
 	ppath = expand_tilde(stralloc2(prefix->name, path), 1);
 	if (verbosity > 2)
-	    writesn(ppath);
+	    writes(ppath);
 	if (access(ppath, mode) == 0)
+	{
+	    if (verbosity > 2)
+	        writesn(" - found.");
 	    return ppath;
+	}
+	if (verbosity > 2)
+	    writesn(" - nope.");
 	free(ppath);
     }
     return path;

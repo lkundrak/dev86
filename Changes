@@ -1,3 +1,39 @@
+For version 0.13.0.
+
+> Added '-g' to gcc options, make sure install has '-s' to strip symbols.
+
+> Grrrr, missing files in bootblocks directory, I didn't have them all.
+  OK, as part of the dist script I'll have to do a 'make other' ...
+  Some other bits there too ...
+
+> Minor alteration to opening files in ld to fix problem when share.exe
+  loaded under dos.
+
+> Added Config.dflt for default libc configuration flags. I can now
+  re-introduce Joel's standard I/O functions ... but they haven't
+  been updated in a while ...
+
+> Addition to minix.c to use allow BB to determine the track size by
+  trial and error (not intuit from superblock) to allow mis-sized
+  filesystems on a floppy. Also add some error retries to the floppy
+  version.
+
+> Can now do 'use16 8086' in assembler instead of 'use16 86' also
+  'use16 80386'
+
+> Add 'make install-ln', this installs _symbolic_links_ to the dev
+  directory in the normal directories. This means you don't have
+  to do a make install after re-compiling. But it also means the
+  'install' is dependent on the dev dirs.
+
+> Add ability to use overrides on the comand line of the initial make,
+  and have them saved, for CC, CFLAGS, LDFLAGS, PREFIX, BINDIR and LIBDIR.
+  Includes minor alteration to bcc.c and as86_encap.
+
+> Added in 'objchop' as an option in the ld directory.
+
+> Removed too eager 'typeconv.c' warning.
+
 For version 0.12.0.
 
 > Notice the change in the version numbers, as long as I'm releasing the

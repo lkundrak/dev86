@@ -6,14 +6,16 @@
 main()
 {
    rm -f .config.tmp
-   ALLON=no
+   ALLON=yes
 
-   if [ -f .config.lst ]
+   if [ "$ALLON" = yes -a -f .config.lst ]
    then grep '^[^:]*:+:' .config.lst > .config.tmp
-        if [ ! -s .config.tmp ]
-        then ALLON=yes
-        fi
-   else ALLON=yes
+        [ -s .config.tmp ] && ALLON=no
+   fi
+
+   if [ "$ALLON" = yes -a -f Config.dflt ]
+   then grep '^[^:]*:+:' Config.dflt > .config.tmp
+        [ -s .config.tmp ] && ALLON=no
    fi
 
    egrep -v '^#|^$' /dev/null */[Cc]onfig | \

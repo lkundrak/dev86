@@ -137,7 +137,11 @@ blk_uid:	.blkb	8
 blk_gid:	.blkb	8
 blk_size:	.blkb	12
 blk_mtime:	.asciz	"6141567743 "
-blk_chksum:	.asciz	" 131141"
+if DEBUG
+blk_chksum:	.asciz	" 142273"
+else
+blk_chksum:	.asciz	" 127270"
+endif
 blk_link:	.byte	'V
 
 ! Sneaks here, overlay zero init vars on tar data.
@@ -476,14 +480,16 @@ endif
 
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-if DEBUG = 0
-  locn(510)
 ! This isn't a hard disk boot sector so don't give it an HD magic
+! locn(510)
 !  .word 0xAA55
+if DEBUG = 0
+locn(510)
   .word	0
 endif
 
 ! From here down is where we load stuff.
+locn(512)
 
 blk_load:			! Address of block load
 tar_name:	.blkb	100

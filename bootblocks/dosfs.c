@@ -298,14 +298,12 @@ static int pend_s, pend_h, pend_c, pend_len = 0;
        pend_h != phy_h ||
        pend_c != phy_c )
    {
-/*
-printf("phy_read(%d,%d,%d,%d,%d,%d);\n",
-   drive, pend_c, pend_h, pend_s+1, pend_len, buf_start);
-*/
       if( buf_start ) do
       {
         rv = phy_read(drive, pend_c, pend_h, pend_s+1, pend_len, buf_start);
         tries--;
+        if( rv ) printf("Error in phy_read(%d,%d,%d,%d,%d,%d);\n",
+                         drive, pend_c, pend_h, pend_s+1, pend_len, buf_start);
       }
       while(rv && tries > 0);
 

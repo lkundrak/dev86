@@ -227,6 +227,8 @@ static unsigned int last_address = 0;
 	 for(i=0; i<512; i++)
 	    __poke_es(i, buffer[i]);
       }
+      else
+         printf("In EMU can't write to 0x%x\n", address);
       return 0;
    }
 #endif

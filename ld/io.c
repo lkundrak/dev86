@@ -121,8 +121,10 @@ int level;
 
 PUBLIC void executable()
 {
+#ifndef MSDOS
     if (errcount == 0)
 	chmod(outputname, outputperms);
+#endif
 }
 
 PUBLIC void flusherr()
@@ -179,15 +181,18 @@ char *filename;
 
     outputname = filename;
 #ifdef O_BINARY
-    if ((outfd = open(filename, O_BINARY|O_RDWR|O_CREAT|O_TRUNC, CREAT_PERMS)) == ERR)
+    if ((outfd = open(filename, O_BINARY|O_WRONLY|O_CREAT|O_TRUNC, CREAT_PERMS)) == ERR)
 #else
     if ((outfd = creat(filename, CREAT_PERMS)) == ERR)
 #endif
 	outputerror("cannot open");
 
+#ifndef MSDOS
+    /* Can't do this on MSDOS; it upsets share.exe */
     oldmask = umask(0); umask(oldmask);
     outputperms = ((CREAT_PERMS | EXEC_PERMS) & ~oldmask);
     chmod(filename, outputperms & ~EXEC_PERMS);
+#endif
 
 #ifdef REL_OUTPUT
     drelbufptr = drelbuf;

@@ -94,3 +94,4 @@ extern volatile struct vm86_struct elks_cpu;
 
 void db_printf(const char *, ...);
 int elks_syscall(void);
+void minix_syscall(void);

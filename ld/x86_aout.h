@@ -9,7 +9,7 @@
 #define __AOUT_H
 
 /* If the host isn't an x86 all bets are off, use chars. */
-#if defined(i386) || defined(__BCC__)
+#if defined(i386) || defined(__BCC__) || defined(MSDOS)
 typedef long Long;
 #define __OUT_OK 1
 #else

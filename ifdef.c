@@ -167,6 +167,7 @@ char * fname;
       }
    }
    fclose(fd);
+   if( iflevel != 0 ) fatal("Not enough endif's");
 }
 
 void
@@ -322,6 +323,14 @@ manifest_constant()
 #ifdef GNUMAKE
    save_name("GNUMAKE", 'D');
 #endif
+   if( sizeof(int) < 4 )
+      save_name("__SMALL_INTS__", 'D');
+   if( sizeof(char *) <= 2 )
+      save_name("__SMALL_MEMORY__", 'D');
+   if( sizeof(long) == 4 )
+      save_name("__LONG_32_BIT__", 'D');
+   if( sizeof(int) == 8 )
+      save_name("__LONG_64_BIT__", 'D');
 
 /* MSDOS */
 #ifdef MSDOS

@@ -1,9 +1,3 @@
-
-/*
- * System calls are mostly pretty easy as the emulator is tightly bound to
- * the minix task.
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

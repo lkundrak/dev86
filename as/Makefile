@@ -15,7 +15,8 @@ as86: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -o as86
 
 as86_encap: as86_encap.sh
-	sed "s:%%LIBDIR%%:$(LIBDIR):" < as86_encap.sh > tmp
+	sed -e "s:%%LIBDIR%%:$(LIBDIR):" -e "s:%%BINDIR%%:$(BINDIR):" \
+		< as86_encap.sh > tmp
 	@mv -f tmp as86_encap
 	chmod +x as86_encap
 	

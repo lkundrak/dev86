@@ -27,6 +27,7 @@
 #CC=bcc
 CFLAGS=-O
 LDFLAGS=
+BINDIR=/usr/bin
 
 OBJ = disrel.o dismain.o distabs.o dishand.o disfp.o
 
@@ -36,8 +37,8 @@ dis88:	$(OBJ)
 	$(CC) $(LDFLAGS) -o dis88 $(OBJ)
 
 install:	dis88
-	install -m 755 -s dis88   $(DIST)/usr/bin/dis88
-	install -m 644    dis88.1 $(DIST)/usr/man/man1/dis88.1
+	install -m 755 -s dis88   $(DIST)$(BINDIR)/dis86
+	install -m 644    dis88.1 $(DIST)/usr/man/man1/dis86.1
 
 $(OBJ): dis.h a.out.h
 

@@ -9,7 +9,7 @@ CFLAGS	=-O
 LDFLAGS	=-s
 BINDIR	=/usr/bin
 LIBDIR	=/usr/lib/bcc
-BCCDEFS	=-DLOCALPREFIX=$(PREFIX) -DDEFARCH=0
+BCCDEFS	=-DLOCALPREFIX=$(PREFIX) -DBINDIR=$(BINDIR) -DDEFARCH=0
 
 OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \
 	function.o gencode.o genloads.o glogcode.o hardop.o input.o label.o \
@@ -37,7 +37,7 @@ ccc: bcc.c
 	$(CC) $(ANSI) $(CFLAGS) -DCCC $(BCCDEFS) $(LDFLAGS) bcc.c -o $@
 
 bcc-cc1: $(OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) -o bcc-cc1
+	$(CC) $(BCCARCH) $(LDFLAGS) $(OBJS) -o bcc-cc1
 
 clean realclean:
 	rm -f bcc bcc-cc1 ncc bcc09 ccc bcc.o $(OBJS)
@@ -48,3 +48,6 @@ $(OBJS):  bcc.h align.h const.h types.h \
 	  input.h label.h os.h output.h \
 	  parse.h proto.h reg.h sc.h scan.h \
 	  sizes.h table.h type.h
+
+.c.o:
+	$(CC) $(BCCARCH) $(CFLAGS) -c $<

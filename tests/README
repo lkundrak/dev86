@@ -18,7 +18,4 @@ wc.c	Word,line and character counts.
 grab.c	Grabs _all_ available memory (3GB+ on Linux-i386) then frees
 rand.c	Generates random numbers and pipes them to 'hd'
 
-BTW: i386 OMAGIC files can be converted to deformed ELFs with this:
-    $ objcopy -O elf32-i386 sync
-
 -Robert

@@ -1006,7 +1006,9 @@ PUBLIC void puse16()
 	absexpres();
 	if (lastexp.data & UNDBIT)
 	    return;
-        if( lastexp.offset > 15 )
+        if( lastexp.offset > 8000 )
+	   setcpu((int) lastexp.offset / 100 % 10);
+        else if( lastexp.offset > 15 )
 	   setcpu((int) lastexp.offset / 100);
 	else
 	   setcpu((int) lastexp.offset);

@@ -7,26 +7,34 @@ CC=$(BCC)
 CFLAGS=-ansi -Ms -H0x10000 -s
 ASFLAGS=-0
 # LST=-l $*.lst
+# CLST=-A-l -A$*.lst
 
 default: makeboot makeboot.com monitor.out
 
 all: default tgz bin 
 
 CSRC=minix.c
-SSRC=tarboot.s skip.s com_bcc.s tich.s sysboot.s bootlist.s mbr.s msdos.s
+SSRC=sysboot.s \
+     tarboot.s skip.s com_bcc.s tich.s \
+     bootlist.s mbr.s msdos.s noboot.s
 
 encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v
 bin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin
 
 MOBJ=monitor.o i86_funcs.o relocate.o help.o bzimage.o dosfs.o nofs.o
 MSRC=monitor.c i86_funcs.c relocate.c help.c bzimage.c dosfs.c nofs.c
+MINC=i86_funcs.h readfs.h
+
+EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s
 
 install:
 
 monitor.out: $(MOBJ)
 	$(CC) $(CFLAGS) $(MOBJ) -o monitor.out
 
-monitor: $(MSRC)
+$(MOBJ): $(MINC) version.h
+
+monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
 	make 'CFLAGS=-ansi' monitor.out
 	mv monitor.out monitor
@@ -38,35 +46,42 @@ minix.s: minix.c
 minixhd.s: minix.c
 	$(BCC) -Mc -DHARDDISK -S minix.c -o minixhd.s
 
-makeboot:	makeboot.c sysboot.v skip.v msdos.v tarboot.v
+makeboot:	makeboot.c sysboot.v noboot.v skip.v msdos.v tarboot.v
 	$(HOSTCC) $(HOSTCCFLAGS) -o makeboot makeboot.c
 
-makeboot.com:	makeboot.c sysboot.v skip.v msdos.v tarboot.v
+makeboot.com:	makeboot.c sysboot.v noboot.v skip.v msdos.v tarboot.v
 	$(BCC) -Md -o makeboot.com makeboot.c
+
+version.h:
+	head -1 ../Libc_version | \
+	sed 's/\(.*\)/#define VERSION "\1"/' > version.h
 
 clean realclean:
 	rm -f monitor makeboot bootblocks.tar.gz
-	rm -f minix.s *.com *.o *.bin *.out *.lst *.sym *.v
+	rm -f minix.s minixhd.s version.h
+	rm -f *.com *.o *.bin *.out *.lst *.sym *.v *.tmp
 
 tgz: minix.bin monitor.out makeboot.com makeboot
 	tar cfV bootblocks.tar ENIAC monitor.out \
 	        README Makefile \
-		$(MSRC) makeboot.c \
-		$(CSRC) $(SSRC) \
-		makeboot.com minix.bin
+		$(MSRC) \
+		$(MINC) \
+		makeboot.c $(CSRC) \
+		$(SSRC) \
+		makeboot.com minix.bin \
+		$(EXTRAS)
 	makeboot tar bootblocks.tar
 	gzip -f9 bootblocks.tar
 
 distribution:
-	tar czf /tmp/bootblocks.tar.gz README Makefile \
-		$(MSRC) makeboot.c \
-		$(CSRC) $(SSRC)
+	tar czf /tmp/bootblocks.tar.gz \
+	   README Makefile $(MSRC) $(MINC) makeboot.c $(CSRC) $(SSRC) $(EXTRAS)
 
 .SUFFIXES: .bin .v
 
 .s.bin:
-	$(BCC) -c $*.s -A-u- -A-b -A/tmp/$*.bin -A-s -A$*.sym -A-l -A$*.lst
-	-@mv /tmp/$*.bin $*.bin
+	$(BCC) -c $*.s -A-u- -A-b -A$*.tmp -A-s -A$*.sym $(CLST)
+	mv $*.tmp $*.bin
 	-@rm $*.o
 
 .s.v:

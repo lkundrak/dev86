@@ -13,10 +13,11 @@
 
 # Defaults, generic C
 ARFLAGS =r
-CFLAGS	=-O
-LDFLAGS	=-s
+CC      =%CC%
+CFLAGS	=%CFLAGS%
+LDFLAGS	=
 MAKEARG	=CC='$(CC)' CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' PREFIX=$(PREFIX) \
-         LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)'
+         LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' ANSI='$(ANSI)'
 MAKEC=$(MAKE) -C
 MAKEX=
 
@@ -32,11 +33,10 @@ WALL  =-Wstrict-prototypes
 
 CC	=gcc $(GCCFLAG)
 #ifdef __i386__
-CFLAGS	=-Wall $(WALL) -O2 -m486 -fno-strength-reduce
+CFLAGS	=-Wall $(WALL) -O2 -m486 -fno-strength-reduce -g
 #else
-CFLAGS	=-Wall $(WALL) -O2 -fno-strength-reduce
-#endf
-LDFLAGS	=-s
+CFLAGS	=-Wall $(WALL) -O2 -fno-strength-reduce -g
+#endif
 #endif
 
 #ifndef GNUMAKE
@@ -52,19 +52,21 @@ CFLAGS=-O -m -w -DPOSIX_HEADERS_MISSING -DVERY_SMALL_MEMORY
 #endif
 
 #ifdef __BCC__
-CC	=bcc
+ANSI    =-ansi
 #ifdef __AS386_32__
 CFLAGS	=-3
 LDFLAGS	=-3 -s -N
 #else
 CFLAGS	=-0
 LDFLAGS	=-0 -s -H10000
+BCCARCH =-Mf
 #endif
 #endif
 
 # Alter these if for some reason you don't want this done as root.
 INDAT=-o root -g root -m 644
-INEXE=-o root -g root -m 755
+INEXE=-o root -g root -m 755 -s
+INSCR=-o root -g root -m 755
 
 all: check_config bcc unproto copt as86 ld86 library alt-libs elksemu 
 
@@ -76,10 +78,10 @@ install-all: install install-other
 
 LIBARGS= CC=ncc CCFLAGS= ARFLAGS=$(ARFLAGS)
 
-# Season to taste
-PREFIX=	 /usr/bcc
-BINDIR=	 /usr/bin
-LIBDIR=  $(PREFIX)/lib/bcc
+# Season in the top makefile
+PREFIX=	 %PREFIX%
+BINDIR=	 %BINDIR%
+LIBDIR=  %LIBDIR%
 
 DISTBIN= $(DIST)$(BINDIR)
 DISTLIB= $(DIST)$(LIBDIR)
@@ -100,8 +102,8 @@ bindir: $(MAKEX)
 phony:
 
 bcc: bindir
-	$(MAKEC) bcc $(MAKEARG) bcc ncc bcc-cc1
-	cp -p bcc/bcc bin/bcc
+	$(MAKEC) bcc $(MAKEARG) BCCARCH=$(BCCARCH) bcc ncc bcc-cc1
+	cp -p bcc/bcc bin/Bcc
 	cp -p bcc/ncc bin/ncc
 	cp -p bcc/bcc-cc1 lib/bcc-cc1
 
@@ -124,13 +126,25 @@ ld86: bindir
 	cp -p ld/ld86 bin/ld86
 
 elksemu: bindir
-	$(MAKEC) elksemu $(MAKEARG) elksemu
+	$(MAKEC) elksemu \
+	CC='$(CC)' PREFIX=$(PREFIX) LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' \
+	elksemu
 	cp -p elksemu/elksemu bin/elksemu
+
+install-ln: bcc unproto copt as86 ld86 elksemu
+	install -d $(DISTBIN)
+	ln -fs `pwd`/bin/ncc		$(DISTBIN)/bcc
+	ln -fs `pwd`/bin/as86_encap	$(DISTBIN)/as86_encap
+	ln -fs `pwd`/bin/as86 		$(DISTBIN)/as86
+	ln -fs `pwd`/bin/ld86 		$(DISTBIN)/ld86
+	ln -fs `pwd`/bin/elksemu 	$(DIST)/lib/elksemu
+	install -d $(DIST)/usr/lib
+	install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
 
 install-bcc: bcc unproto copt as86 ld86
 	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
-	install $(INEXE) bin/bcc 	$(DISTBIN)/bcc
-	install $(INEXE) bin/as86_encap	$(DISTBIN)/as86_encap
+	install $(INEXE) bin/Bcc 	$(DISTBIN)/bcc
+	install $(INSCR) bin/as86_encap	$(DISTBIN)/as86_encap
 	install $(INEXE) bin/as86 	$(DISTBIN)/as86
 	install $(INEXE) bin/ld86 	$(DISTBIN)/ld86
 	install $(INEXE) lib/bcc-cc1 	$(DISTLIB)/bcc-cc1
@@ -140,6 +154,7 @@ install-bcc: bcc unproto copt as86 ld86
 	@test ! -f $(DISTLIB)/as86 || rm -f $(DISTLIB)/as86
 	@test ! -f $(DISTLIB)/ld86 || rm -f $(DISTLIB)/ld86
 
+# NB: This doesn't install as a suid root, that's ok though.
 install-emu: elksemu
 	install -d $(DIST)/lib
 	install $(INEXE) bin/elksemu 	$(DIST)/lib/elksemu
@@ -173,6 +188,7 @@ lib/lib1-done:
 	$(MAKE) -f make.fil alt-libs
 
 library: bindir
+	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-ELKS
 	cp -p libc/crt0.o libc/libc.a lib/.
 	@touch lib/lib0-done
@@ -181,22 +197,27 @@ alt-libs: lib-bsd lib-fast lib-stand lib-dos lib-386
 	@touch lib/lib1-done
 
 lib-bsd: bindir
+	test -f bin/ncc
 	$(MAKEC) libbsd $(LIBARGS)
 	cp -p libbsd/libbsd.a lib/libbsd.a
 
 lib-fast: bindir
+	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-FAST
 	cp -p libc/libc_f.a lib/libc_f.a
 
 lib-stand: bindir
+	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-BIOS
 	cp -p libc/libc_s.a lib/libc_s.a
 
 lib-dos: bindir
+	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-DOS
 	cp -p libc/libdos.a lib/libdos.a
 
 lib-386: bindir
+	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i386-BCC
 	cp -p libc/crt3.o lib/i386/crt0.o
 	cp -p libc/libc3.a lib/i386/libc.a

@@ -4,17 +4,18 @@
 #include <time.h>
 
 #include "sysboot.v"
+#include "noboot.v"
 #include "msdos.v"
 #include "skip.v"
 #include "tarboot.v"
 
 char buffer[1024];
 
-#define FS_NONE	0
-#define FS_ADOS	1
-#define FS_DOS	2
-#define FS_TAR	3
-#define FS_STAT	4
+#define FS_NONE	0	/* Bootsector is complete */
+#define FS_ADOS	1	/* Bootsector needs 'normal' DOS FS */
+#define FS_DOS	2	/* Bootsector needs any DOS FS */
+#define FS_TAR	3	/* Bootsector needs GNU-tar volume label */
+#define FS_STAT	4	/* DOS bootsector is checked */
 
 struct bblist {
    char * name;
@@ -24,7 +25,7 @@ struct bblist {
 } bblocks[] = {
    { "tar",   tarboot_data,  FS_TAR,	"Bootable GNU tar volume lable"      },
    { "dosfs", msdos_data,    FS_ADOS,	"Boots file BOOTFILE.SYS from dosfs" },
-   { "none",  sysboot_data,  FS_DOS,	"No OS bookblock, just message"      },
+   { "none",  noboot_data,   FS_DOS,	"No OS bookblock, just message"      },
    { "skip",  skip_data,     FS_DOS,	"Bypasses floppy boot with message"  },
    { "stat",  0,	     FS_STAT,	"Display dosfs superblock"	     },
    { "copy",  0,	     FS_STAT,	"Copy boot block to makeboot.sav"    },
@@ -41,6 +42,8 @@ int disk_sect = 63;	/* These are initilised to the maximums */
 int disk_head = 256;	/* Set to the correct values when an MSDOS disk is */
 int disk_trck = 256;	/* successfully identified */
 
+int force = 0;
+
 main(argc, argv)
 int argc;
 char ** argv;
@@ -51,6 +54,10 @@ char ** argv;
 
    progname = argv[0];
 
+   if( argc == 4 && strcmp(argv[1], "-f") == 0 )
+   {
+      argv++; argc--; force++;
+   }
    if( argc != 3 ) Usage();
 
    if( (i=strlen(argv[1])) < 2 ) Usage();
@@ -355,12 +362,12 @@ not_zapped:
    if( csum != osum )
    {
       fprintf(stderr, "TAR file checksum failed, this isn't a tar file.\n");
-      exit(9);
+      if(!force) exit(9);
    }
    if( buff_tar.linkflag != 'V' )
    {
       fprintf(stderr, "Tar file doesn't start with a volume label\n");
-      exit(8);
+      if(!force) exit(8);
    }
 
    strcpy(vbuf, boot_tar.name); strcat(vbuf, " Volume 1");
@@ -568,24 +575,26 @@ check_msdos()
    {
       disk_sect = dosflds[DOS_SPT].value;
       disk_head = dosflds[DOS_HEADS].value;
-      disk_trck = dosflds[DOS_MAXSECT].value/disk_head/disk_sect;
+      if( disk_sect > 0 && disk_head > 0 )
+         disk_trck = dosflds[DOS_MAXSECT].value/disk_head/disk_sect;
       return;
    }
-   exit(2);
+   if(!force) exit(2);
 }
 
 check_simpledos()
 {
-   int numclust;
+   int numclust = 0xFFFF;
    char * err = 0;
    check_msdos();
 
    /* Work out how many real clusters there are */
-   numclust = ( dosflds[DOS_MAXSECT].value
-                - dosflds[DOS_RESV].value
-                - dosflds[DOS_NFAT].value * dosflds[DOS_FATLEN].value
-                - ((dosflds[DOS_NROOT].value+15)/16)
-              ) / dosflds[DOS_MAXSECT].value + 2;
+   if( dosflds[DOS_MAXSECT].value + 2 > 2 )
+      numclust = ( dosflds[DOS_MAXSECT].value
+                   - dosflds[DOS_RESV].value
+                   - dosflds[DOS_NFAT].value * dosflds[DOS_FATLEN].value
+                   - ((dosflds[DOS_NROOT].value+15)/16)
+                 ) / dosflds[DOS_MAXSECT].value + 2;
 
    if( dosflds[DOS_NFAT].value > 2 )
       err = "Too many fat copies on disk";
@@ -607,7 +616,7 @@ check_simpledos()
 
    fprintf(stderr, "ERROR: %s\n\n", err);
    print_super(buffer);
-   exit(2);
+   if(!force) exit(2);
 }
 
 /**************************************************************************/

@@ -1,11 +1,6 @@
 This is a development environment for ELKS-86 and standalone 8086 code.
 
-The only hand configuration is to choose one of libc/syscall/syscall.dat.*
-to be used as libc/syscall/syscall.dat The '*.chad' one matches the *.50
-elks kernel but you're best to pickup the one in the kernel you're compiling
-for.
-
-All you then need to do then is 'make' from the top directory and the main
+All you need to do is 'make' from the top directory and the main
 parts of the package will be made. These can be tested by use the 'ncc'
 program from the newly created bin subdirectory.
 
@@ -15,12 +10,17 @@ Use 'make Uninstall' to remove everything (Beware with this though!)
 Some other bits can be built by 'make other' and installed with
 'make install-other'.
 
+If you don't want it to install some bits in /usr/bin you can override
+the bindir on the first make ie: 'make BINDIR=/usr/local/bin' this
+is remembered until 'make.fil' is rebuilt.
+
 The manual pages in the man subdirectory are a start as some pages matched
 to these programs, there are also some hints for using as86 well.
 The tests and bootblocks directories give some example code.
 
 The bcc command defaults to using /usr/bcc/include and /usr/bcc/lib the
 libraries _and_ include files are copied to these locations by install.
+This can be changed by overriding 'PREFIX=...' on the initial make.
 
 All the versions of the library are built by make; 'normal', 'fast', 'MSDOS',
 'standalone' and Linux-i386.
@@ -43,7 +43,8 @@ $ make install-all
 
 The as86 and ld86 with this are _different_ from the ones needed for the
 linux-i386 kernel but can replace them, the kernel-i386 ones _will_ _not_
-work correctly here!
+work correctly here! BUT when this as86 is used for the kernel it will
+complain about every i386 instruction encountered; don't worry, its ok.
 
 I _strongly_ suggest you install the kernel patch or load the module in
 the elksemu directory in your Linux-i386 kernel, it makes things _much_
@@ -55,9 +56,9 @@ This software is for the most part under GPL style copyright, the libc and
 libbsd are covered by the 'weaker' library versions of this document.
 (See the COPYING files in this and the libc directories for details)
 
-The copyrights of other parts are documented in the relevent files. Some
-parts are explicitly PD others like the unproto code have copyrights that
-allow free distribution but are otherwise more vague.
+The copyrights of other parts are documented in the relevent files.
+Some parts are explicitly PD others like the unproto and dis88 code have
+copyrights that allow free distribution but are otherwise more vague.
 
 --
 Rob.                           (Robert de Bath <robert@mayday.cix.co.uk>)
