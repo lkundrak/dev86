@@ -23,7 +23,7 @@
 
 #include <sys/types.h>
 #include <fcntl.h>
-#ifdef __STDC__
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 #include <stdarg.h>
 #define va_strt      va_start
 #else
@@ -35,7 +35,7 @@
 
 #ifdef L_printf
 
-#ifdef __STDC__
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 int printf(const char * fmt, ...)
 #else
 int printf(fmt, va_alist)
@@ -53,7 +53,7 @@ va_dcl
 #endif
 
 #ifdef L_sprintf
-#ifdef __STDC__
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 int sprintf(char * sp, const char * fmt, ...)
 #else
 int sprintf(sp, fmt, va_alist)
@@ -80,7 +80,7 @@ static FILE  string[1] =
 #endif
 
 #ifdef L_fprintf
-#ifdef __STDC__
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 int fprintf(FILE * fp, const char * fmt, ...)
 #else
 int fprintf(fp, fmt, va_alist)

@@ -13,6 +13,7 @@
  *	-Ml	i386 Linux
  *	-M8	CvW's c386
  *	-M9	MC6809 with bcc
+ *	-M0	A framework for the -B option.
  */
 #include <stdio.h>
 #ifdef __STDC__
@@ -57,7 +58,7 @@
 #define AS09	"as09" EXESUF
 #define LD09	"ld09" EXESUF
 
-#define CPPBCC	"bcc-cc1" EXESUF
+#define CPPBCC	"bcc-cpp" EXESUF
 #define CC1BCC	"bcc-cc1" EXESUF
 #define AS86	"as86" EXESUF
 #define LD86	"ld86" EXESUF
@@ -78,11 +79,12 @@
 
 struct command {
    char * cmd;
+   char * altcmd;
    char * fullpath;
    int  numargs;
    int  maxargs;
    char ** arglist;
-} command = { 0,0,0,0,0 };
+} command = { 0,0,0,0,0,0 };
 
 struct file_list {
    struct file_list * next;
@@ -276,8 +278,14 @@ struct file_list * file;
 {
    int last_stage = 0;;
 
-   if (opt_arch<5) command.cmd = CPPBCC;
-   else            command.cmd = CPP;
+   if (opt_arch<5 && !opt_e)
+      command.cmd = CC1BCC;
+   else if (opt_arch<5) {
+      command.cmd = CPPBCC;
+      command.altcmd = CC1BCC;
+   }
+   else
+      command.cmd = CPP;
    command_reset();
 
    if (!opt_e && !do_optim && !do_as )        last_stage =1;
@@ -285,7 +293,10 @@ struct file_list * file;
 
    newfilename(file, last_stage, (opt_e?'i':'s'), (opt_arch<5));
 
-   if (opt_e && opt_arch<5) command_opt("-E");
+   if (opt_e && opt_arch<5) {
+      command_opt("-E");
+      if (do_unproto) command_opt("-A");
+   }
 
    command_opts('p');
    if (!opt_e)
@@ -484,7 +495,7 @@ validate_link_opt(char * option)
       break;
    }
    if (err)
-      fprintf(stderr, "warning: linker option %s not unrecognised.\n", option);
+      fprintf(stderr, "warning: linker option %s not recognised.\n", option);
 }
 
 void
@@ -532,33 +543,40 @@ command_reset()
    /* Search for the exe, nb as this will probably be called from 'make'
     * there's not much point saving this.
     */
-   for(prefix=exec_prefixs; *prefix; prefix++) 
+   for(;;)
    {
-      char * p;
-      if (*prefix == devnull) continue;
-
-      p = strchr(*prefix, '~');
-      if (!p) strcpy(buf, *prefix);
-      else 
+      for(prefix=exec_prefixs; *prefix; prefix++) 
       {
-         memcpy(buf, *prefix, p-*prefix);
-	 buf[p-*prefix] = 0;
+	 char * p;
+	 if (*prefix == devnull) continue;
 
-	 strcat(buf, localprefix);
-	 strcat(buf, p+1);
-      }
-      strcat(buf, command.cmd);
+	 p = strchr(*prefix, '~');
+	 if (!p) strcpy(buf, *prefix);
+	 else 
+	 {
+	    memcpy(buf, *prefix, p-*prefix);
+	    buf[p-*prefix] = 0;
 
-      if (!*command.cmd)
-	 fprintf(stderr, "PATH+=%s\n", buf);
-      else if (access(buf, X_OK) == 0)
-      {
-         command.fullpath = copystr(buf);
-	 break;
+	    strcat(buf, localprefix);
+	    strcat(buf, p+1);
+	 }
+	 strcat(buf, command.cmd);
+
+	 if (!*command.cmd)
+	    fprintf(stderr, "PATH+=%s\n", buf);
+	 else if (access(buf, X_OK) == 0)
+	 {
+	    command.fullpath = copystr(buf);
+	    break;
+	 }
       }
+      if (command.fullpath || !command.altcmd) break;
+      command.cmd = command.altcmd;
    }
+
    if (!command.fullpath)
       command.fullpath = copystr(command.cmd);
+   command.altcmd = 0;
 }
 
 void
@@ -698,7 +716,7 @@ char ** argv;
       /* Special case -? is different from -?abcdef */
       if(!pflag && argv[ar][2] == 0) switch(argv[ar][1])
       {
-      case 'a': case 'L': case 'M': case 'O': case 'P': case 'Q': 
+      case 'a': case 'L': case 'I': case 'M': case 'O': case 'P': case 'Q': 
 	 pflag = argv[ar]+1;
 	 used_arg = 0;
 	 break;
@@ -710,8 +728,12 @@ char ** argv;
 	 if(strcmp(argv[ar], "-ansi") == 0) {
 	    do_unproto = 1;
 	    opt_e = 1;
-	    /* NOTE I'm setting this to zero, this isn't a _real_ STDC */
+#if 1
+	    /* NOTE I'm setting this to zero, this isn't a _real_ Ansi cpp. */
 	    prepend_option("-D__STDC__=0", 'p');
+#else
+	    prepend_option("-D__STDC__", 'p');
+#endif
 	 }
 	 else 
 	    Usage();

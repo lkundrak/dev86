@@ -53,6 +53,7 @@ PRIVATE struct macroposition macrostack[MAX_MACRO];
 
 FORWARD void asmcontrol P((void));
 FORWARD void warningcntl P((void));
+FORWARD void errorcntl P((void));
 FORWARD void control P((void));
 FORWARD void defineorundefinestring P((char *str, bool_pt defineflag));
 FORWARD void elifcontrol P((void));
@@ -157,20 +158,49 @@ PUBLIC void checknotinif()
     }
 }
 
+/* warningcntl() - process #warning */
 
-/* This is a major hack.  It doesn't handle continued lines.
- * It does let me avoid wrapping warning directives though. */
 PRIVATE void warningcntl()
 {
-    char *s = lineptr;
+    char estr[256], *ep = estr;
 
-    while (*lineptr && (*lineptr != EOL)) {
-	++lineptr;
+    if (!orig_cppmode) {
+       *ep++ = '%'; *ep++ = 'w'; 
     }
-    write(2, "warning: #warning", 17);
-    write(2, s, lineptr - s);
-    write(2, "\n", 1);
-    ch = *lineptr;
+    while( ch != EOL ) {
+       if (ep < estr+sizeof(estr)-2 )
+	  *ep++ = ch;
+       gch1();
+    }
+    *ep = 0;
+
+    if (!orig_cppmode)
+       error(estr);
+    else {
+       outstr("#warning");
+       outnstr(estr);
+    }
+}
+
+/* errorcntl() - process #error */
+
+PRIVATE void errorcntl()
+{
+    char estr[256], *ep = estr;
+
+    while( ch != EOL ) {
+       if (ep < estr+sizeof(estr)-2 )
+	  *ep++ = ch;
+       gch1();
+    }
+    *ep = 0;
+
+    if (!orig_cppmode)
+       error(estr);
+    else {
+       outstr("#error");
+       outnstr(estr);
+    }
 }
 
 /* control() - select and switch to control statement */
@@ -260,6 +290,9 @@ PRIVATE void control()
 	break;
     case WARNINGCNTL:
 	warningcntl();
+	break;
+    case ERRORCNTL:
+	errorcntl();
 	break;
     }
 }

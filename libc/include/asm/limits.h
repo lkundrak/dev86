@@ -31,9 +31,9 @@
 #define UINT_MAX	0xffff		/* maximum unsigned int value */
 #endif
 
-/* BCC doesn't have signed char */
-/* #define SCHAR_MAX	127		/* maximum signed char value */
-/* #define SCHAR_MIN	(-128)		/* minimum signed char value */
+/* BCC does have signed char now. */
+#define SCHAR_MAX	127		/* maximum signed char value */
+#define SCHAR_MIN	(-128)		/* minimum signed char value */
 #endif
 
 #if defined(__GNUC__) && defined(__i386__)
@@ -46,12 +46,12 @@
 #define UINT_MAX	0xffffffff	/* maximum unsigned int value */
 #endif
 
-#ifndef INT_MAX
-#error "Limits.h not fully implemented"
-#endif
-
 #ifndef RAND_MAX
 #define RAND_MAX	INT_MAX
+#endif
+
+#ifndef INT_MAX
+#error "Limits.h not fully implemented, INT_MAX undefined!"
 #endif
 
 #endif

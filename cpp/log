@@ -1,0 +1,77 @@
+
+#define  m_size((p))   ((p) [0].size)	/* For malloc */
+
+### Define 'm_size' as 1 args 'p,((p) [0].size)	  '
+#define  m_next((p))   ((p) [1].next)	/* For malloc and alloca */
+
+### Define 'm_next' as 1 args 'p,((p) [1].next)	  '
+#define  m_deep((p))   ((p) [0].depth)	/* For alloca */
+
+### Define 'm_deep' as 1 args 'p,((p) [0].depth)	  '
+
+	       mm_size((p1)
+### Macro substitution in '((p) [0].size)	  '
+### Argument 1 (p) = 'p1'
+
+### <DEF1='((p1) [0].size)	  '>
+<DEF1>((pp1)) [0].ssize))	   <DEF0>+= mm_size((m_next(p1))
+### Macro substitution in '((p) [0].size)	  '
+### Argument 1 (p) = 'm_next(p1)'
+
+### <DEF1='((m_next(p1)) [0].size)	  '>
+<DEF1>((mm_next((p1)
+### Macro substitution in '((p) [1].next)	  '
+### Argument 1 (p) = 'p1'
+
+### <DEF2='((p1) [1].next)	  '>
+<DEF2>((pp1)) [1].nnext))	  )<DEF1> [0].ssize))	  ;<DEF0>
+	       mm_next((p1)
+### Macro substitution in '((p) [1].next)	  '
+### Argument 1 (p) = 'p1'
+
+### <DEF1='((p1) [1].next)	  '>
+<DEF1>((pp1)) [1].nnext))	   <DEF0>= mm_next((m_next(p1))
+### Macro substitution in '((p) [1].next)	  '
+### Argument 1 (p) = 'm_next(p1)'
+
+### <DEF1='((m_next(p1)) [1].next)	  '>
+<DEF1>((mm_next((pp1))) [1].nnext))	  ;<DEF0>
+	       nnoise(("JOIN 2", pp1));
+
+     hhello/?/??? ?  
+??=warning  oooer
+
+#define  LOCK_NB			4	/* or'd with one of the above to prevent
+				   blocking */
+
+### Define 'LOCK_NB' as '4	  '
+#define  LOCK_UN			8	/* remove lock */
+
+### Define 'LOCK_UN' as '8	  '
+
+
+#define  comba((x,,yy))  x/**/y
+
+### Define 'comba' as 2 args 'x,y,x y '
+#define  combb((x,,yy))  x ## y
+
+### Define 'combb' as 2 args 'x,y,x ## y '
+
+
+   ccomba((un,signed)
+### Macro substitution in 'x y '
+### Argument 1 (x) = 'un'
+### Argument 2 (y) = 'signed'
+
+### <DEF1='un signed '>
+<DEF1>un  ssigned  ;<DEF0>
+   ccombb((un,signed)
+### Macro substitution in 'x ## y '
+### Argument 1 (x) = 'un'
+### Argument 2 (y) = 'signed'
+
+### <DEF1='unsigned '>
+<DEF1>unsigned  ;<DEF0>
+.
+
+<EOF>

@@ -43,7 +43,7 @@ transfer:
 	cp -p stdio.h ../include/.
 
 clean:
-	rm -f *.o libc.a
+	rm -f *.o libc.a ../include/stdio.h
 
 $(LIBC)($(OBJ)): stdio.h
 

@@ -79,10 +79,10 @@ INSCR=-o root -g root -m 755
 #endif
 
 #ifdef GNUMAKE
-all: check_config bcc unproto copt as86 ar86 ld86 objdump86 \
+all: check_config bcc cpp unproto copt as86 ar86 ld86 objdump86 \
      library lib-bsd alt-libs elksemu
 #else
-all: check_config bcc unproto copt as86 ar86 ld86 objdump86
+all: check_config bcc cpp unproto copt as86 ar86 ld86 objdump86
 	@echo
 	@echo 'NOTE: To build the libraries you need GNU-Make.'
 	@echo '      They are available precompiled in the Dev86clb-X.X.X.zip file.'
@@ -115,7 +115,7 @@ DISTPRE= $(DIST)$(LIBPRE)
 # Others to install
 OTHERS=  tests dis88 doselks bootblocks
 
-CLEANLIST= bcc as ar ld unproto copt libc elksemu libbsd $(OTHERS)
+CLEANLIST= bcc as ar ld cpp unproto copt libc elksemu libbsd $(OTHERS)
 
 ##############################################################################
 
@@ -134,6 +134,10 @@ bcc: bindir
 	cp -p bcc/bcc bin/Bcc
 	cp -p bcc/ncc bin/ncc
 	cp -p bcc/bcc-cc1 lib/bcc-cc1
+
+cpp:  bindir
+	$(MAKEC) cpp $(MAKEARG) bcc-cpp
+	cp -p cpp/bcc-cpp lib/bcc-cpp
 
 unproto:  bindir
 	$(MAKEC) unproto $(MAKEARG) unproto
@@ -177,7 +181,7 @@ elksemu: bindir
 	cp -p elksemu/elksemu bin/elksemu
 #endif
 
-install-ln: bcc unproto copt as86 ar86 ld86 elksemu
+install-ln: bcc cpp unproto copt as86 ar86 ld86 elksemu
 	install -d $(DISTBIN)
 	ln -fs `pwd`/bin/ncc		$(DISTBIN)/bcc
 	ln -fs `pwd`/bin/as86_encap	$(DISTBIN)/as86_encap
@@ -190,7 +194,7 @@ install-ln: bcc unproto copt as86 ar86 ld86 elksemu
 	-install -d $(DIST)/usr/lib
 	-install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
 
-install-bcc: bcc unproto copt as86 ar86 ld86 objdump86
+install-bcc: bcc cpp unproto copt as86 ar86 ld86 objdump86
 	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
 	install $(INEXE) bin/Bcc 	$(DISTBIN)/bcc
 	install $(INSCR) bin/as86_encap	$(DISTBIN)/as86_encap
@@ -201,6 +205,7 @@ install-bcc: bcc unproto copt as86 ar86 ld86 objdump86
 	install $(INEXE) bin/objdump86 	$(DISTBIN)/nm86
 	install $(INEXE) bin/objdump86 	$(DISTBIN)/size86
 	install $(INEXE) lib/bcc-cc1 	$(DISTLIB)/bcc-cc1
+	install $(INEXE) lib/bcc-cpp 	$(DISTLIB)/bcc-cpp
 	install $(INEXE) lib/unproto 	$(DISTLIB)/unproto
 	install $(INEXE) lib/copt 	$(DISTLIB)/copt
 	install $(INDAT) lib/rules.* 	$(DISTLIB)/i86

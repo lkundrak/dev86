@@ -16,7 +16,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#ifdef __STDC__
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 #include <stdarg.h>
 #define va_strt      va_start
 #else
@@ -25,7 +25,7 @@
 #endif
 
 #ifdef L_scanf
-#ifdef __STDC__
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 int scanf(const char * fmt, ...)
 #else
 int scanf(fmt, va_alist)
@@ -43,7 +43,7 @@ va_dcl
 #endif
 
 #ifdef L_sscanf
-#ifdef __STDC__
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 int sscanf(char * sp, const char * fmt, ...)
 #else
 int sscanf(sp, fmt, va_alist)
@@ -69,7 +69,7 @@ static FILE  string[1] =
 #endif
 
 #ifdef L_fscanf
-#ifdef __STDC__
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 int fscanf(FILE * fp, const char * fmt, ...)
 #else
 int fscanf(fp, fmt, va_alist)

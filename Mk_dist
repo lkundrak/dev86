@@ -12,7 +12,7 @@ TMPDIR=/tmp/Linux-86
 TMPSRC=linux86
 ARCDIR="$DIR"/dev86arc
 
-SRCDIRS='bcc unproto as ar ld copt man elksemu dis88 tests libbsd bin86'
+SRCDIRS='bcc cpp unproto as ar ld copt man elksemu dis88 tests libbsd bin86'
 DISTFILES='Makefile README COPYING Changes Contributors MAGIC
            mkcompile GNUmakefile libcompat ifdef.c makefile.in Mk_dist'
 
