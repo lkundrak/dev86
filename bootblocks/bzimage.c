@@ -29,7 +29,7 @@ int load_crc = 0;
 static char buffer[1024];
 
 cmd_bzimage(ptr)
-char * ptr;
+register char * ptr;
 {
    char * image;
    int ch;
@@ -103,8 +103,8 @@ char * command_line;
               (int)(len/1024), (int)(len*10/1024%10));
       return -1;
    }
-   if( main_mem_top < 3072 )
-      printf("RTFM warning: Linux really needs at least 4MB of memory.\n");
+   if( main_mem_top <= 3072 )
+      printf("RTFM warning: Linux needs at least 4MB of memory.\n");
 #endif
 
    low_sects    = buffer[497] + 1; /* setup sects + boot sector */
@@ -220,6 +220,7 @@ char * command_line;
    printf("linux ");
    if( linux_command_line )
       printf("%s", linux_command_line);
+   printf("\n");
    fflush(stdout);
 
    if( a20_closed() ) open_a20();
@@ -289,6 +290,8 @@ char * command_line;
    /* Default boot drive is auto-detected floppy */
    if( __peek_es(508) == 0 ) __poke_es(508, 0x200);
 
+   printf("Starting ...\n");;
+
 #if ZIMAGE_LOAD_SEG == 0x10000
    if( is_zimage )
       /* Copy 512k from high memory then start */
@@ -319,8 +322,8 @@ char * command_line;
 }
 
 check_magics(fname, image_buf)
-char * fname;
-char * image_buf;
+register char * fname;
+register char * image_buf;
 {
    is_zimage = 0;
 
@@ -371,7 +374,7 @@ unsigned int address;
 
 retry:
    tc--;
-   /*
+
    if( x86_test )
       return 0;	/* In an EMU we can't write to high mem but
                    we'll pretend we can for debuggering */
@@ -407,9 +410,9 @@ static char *
 read_cmdfile(iname)
 char * iname;
 {
+   char * ptr = strchr(iname, '.');
    char buf[16];
    long len;
-   char * ptr = strchr(iname, '.');
 
    buf[8] = '\0';
    strncpy(buf, iname, 8);
@@ -427,7 +430,7 @@ char * iname;
       }
       if( read_block(buffer) >= 0 )
       {
-	 int i;
+         register int i;
 	 for(i=0; i<len; i++)
 	    if( buffer[i] < ' ' ) buffer[i] = ' ';
 	 buffer[len] = '\0';
@@ -445,7 +448,7 @@ input_cmd(iname)
 char * iname;
 {
    char lbuf[20];
-   int cc;
+   register int cc;
 
    for(;;)
    {
@@ -462,8 +465,11 @@ char * iname;
          if( cc == 0xAD ) /* ALT-X */
 	    return 0;
 
-         sprintf(lbuf, "$%02x", cc);
-	 cmd_help(lbuf);
+#ifdef NOCOMMAND
+         cmd_type("helpprmt.txt");
+#else
+	 help_key(cc);
+#endif
 	 continue;
       }
       if( buffer[cc-1] == '\n' ) buffer[cc-1] = '\0';

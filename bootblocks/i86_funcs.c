@@ -116,12 +116,10 @@ void cpu_check()
 
 void mem_check()
 {
-   if (x86_test) 
-   {
-      main_mem_top = 16384;
-      return;	/* If not standalone don't try */
-   }
-
+#ifndef __STANDALONE__
+   main_mem_top = 16384;
+   return;	/* If not standalone don't try */
+#else
    {
 #asm
   int	0x12		! Amount of boot memory
@@ -150,6 +148,7 @@ got_ext:
   {
      /* It say 64Mb-1k - Hmmmm I think it might be 128! */
   }
+#endif
 }
 
 #define RIGHTS (0x93000000L)

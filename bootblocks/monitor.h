@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
-#include <dos.h>
+#include <bios.h>
 #include <malloc.h>
 #include "i86_funcs.h"
 #include "readfs.h"
@@ -11,13 +11,11 @@
 #define X_DOSFLOPPY
 #define X_CALC_CRC
 
-
 #ifdef __STANDALONE__
 #define COLOUR
 
 extern union REGS __argr;
 #endif
-
 
 #ifdef TARFLOPPY
 #define SINGLEFS
@@ -45,3 +43,11 @@ extern union REGS __argr;
 #define file_length dos_file_length
 #define read_block  dos_read_block
 #endif
+
+#if 1
+#undef  putchar
+#define putchar   cputchar
+#define printf    cprintf
+#define fflush(x)
+#endif
+

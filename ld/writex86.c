@@ -67,6 +67,7 @@ PRIVATE bool_t sepid;		/* nonzero for separate I & D */
 PRIVATE bool_t stripflag;	/* nonzero to strip symbols */
 PRIVATE bin_off_t spos;		/* position in current seg */
 PRIVATE bool_t uzp;		/* nonzero for unmapped zero page */
+PRIVATE bool_t xsym;		/* extended symbol table */
 
 FORWARD void linkmod P((struct modstruct *modptr));
 FORWARD void padmod P((struct modstruct *modptr));
@@ -81,12 +82,13 @@ EXTERN bool_t reloc_output;
 
 /* write binary file */
 
-PUBLIC void write_elks(outfilename, argsepid, argbits32, argstripflag, arguzp)
+PUBLIC void write_elks(outfilename, argsepid, argbits32, argstripflag, arguzp, argxsym)
 char *outfilename;
 bool_pt argsepid;
 bool_pt argbits32;
 bool_pt argstripflag;
 bool_pt arguzp;
+bool_pt argxsym;
 {
     char buf4[4];
     char *cptr;
@@ -108,6 +110,7 @@ bool_pt arguzp;
     bits32 = argbits32;
     stripflag = argstripflag;
     uzp = arguzp;
+    xsym = argxsym;
     if (uzp)
     {
 	if (btextoffset == 0)
@@ -387,6 +390,23 @@ bool_pt arguzp;
 			    }
 			writeout((char *) &extsym, sizeof extsym);
 			++nsym;
+#if !ELF_SYMS
+			if( xsym )
+			{
+			   int i;
+			   extsym.n_sclass = 0;
+			   extsym.n_value  = 0;
+
+			   for(i=sizeof extsym.n_name; i<strlen(symptr->name);
+			       i+=sizeof extsym.n_name)
+			   {
+			      strncpy((char *) extsym.n_name, symptr->name+i,
+				sizeof extsym.n_name);
+			      writeout((char *) &extsym, sizeof extsym);
+			      ++nsym;
+			   }
+			}
+#endif
 		    }
 	    }
 	seekout((unsigned long) offsetof(struct exec, a_syms));

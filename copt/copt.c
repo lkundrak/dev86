@@ -54,9 +54,7 @@ struct line_s {
 	char          *text;
 	struct line_s *prev;
 	struct line_s *next;
-#ifdef KEEPCOMMENTS
 	int 	       comment_flg;
-#endif
 };
 
 
@@ -196,9 +194,7 @@ static struct line_s *readlist(FILE *fp, char quit, char comment)
 	if (quit != NOCHAR && quit == *cp)
 		break;
 	if (comment != NOCHAR && comment == *cp)
-#ifdef KEEPCOMMENTS
 		if (quit != NOCHAR)
-#endif
 			continue;
 	if (*cp == '\0')
 		continue;
@@ -206,9 +202,7 @@ static struct line_s *readlist(FILE *fp, char quit, char comment)
 	lp->text = install(cp, -1);
 	lp->prev = last_line;
 	lp->next = NULL;
-#ifdef KEEPCOMMENTS
 	lp->comment_flg = (comment != NOCHAR && *cp == comment);
-#endif
 	if (first_line == NULL)
 		first_line = lp;
 	if (last_line != NULL)
@@ -677,12 +671,6 @@ static struct line_s *optline(struct line_s *cur)
 	/* Scan through pattern texts and match them against the input file */
 	ins = cur;
 	pat = rp->old;
-#ifndef KEEPCOMMENTS
-	while (ins != NULL && pat != NULL && match(ins->text, pat->text)) {
-		ins = ins->next;
-		pat = pat->next;
-	}
-#else
 	while (ins != NULL
 	    && pat != NULL
 	    && ( ins->comment_flg ||
@@ -693,7 +681,6 @@ static struct line_s *optline(struct line_s *cur)
 			pat = pat->next;
 		ins = ins->next;
 	}
-#endif
 
 	/* Current pattern matched input line, so replace input with new */
 	if (pat == NULL) {
@@ -701,7 +688,6 @@ static struct line_s *optline(struct line_s *cur)
 		lp1 = cur;
 		cur = cur->prev;
 		while (lp1 != ins) {
-#ifdef KEEPCOMMENTS
 #if 0	/* I'd like to keep the comment lines but this doesn't work XXX */
 			if( lp1->comment_flg )
 			{
@@ -713,7 +699,6 @@ static struct line_s *optline(struct line_s *cur)
 				cur=cur->next;
 			}
 			else
-#endif
 #endif
 			{
 				lp2 = lp1;
@@ -730,9 +715,7 @@ static struct line_s *optline(struct line_s *cur)
 			lp2->text = subst(pat->text);
 			lp2->next = NULL;
 			lp2->prev = lp1;
-#ifdef KEEPCOMMENTS
 			lp2->comment_flg = 0;
-#endif
 			if (lp1 != NULL)
 				lp1->next = lp2;
 			else
@@ -763,14 +746,11 @@ static void optimize(int backup)
 {
   struct line_s *cur, *lp;
   int i;
-#ifdef KEEPCOMMENTS
   int in_asm = 0;
-#endif
 
   /* Scan through all lines in the input file */
   cur = infile;
   while (cur != NULL) {
-#ifdef KEEPCOMMENTS
 	if (cur->comment_flg || in_asm)
 	{
 		lp=cur->next;
@@ -778,7 +758,6 @@ static void optimize(int backup)
 			in_asm = (memcmp(cur->text+5, "ASM", 3) == 0);
 	}
 	else
-#endif
 	        if ((lp = optline(cur)) != NULL && lp != cur->next) {
 			for (i = 0; i < backup && lp != NULL; i++)
 				lp = lp->prev;

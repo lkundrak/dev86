@@ -1,5 +1,9 @@
 For version 0.15.0.
 
+> A bit more in the manpages on how to use the assembler etc.
+
+> Bug fixes in stdio, fp->mode cached too much, buffer type mixup.
+
 > Altered initial make variables, you only need to modify 'PREFIX=' to allow
   installs into /usr/local.
 
@@ -12,19 +16,17 @@ For version 0.15.0.
 > I appear to have bcc generating a consistant set of code fragments for
   floating point operations. No floating libs though ...
 
-> Added lsys.com to install the dosfs boot sector under dos.
-
-> monitor.out now (finally!) loads zImage files.
-
-> Monitor.out now works with a TAR "filesystem" on a floppy.
-
-> Added two conpile time options (-DTARFLOPPY and -DDOSFLOPPY) for smaller
-  executables to only boot linux-386 from a floppy.
-
-> Makeboot can install the mbr.
-
-> Removed the ELKS specific code from the minixfs loader, added a helper 
-  program to load and relocate ELKS.
+> Lots of bootblocks changes including
+   Added lsys.com to install the dosfs boot sector under dos.  
+   monitor.out now (finally!) loads zImage files.  
+   Monitor.out now works with a TAR "filesystem" on a floppy.  
+   Added two conpile time options (-DTARFLOPPY and -DDOSFLOPPY) for smaller
+     executables to only boot linux-386 from a floppy.  
+   Makeboot can install the mbr.  
+   Removed the ELKS specific code from the minixfs loader, added a helper 
+     program to load and relocate ELKS.
+   One config file for booting a [b]zImage.
+   DOSFS boot can boot any named file.
 
 > Fixed/avoided some problems with the optimiser breaking hand optimised code.
 
@@ -34,6 +36,8 @@ For version 0.15.0.
 > Oops, Claudio says that qsort went the wrong way, hmm.
 
 > Added some more library code for MSDOS programs, there's still more to go.
+
+> Removed the 'libc-8086' distribution tgz file.
 
 For version 0.14.0.
 

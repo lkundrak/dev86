@@ -215,7 +215,11 @@ PRIVATE void asline()
     readline();
     getsym();
     if (sym != IDENT)		/* expect label, mnemonic or macro */
-	return;			/* anything else is a comment */
+    {	
+       if( sym != EOLSYM )
+          list_force = TRUE;
+       return;			/* anything else is a comment */
+    }
     symptr = gsymptr;
     if (!ifflag)
 	/* not assembling, just test for IF/ELSE/ELSEIF/ENDIF */

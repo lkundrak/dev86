@@ -90,7 +90,7 @@ bad_boot:
   cmp	si,#bootblock_magic
   jnz	check_active
 
-  # Check for Disk manager partitions (12 more!)
+  ! Check for Disk manager partitions (12 more!)
  if diskman
   cmp	word ptr diskman_magic,#$55AA
   jnz	no_diskman

@@ -348,12 +348,14 @@ store_pt targreg;
 	    return;
 	if (source->storage == CONSTANT)
 	{
+#ifdef I80386
 	    if (i386_32)
 	    {
 	       loadconst(((offset_T *) source->offset.offd)[0], DREG);
 	       loadconst(((offset_T *) source->offset.offd)[1], targreg&~DREG);
 	    }
 	    else /* XXX - more for non-386 */
+#endif
 	    {
 	       int regs, i, off=1;
 	       loadconst(((unsigned short *) source->offset.offd)[0], DREG);
@@ -394,7 +396,11 @@ store_pt targreg;
 	   loadconst(((unsigned short *) &val)[1], targreg&~DREG);
 	}
     }
+#ifdef I80386
     else if (!i386_32 && source->type->scalar & FLOAT)
+#else
+    else if (source->type->scalar & FLOAT)
+#endif
     {
 	/* Treat a float just like a long ... */
 	if (source->indcount == 0)

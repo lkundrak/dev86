@@ -98,8 +98,10 @@ struct symstruct *source;
     {
         if (source->type->scalar & DOUBLE)
 	    source->storage = doublreturnregs;
+#ifdef I8088
         else if (source->type->scalar & FLOAT)
 	    source->storage = RETURNREG|DATREG2;
+#endif
         else
 	    source->storage = RETURNREG;
     }
@@ -210,8 +212,10 @@ PUBLIC void loadretexpression()
 	{
             if (returntype->scalar & DOUBLE)
 	        loadexpression(doublreturnregs, returntype);
+#ifdef I8088
             else if (returntype->scalar & FLOAT)
 	        loadexpression(/* REURNREG|*/ DATREG2, returntype);
+#endif
             else
 	        loadexpression(RETURNREG, returntype);
         }

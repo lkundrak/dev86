@@ -940,8 +940,13 @@ struct nodestruct *nodeptr;
 	}
 	nodeptr->left.nodeptr = left = unconvert(left);
 	nodeptr->right = right = unconvert(right);
-	if ((targtype = left->nodetype) == right->nodetype)
-	    return targtype;	/* XXX - reduced from promote(targtype) */
+	if (
+#ifdef I80386
+	      i386_32 ||
+#endif
+	      ((targtype = left->nodetype)->scalar & FLOAT ) == 0)
+	    if (targtype == right->nodetype)
+	        return targtype;  /* XXX - reduced from promote(targtype) */
 	if ((lscalar = targtype->scalar) != 0 &&
 	    (rscalar = right->nodetype->scalar) != 0)
 	{

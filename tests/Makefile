@@ -4,7 +4,7 @@
 
 BCC=bcc
 CC=$(BCC)
-CFLAGS=-O -s
+CFLAGS=-O
 
 SRC=env.c ft.c hd.c size.c sync.c compr.c ucomp.c ouch.c lines.c \
     wc.c line2.c rand.c grab.c

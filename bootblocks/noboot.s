@@ -13,11 +13,8 @@ org codestart
   mov	sp,ax
   jmpi	code,#0
 
-no_os:
-  .asciz	"PANIC! NO OS Found!\r\n"
-
 code:		! SI = pointer to error message
-  mov	si,#no_os
+  mov	si,#boot_message
 nextc:
   lodsb
   cmp	al,#0
@@ -30,3 +27,8 @@ eos:			! Wait for a key then reboot
   xor	ax,ax
   int	$16
   jmpi	$0,$FFFF	! Wam! Try or die!
+
+export boot_message
+boot_message:
+  .asciz	"PANIC! NO OS Found!\r\n"
+

@@ -172,7 +172,7 @@ PUBLIC void listline()
     if (!listpre)
     {
 	if (errcount || (list.current && (!macflag || mcount != 0)) ||
-	    (macflag && maclist.current))
+	    (macflag && maclist.current) || list_force )
 	    list1(lstfil);
 	if (errcount)
 	{
@@ -196,6 +196,7 @@ fd_t fd;
     if (errcount != 0)
 	listerrors();
     listpre = TRUE;
+    list_force=FALSE;
 }
 
 /* list object code for 1 line */

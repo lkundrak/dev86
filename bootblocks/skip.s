@@ -52,16 +52,6 @@ error:
   call	prtmsg
   jmp	hcode
 
- if BOOTDISK = 0x80
-mesg:	.asciz	"Bypassing floppy boot\r\n"
- else
-mesg:	.asciz	"Booting drive two\r\n"
- endif
-
-mesg2:	.asciz	"Disk error\r\n"
-mesg3:	.asciz	"Retrying\r\n"
-mesg4:	.asciz	"Press a key:"
-
 prtmsg:
   lodsb
   cmp	al,#0
@@ -81,4 +71,15 @@ reboot:
   int	$16
   int	$19		! This should be OK as we haven't touched anything.
   jmpi	$0,$FFFF	! Wam! Try or die!
+
+mesg2:	.asciz	"Disk error\r\n"
+mesg3:	.asciz	"Retrying\r\n"
+mesg4:	.asciz	"Press a key:"
+
+export mesg
+ if BOOTDISK = 0x80
+mesg:	.asciz	"Bypassing floppy boot\r\n"
+ else
+mesg:	.asciz	"Booting drive two\r\n"
+ endif
 

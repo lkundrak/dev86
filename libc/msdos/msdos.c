@@ -190,8 +190,12 @@ char ** __argv;
       for(i=0; i<length; i++)		/* Copy it in. */
       {
 	ptr[i] = __peek_es(0x81+i);
+/* Replaced because freedos adds \r to args.
 	if( ptr[i] != ' ' && s == 0 ) { argc++; s=1; }
 	if( ptr[i] == ' ' && s == 1 ) s=0;
+ */
+	if( (ptr[i]&0xE0) != 0 && s == 0 ) { argc++; s=1; }
+	if( (ptr[i]&0xE0) == 0 && s == 1 ) s=0;
       }
       ptr[length]=0;
 

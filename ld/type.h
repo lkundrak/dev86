@@ -165,7 +165,7 @@ void write_rel P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
 
 /* write_elks.c */
 void write_elks P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
-		 bool_pt argstripflag, bool_pt arguzp));
+		 bool_pt argstripflag, bool_pt arguzp, bool_pt nsym));
 
 /* linksym.c */
 void linksyms P((bool_pt argreloc_output));

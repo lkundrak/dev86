@@ -7,6 +7,8 @@
 
 #include "monitor.h"
 
+#ifndef NOCOMMAND
+
 struct keys {
    int key;
    int rel;
@@ -33,11 +35,18 @@ struct keys {
 cmd_help(ptr)
 char * ptr;
 {
-static int lastpage = 0;
    int helpkey = 1;
-   int i;
 
    getnum(&ptr, &helpkey);
+
+   return help_key(helpkey);
+}
+
+help_key(helpkey)
+int helpkey;
+{ 
+static int lastpage = 0;
+   int i;
 
    for(i=0; keys[i].key; i++)
       if( keys[i].key == helpkey || i == helpkey )
@@ -90,3 +99,4 @@ int page;
    return 0;
 }
 
+#endif

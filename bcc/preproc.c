@@ -323,7 +323,8 @@ ts_s_macstring += 2;
 	    {
 		gch1();
 		skipcomment();
-		ch = *--lineptr = ' ';	/* comment is space in modern cpp's */
+		/* comment is space in modern cpp's but they have '##' too */
+		ch = *--lineptr = ' ';
 	    }
 	}
 #ifdef TS
@@ -547,7 +548,14 @@ ts_s_macparam_tot += sizeof *paramlist * nparleft;
 	    blanks();
 	}
 	if (ch != '(')
+	{
+	    if (nparleft > 0)	/* macro has params, doesn't match bare word */
+	    {
+		outstr(symptr->name.namea);
+		return;
+	    }
 	    error("missing '('");
+	}
 	else
 	{
 	    gch1();

@@ -1,5 +1,6 @@
 
 #include "msdos.v"
+#include "msdos16.v"
 
 #define DOS_SYSID	0x03
 #define DOS_SECT	0x0B
@@ -31,8 +32,8 @@ char ** argv;
 
    if( argc > 1 )
    {
-      static char * s = "Usage: sys a:";
-      if( argc == 1 && argv[1][1] == ':' && argv[1][2] == 0 )
+      static char * s = "Usage: lsys [a:]\n";
+      if( argc == 2 && argv[1][1] == ':' && argv[1][2] <= ' ' )
       {
          if( argv[1][0] == 'a' || argv[1][0] == 'A' )
 	    drive = 0;
@@ -57,26 +58,37 @@ char ** argv;
    if( buffer[DOS_MEDIA] != buffer[512] ||
        buffer[DOS_MEDIA] < 0xF0 ||
        buffer[DOS_NFAT] > 2 ||
-       buffer[DOS_SECT+1] != 2 ||
-       buffer[DOS_HEADS]  != 2 )
+       buffer[DOS_SECT+1] != 2 )
       fatal("Floppy has invalid format");
 
-   for(i=0; i<msdos_dosfs_stat; i++)
-      buffer[i] = msdos_data[i];
-   for(i=msdos_codestart; i<512; i++)
-      buffer[i] = msdos_data[i];
+   if( memcmp(buffer+DOS4_FATTYPE, "FAT16", 5) )
+   {
+      for(i=0; i<msdos_dosfs_stat; i++)
+	 buffer[i] = msdos_data[i];
+      for(i=msdos_codestart; i<512; i++)
+	 buffer[i] = msdos_data[i];
+   }
+   else
+   {
+      for(i=0; i<msdos16_dosfs_stat; i++)
+	 buffer[i] = msdos16_data[i];
+      for(i=msdos_codestart; i<512; i++)
+	 buffer[i] = msdos16_data[i];
+   }
 
    for(tries=0; tries<6; tries++)
-      if( (rv = dos_sect_read(drive, 0, 0, 1, buffer)) == 0 )
+      if( (rv = dos_sect_write(drive, 0, 0, 1, buffer)) == 0 )
          break;
    if( rv ) fatal("Cannot write bootsector");
 
+   write(0, "Wrote bootsector\r\n", 18);
    return 0;
 }
 
 fatal(str)
 {
    write(0, str, strlen(str));
+   write(0, "\r\n", 2);
    exit(1);
 }
 

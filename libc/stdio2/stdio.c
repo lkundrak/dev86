@@ -130,11 +130,11 @@ FILE *fp;
    register int v;
    Inline_init;
 
-   v = fp->mode;
-   /* If last op was a read ... */
-   if ((v & __MODE_READING) && fflush(fp))
+   /* If last op was a read ... note fflush may change fp->mode and ret OK */
+   if ((fp->mode & __MODE_READING) && fflush(fp))
       return EOF;
 
+   v = fp->mode;
    /* Can't write if there's been an EOF or error then return EOF */
    if ((v & (__MODE_WRITE | __MODE_EOF | __MODE_ERR)) != __MODE_WRITE)
       return EOF;
@@ -304,7 +304,7 @@ FILE *f;
    register int ch;
 
    ret = s;
-   for (i = count; i > 0; i--)
+   for (i = count-1; i > 0; i--)
    {
       ch = getc(f);
       if (ch == EOF)
@@ -456,11 +456,11 @@ FILE *fp;
    int   len;
    unsigned bytes, put;
 
-   v = fp->mode;
-   /* If last op was a read ... */
-   if ((v & __MODE_READING) && fflush(fp))
+   /* If last op was a read ... note fflush may change fp->mode and ret OK */
+   if ((fp->mode & __MODE_READING) && fflush(fp))
       return 0;
 
+   v = fp->mode;
    /* Can't write or there's been an EOF or error then return 0 */
    if ((v & (__MODE_WRITE | __MODE_EOF | __MODE_ERR)) != __MODE_WRITE)
       return 0;
@@ -537,7 +537,6 @@ int   ref;
 {
 #if 1
    /* if __MODE_READING and no ungetc ever done can just move pointer */
-   /* This needs testing! */
 
    if ( (fp->mode &(__MODE_READING | __MODE_UNGOT)) == __MODE_READING && 
         ( ref == SEEK_SET || ref == SEEK_CUR ))
@@ -823,6 +822,7 @@ size_t size;
       {
          fp->bufstart = buf;
          fp->bufend = buf+size;
+         fp->mode &= ~__MODE_BUF;
          fp->mode |= mode;
       }
    }

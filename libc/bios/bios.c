@@ -7,13 +7,14 @@
 #ifdef __AS386_16__
 #ifdef __STANDALONE__
 
-#include <dos.h>
+#include <bios.h>
 #include <fcntl.h>
 #include <errno.h>
-int errno;
 
 #ifdef L_bios_start
+
 char ** environ = { 0 };
+int errno;
 
 void (*__cleanup)() = 0;
 
@@ -119,27 +120,6 @@ reti_ins:
 
 /****************************************************************************/
 
-#ifdef L___file_3
-
-/* If the block function does track buffering this should be ok ... */
-struct {
-   int  (*block_rw)();		/* Args (rwoc, &buffer, blockno) 1k blocks */
-   				/* 0 = read, 1 = write */
-   				/* 2 = open, buffer is fname ptr */
-   				/* 3 = close, other args ignored */
-   long offset;
-
-   int  flags;
-   long block_num;
-   char buffer[1024];
-} __file_3_data;
-
-#define FILE3_OPEN	1	/* File is open */
-#define FILE3_DATA	2	/* buffer has valid contents */
-#define FILE3_DIRTY	4	/* buffer has been modified */
-
-#endif
-
 #ifdef L_bios_write
 write(fd,buf,len)
 int fd,len;
@@ -155,9 +135,8 @@ char * buf;
 	 bios_putc(c);
       }
       return len;
-   }
-   errno = EBADF;
-   return -1;
+   } 
+   return (*__files)(CMD_WRITE, fd, buf, len);
 }
 #endif
 
@@ -169,8 +148,7 @@ int fd,len;
 char * buf;
 {
    if(fd == 0) return bios_rdline(buf, len);
-   errno = EBADF;
-   return -1;
+   return (*__files)(CMD_READ, fd, buf, len);
 }
 #endif
 
@@ -183,20 +161,12 @@ int fd, whence;
 long offt;
 {
    if( fd >= 0 && fd <= 2 ) errno = ESPIPE;
-   else errno = EBADF;
+   else 
+   {
+      if( (*__files)(CMD_LSEEK, fd, &offt, whence) >= 0 )
+         return offt;
+   }
    return -1L;
-}
-#endif
-
-/****************************************************************************/
-
-#ifdef L_bios_open
-open(name, flags, mode)
-char * name;
-int flags, mode;
-{
-   errno = ENOENT;
-   return -1;
 }
 #endif
 
@@ -207,9 +177,25 @@ close(fd)
 int fd;
 {
    if( fd >= 0 && fd <= 2 ) errno = ENOSYS;
-   else errno = EBADF;
+   else
+      return (*__files)(CMD_CLOSE, fd);
    return -1;
 }
+#endif
+
+/****************************************************************************/
+
+#ifdef L_bios_nofiles
+int (*__files)() = __nofiles;
+
+int __nofiles(cmd, fd, buf, len)
+int cmd, fd, len;
+char * buf;
+{ 
+   errno = EBADF;
+   return -1;
+}
+
 #endif
 
 /****************************************************************************/
@@ -221,6 +207,21 @@ int fd;
    if( fd >= 0 && fd <= 2 ) return 1;
    return 0;
 }
+#endif
+
+/****************************************************************************/
+
+#ifdef L_bios_open
+extern int __fileops();
+
+open(name, flags, mode)
+char * name;
+int flags, mode;
+{
+   __files = __fileops;
+   return (*__files)(CMD_OPEN, flags, name, mode);
+}
+
 #endif
 
 /****************************************************************************/

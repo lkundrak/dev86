@@ -1,29 +1,6 @@
 
 #include "monitor.h"
 
-#ifndef NOCOMMAND
-extern unsigned int current_address;
-extern int number_base;
-
-int cmd_quit(args)
-char * args;
-{
-   printf("Bye\n");
-   exit(0);
-}
-
-int cmd_nop(ptr)
-char * ptr;
-{
-}
-
-int cmd_dir(ptr)
-char * ptr;
-{
-   open_file(".");
-   return 0;
-}
-
 int cmd_type(ptr)
 char * ptr;
 {
@@ -46,6 +23,29 @@ char * ptr;
    else
       printf("Cannot open file '%s'\n", fname);
    close_file();
+   return 0;
+}
+
+#ifndef NOCOMMAND
+extern unsigned int current_address;
+extern int number_base;
+
+int cmd_quit(args)
+char * args;
+{
+   printf("Bye\n");
+   exit(0);
+}
+
+int cmd_nop(ptr)
+char * ptr;
+{
+}
+
+int cmd_dir(ptr)
+char * ptr;
+{
+   open_file(".");
    return 0;
 }
 
@@ -117,12 +117,45 @@ int len;
 
 #ifndef NOMONITOR
 
+cmd_monhelp() {
+static char * helps[] = {
+   "Monitor help\n",
+   "zimage filename [args]     Start Linux-386\n",
+   "bzimage filename [args]    Start Linux-386\n",
+   "=filename [args]           Start Linux-386\n",
+   "quit                       Reboot\n",
+   "help                       Display help file\n",
+   "dir                        Display directory\n",
+   "type                       Display file to screen\n",
+   "more                       Display file to screen\n",
+   "m[em] [address]            Hexdump memory\n",
+   "seg [val]                  Set/show default segment\n",
+   "rel [segment]              Relocate this program\n",
+   "base [val]                 Set default number base (or 'n' cmd)\n",
+   "init                       Re-init program\n",
+   "r[egs]                     Display register values\n",
+   
+   0
+};
+   char **p = helps;
+   more_char(-1);
+
+   while(*p)
+      if( more_strn(*p, strlen(*p)) <0 )
+         break;
+      else
+         p++;
+   printf("\n");
+   return 0;
+}
+
 cmd_regs()
 {
 #ifdef __STANDALONE__
-   printf("REGS: AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x\n",
+   printf(": AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x",
 	  __argr.x.ax, __argr.x.bx, __argr.x.cx, __argr.x.dx,
 	  __argr.x.si, __argr.x.di);
+   printf(" CS=%04x DS=%04x ES=%04x\n", __get_cs(), __get_ds(), __get_es());
 #else
    printf("Only in standalone\n");
 #endif

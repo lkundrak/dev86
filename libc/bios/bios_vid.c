@@ -4,7 +4,7 @@
  */
 
 /* Various possible console types */
-#define VT52_CON	/* IMO the best, no clear to EOS/EOL yet */
+#define VT52_CON	/* IMO the best, no clear to EOS/EOL tho */
 #define XANSI_CON	/* Largest but still not complete */
 #define XDUMB_CON	/* Can't do much */
 #define XSPEC_CON	/* Incomplete, best for slow links */
@@ -13,7 +13,7 @@
 #ifdef __AS386_16__
 #ifdef __STANDALONE__
 
-#include <dos.h>
+#include <bios.h>
 #include <errno.h>
 int errno;
 

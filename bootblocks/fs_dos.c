@@ -19,19 +19,24 @@
 #define DOS4_MAXSECT(P)    get_long(P,0x20)
 #define DOS4_PHY_DRIVE(P)  get_byte(P,0x24)
 #define DOS4_SERIAL(P)     get_long(P,0x27)
+#define DOS4_FATTYPE(P)    get_uint(P,0x39)
 
 /* These assume alignment is not a problem */
 #define get_byte(P,Off)	   *((unsigned char*)((char*)(P)+(Off)))
 #define get_uint(P,Off)	   *((unsigned short*)((char*)(P)+(Off)))
 #define get_long(P,Off)	   *((long*)((char*)(P)+(Off)))
 
+typedef long Tsect;
+
 static int read_bootblock();
 static int dir_nentry, dir_sect;
-static int dos_clust0, dos_spc, dos_fatpos, dos_fatlen;
+static Tsect dos_clust0, dos_spc;
+static int dos_fatpos, dos_fatlen, dos_fattype;
 static int last_serial = 0;
 
 #ifdef BUFFER_FAT
 static char * fat_buf = 0;
+int           use_fatbuf = 0;
 #endif
 
 static
@@ -39,7 +44,7 @@ struct filestatus {
    char fname[12];
    unsigned short first_cluster;
    unsigned short cur_cluster;
-   unsigned short sector_no;
+   unsigned short sector_no;		/* Max filesize = 32M */
    long file_length;
 }
    cur_file = { "", 0, 0, 0 };
@@ -47,7 +52,6 @@ struct filestatus {
 dos_open_file(fname)
 char * fname;
 {
-   extern union REGS __argr;
    char conv_name[12];
    char *s, *d;
    int i;
@@ -86,22 +90,31 @@ char * fname;
    memset(&cur_file, '\0', sizeof(cur_file));
 
 #ifdef BUFFER_FAT
-   if( !dodir )
+   if( !dodir && dos_fattype == 12 )
    {
       /* Read in and buffer the FAT */
       if( fat_buf ) free(fat_buf);
       fat_buf = malloc(dos_fatlen * 512);
-      if( fat_buf == 0 ) return -1;
+      if( fat_buf == 0 ) 
+	 use_fatbuf = 0;
       else
       {
+	 use_fatbuf = 1;
 	 for(i=0; i<dos_fatlen; i++)
 	 {
 	    s = read_sector(dos_fatpos+i);
-	    if(s == 0) return -1;
+	    if(s == 0)
+	    {
+	       use_fatbuf = 0;
+	       free(fat_buf);
+	       fat_buf = 0;
+	    }
 	    memcpy(fat_buf+i*512, s, 512);
 	 }
       }
    }
+   else
+      use_fatbuf = 0;
 #endif
 
    /* Scan the root directory for the file */
@@ -115,30 +128,36 @@ char * fname;
 #ifdef NOCOMMAND
          break;
 #else
-         char dtime[20];
+	 int dtime = 0;
 	 char lbuf[90];
 	 *lbuf = 0;
 
-	 sprintf(dtime, " %02d/%02d/%04d %02d:%02d",
+	 if( *d > ' ' && *d <= '~' ) switch(d[11]&0x18)
+	 {
+	 case 0:
+            printf("%-8.8s %-3.3s %10ld", d, d+8, get_long(d,28));
+	    dtime=1;
+	    break;
+	 case 0x10:
+            printf("%-8.8s %-3.3s <DIR>     ", d, d+8);
+	    dtime=1;
+	    break;
+	 case 8:
+            if( (d[11] & 7) == 0 )
+	    {
+	       printf("%-11.11s  <LBL>     ", d);
+	       dtime=1;
+	    }
+	    break;
+	 }
+	 if( dtime )
+	    printf(dtime, " %02d/%02d/%04d %02d:%02d\n",
 	           (get_uint(d,24)&0x1F),
 	           ((get_uint(d,24)>>5)&0xF),
 	           ((get_uint(d,24)>>9)&0x7F)+1980,
 	           ((get_uint(d,22)>>11)&0x1F),
 	           ((get_uint(d,22)>>5)&0x3F)
 	        );
-	 if( *d > ' ' && *d <= '~' ) switch(d[11]&0x18)
-	 {
-	 case 0:
-            printf("%-8.8s %-3.3s %10ld%s\n", d, d+8, get_long(d,28), dtime);
-	    break;
-	 case 0x10:
-            printf("%-8.8s %-3.3s <DIR>     %s\n", d, d+8, dtime);
-	    break;
-	 case 8:
-            if( (d[11] & 7) == 0 )
-	       printf("%-11.11s  <LBL>     %s\n", d, dtime);
-	    break;
-	 }
 	 if( more_strn(lbuf, sizeof(lbuf)) < 0 ) break;
 #endif
       }
@@ -151,7 +170,7 @@ char * fname;
 
 	 cur_file.cur_cluster = cur_file.first_cluster;
 	 cur_file.sector_no = 0;
-#ifdef __ELKS__
+#ifdef DEBUG
          fprintf(stderr, "Opened first cluster %d, len %ld\n",
 	                  cur_file.first_cluster,
 	                  cur_file.file_length
@@ -204,16 +223,18 @@ char * buffer;
    /* Is there an opened file ? */
    if( cur_file.fname[0] == 0 )
    {
-#ifdef __ELKS__
+#ifdef DEBUG
       fprintf(stderr, "File is not currently open!\n");
 #endif
       return -1;
    }
 
-   /* Are we before the EOF ? NB: FAT12 ONLY! */
-   if( cur_file.cur_cluster >= 0xFF0 || cur_file.cur_cluster < 2 )
+   /* Are we before the EOF ? */
+   if( ( dos_fattype == 12 &&  cur_file.cur_cluster >= 0xFF0 ) ||
+       ( dos_fattype == 16 && (cur_file.cur_cluster&0xFFF0) == 0xFFF0 ) ||
+	 cur_file.cur_cluster < 2 )
    {
-#ifdef __ELKS__
+#ifdef DEBUG
       fprintf(stderr, "Hit end of file; cluster 0x%03x\n",
                        cur_file.cur_cluster);
 #endif
@@ -222,9 +243,11 @@ char * buffer;
 
    for(s=0; s<2; s++)
    {
-      unsigned int sectno;
+      Tsect sectno;
 
-      if( cur_file.cur_cluster >= 0xFF0 || cur_file.cur_cluster < 2 )
+      if( ( dos_fattype == 12 &&  cur_file.cur_cluster >= 0xFF0 ) ||
+          ( dos_fattype == 16 && (cur_file.cur_cluster&0xFFF0) == 0xFFF0 ) ||
+	    cur_file.cur_cluster < 2 )
       {
          memset(buffer, '\0', 512);
 	 buffer += 512;
@@ -242,31 +265,43 @@ char * buffer;
       cur_file.sector_no++;
       if( cur_file.sector_no % dos_spc == 0 )
       {
-         int odd = (cur_file.cur_cluster&1);
-	 unsigned int val, val2;
-
-	 val = cur_file.cur_cluster + (cur_file.cur_cluster>>1);
-#ifdef BUFFER_FAT
-	 val2 = get_uint(fat_buf, val);
-#else
-         ptr = read_sector(dos_fatpos+(val/512));
-	 if( ptr == 0 ) return -1;
-	 if( val%512 == 511 )
+	 if( dos_fattype == 12 )
 	 {
-	    val2 = (ptr[511]&0xFF);
-            ptr = read_sector(dos_fatpos+(val/512)+1);
-	    if( ptr == 0 ) return -1;
-	    val2 |= (ptr[0]<<8);
+	    int odd = (cur_file.cur_cluster&1);
+	    unsigned int val, val2;
+
+	    val = cur_file.cur_cluster + (cur_file.cur_cluster>>1);
+#ifdef BUFFER_FAT
+	    if( use_fatbuf )
+	       val2 = get_uint(fat_buf, val);
+	    else
+#endif
+	    {
+	       ptr = read_sector(dos_fatpos+(val/512));
+	       if( ptr == 0 ) return -1;
+	       if( val%512 == 511 )
+	       {
+		  val2 = (ptr[511]&0xFF);
+		  ptr = read_sector(dos_fatpos+(val/512)+1);
+		  if( ptr == 0 ) return -1;
+		  val2 |= (ptr[0]<<8);
+	       }
+	       else
+		  val2 = get_uint(ptr, (val%512));
+	    }
+
+	    if( odd ) val2>>=4;
+
+	    val2 &= 0xFFF;
+
+	    cur_file.cur_cluster = val2;
 	 }
 	 else
-	    val2 = get_uint(ptr, (val%512));
-#endif
-
-	 if( odd ) val2>>=4;
-
-	 val2 &= 0xFFF;
-
-         cur_file.cur_cluster = val2;
+	 {
+	    ptr = read_sector(dos_fatpos+(cur_file.cur_cluster/256));
+	    if( ptr == 0 ) return -1;
+	    cur_file.cur_cluster = get_uint(ptr, (cur_file.cur_cluster%256*2));
+	 }
       }
 
       buffer += 512;
@@ -303,6 +338,13 @@ static int read_bootblock()
    dos_fatpos = DOS_RESV(sptr);
    dos_fatlen = DOS_FATLEN(sptr);
    dos_spc = DOS_CLUST(sptr);
+   dos_fattype = DOS4_FATTYPE(sptr);
+   switch(dos_fattype)
+   {
+      case '1'+'6'*256: dos_fattype = 16; break;
+      case '1'+'2'*256:
+      default:          dos_fattype = 12; break;
+   }
    if( dos_spc < 1 ) dos_spc = 1;
    dos_clust0 = dir_sect + (dir_nentry+15)/16 - 2*dos_spc;
 

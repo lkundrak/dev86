@@ -1,11 +1,15 @@
 /*
  * This file based on printf.c from 'Dlibs' on the atari ST  (RdeBath)
  *
- * 
+ * 19-OCT-88: Dale Schumacher
+ * > John Stanley has again been a great help in debugging, particularly
+ * > with the printf/scanf functions which are his creation.  
+ *
  *    Dale Schumacher                         399 Beacon Ave.
  *    (alias: Dalnefre')                      St. Paul, MN  55104
  *    dal@syntel.UUCP                         United States of America
  *  "It's not reality that's important, but how you perceive things."
+ *
  */
 
 /* Altered to use stdarg, made the core function vfprintf.

@@ -21,16 +21,17 @@ SSRC=sysboot.s \
      tarboot.s skip.s com_bcc.s tich.s \
      bootlist.s mbr.s msdos.s noboot.s
 
-encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v
-bin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin
+encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v msdos16.v
+bin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin msdos16.bin
 
 MOBJ=monitor.o commands.o i86_funcs.o relocate.o help.o bzimage.o \
-     trk_buf.o min_buf.o unix.o fs.o fs_tar.o fs_min.o fs_dos.o
+     trk_buf.o min_buf.o unix.o fs.o fs_tar.o fs_min.o fs_dos.o cprintf.o
 MSRC=monitor.c commands.c i86_funcs.c relocate.c help.c bzimage.c \
-     trk_buf.c min_buf.c unix.c fs.c fs_tar.c fs_min.c fs_dos.c
+     trk_buf.c min_buf.c unix.c fs.c fs_tar.c fs_min.c fs_dos.c cprintf.c
 MINC=i86_funcs.h readfs.h monitor.h
 
-BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v tarboot.v minix.v minixhd.v mbr.v
+BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v msdos16.v \
+           tarboot.v minix.v minixhd.v mbr.v
 
 EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s \
        zimage.s minix_elks.c crc.c lsys.c
@@ -59,13 +60,16 @@ minix_elks.s: minix_elks.c Makefile minix.v
 minixhd.s: minix.c Makefile
 	$(BCC) -Mf -O -DHARDDISK $(MINIXDEFS) -S minix.c -o minixhd.s
 
+msdos16.s: msdos.s
+	sed 's/^fatbits=12/fatbits=16/' < msdos.s > msdos16.s
+
 makeboot:	makeboot.c $(BOOTBLOCKS)
 	$(HOSTCC) $(HOSTCCFLAGS) -o makeboot makeboot.c
 
 makeboot.com:	makeboot.c $(BOOTBLOCKS)
 	$(BCC) -Md -O -o makeboot.com makeboot.c
 
-lsys.com:	lsys.c msdos.v
+lsys.com:	lsys.c msdos.v msdos16.v
 	$(BCC) -Md -O -o lsys.com lsys.c
 
 version.h:
@@ -74,7 +78,7 @@ version.h:
 
 clean realclean:
 	rm -f monitor makeboot bootblocks.tar.gz
-	rm -f minix.s minixhd.s minix_elks.s version.h
+	rm -f minix.s minixhd.s minix_elks.s version.h msdos16.s
 	rm -f *.com *.o *.bin *.out *.lst *.sym *.v *.tmp
 
 tgz: minix.bin monitor.out makeboot.com makeboot

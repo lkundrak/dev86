@@ -27,6 +27,8 @@ EXTERN bool_t symgen;		/* generate symbol table flag */
 EXTERN unsigned toterr;		/* total errors */
 EXTERN unsigned totwarn;	/* total warnings */
 
+EXTERN bool_t list_force;	/* Force line to be listed - no error */
+
 /* bookeeping for current line */
 
 EXTERN char *linebuf;		/* buffer */

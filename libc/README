@@ -12,7 +12,8 @@ are in this version of the combined development environment. Some other
 versions will work but often they'll just appear to work or not work at
 all. The original bcc-cc1 won't pickup the right header files, the
 original ld86 won't generate COM files or 386-Linux files and looks in
-the wrong place for crt0.o and libc.a.
+the wrong place for crt0.o and libc.a. The original as is just plain
+broken!
 
 Main Subdirectories.
 

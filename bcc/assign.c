@@ -83,12 +83,14 @@ struct symstruct *target;
 		       storereg(i, target);
 		    }
 		}
+#ifdef I8088
 		else if (tscalar & FLOAT)
 		{
 		    target->indcount = 1;  /* XXX outnnadr clobbers this */
 		    target->offset.offi += accregsize;
 		    storereg(DATREG2, target);
 		}
+#endif
 		target->storage = source->storage;
 		target->offset.offi = 0;
 	    }

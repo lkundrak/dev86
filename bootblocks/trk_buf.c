@@ -3,12 +3,15 @@
 
 #ifndef MINI_BUF
 
+/* #define DEBUG 1 */
+
 int disk_drive = 0;
 int disk_spt   = 7;
 int disk_heads = 2;
 int disk_cyls  = 0;
+long disk_partition_offset = 0; /* FIXME: fetch from __argr */
 
-static int    last_drive = 0;
+static int    last_drive = -1;
 static int    data_len = 0;
 static long   data_trk1 = 0;
 static char * data_buf1 = 0;
@@ -32,6 +35,7 @@ void reset_disk()
       disk_spt   = 7;	/* Defaults for reading Boot area. */
       disk_heads = 2;
       disk_cyls  = 0;
+      disk_partition_offset = 0;
    }
 #if defined(__MSDOS__) || defined(__STANDALONE__)
    else
@@ -39,6 +43,13 @@ void reset_disk()
       /* Hard disk, get parameters from bios */
       long dpt;
       int  v;
+
+#ifdef __STANDALONE__
+      if( disk_partition_offset == 0 && disk_drive == __argr.h.dl )
+      {
+         disk_partition_offset = __argr.x.cx + ((long)__argr.h.dh<<16);
+      }
+#endif
 
       disk_spt   = 17;	/* Defaults for reading Boot area. */
       disk_heads = 1;
@@ -72,12 +83,15 @@ long sectno;
 
    if( disk_drive != last_drive || sectno == 0 ) reset_disk();
 
+   if( disk_partition_offset > 0 )
+      sectno += disk_partition_offset;
+
    if( disk_spt < 0 || disk_spt > 63 || disk_heads < 1 )
    {
       phy_s = sectno;
       reset_disk();
 
-#ifdef __ELKS__
+#if DEBUG > 1
       fprintf(stderr, "read_sector(%ld = %d,%d,%d)\n",
                                    sectno, phy_c, phy_h, phy_s+1);
 #endif
@@ -88,7 +102,7 @@ long sectno;
       phy_h = sectno/disk_spt%disk_heads;
       phy_c = sectno/disk_spt/disk_heads;
 
-#ifdef __ELKS__
+#if DEBUG > 1
       fprintf(stderr, "read_sector(%ld = %d,%d,%d)\n",
                                    sectno, phy_c, phy_h, phy_s+1);
 #endif
@@ -106,8 +120,13 @@ long sectno;
       return 0;
    }
 
-#ifdef __ELKS__
+#ifdef DEBUG
    fprintf(stderr, "WARNING: Single sector read\n");
+#endif
+
+#ifdef DEBUG
+     fprintf(stderr, "phy_read(%d,%d,%d,%d,%d,0x%x)\n",
+	   disk_drive, phy_c, phy_h, phy_s+1, 1, data_buf1);
 #endif
 
    do
@@ -133,14 +152,23 @@ int phy_c, phy_h, phy_s;
    /* Big tracks get us short of memory so limit it. */
    nlen = (disk_spt-1)/24;
    nlen = (disk_spt+nlen)/(nlen+1);
+   /*
    trk_no = (long)phy_c*disk_heads*4+phy_h*4+phy_s/nlen+1;
+   */
+
+   trk_no = (long)(phy_c*disk_heads+phy_h)*((disk_spt+4)/nlen)+phy_s/nlen+1;
+
+#if DEBUG > 1
+   fprintf(stderr, "Info len=%d,%d trk=%ld,%ld,%ld\n", 
+	 data_len,nlen, trk_no,data_trk1,data_trk2);
+#endif
 
    if( data_len != nlen )
    {
       if( data_buf1 ) free(data_buf1);
       if( data_buf2 ) free(data_buf2);
       data_buf1 = data_buf2 = 0;
-      data_len = disk_spt;
+      data_len = nlen;
    }
    if( trk_no == bad_track ) return -1;
 
@@ -151,9 +179,15 @@ int phy_c, phy_h, phy_s;
     * 2) Neither has it, need to swap to overwrite least recent.
     */
 
-   /* So we always swap */
-   p = data_buf1; data_buf1 = data_buf2; data_buf2 = p;
-   t = data_trk1; data_trk1 = data_trk2; data_trk2 = t;
+   /* But sequential reads may spoil this so don't swap if we are shifting
+    * to the next track.
+    */
+   
+   if( trk_no == data_trk2 || trk_no != data_trk1 + 1 )
+   {
+      p = data_buf1; data_buf1 = data_buf2; data_buf2 = p;
+      t = data_trk1; data_trk1 = data_trk2; data_trk2 = t;
+   }
 
    /* The other one right ? */
    if( data_buf1 && trk_no == data_trk1 ) return 0;
@@ -165,8 +199,11 @@ int phy_c, phy_h, phy_s;
    {
       data_buf1 = malloc(disk_spt*512);
 
-#ifdef __ELKS__
-      fprintf(stderr, "Allocated buffer to %d\n", data_buf1);
+#ifdef DEBUG
+      if( data_buf1 )
+         fprintf(stderr, "Allocated buffer to %d\n", data_buf1);
+      else
+         fprintf(stderr, "Failed to allocated buffer.\n");
 #endif
    }
    if( data_buf1 == 0 )
@@ -180,9 +217,14 @@ int phy_c, phy_h, phy_s;
    /* Not enough memory for track read. */
    if( data_buf1 == 0 ) return -1;
 
+#ifdef DEBUG
+     fprintf(stderr, "phy_read(%d,%d,%d,%d,%d,0x%x)\n",
+	   disk_drive, phy_c, phy_h, phy_s/data_len*data_len+1, data_len, data_buf1);
+#endif
+
    do /* the physical read */
    {
-     rv = phy_read(disk_drive, phy_c, phy_h, phy_s/data_len+1, data_len,
+     rv = phy_read(disk_drive, phy_c, phy_h, phy_s/data_len*data_len+1, data_len,
                    data_buf1);
      tries--;
    }

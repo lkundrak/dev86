@@ -19,8 +19,8 @@
 #ifdef L___inport
 #asm
 
-| int inport( int port );
-| reads a word from the i/o port  port  and returns it
+! int inport( int port );
+! reads a word from the i/o port  port  and returns it
 
 	.globl	_inport
 _inport:
@@ -39,8 +39,8 @@ _inport:
 #ifdef L___inportb
 #asm
 
-| int inportb( int port );
-| reads a byte from the i/o port  port  and returns it
+! int inportb( int port );
+! reads a byte from the i/o port  port  and returns it
 
 	.globl	_inportb
 _inportb:
@@ -60,8 +60,8 @@ _inportb:
 #ifdef L___outport
 #asm
 
-| void outport( int port, int value );
-| writes the word  value  to  the i/o port  port
+! void outport( int port, int value );
+! writes the word  value  to  the i/o port  port
 
 	.globl	_outport
 _outport:
@@ -80,9 +80,9 @@ _outport:
 #ifdef L___outportb
 #asm
 
-| void oportb( int port, char value );
-| writes the byte  value  to  the i/o port  port
-| this would be outportb except for feeble linkers
+! void oportb( int port, char value );
+! writes the byte  value  to  the i/o port  port
+! this would be outportb except for feeble linkers
 
 	.globl	_oportb
 _oportb:
@@ -101,8 +101,8 @@ _oportb:
 #ifdef L___peekb
 #asm
 
-| int peekb( unsigned segment, char *offset );
-| returns the (unsigned) byte at the far pointer  segment:offset
+! int peekb( unsigned segment, char *offset );
+! returns the (unsigned) byte at the far pointer  segment:offset
 
 	.define	_peekb
 _peekb:
@@ -124,8 +124,8 @@ _peekb:
 #ifdef L___peekw
 #asm
 
-| int peekw( unsigned segment, int *offset );
-| returns the word at the far pointer  segment:offset
+! int peekw( unsigned segment, int *offset );
+! returns the word at the far pointer  segment:offset
 
 	.define	_peekw
 _peekw:
@@ -146,8 +146,8 @@ _peekw:
 #ifdef L___pokeb
 #asm
 
-| void pokeb( unsigned segment, char *offset, char value );
-| writes the byte  value  at the far pointer  segment:offset
+! void pokeb( unsigned segment, char *offset, char value );
+! writes the byte  value  at the far pointer  segment:offset
 
 	.define	_pokeb
 _pokeb:
@@ -169,8 +169,8 @@ _pokeb:
 #ifdef L___pokew
 #asm
 
-| void pokew( unsigned segment, int *offset, int value );
-| writes the word value  at the far pointer  segment:offset
+! void pokew( unsigned segment, int *offset, int value );
+! writes the word value  at the far pointer  segment:offset
 
 	.define	_pokew
 _pokew:

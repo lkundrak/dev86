@@ -8,17 +8,18 @@
 
 int disk_drive = 0;
 int disk_spt   = 7;
-int disk_heads = 2;
+int disk_heads = 0;
 int disk_cyls  = 0;
 int bad_track  = -1;
 
-static int track_no = -1;
+static int  track_no = -1;
+static int  buf_len = 0;
 static char buffer[MAXTRK*512];
 
 void reset_disk()
 {
    disk_spt   = 7;
-   disk_heads = 2;
+   disk_heads = 0;
    disk_cyls  = 0;
    bad_track  = -1;
 }
@@ -35,6 +36,7 @@ long sectno;
    int ltrack;
 
    if( sectno == 0 ) reset_disk();
+   if( buf_len != disk_spt ) track_no = -1;
 
    if( disk_spt < 1 || disk_heads < 1 )
       phy_s = sectno;
@@ -45,31 +47,34 @@ long sectno;
       phy_c = sectno/disk_spt/disk_heads;
    }
 
-#ifdef __ELKS__
+#ifdef DEBUG
    fprintf(stderr, "read_sector(%ld = %d,%d,%d)\n", sectno, phy_c, phy_h, phy_s);
 #endif
 
    ltrack = phy_c*disk_heads+phy_h;
-   if( disk_spt > 7 && disk_spt <= MAXTRK
+   if( disk_spt > 1 && disk_spt <= MAXTRK
     && track_no != ltrack && ltrack != bad_track)
    {
      rv = phy_read(disk_drive, phy_c, phy_h, 1, disk_spt, buffer);
      if( rv == 0 )
+     {
         track_no = ltrack;
+        buf_len  = disk_spt;
+     }
      else
         bad_track = ltrack;
    }
-   if( track_no == phy_c*disk_heads+phy_h )
+   if( track_no == ltrack )
       return buffer + phy_s * 512;
 
    do
    {
      rv = phy_read(disk_drive, phy_c, phy_h, phy_s+1, 1, buffer);
      tries--;
-     if( rv ) printf("Error in phy_read(%d,%d,%d,%d,%d,%d);\n",
-		      disk_drive, phy_c, phy_h, phy_s+1, 1, buffer);
    }
    while(rv && tries > 0);
+   if( rv ) printf("Disk error 0x%02x %d:%d:%d:%d[%2d] -> 0x%04x[]\n",
+	            rv, disk_drive, phy_c, phy_h, phy_s+1, 1, buffer);
 
    if(rv) return 0; else return buffer;
 }

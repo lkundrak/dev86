@@ -37,12 +37,12 @@ Contents
 
 1.2 ) Dosfs boot sector
 
-   Install with makeboot, the boot sector requires the floppy to be double
-   sided and makeboot checks for this. This boot sector loads and executes
-   a binary BOOTFILE.SYS from the root directory of the floppy.  The file
-   can be any length and is loaded at $07C00. Because of the load address
-   this boot sector can be configured to load another boot sector, for
-   example LILO can be succesfully used in this way.
+   Install with makeboot, there is also a version for 16 bit FAT floppies
+   (eg LS-120 disks) This boot sector loads and executes a binary
+   BOOTFILE.SYS from the root directory of the floppy.  The file can
+   be any length and is loaded at $07C00. Because of the load address
+   this boot sector can be configured to load another boot sector,
+   for example LILO can be succesfully used in this way.
 
    In fact LILO can be succesfully used in this way on a 2M disk, but 
    you must create the floppy with the real dos 2M package as superformat
@@ -52,6 +52,9 @@ Contents
    Note this boot sector loads the executable 1 sector at a time, as far
    as my testing has gone this is only significant on 8086 machines, all
    others (286 8Mhz +) are fast enough to keep up at a 1-1 interleve.
+
+   Unfortunatly the most recent versions of superformat (5.0+) defeat this 
+   because they do not correctly calculate intersector gaps.
 
 1.3 ) Minixfs boot block
 
@@ -63,7 +66,7 @@ Contents
 
    The sector looks for a file or directory called 'boot' if it's a
    directory it loads that and does the search again. When it finds a
-   file it loads it at location $10000 and executes it, beware this
+   file it loads it at location $10000 and executes it, note this
    is limited to a file size of 519k.
 
    There is also support for a helper boot which mean this is the only
@@ -83,6 +86,8 @@ Contents
    tar file but when booted from will load and execute 'monitor.out' at
    location $00800  (Yes thats 2k!)
 
+   Warning: the tar boot sector moves the BPB to the location $666.
+
 1.5 ) Skip boot sector
 
    This bootsector displays a message then loads and executes the hard disk
@@ -90,7 +95,8 @@ Contents
 
 1.6 ) Panic boot sector
 
-   Displays the message 'PANIC! NO OS Found!' and freezes.
+   Displays the message 'PANIC! NO OS Found!' (or the message specified
+   on install) and freezes.
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -127,34 +133,19 @@ Contents
    $ cp monitor.out /mnt/bootfile.sys
 
    $ cp /usr/src/linux/arch/i386/boot/zImage /mnt/vmlinuz
-   $ echo 'root=/dev/ram ramdisk_file=ramdisk.gz mem=80M' > /mnt/vmlinuz.cmd
+   $ echo 'root=/dev/ram ramdisk_file=ramdisk.gz mem=80M' > /mnt/vmlinuz.cfg
    $ cp /archive/ramdisk.gz /mnt/ramdisk.gz
    $ umount /dev/fd0
 
    The stuff about ramdisk is only if you want an init ramdisk, if the ramdisk
    name begins with a '+' the program will ask for another disk first.
 
-   You can also use:
-
-   vmlinuz.app:	Arguments prepended to the Linux command line.
-   vmlinuz.cmd:	Arguments appended to the Linux command line.
-   vmlinux.dfl:	Arguments appended to the Linux command line.
-
-   If there's a *.cmd file you won't be asked anything. If there's a *.dfl or
-   neither you'll be asked:
-
-   vmlinuz:
-
-   where you can type a command line to override the *.dfl file. If there's
-   a *.cmd file the *.dfl file is ignored, the *.app file is placed at the
-   start of the line whichever you do.
-
    If the file isn't called 'vmlinuz' you can still boot it by typing "=linux"
    at the prompt '>' where 'linux' is the name of the bzImage file.
 
    Escape or ^C will interrupt the boot and drop you to the '>' prompt.
    Esacpe or ^C at the '>' prompt will reboot
-      (This may be a little sensitive :-)
+      (This may be a little too sensitive :-)
 
    A file called 'help.txt' will be displayed upto the first line that starts
    with a '%', chunks after that (seperated by '%'s) will be displayed when
@@ -162,4 +153,4 @@ Contents
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Robert de Bath <rdebath@poboxes.com> 22 Mar 1998
+Robert de Bath <rdebath@poboxes.com> 31	Dec 1998

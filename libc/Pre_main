@@ -1,5 +1,5 @@
 
-There is now support for calling functions before main and from inside the
+There is support for calling functions before main and from inside the
 exit() function.
 
 The exit processing uses the standard 'atexit' and 'on_exit' functions

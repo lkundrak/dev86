@@ -121,6 +121,7 @@ char **argv;
 	    case 'z':		/* unmapped zero page */
 	    case 'N':		/* Native format a.out */
 	    case 'd':		/* Make a headerless outfile */
+	    case 'y':		/* Use a newer symbol table */
 		if (arg[2] == 0)
 		    flag[(int) arg[1]] = TRUE;
 		else if (arg[2] == '-' && arg[3] == 0)
@@ -250,7 +251,7 @@ char **argv;
     else
 #endif
        write_elks(outfilename, flag['i'], flag['3'], flag['s'],
-	     flag['z'] & flag['3']);
+	     flag['z'], flag['y']);
     if (flag['m'])
 	dumpmods();
     if (flag['M'])

@@ -17,8 +17,8 @@
 #ifdef L___idiv
 #asm
 
-| idiv.s
-| idiv_ doesn`t preserve dx (returns remainder in it)
+! idiv.s
+! idiv_ doesn`t preserve dx (returns remainder in it)
 
 	.globl idiv_
 
@@ -35,8 +35,8 @@ idiv_:
 #ifdef L___idivu
 #asm
 
-| idivu.s
-| idiv_u doesn`t preserve dx (returns remainder in it)
+! idivu.s
+! idiv_u doesn`t preserve dx (returns remainder in it)
 
 	.globl idiv_u
 
@@ -53,8 +53,8 @@ idiv_u:
 #ifdef L___imod
 #asm
 
-| imod.s
-| imod doesn`t preserve dx (returns quotient in it)
+! imod.s
+! imod doesn`t preserve dx (returns quotient in it)
 
 	.globl imod
 
@@ -72,8 +72,8 @@ imod:
 #ifdef L___imodu
 #asm
 
-| imodu.s
-| imodu doesn`t preserve dx (returns quotient in it)
+! imodu.s
+! imodu doesn`t preserve dx (returns quotient in it)
 
 	.globl imodu
 
@@ -91,8 +91,8 @@ imodu:
 #ifdef L___imul
 #asm
 
-| imul.s
-| imul_, imul_u don`t preserve dx
+! imul.s
+! imul_, imul_u don`t preserve dx
 
 	.globl imul_
 	.globl imul_u
@@ -110,8 +110,8 @@ imul_u:
 #ifdef L___isl
 #asm
 
-| isl.s
-| isl, islu don`t preserve cl
+! isl.s
+! isl, islu don`t preserve cl
 
 	.globl isl
 	.globl islu
@@ -130,8 +130,8 @@ islu:
 #ifdef L___isr
 #asm
 
-| isr.s
-| isr doesn`t preserve cl
+! isr.s
+! isr doesn`t preserve cl
 
 	.globl isr
 
@@ -148,8 +148,8 @@ isr:
 #ifdef L___isru
 #asm
 
-| isru.s
-| isru doesn`t preserve cl
+! isru.s
+! isru doesn`t preserve cl
 
 	.globl isru
 

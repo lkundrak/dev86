@@ -2,10 +2,12 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <time.h>
+#include <string.h>
 
 #include "sysboot.v"
 #include "noboot.v"
 #include "msdos.v"
+#include "msdos16.v"
 #include "skip.v"
 #include "tarboot.v"
 #include "minix.v"
@@ -31,18 +33,39 @@ struct bblist {
    char * desc;
    char * data;
    int	  size;
+   int  name_type;
+   int	boot_name;
    int	fstype;
+   int  fsmod;
 } bblocks[] = {
-{ "tar",  "Bootable GNU tar volume lable", tarboot_data, tarboot_size, FS_TAR},
-{ "dosfs","Boot file BOOTFILE.SYS from dosfs", msdos_data, msdos_size, FS_ADOS},
-{ "none", "No OS bootblock, just message",   noboot_data, noboot_size, FS_DOS},
-{ "skip", "Bypasses floppy boot with message",   skip_data, skip_size, FS_DOS},
-{ "minix","Minix floppy FS booter",            minix_data, minix_size, FS_ZERO},
-{ "hdmin","Minix Hard disk FS booter",     minixhd_data, minixhd_size, FS_ZERO},
-{ "mbr",  "Master boot record for HD",              mbr_data,mbr_size, FS_MBR},
-{ "stat", "Display dosfs superblock",                           0,  0, FS_STAT},
-{ "copy", "Copy boot block to makeboot.sav",                    0,  0, FS_STAT},
-{ "Zap",  "Clear boot block to NULs",                        0,  1024, FS_NONE},
+{ "tar",  "Bootable GNU tar volume lable",
+   	   tarboot_data, tarboot_size, 0, 0, 		FS_TAR},
+{ "dosfs","Boot file BOOTFILE.SYS from dos floppy",
+           msdos_data, msdos_size,
+	   1, msdos_boot_name-msdos_start,		FS_DOS, 12},
+{ "dos16","Boot file BOOTFILE.SYS from 16 bit dos floppy",
+           msdos16_data, msdos16_size,
+	   1, msdos16_boot_name-msdos16_start,		FS_DOS, 16},
+{ "none", "No OS bootblock, just message",  
+           noboot_data, noboot_size, 
+	   2, noboot_boot_message-noboot_start, 	FS_DOS},
+{ "skip", "Bypasses floppy boot with message",  
+           skip_data, skip_size,  
+	   2, skip_mesg-skip_start,			FS_DOS},
+{ "minix","Minix floppy FS booter",           
+           minix_data, minix_size, 
+	   2, minix_bootfile-minix_start,		FS_ZERO},
+{ "hdmin","Minix Hard disk FS booter",    
+           minixhd_data, minixhd_size, 
+	   2, minixhd_bootfile-minixhd_start,		FS_ZERO},
+{ "mbr",  "Master boot record for HD",             
+           mbr_data,mbr_size, 0, 0, 			FS_MBR},
+{ "stat", "Display dosfs superblock",                          
+           0, 0, 0, 0, 					FS_STAT},
+{ "copy", "Copy boot block to makeboot.sav",                   
+           0, 0, 0, 0, 					FS_STAT},
+{ "Zap",  "Clear boot block to NULs",                       
+           0, 1024, 0, 0, 				FS_NONE},
    0
 };
 
@@ -60,6 +83,8 @@ int write_zero = 1;	/* Write sector 0 */
 int write_one = 0;	/* Write sector 1 */
 int bs_offset = 0;	/* Offset of _real_ bootsector for 2m floppies */
 
+char * boot_id = 0;
+
 main(argc, argv)
 int argc;
 char ** argv;
@@ -75,6 +100,10 @@ char ** argv;
       argv++; argc--; force++;
    }
    if( argc != 3 ) Usage();
+
+   boot_id = strchr(argv[1], '=');
+   if( boot_id )
+      *boot_id++ = '\0';
 
    if( (i=strlen(argv[1])) < 2 ) Usage();
    for(ptr = bblocks; ptr->name; ptr++)
@@ -93,12 +122,10 @@ char ** argv;
    {
    case FS_NONE:	/* override */
    	break;
-   case FS_ADOS:
-      check_simpledos();
-      break;
    case FS_DOS:
    case FS_STAT:
       check_msdos();
+      if(ptr->fsmod) check_simpledos(ptr->fsmod);
       break;
    case FS_TAR:
       check_tar();
@@ -123,7 +150,6 @@ char ** argv;
          save_super(buffer);
       close_disk();
       exit(0);
-   case FS_ADOS:
    case FS_DOS:
       for(i=0; i<sysboot_dosfs_stat; i++)
          buffer[i] = ptr->data[i];
@@ -139,15 +165,29 @@ char ** argv;
       copy_mbr(ptr->data);
       break;
 
+   case FS_ZERO:
    case FS_NONE:
       if( ptr->data )
-	 memcpy(buffer, ptr->data, 512);
+	 memcpy(buffer, ptr->data, ptr->size);
       else
       {
 	 memset(buffer, '\0', 1024);
 	 write_one = 1;
       }
       break;
+   }
+
+   if( boot_id ) switch(ptr->name_type)
+   {
+   case 1:
+      set_dosname(ptr->boot_name);
+      break;
+   case 2:
+      set_asciz(ptr->boot_name);
+      break;
+   default:
+      fprintf(stderr, "Cannot specify boot file for this block\n");
+      exit(1);
    }
 
    if( bs_offset )
@@ -172,11 +212,12 @@ Usage()
       progname = "makeboot";
 
 #ifdef __MSDOS__
-   fprintf(stderr, "Usage: %s [-f] bootname a:\n", progname);
+   fprintf(stderr, "Usage: %s [-f] bootblock[=bootname] a:\n", progname);
 #else
-   fprintf(stderr, "Usage: %s [-f] bootname /dev/fd0\n", progname);
+   fprintf(stderr, "Usage: %s [-f] bootblock[=bootname] /dev/fd0\n", progname);
 #endif
-   fprintf(stderr, "Blocks\n");
+   fprintf(stderr, "\nThe bootname is a filename to use with the block,\n");
+   fprintf(stderr, "the blocks are:\n");
    for(;ptr->name; ptr++)
        fprintf(stderr, "\t%s\t%s\n", ptr->name, ptr->desc);
    exit(1);
@@ -189,6 +230,9 @@ open_disk(diskname)
 char * diskname;
 {
 #ifdef __MSDOS__
+   /* Freedos fix */
+   if( diskname[2] == '\r' ) diskname[2] = 0;
+
    if( strcmp("a:", diskname) == 0 ) { disktype = 1; return 0; }
    if( strcmp("b:", diskname) == 0 ) { disktype = 2; return 0; }
    if( strcmp("A:", diskname) == 0 ) { disktype = 1; return 0; }
@@ -199,7 +243,7 @@ char * diskname;
    if( diskfd == 0 ) diskfd = fopen(diskname, "r");
    if( diskfd == 0 )
    {
-      fprintf(stderr, "Cannot open %s\n", diskname);
+      fprintf(stderr, "Cannot open '%s'\n", diskname);
       exit(1);
    }
    return 0;
@@ -516,7 +560,8 @@ copy_tarblock()
 struct bootfields {
    int offset;
    int length;
-   int value;
+   unsigned value;
+   long lvalue;
 }
    dosflds[] =
 {
@@ -606,6 +651,7 @@ char * bootsect;
 	    v = v*256 + (0xFF&( bootsect[dosflds[i].offset+j] ));
 	 }
 	 dosflds[i].value = v;
+	 dosflds[i].lvalue = v;
       }
       else
 	 dosflds[i].value = 0;
@@ -616,7 +662,11 @@ save_super(bootsect)
 char * bootsect;
 {
    FILE * fd;
-   fd = fopen("makeboot.sav", "wb");
+   char * fname = "makeboot.sav";
+   if( boot_id ) fname = boot_id;
+
+   printf("Copying boot block to '%s'\n", fname);
+   fd = fopen(fname, "wb");
    fwrite(bootsect, 1024, 1, fd);
    fclose(fd);
 }
@@ -675,11 +725,12 @@ check_msdos()
    if(!force) exit(2);
 }
 
-check_simpledos()
+check_simpledos(bb_fatbits)
+int bb_fatbits;
 {
-   int numclust = 0xFFFF;
+   unsigned numclust = 0xFFFF;
    char * err = 0;
-   check_msdos();
+   int fatbits = 0;
 
    /* Work out how many real clusters there are */
    if( dosflds[DOS_MAXSECT].value + 2 > 2 )
@@ -687,29 +738,112 @@ check_simpledos()
                    - dosflds[DOS_RESV].value
                    - dosflds[DOS_NFAT].value * dosflds[DOS_FATLEN].value
                    - ((dosflds[DOS_NROOT].value+15)/16)
-                 ) / dosflds[DOS_MAXSECT].value + 2;
+                 ) / dosflds[DOS_CLUST].value + 2;
+   else
+      numclust = ( dosflds[DOS4_MAXSECT].lvalue
+                   - dosflds[DOS_RESV].value
+                   - dosflds[DOS_NFAT].value * dosflds[DOS_FATLEN].value
+                   - ((dosflds[DOS_NROOT].value+15)/16)
+                 ) / dosflds[DOS_CLUST].value + 2;
+
+   if( memcmp(buffer+dosflds[DOS4_FATTYPE].offset, "FAT12", 5) == 0 )
+      fatbits=12;
+   else if( memcmp(buffer+dosflds[DOS4_FATTYPE].offset, "FAT16", 5) == 0 )
+      fatbits=16;
+   else
+      fatbits=12+4*(numclust > 0xFF0);
 
    if( dosflds[DOS_NFAT].value > 2 )
       err = "Too many fat copies on disk";
-   else if( dosflds[DOS_HIDDEN].value != 0 )
-      err = "Dubious MSDOS floppy, it's got hidden sectors.";
    else if( dosflds[DOS_NROOT].value < 15 )
       err = "Root directory has unreasonable size.";
    else if( dosflds[DOS_SECT].value != 512 )
       err = "Drive sector size isn't 512 bytes sorry no-go.";
-   else if( dosflds[DOS_HEADS].value != 2 )
-      err = "Drive doesn't have two heads, this is required.";
-   else if( numclust > 0xFF0 )
-      err = "Filesystem has a 16 bit fat, only 12bits allowed.";
-   else if( dosflds[DOS_RESV].value + dosflds[DOS_FATLEN].value > 
-            dosflds[DOS_SPT].value )
-      err = "The bootblock needs all of fat1 on the first track.";
-   else
-      return;
+   else if( fatbits != bb_fatbits )
+      err = "Filesystem has the wrong fat type for this bootblock.";
+   else if( numclust * dosflds[DOS_CLUST].lvalue / 
+	    dosflds[DOS_SPT].value > 65535 )
+      err = "Maximum of 65535 tracks allowed, sorry";
 
-   fprintf(stderr, "ERROR: %s\n\n", err);
-   print_super(buffer);
-   if(!force) exit(2);
+   if( !err && bb_fatbits == 12 )
+   {
+      if( (0x7C00-msdos_start-512)/512 < dosflds[DOS_FATLEN].value )
+         err = "The FAT is too large to load in the available space.";
+      else if( dosflds[DOS_RESV].value + dosflds[DOS_FATLEN].value > 
+               dosflds[DOS_SPT].value )
+         err = "The bootblock needs all of fat1 on the first track.";
+      else if( msdos_heads == 2 && dosflds[DOS_HEADS].value != 2 )
+         err = "Drive doesn't have two heads, this is required.";
+      else if( dosflds[DOS_HIDDEN].lvalue != 0 )
+         err = "MSDOS floppies shouldn't have hidden sectors.";
+   }
+   
+   if( err )
+   {
+      fprintf(stderr, "ERROR: %s\n\n", err);
+      print_super(buffer);
+      if(!force) exit(2);
+   }
+}
+
+set_dosname(boot_name)
+int boot_name;
+{
+   char dos_name[20];
+   int i,j;
+
+   strcpy(dos_name, "           ");
+
+   for(i=0; boot_id[i] && boot_id[i] != '.' && i<16; i++)
+      dos_name[i] = toupper(boot_id[i]);
+
+   if( boot_id[i] == '.' )
+   {
+      for(j=8,i++; boot_id[i] && boot_id[i] != '.' && j<16; i++,j++)
+         dos_name[j] = toupper(boot_id[i]);
+   }
+
+   printf("Bootfile set to '%11.11s'\n", dos_name);
+
+   memcpy(buffer+boot_name, dos_name, 11);
+}
+
+set_asciz(boot_name)
+int boot_name;
+{
+   int i, j;
+
+   for(i=boot_name; buffer[i]; i++) ;
+   for(           ; !buffer[i]; i++) ;
+   i = i - boot_name -1;
+
+   if( strlen(boot_id) > i )
+   {
+      fprintf(stderr, "Filename '%s' is too long for bootblock\n");
+      exit(1);
+   }
+   else
+   {
+      for(i=0,j=boot_name; boot_id[i]; i++)
+      {
+	 if( boot_id[i] == '\\' && boot_id[i+1] )
+	 {
+	    i++;
+	    switch(boot_id[i])
+	    {
+	       case 'n': buffer[j++] = '\n'; break;
+	       case 'r': buffer[j++] = '\r'; break;
+	       case 'b': buffer[j++] = '\b'; break;
+	       case 't': buffer[j++] = '\t'; break;
+	       case 'a': buffer[j++] = '\007'; break;
+	       case 'e': buffer[j++] = '\033'; break;
+	       default:  buffer[j++] = boot_id[i]; break;
+	    }
+	 }
+	 else buffer[j++] = boot_id[i];
+      }
+      buffer[j] = 0;
+   }
 }
 
 check_mbr()

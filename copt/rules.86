@@ -344,7 +344,7 @@ ret
 jmp .%1
 .%1:
 =
-.%1
+.%1:
 
 jmp .%1
 .%2:
@@ -435,3 +435,14 @@ add	sp,*%4
 %1	%2
 add	sp,*%3+%4
 
+# And a great bug floating push/pop
+push	dx
+push	cx
+push	bx
+push	ax
+pop	ax
+pop	bx
+pop	cx
+pop	dx
+=
+! push/pop

@@ -17,10 +17,9 @@ BOOTSEG = 0x07c0
 LOADSEG = 0x07e0	! Just after boot sector.
 
 public linear
-linear = 1		! Is linear processing done ?
-
+linear = 1		! Is linear processing done ? (0 doesn't work)
 public floppy
-floppy = 0 *linear	! Allow for floppy drive ?
+floppy = 0 *linear	! Allow for floppy drive ? (don't work)
 public reloc
 reloc  = 1 *linear	! Auto configure of bootpart.
 
@@ -93,7 +92,7 @@ load_addrs:
   adc	dl,al
   mov	al,ah
  else
-  lodsw
+  lodsw				; XXX Broken, doesn't set AL correctly.
   mov	cx,ax
   lodsw
   mov	dx,ax

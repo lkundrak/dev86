@@ -19,7 +19,7 @@
 #ifdef L___laddl
 #asm
 
-| laddl.s
+! laddl.s
 
 	.globl	laddl
 	.globl	laddul
@@ -38,7 +38,7 @@ laddul:
 #ifdef L___landl
 #asm
 
-| landl.s
+! landl.s
 
 	.globl	landl
 	.globl	landul
@@ -57,8 +57,8 @@ landul:
 #ifdef L___lcmpl
 #asm
 
-| lcmpl.s
-| lcmpl, lcmpul don`t preserve bx
+! lcmpl.s
+! lcmpl, lcmpul don`t preserve bx
 
 	.globl	lcmpl
 	.globl	lcmpul
@@ -94,7 +94,7 @@ LCMP_B_AND_LT:
 #ifdef L___lcoml
 #asm
 
-| lcoml.s
+! lcoml.s
 
 	.globl	lcoml
 	.globl	lcomul
@@ -113,7 +113,7 @@ lcomul:
 #ifdef L___ldecl
 #asm
 
-| ldecl.s
+! ldecl.s
 
 	.globl	ldecl
 	.globl	ldecul
@@ -140,8 +140,8 @@ LDEC_BOTH:
 #ifdef L___ldivl
 #asm
 
-| ldivl.s
-| bx:ax / 2(di):(di), quotient bx:ax, remainder di:cx, dx not preserved
+! ldivl.s
+! bx:ax / 2(di):(di), quotient bx:ax, remainder di:cx, dx not preserved
 
 	.globl	ldivl
 	.extern	ldivmod
@@ -163,8 +163,8 @@ ldivl:
 #ifdef L___ldivul
 #asm
 
-| ldivul.s
-| unsigned bx:ax / 2(di):(di), quotient bx:ax,remainder di:cx, dx not preserved
+! ldivul.s
+! unsigned bx:ax / 2(di):(di), quotient bx:ax,remainder di:cx, dx not preserved
 
 	.globl	ldivul
 	.extern	ludivmod
@@ -185,7 +185,7 @@ ldivul:
 #ifdef L___leorl
 #asm
 
-| leorl.s
+! leorl.s
 
 	.globl	leorl
 	.globl	leorul
@@ -204,7 +204,7 @@ leorul:
 #ifdef L___lincl
 #asm
 
-| lincl.s
+! lincl.s
 
 	.globl	lincl
 	.globl	lincul
@@ -229,8 +229,8 @@ LINC_HIGH_WORD:
 #ifdef L___lmodl
 #asm
 
-| lmodl.s
-| bx:ax % 2(di):(di), remainder bx:ax, quotient di:cx, dx not preserved
+! lmodl.s
+! bx:ax % 2(di):(di), remainder bx:ax, quotient di:cx, dx not preserved
 
 	.globl	lmodl
 	.extern	ldivmod
@@ -249,8 +249,8 @@ lmodl:
 #ifdef L___lmodul
 #asm
 
-| lmodul.s
-| unsigned bx:ax / 2(di):(di), remainder bx:ax,quotient di:cx, dx not preserved
+! lmodul.s
+! unsigned bx:ax / 2(di):(di), remainder bx:ax,quotient di:cx, dx not preserved
 
 	.globl	lmodul
 	.extern	ludivmod
@@ -269,8 +269,8 @@ lmodul:
 #ifdef L___lmull
 #asm
 
-| lmull.s
-| lmull, lmulul don`t preserve cx, dx
+! lmull.s
+! lmull, lmulul don`t preserve cx, dx
 
 	.globl	lmull
 	.globl	lmulul
@@ -295,7 +295,7 @@ lmulul:
 #ifdef L___lnegl
 #asm
 
-| lnegl.s
+! lnegl.s
 
 	.globl	lnegl
 	.globl	lnegul
@@ -315,7 +315,7 @@ lnegul:
 #ifdef L___lorl
 #asm
 
-| lorl.s
+! lorl.s
 
 	.globl	lorl
 	.globl	lorul
@@ -334,8 +334,8 @@ lorul:
 #ifdef L___lsll
 #asm
 
-| lsll.s
-| lsll, lslul don`t preserve cx
+! lsll.s
+! lsll, lslul don`t preserve cx
 
 	.globl	lsll
 	.globl	lslul
@@ -368,8 +368,8 @@ LSL_ZERO:
 #ifdef L___lsrl
 #asm
 
-| lsrl.s
-| lsrl doesn`t preserve cx
+! lsrl.s
+! lsrl doesn`t preserve cx
 
 	.globl	lsrl
 
@@ -399,8 +399,8 @@ LSR_SIGNBIT:
 #ifdef L___lsrul
 #asm
 
-| lsrul.s
-| lsrul doesn`t preserve cx
+! lsrul.s
+! lsrul doesn`t preserve cx
 
 	.globl	lsrul
 
@@ -431,7 +431,7 @@ LSRU_ZERO:
 #ifdef L___lsubl
 #asm
 
-| lsubl.s
+! lsubl.s
 
 	.globl	lsubl
 	.globl	lsubul
@@ -450,8 +450,8 @@ lsubul:
 #ifdef L___ltstl
 #asm
 
-| ltstl.s
-| ltstl, ltstul don`t preserve bx
+! ltstl.s
+! ltstl, ltstul don`t preserve bx
 
 	.globl	ltstl
 	.globl	ltstul

@@ -18,7 +18,7 @@
 #ifdef L___laddb
 #asm
 
-| laddb.s
+! laddb.s
 
 	.globl	laddb
 	.globl	laddub
@@ -37,7 +37,7 @@ laddub:
 #ifdef L___landb
 #asm
 
-| landb.s
+! landb.s
 
 	.globl	landb
 	.globl	landub
@@ -56,15 +56,15 @@ landub:
 #ifdef L___lcmpb
 #asm
 
-| lcmpb.s
-| lcmpb, lcmpub don`t preserve ax
+! lcmpb.s
+! lcmpb, lcmpub don`t preserve ax
 
 	.globl	lcmpb
 	.globl	lcmpub
 
 lcmpb:
 lcmpub:
-	sub	ax,(di)		| don`t need to preserve ax
+	sub	ax,(di)		! don`t need to preserve ax
 	je	LCMP_NOT_SURE
 	ret
 
@@ -72,17 +72,17 @@ lcmpub:
 
 LCMP_NOT_SURE:
 	cmp	bx,2(di)
-	jb	LCMP_B_AND_LT	| b (below) becomes lt (less than) as well
-	jge	LCMP_EXIT	| ge and already ae
-				| else make gt as well as a (above)
-	inc	ax		| clear ov and mi, set ne for greater than
+	jb	LCMP_B_AND_LT	! b (below) becomes lt (less than) as well
+	jge	LCMP_EXIT	! ge and already ae
+				! else make gt as well as a (above)
+	inc	ax		! clear ov and mi, set ne for greater than
 LCMP_EXIT:
 	ret
 
 	.even
 
 LCMP_B_AND_LT:
-	dec	ax		| clear ov, set mi and ne for less than
+	dec	ax		! clear ov, set mi and ne for less than
 	ret
 #endasm
 #endif
@@ -93,7 +93,7 @@ LCMP_B_AND_LT:
 #ifdef L___lcomb
 #asm
 
-| lcomb.s
+! lcomb.s
 
 	.globl	lcomb
 	.globl	lcomub
@@ -112,7 +112,7 @@ lcomub:
 #ifdef L___ldecb
 #asm
 
-| ldecb.s
+! ldecb.s
 
 	.globl	ldecb
 	.globl	ldecub
@@ -139,8 +139,8 @@ LDEC_BOTH:
 #ifdef L___ldivb
 #asm
 
-| ldivb.s
-| ax:bx / (di):2(di), quotient ax:bx, remainder cx:di, dx not preserved
+! ldivb.s
+! ax:bx / (di):2(di), quotient ax:bx, remainder cx:di, dx not preserved
 
 	.globl	ldivb
 	.extern	ldivmod
@@ -149,7 +149,7 @@ ldivb:
 	xchg	ax,bx
 	mov	cx,2(di)
 	mov	di,(di)
-	call	ldivmod		| bx:ax / di:cx, quot di:cx, rem bx:ax
+	call	ldivmod		! bx:ax / di:cx, quot di:cx, rem bx:ax
 	xchg	ax,di
 	xchg	bx,cx
 	ret
@@ -162,8 +162,8 @@ ldivb:
 #ifdef L___ldivub
 #asm
 
-| ldivub.s
-| unsigned ax:bx / (di):2(di), quotient ax:bx,remainder cx:di, dx not preserved
+! ldivub.s
+! unsigned ax:bx / (di):2(di), quotient ax:bx,remainder cx:di, dx not preserved
 
 	.globl	ldivub
 	.extern	ludivmod
@@ -172,7 +172,7 @@ ldivub:
 	xchg	ax,bx
 	mov	cx,2(di)
 	mov	di,(di)
-	call	ludivmod	| unsigned bx:ax / di:cx, quot di:cx, rem bx:ax
+	call	ludivmod	! unsigned bx:ax / di:cx, quot di:cx, rem bx:ax
 	xchg	ax,di
 	xchg	bx,cx
 	ret
@@ -185,7 +185,7 @@ ldivub:
 #ifdef L___leorb
 #asm
 
-| leorb.s
+! leorb.s
 
 	.globl	leorb
 	.globl	leorub
@@ -204,7 +204,7 @@ leorub:
 #ifdef L___lincb
 #asm
 
-| lincb.s
+! lincb.s
 
 	.globl	lincb
 	.globl	lincub
@@ -229,8 +229,8 @@ LINC_HIGH_WORD:
 #ifdef L___lmodb
 #asm
 
-| lmodb.s
-| ax:bx % (di):2(di), remainder ax:bx, quotient cx:di, dx not preserved
+! lmodb.s
+! ax:bx % (di):2(di), remainder ax:bx, quotient cx:di, dx not preserved
 
 	.globl	lmodb
 	.extern	ldivmod
@@ -239,7 +239,7 @@ lmodb:
 	xchg	ax,bx
 	mov	cx,2(di)
 	mov	di,(di)
-	call	ldivmod		| bx:ax / di:cx, quot di:cx, rem bx:ax
+	call	ldivmod		! bx:ax / di:cx, quot di:cx, rem bx:ax
 	xchg	ax,bx
 	xchg	cx,di
 	ret
@@ -252,8 +252,8 @@ lmodb:
 #ifdef L___lmodub
 #asm
 
-| lmodub.s
-| unsigned ax:bx / (di):2(di), remainder ax:bx,quotient cx:di, dx not preserved
+! lmodub.s
+! unsigned ax:bx / (di):2(di), remainder ax:bx,quotient cx:di, dx not preserved
 
 	.globl	lmodub
 	.extern	ludivmod
@@ -262,7 +262,7 @@ lmodub:
 	xchg	ax,bx
 	mov	cx,2(di)
 	mov	di,(di)
-	call	ludivmod	| unsigned bx:ax / di:cx, quot di:cx, rem bx:ax
+	call	ludivmod	! unsigned bx:ax / di:cx, quot di:cx, rem bx:ax
 	xchg	ax,bx
 	xchg	cx,di
 	ret
@@ -275,8 +275,8 @@ lmodub:
 #ifdef L___lmulb
 #asm
 
-| lmulb.s
-| lmulb, lmulub don`t preserve cx, dx
+! lmulb.s
+! lmulb, lmulub don`t preserve cx, dx
 
 	.globl	lmulb
 	.globl	lmulub
@@ -302,7 +302,7 @@ lmulub:
 #ifdef L___lnegb
 #asm
 
-| lnegb.s
+! lnegb.s
 
 	.globl	lnegb
 	.globl	lnegub
@@ -322,7 +322,7 @@ lnegub:
 #ifdef L___lorb
 #asm
 
-| lorb.s
+! lorb.s
 
 	.globl	lorb
 	.globl	lorub
@@ -341,8 +341,8 @@ lorub:
 #ifdef L___lslb
 #asm
 
-| lslb.s
-| lslb, lslub don`t preserve cx
+! lslb.s
+! lslb, lslub don`t preserve cx
 
 	.globl	lslb
 	.globl	lslub
@@ -375,8 +375,8 @@ LSL_ZERO:
 #ifdef L___lsrb
 #asm
 
-| lsrb.s
-| lsrb doesn`t preserve cx
+! lsrb.s
+! lsrb doesn`t preserve cx
 
 	.globl	lsrb
 
@@ -395,7 +395,7 @@ LSR_EXIT:
 	.even
 
 LSR_SIGNBIT:
-	mov	cx,*32		| equivalent to +infinity in this context
+	mov	cx,*32		! equivalent to +infinity in this context
 	j	LSR_LOOP
 #endasm
 #endif
@@ -406,8 +406,8 @@ LSR_SIGNBIT:
 #ifdef L___lsrub
 #asm
 
-| lsrub.s
-| lsrub doesn`t preserve cx
+! lsrub.s
+! lsrub doesn`t preserve cx
 
 	.globl	lsrub
 
@@ -438,7 +438,7 @@ LSRU_ZERO:
 #ifdef L___lsubb
 #asm
 
-| lsubb.s
+! lsubb.s
 
 	.globl	lsubb
 	.globl	lsubub
@@ -457,8 +457,8 @@ lsubub:
 #ifdef L___ltstb
 #asm
 
-| ltstb.s
-| ltstb, ltstub don`t preserve ax
+! ltstb.s
+! ltstb, ltstub don`t preserve ax
 
 	.globl	ltstb
 	.globl	ltstub
@@ -479,7 +479,7 @@ LTST_NOT_SURE:
 	.even
 
 LTST_FIX_SIGN:
-	inc	ax		| clear ov and mi, set ne for greater than
+	inc	ax		! clear ov and mi, set ne for greater than
 	ret
 #endasm
 #endif

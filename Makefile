@@ -100,13 +100,6 @@ distribution:
 
 	cd /tmp 							&&\
 	VER=`cat linux-86/Libc_version`					&&\
-	ln -s linux-86/libc libc-$$VER 					&&\
-	tar cf Dist/libc-8086-$$VER.tar libc-$$VER/*			&&\
-	rm libc-$$VER
-	gzip -f9 /tmp/Dist/libc-8086-*.tar &
-
-	cd /tmp 							&&\
-	VER=`cat linux-86/Libc_version`					&&\
 	$(MAKE) -C /tmp/linux-86 install 				\
 		ARFLAGS=q DIST=/tmp/linux-86-dist ELKSSRC=/dev/null	&&\
 	$(MAKE) -C /tmp/linux-86 other					&&\

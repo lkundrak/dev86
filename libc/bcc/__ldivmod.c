@@ -8,35 +8,35 @@
 	.text
 	.even
 
-| ldivmod.s - 32 over 32 to 32 bit division and remainder for 8086
+! ldivmod.s - 32 over 32 to 32 bit division and remainder for 8086
 
-| ldivmod( dividend bx:ax, divisor di:cx )  [ signed quot di:cx, rem bx:ax ]
-| ludivmod( dividend bx:ax, divisor di:cx ) [ unsigned quot di:cx, rem bx:ax ]
+! ldivmod( dividend bx:ax, divisor di:cx )  [ signed quot di:cx, rem bx:ax ]
+! ludivmod( dividend bx:ax, divisor di:cx ) [ unsigned quot di:cx, rem bx:ax ]
 
-| dx is not preserved
-
-
-| NB negatives are handled correctly, unlike by the processor
-| divison by zero does not trap
+! dx is not preserved
 
 
-| let dividend = a, divisor = b, quotient = q, remainder = r
-|	a = b * q + r  mod 2^32
-| where:
+! NB negatives are handled correctly, unlike by the processor
+! divison by zero does not trap
 
-| if b = 0, q = 0 and r = a
 
-| otherwise, q and r are uniquely determined by the requirements:
-| r has the same sign as b and absolute value smaller than that of b, i.e.
-|	if b > 0, then 0 <= r < b
-|	if b < 0, then 0 >= r > b
-| (the absoulute value and its comparison depend on signed/unsigned)
+! let dividend = a, divisor = b, quotient = q, remainder = r
+!	a = b * q + r  mod 2^32
+! where:
 
-| the rule for the sign of r means that the quotient is truncated towards
-| negative infinity in the usual case of a positive divisor
+! if b = 0, q = 0 and r = a
 
-| if the divisor is negative, the division is done by negating a and b,
-| doing the division, then negating q and r
+! otherwise, q and r are uniquely determined by the requirements:
+! r has the same sign as b and absolute value smaller than that of b, i.e.
+!	if b > 0, then 0 <= r < b
+!	if b < 0, then 0 >= r > b
+! (the absoulute value and its comparison depend on signed/unsigned)
+
+! the rule for the sign of r means that the quotient is truncated towards
+! negative infinity in the usual case of a positive divisor
+
+! if the divisor is negative, the division is done by negating a and b,
+! doing the division, then negating q and r
 
 
 	.globl	ldivmod
@@ -105,7 +105,7 @@ divlarge:
 	cmp	dx,ax
 	ja	zdivu
 
-| rotate w (= b) to greatest dyadic multiple of b <= r
+! rotate w (= b) to greatest dyadic multiple of b <= r
 
 loop1:
 	shl	dx,*1		! w = 2*w

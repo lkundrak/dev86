@@ -4,13 +4,13 @@
 
 ifeq ($(LIB_OS),BIOS)
 ASRC=bios.c
-AOBJ=bios_start.o bios_isatty.o \
+AOBJ=bios_start.o bios_isatty.o bios_nofiles.o \
      bios_open.o bios_read.o bios_write.o bios_lseek.o bios_close.o
 
 BSRC=bios_vid.c
 BOBJ=bios_putc.o bios_getc.o bios_khit.o bios_rdline.o
 
-OBJ=$(AOBJ) $(BOBJ) time.o
+OBJ=$(AOBJ) $(BOBJ) time.o fileops.o fs_dos.o rawio.o
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 

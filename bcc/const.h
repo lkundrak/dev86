@@ -43,7 +43,9 @@
 typedef long no_hope;
 
 #else
+#ifndef NO_I80386
 # define I80386			/* Little BCC doesn't need 386 */
+#endif
 #endif
 #endif
 

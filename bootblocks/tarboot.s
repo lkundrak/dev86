@@ -93,7 +93,7 @@ endif
   call	probe_floppy
 
   call	get_size		! Get number of clicks in di
-  cmp	di,#0
+  test	di,di
   jz	nogood			! If it`s zero .. Hmm
 
  if STACK = 0
@@ -122,7 +122,7 @@ hcode:
 ! For 3.5 inch floppies 36 is 2.88 Mb, 18 is 1.44Mb, 21 is 1.68Mb on
 ! a 1.44Mb floppy drive. 15 and 9 are for 5.25 inch floppies.
 
-disksizes: .byte 36,21,18,15,9
+disksizes: .byte 36,32,21,18,15,9
 
 ! End of part 1
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

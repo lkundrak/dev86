@@ -49,7 +49,9 @@ tar_open_file(fname)
 char * fname;
 {
    HEADER * sptr;
+#ifndef NOCOMMAND
    int dodir = 0;
+#endif
    int sectno;
 
 #ifdef __STANDALONE__
@@ -64,9 +66,11 @@ char * fname;
 
    tar_set_drive();
 
+#ifndef NOCOMMAND
    if( strcmp(fname, ".") == 0 )
       dodir=1;
    else
+#endif
    {
       if( tar_status.diskoffset == 0 && strcmp(fname, tar_status.name) == 0 )
          return tar_rewind_file();
@@ -92,8 +96,10 @@ char * fname;
 
       if( sptr->member.m_linked != 0 && sptr->member.m_linked != '0' )
          ;
+#ifndef NOCOMMAND
       else if( dodir )
           printf("%s %d tape blocks\n", sptr->member.m_name, (int)v-1);
+#endif
       else if( strcmp(fname, sptr->member.m_name, NAME_SIZE) == 0 )
       {
          strncpy(tar_status.name, sptr->member.m_name, NAME_SIZE);
@@ -229,10 +235,10 @@ int   type;
 }
 
 valid_tar_checksum(sptr)
-HEADER * sptr;
+register HEADER * sptr;
 {
    register char *ptr;
-   register int ac = 0;
+   int ac = 0;
 
    ptr = sptr->hdr_block;
    while (ptr < sptr->hdr_block+sizeof(sptr->hdr_block))
@@ -257,6 +263,7 @@ tar_set_drive()
     */
    if( disk_spt <= 9 )			 disk_cyls = 40;
    if( disk_spt == 21 || disk_spt > 36 ) disk_cyls = 82;
+   else if( disk_spt == 32 )             disk_cyls = 1024;
    else					 disk_cyls = 80;
 #else
    disk_spt = 18;	/* Testing only */

@@ -69,15 +69,29 @@ char ** argv;
    if( p[0] == 's' ) display_mode = 1;
    if( p[0] == 'n' ) display_mode = 2;
 
+   multiple_files = 0;
+   for(ar=1; ar<argc; ar++)
+   {
+      if( argv[ar][0] == '-' ) switch(argv[ar][1])
+      {
+      case 's': display_mode = 1; break;
+      case 'n': display_mode = 2; break;
+      }
+      else
+	 multiple_files++;
+   }
+
+   if( !multiple_files ) exit(1);
+
+   multiple_files = (multiple_files>1);
+
    if( display_mode == 1 )
       printf("text\tdata\tbss\tdec\thex\tfilename\n");
 
-   multiple_files = (argc>2);
-
-   for(ar=1; ar<argc; ar++)
+   for(ar=1; ar<argc; ar++) if(argv[ar][0] != '-')
       do_file(argv[ar]);
 
-   return (argc<=1);
+   return 0;
 }
 
 void
@@ -149,6 +163,7 @@ char * fname;
 
    case 1: /* ELKS executable */
       fseek(ifd, 0L, 0);
+      fetch_aout_hdr();
 
       switch(display_mode)
       {
@@ -529,8 +544,6 @@ static char * byteord[] = { "LITTLE_ENDIAN", "(2143)","(3412)","BIG_ENDIAN" };
    int i;
    long l;
 
-   if( display_mode == 0 ) fetch_aout_hdr();
-
    if( h_cpu > 0x17 ) h_cpu &= 3;
 
    printf("HLEN %d\n", h_len);
@@ -597,8 +610,6 @@ static char * byteord[] = { "LITTLE_ENDIAN", "(2143)","(3412)","BIG_ENDIAN" };
 void
 size_aout()
 {
-   if( display_mode == 1 ) fetch_aout_hdr();
-
    if( display_mode == 0 )
       printf("text\tdata\tbss\tdec\thex\tfilename\n");
 
@@ -616,8 +627,7 @@ nm_aout()
    long n_value;
    int n_sclass, n_numaux, n_type;
    long bytes_left;
-
-   if( display_mode == 2 ) fetch_aout_hdr();
+   int  pending_nl = 0;
 
    fseek(ifd, h_len+header[2]+header[3]+header[8]+header[9], 0);
 
@@ -632,13 +642,20 @@ nm_aout()
 
    while(bytes_left > 16)
    {
-      if( fread(n_name, 1, 8, ifd) != 8 ) return;
+      if( fread(n_name, 1, 8, ifd) != 8 ) break;
       n_name[8] = 0;
       n_value  = get_long();
-      if( (n_sclass = getc(ifd)) == EOF ) return;
-      if( (n_numaux = getc(ifd)) == EOF ) return;
+      if( (n_sclass = getc(ifd)) == EOF ) break;
+      if( (n_numaux = getc(ifd)) == EOF ) break;
       n_type = get_word();
 
+      if( pending_nl && n_sclass == 0 )
+      {
+         printf("%s", n_name);
+         continue;
+      }
+
+      if( pending_nl ) putchar('\n');
       if( n_sclass == 0x10 )
          printf("         ");
       else
@@ -687,6 +704,10 @@ nm_aout()
             printf("n_type=%04x ", n_type);
       }
 
-      printf("%s\n", n_name);
+      printf("%s", n_name);
+
+      pending_nl=1;
    }
+
+   if( pending_nl ) putchar('\n');
 }

@@ -1,4 +1,4 @@
-/* (C) 1992,1996 R de Bath */
+/* (C) 1992,1996,1998-9 R de Bath */
 
 #include <stdio.h>
 #include <ctype.h>
@@ -13,6 +13,10 @@
 #define void char
 #endif
 
+/*
+ * Linked list of variables, the only source for these is the command line
+ * and the (optional) manifest constants.
+ */
 struct varrec
 {
    struct varrec * next;
@@ -25,6 +29,8 @@ int cuttype = 0;	/* 0 = use blank lines */
 			/* 1 = use #lines */
 			/* 2 = use '# 'oldtext */
 			/* 3 = delete unused lines */
+int striphash = 0;
+int stripcomment = 0;
 
 char linebuf[2048];
 
@@ -84,6 +90,7 @@ char ** argv;
       case 'C':
       case 'c': cuttype = 2; break;
       case 'r': cuttype = 3; break;
+      case 'h': striphash=1; break;
 
       case 'M': manifest_constant(); break;
       case 'D': unknown_stat = 'D'; break;
@@ -146,11 +153,14 @@ char * fname;
    if( cuttype == 1 ) 
       printf("#line 1 \"%s\"\n", filename);
 
+   /* NB: limited line length */
    while( fgets(linebuf, sizeof(linebuf), fd) != 0 )
    {
       int f = 1;
+      char * p = linebuf;
       lineno++;
-      if( linebuf[0] == '#' )
+      while(isspace(*p)) p++;
+      if( *p == '#' )
 	 f = do_hashcom();
       if(f)
       {
@@ -184,9 +194,12 @@ int lineno;
 int
 do_hashcom()
 {
-   char * p = linebuf+1;
+   char * p = linebuf;
    int flg = -1;
-   while( *p == ' ' || *p == '\t' ) p++;
+
+   while(isspace(*p)) p++;
+   if( *p == '#' ) p++;
+   while(isspace(*p)) p++;
 
    if(strncmp(p, "ifdef", 5) == 0)
    {
@@ -198,7 +211,7 @@ do_hashcom()
       do_ifdef(p+6, 'U');
    }
    else
-   if(strncmp(p, "if", 2) == 0 && (p[2]==' ' || p[2]=='\t') )
+   if(strncmp(p, "if", 2) == 0 && isspace(p[2]) )
    {
       state[iflevel++] = keeptext;
       keeptext |= 2;
@@ -217,7 +230,7 @@ do_hashcom()
       iflevel--;
       keeptext = state[iflevel];
    }
-   else if( cuttype != 0 ) return 1;
+   else if( !striphash ) return 1;
 
    if( flg < 0 ) flg = (keeptext&2);
 
@@ -245,7 +258,7 @@ int which;
       s = curr->name;
       p = nm;
       while( *p == *s ) { p++; s++; }
-      if( *s == '\0' && *p <= ' ' )
+      if( *s == '\0' && *p <= ' ' )		/* FIXME alphanum */
 	 break;
    }
    state[iflevel] = keeptext;
@@ -271,6 +284,79 @@ int which;
       keeptext = (curr->state == which);
    return 1;
 }
+
+#if 0
+
+do_if(p)
+char * p;
+{
+   /*
+    * Look for:
+    *                 defined Label
+    * one sort of     ||   &&
+    *                 0
+    *                 1
+    *
+    * Skip characters: WS, (, )
+    *
+    * Give up on unknown characters and labels without a defined or assumed
+    * state. BUT note that if there is another label that forces the state
+    * of the result irrespective of an unknown label the state should be set.
+    *
+    */
+
+static char wbuf[256];
+
+   int combiner   = 0;
+   int true_defs  = 0;
+   int false_defs = 0;
+   int unkn_defs  = 0;
+
+   int state = 0;
+
+   char * d;
+
+   for(;;)
+   {
+      d=wbuf;
+      do
+      {
+         while( isspace(*p) || (d==wbuf && (*p == '(' || *p == ')' ))) p++;
+
+         if( d!=wbuf && (*p == '(' || *p == ')' )) break;
+
+         while( !(isspace(*p) || *p == '(' || *p == ')' ))
+	    if( d<wbuf+sizeof(wbuf)-2) *d++ = *p++;
+	    else                       p++;
+
+         *d= 0;
+      }
+      while( strcmp(wbuf, "!") == 0 );
+
+      if( state == 0 )
+      {
+	 if( strcmp(wbuf, "defined" ) == 0 )
+	 {
+	    state = 1;
+	    continue;
+	 }
+	 if( strcmp(wbuf, "!defined" ) == 0 )
+	 {
+	    state = 2;
+	    continue;
+	 }
+	 if( strcmp(wbuf, "||" ) == 0 || strcmp(wbuf, "&&") == 0 )
+	 {
+	    if( combiner == 0 ) combiner = wbuf[0];
+	    if( combiner != wbuf[0] ) combiner = '@';
+	    continue;
+	 }
+	 /* Something we're not ready for ... */
+	 goto Dont_know;
+      }
+   }
+}
+#endif
 
 void
 check_name(nm)

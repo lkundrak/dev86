@@ -8,7 +8,7 @@ typedef int (*proc)();
 
 int cmd_quit(), cmd_dump(), cmd_seg(), cmd_rel(), cmd_bzimage(), cmd_help();
 int cmd_nop(), cmd_memdump(), cmd_set_base(), cmd_dir(), cmd_type(), cmd_more();
-int cmd_regs();
+int cmd_regs(), cmd_monhelp();
 
 void init_prog();
 
@@ -33,6 +33,7 @@ static char minibuf[2] = " ";
 
    init_prog();
 #ifdef __STANDALONE__
+#if 0
 #ifndef NOCOMMAND
    if( __get_ds() != 0x1000 )
    {
@@ -42,12 +43,17 @@ static char minibuf[2] = " ";
       printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
    }
 #endif
+#else
+   printf("Loaded at CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
+#endif
 
    if( (__argr.x.dx & 0xFF) == 0 )
 #endif
    {
+#ifdef NOCOMMAND
+      cmd_type("help.txt");
+#else
       display_help(0);
-#ifndef NOCOMMAND
       if( x86 > 2 && !x86_emu )	/* Check some basics */
 #endif
          cmd_bzimage((void*)0);
@@ -70,8 +76,9 @@ static char minibuf[2] = " ";
       command_buf[ch] = '\0';
       if( ch == 1 && command_buf[0] != '\n' )
       {
-         sprintf(command_buf, "?$%02x\n", command_buf[0]&0xFF);
-	 printf("%s", command_buf);
+	 putchar('\n');
+	 help_key(command_buf[0]&0xFF);
+	 continue;
       }
       if( command_buf[ch-1] == '\n' ) command_buf[ch-1] = 0;
 
@@ -241,7 +248,6 @@ struct t_cmd_list cmd_list[] =
    {"exit",   cmd_quit}, {"quit",  cmd_quit}, {"q",  cmd_quit},
    {"#",      cmd_nop},
    {"help",   cmd_help},    /* Display from help.txt */
-   {"?",      cmd_help},    /* Display from help.txt */
    {"dir",    cmd_dir},     /* Display directory */
    {"cat",    cmd_type},    /* Cat/Type a file to the screen */
    {"type",   cmd_type},    /* Cat/Type a file to the screen */
@@ -249,6 +255,8 @@ struct t_cmd_list cmd_list[] =
 
 #ifndef NOMONITOR
    /* Debugger/monitor commands */
+   {"?",      cmd_monhelp}, /* Display builtin help */
+
    {"memdump",cmd_memdump}, {"mem",cmd_memdump}, {"m",  cmd_memdump},
                             /* Display bytes */
    {"seg",    cmd_seg},     /* Set default segment */
@@ -257,6 +265,7 @@ struct t_cmd_list cmd_list[] =
    {"n",      cmd_set_base},
 
    {"init",   init_prog},
+   {"regs",   cmd_regs},
    {"reg",    cmd_regs},
    {"r",      cmd_regs},
 

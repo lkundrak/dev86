@@ -38,7 +38,7 @@ depend clean clobber:
 	  (cd $$d; $(MAKE) $(MFLAGS) $@;); \
 	done
 
-ungrab:
+ungrab: ../as/as.c
 	rm -rf as ld man
 grab:
 	cp -a ../as ../ld .
