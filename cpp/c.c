@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <errno.h>
 
-#if __STDC__
+#if __STDC__ == (1UL)
 #define strong_alias(Y,X) asm("export _" #X,  "_" #X " = _" #Y )
 #else
 #define strong_alias(Y,X) asm("export _" "X",  "_" "X" " = _" "Y" )
 #endif
 
 #if __STDC__
-#define comb(x,y) x##y
+#define comb(x,y) x ## y
 #warning Using Ansi combine
 #elif __BCC__
 #define comb(x,y) x/**/y
@@ -36,7 +36,13 @@ main()
    int i1, i2, i3;
 
    printf("sizeof(long double) = %d\n", sizeof(long double));
+#ifdef __GNUC__
+   printf("sizeof(long float) = ERROR!\n");
+   printf("sizeof(long long) = %d\n", sizeof(long long));
+#else
    printf("sizeof(long float) = %d\n", sizeof(long float));
+   printf("sizeof(long long) = ERROR!\n");
+#endif
    printf("sizeof(double) = %d\n", sizeof(double));
    printf("sizeof(float) = %d\n", sizeof(float));
 

@@ -28,6 +28,12 @@
  * TODO:
  *    #asm -> asm("...") translation.
  *    ?: in #if expressions
+ *    __DATE__ and __TIME__ macros.
+ *    Add #line directive.
+ *    Poss: Seperate current directory for #include from errors (#line).
+ *    Poss: C99 Variable macro args.
+ *    \n in "\n" in a stringized argument.
+ *    Comments in stringized arguments should be deleted.
  */
 
 #define KEEP_SPACE	0
@@ -44,7 +50,11 @@ FILE * curfile;
 char * c_fname;
 int    c_lineno = 0;
 
+#ifdef __BCC__
+typedef long int_type;		/* Used for preprocessor expressions */
+#else
 typedef int int_type;		/* Used for preprocessor expressions */
+#endif
 static int  curtok = 0;		/* Used for preprocessor expressions */
 
 static int    fi_count = 0;
@@ -132,7 +142,7 @@ gettok()
       }
 
       /* Special for quoted strings */
-      *curword = 0;
+      *curword = '\0';
       ch = chget();
       if( ch == EOF ) return ch;
 
@@ -274,6 +284,12 @@ break_break:
    {
       if( state < 6 )
       {
+         if( ch == 'u' || ch == 'U' )
+         {
+            if( cc < WORDSIZE-1 ) *p++ = ch;	/* Clip to WORDSIZE */
+            *p = '\0'; cc++;
+	    ch = chget();
+         }
          if( ch == 'l' || ch == 'L' )
          {
             if( cc < WORDSIZE-1 ) *p++ = ch;	/* Clip to WORDSIZE */
@@ -406,7 +422,7 @@ break_break:
 	 *p++ = ch;
       } else
 	 unchget(ch);
-      *p = 0;
+      *p = '\0';
       return TK_STR;
    }
 
@@ -720,26 +736,23 @@ do_proc_include()
          if( ch == ch1 )
          {
             *p = '\0';
+	    p = strdup(curword);
 
-            fd = open_include(curword, "r", (ch=='"'));
-            if( fd == 0 )
-               cerror("Cannot open include file");
-	    do { ch = pgetc(); } while(ch == ' ' || ch == '\t'); unchget(ch);
+	    do { ch1 = pgetc(); } while(ch1 == ' ' || ch1 == '\t');
+	    unchget(ch1);
             do_proc_tail();
 
-            if( fd )
-            {
-               saved_files[fi_count] = curfile;
-               saved_fname[fi_count] = c_fname;
-               saved_lines[fi_count] = c_lineno;
-               fi_count++;
+	    saved_files[fi_count] = curfile;
+	    saved_fname[fi_count] = c_fname;
+	    saved_lines[fi_count] = c_lineno;
 
-               curfile = fd;
-               c_fname = malloc(strlen(curword)+1);
-               if( c_fname == 0 ) cfatal("Preprocessor out of memory");
-               strcpy(c_fname, curword);
-               c_lineno = 1;
-            }
+            fd = open_include(p, "r", (ch=='"'));
+            if( fd ) {
+	       fi_count++;
+	       curfile = fd;
+	    } else
+               cerror("Cannot open include file");
+
             return;
          }
          *p++ = ch;
@@ -778,7 +791,7 @@ do_proc_define()
       len = WORDSIZE; 
       ptr = malloc(sizeof(struct define_item) + WORDSIZE);
       if(ptr==0) cfatal("Preprocessor out of memory");
-      ptr->value[cc=0] = 0;
+      ptr->value[cc=0] = '\0';
 
       /* Add in arguments */
       if( ch1 == '(' )
@@ -832,7 +845,7 @@ do_proc_define()
       }
       if (cc)
 	 ptr->value[cc++] = ' ';/* Byte of lookahead for recursive macros */
-      ptr->value[cc++] = 0;
+      ptr->value[cc++] = '\0';
 
 #if CPP_DEBUG
       if (cc == 1)
@@ -1212,8 +1225,10 @@ get_exp_value()
       value = get_expression(0);
       if (curtok == ')')
 	 curtok = get_onetok(SKIP_SPACE);
-      else
+      else {
 	 curtok = '$';
+	 cerror("Expected ')'");
+      }
    }
 
    return sign<0 ? -value: value;
@@ -1248,7 +1263,7 @@ int arg_count;
 	 arg_list[ac].name = realloc(arg_list[ac].name, len);
       }
       arg_list[ac].name[cc++] = *data_str;
-      arg_list[ac].name[cc] = 0;
+      arg_list[ac].name[cc] = '\0';
    }
 
    for(;;) {
@@ -1290,7 +1305,7 @@ int arg_count;
 #endif
 
       arg_list[ac].value[cc++] = ch;
-      arg_list[ac].value[cc] = 0;
+      arg_list[ac].value[cc] = '\0';
    }
 
    if (commas_found || args_found) args_found = commas_found+1;
@@ -1359,12 +1374,12 @@ int arg_count;
    }
 #endif
 
-   rv = malloc(4); *rv = 0; len = 4;
+   rv = malloc(4); *rv = '\0'; len = 4;
 
    while(*data_str) {
       p = curword;
 
-      if (dialect != DI_KNR) {
+      if (dialect == DI_ANSI) {
 	 if (in_quote == 2)
 	    in_quote = 1;
 	 else if (in_quote) {
@@ -1396,7 +1411,7 @@ int arg_count;
 	       data_str+=2;
 	       while(*data_str == ' ' || *data_str == '\t')
 		  data_str++;
-	       if (*data_str == 0) { /* Hummm */
+	       if (*data_str == '\0') { /* Hummm */
 		  data_str--;
 		  cerror("'##' operator at end of macro");
 	       }
@@ -1417,7 +1432,7 @@ int arg_count;
 	 rv[cc++] = *data_str++;
 	 continue;
       }
-      *p = 0; s = curword;
+      *p = '\0'; s = curword;
       for (ac=0; ac<arg_count; ac++) {
 	 if (*curword == arg_list[ac].name[0] &&
 	     strcmp(curword, arg_list[ac].name) == 0)
@@ -1445,7 +1460,7 @@ int arg_count;
 	       while(cc>0 && (rv[cc-1] == ' ' || rv[cc-1] == '\t'))
 		  cc--;
 	       rv[cc++] = '"';
-	       rv[cc++] = 0;
+	       rv[cc++] = '\0';
 	       ansi_stringize = 0;
 	       s = "";
 	       break;
@@ -1465,6 +1480,6 @@ int arg_count;
       cc = strlen(rv);
    }
 
-   rv[cc] = 0;
+   rv[cc] = '\0';
    return rv;
 }

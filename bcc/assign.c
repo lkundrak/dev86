@@ -356,7 +356,7 @@ struct symstruct *target;
 	    load(target, DREG);
 	    if (target->type == sctype)
 		sctoi();
-#ifdef I8088
+#if defined(I8088) && defined(I80386)
 	    else if (tscalar & SHORT)
 	    {
 		if (tscalar & UNSIGNED)

@@ -43,7 +43,11 @@
 #define KEEPCOMMENTS
 
 #define MAXLINE		1024
+#ifdef __BCC__
 #define HASHSIZE	107
+#else
+#define HASHSIZE	1999
+#endif
 #define NOCHAR		'\177'
 #define VARNUM		10
 
@@ -112,7 +116,7 @@ static char *install(char *str, int slen)
   struct hash_s *hp;
   char *chkstr;
   char *cp;
-  int hashval;
+  unsigned int hashval;
 
   /* Clear the hashing table if not already done */
   if (!hash_init) {
@@ -131,7 +135,7 @@ static char *install(char *str, int slen)
   /* Determine hashing value of string */
   hashval = 0;
   for (cp = chkstr; *cp; cp++)
-	hashval += *cp;
+	hashval = hashval*75 + *cp;
   hashval %= HASHSIZE;
 
   /* Check if the string is already in the hashing table */
@@ -238,14 +242,25 @@ static void readpattern(char *rulesdir, char *filename)
 	rp = (struct rule_s *)mymalloc(sizeof(struct rule_s));
 	rp->old = readlist(fp, '=', '#');
 	rp->new = readlist(fp, '\0', '#');
-	rp->next = first;
 	if (rp->old == NULL || rp->new == NULL) {
 		free(rp);
 		break;
 	}
+
+/* This put the rules into the table in reverse order; this is confusing *
+	rp->next = first;
 	first = rp;
 	if (last == NULL)
 		last = rp;
+*/
+	rp->next = NULL;
+	if (last) {
+		last->next = rp;
+		last = rp;
+	} else {
+		first = last = rp;
+	}
+
   }
 
   /* Close pattern file */
@@ -679,6 +694,11 @@ static struct line_s *optline(struct line_s *cur)
 
 		if (!ins->comment_flg)
 			pat = pat->next;
+		else if (ins->text[0]==pat->text[0]) /* Matching a comment! */
+		{
+		   if (match(ins->text, pat->text))
+		      pat = pat->next;
+		}
 		ins = ins->next;
 	}
 
@@ -688,7 +708,7 @@ static struct line_s *optline(struct line_s *cur)
 		lp1 = cur;
 		cur = cur->prev;
 		while (lp1 != ins) {
-#if 0	/* I'd like to keep the comment lines but this doesn't work XXX */
+#if 0
 			if( lp1->comment_flg )
 			{
 				lp2 = lp1;

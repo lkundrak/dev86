@@ -1,5 +1,7 @@
 # Rules to optimize BCC assembler output for 386
 
+# Many of these rules are very broken, ho hum.
+
 # Rules for loading a long constant
 
 xor	ax,ax
@@ -351,7 +353,7 @@ push	word ptr %0[%1]
 mov	%[ax|bx|cx|dx|si|di]2,%[#|*]0%1
 push	%[ax|bx|cx|dx|si|di]2
 =
-push	word %0%1
+push	%0%1
 
 
 # Shifting rules

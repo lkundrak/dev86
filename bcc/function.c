@@ -271,7 +271,18 @@ PRIVATE void out_callstring()
 PUBLIC void popframe()
 {
 #ifdef STUPIDFRAME
-    poplist(callee1mask);	/*XXX: Add if round this */
+#ifndef NO_DEL_PUSH
+    if (optimise && !callersaves) {
+        outstr("if ");
+        outstr(funcname);
+        outnstr(".off=0");
+    }
+    poplist(callee1mask);
+    if (optimise && !callersaves)
+        outnstr("endif");
+#else
+    poplist(callee1mask);
+#endif
     poplist(FRAMEREG);
 #else
     poplist(frame1list);
@@ -313,7 +324,18 @@ PUBLIC void reslocals()
 	pushreg(FRAMEREG);
 	regtransfer(STACKREG, FRAMEREG);
 	framep = sp;
-	pushlist(callee1mask);		/*XXX: Add if round this */
+#ifndef NO_DEL_PUSH
+	if (optimise && !callersaves) {
+            outstr("if ");
+            outstr(funcname);
+            outnstr(".off=0");
+	}
+        pushlist(callee1mask);
+	if (optimise && !callersaves) 
+            outnstr("endif");
+#else
+	pushlist(callee1mask);
+#endif
 # else /* not STUPIDFRAME */
 #  ifdef CANHANDLENOFRAME
 	if (stackarg || softsp != -frameregsize)	/* args or locals */

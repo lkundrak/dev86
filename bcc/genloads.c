@@ -784,10 +784,19 @@ struct symstruct *adr;
 		bumplc();
 	    else
 	    {
+	        int off;
 		if (switchnow != NULL && adr->flags == TEMP)
-		    outswoffset(adr->offset.offi);
+		    outswoffset(off = adr->offset.offi);
 		else
-		    outoffset(adr->offset.offi - framep);
+		    outoffset(off = adr->offset.offi - framep);
+#ifndef NO_DEL_PUSH
+		if (optimise && !callersaves && off < 0) 
+		{
+		    outstr("+");
+		    outstr(funcname);
+		    outstr(".off");
+		}
+#endif
 	    }
 	    outindleft();
 	}
@@ -948,12 +957,15 @@ store_pt reg;
 #endif
     case INDREG0:
 	outstr(ireg0str);
+	regfuse |= INDREG0;
 	break;
     case INDREG1:
 	outstr(ireg1str);
+	regfuse |= INDREG1;
 	break;
     case INDREG2:
 	outstr(ireg2str);
+	regfuse |= INDREG2;
 	break;
     case LOCAL:
 	outstr(localregstr);
@@ -996,7 +1008,7 @@ store_pt reg;
     }
 }
 
-#ifdef I8088
+#if defined(I8088) && defined(I80386)
 /* print register name for short type */
 
 PUBLIC void outshortregname(reg)

@@ -23,7 +23,7 @@ struct hashentry
 struct hashentry ** hashtable;
 int  hashsize  = 0xFF;	/* 2^X -1 */
 int  hashcount = 0;
-static int hashvalue();
+static int hashvalue _P((int namespace, char * word));
 
 void *
 read_entry(namespace, word)

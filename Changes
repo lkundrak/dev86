@@ -1,5 +1,38 @@
 For version 0.16.*.
 
+> The fopen function (and friends) is now a real function not a macro.
+
+> Ctype.h updated to ansi.
+
+> Libraries appear to compile properly with -O and -ansi now.
+
+> Copt's hash string table adjusted; should now have fewer pathological cases.
+
+> Order of copt's rule processing reversed; it now works from the top of a
+  rule file to the bottom. Also comment lines may be include in the match
+  lines. !BCC_EOS added to bcc-cc1 for 'end of statment'.
+
+> bcc-cc1's asm("") now works in declare mode too.
+
+> New independed cpp added, has both K&R and Ansi modes.
+  Changes made to the embedded cpp too to try and fix some bad bits.
+
+> Conditional assembler added around push and pop of 'si' and 'di' if the
+  optimiser (and as86's optimiser) are to be run.
+
+> Signed keyward added to bcc-cc1 for 'signed char' also words with other
+  int types but is usually just a noiseword.
+
+> As86 macro syntax altered, you new don't have to include any brackets.
+
+> Various test and old document files removed.
+
+> Gcc warnings in ar86 cleaned up.
+
+> Mk_dist now make incremental patch files too.
+
+> Update magic file.
+
 > Various updates to the bios libc, the vt52 and ansi emulations are
   now seperated (and can be both included if needed) and don't have
   to be linked. Conio functions work properly in bios and msdos.

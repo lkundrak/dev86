@@ -2,76 +2,90 @@
 
 # Rules for loading short variables
 
-mov	%0$0[%2],%3
-=
-mov	%0[%2],%3
-
 mov	%2,%[ax|bx|cx|dx]1
 mov	%[ax|bx|cx|dx]1,%2
 =
 mov	%2,%1
 
-# Breaks:  a = b = 125;
-# mov	%[ax|bx|cx|dx]3,%[#|*]0%1
-# mov	%2[%4],%[ax|bx|cx|dx]3
-# =
-# mov	word ptr %2[%4],%0%1
-
-# This gets a few back.
+# Assign a constant
 mov	%[ax|bx|cx|dx]3,%[#|*]0%1
 mov	%2[%4],%[ax|bx|cx|dx]3
-mov	%[ax|bx|cx|dx]3,%5
+!BCC_EOS
 =
 mov	word ptr %2[%4],%0%1
-mov	%3,%5
+!BCC_EOS
 
-mov	%[ax|bx|cx|dx]3,%[#|*]0%1
-mov	%[ax|bx|cx|dx]2,%[ax|bx|cx|dx]3
+# Assign a constant char
+mov	al,%[#|*]0%1
+mov	%2,al
+!BCC_EOS
 =
-mov	%2,%0%1
+mov	byte ptr %2,%0%1
+!BCC_EOS
 
-# Breaks: a = b = 'a';
-# mov	al,%[#|*]0%1
-# mov	%2,al
-# =
-# mov	byte ptr %2,%0%1
-
+# Assign a constant long from a small int
 xor	ax,ax
 mov	bx,%[#|*]0%1
 mov	[%2],ax
 mov	[%2+2],bx
+!BCC_EOS
 =
 mov	word ptr [%2],#0
 mov	word ptr [%2+2],%0%1
+!BCC_EOS
 
+# Assign a constant long from a 2^16 mod int.
 mov	ax,%[#|*]0%1
 xor	bx,bx
 mov	[%2],ax
 mov	[%2+2],bx
+!BCC_EOS
 =
 mov	word ptr [%2],%0%1
 mov	word ptr [%2+2],#0
+!BCC_EOS
 
+# Assign a constant long from a big int
 mov	ax,%[#|*]4%1
 mov	bx,%[#|*]5%3
 mov	[%2],ax
 mov	[%2+2],bx
+!BCC_EOS
 =
 mov	word ptr [%2],%4%1
 mov	word ptr [%2+2],%5%3
+!BCC_EOS
 
+# rule for (char*)  *x++
+mov	bx,%1
+%[inc|dec]2	bx
+mov	%1,bx
+mov	al,-1[bx]
+xor	ah,ah
+=
+mov	bx,%1
+%2	word ptr %1
+mov	al,[bx]
+xor	ah,ah
 
 # Rules for incrementing short variables
+mov	%[ax|bx|si|di]2,%1
+%[inc|dec]3	%[ax|bx|si|di]2
+mov	%1,%[ax|bx|si|di]2
+!BCC_EOS
+=
+%3	word ptr %1
+!BCC_EOS
 
-mov	%[ax|bx]2,%1
-%[inc|dec]3	%[ax|bx]2
-mov	%1,%[ax|bx]2
+mov	%[ax|bx|si|di]2,%1
+%[inc|dec]3	%[ax|bx|si|di]2
+mov	%1,%[ax|bx|si|di]2
 =
 %3	word ptr %1
 mov	%2,%1
 
 
-# Rules for manipulating characters
+# Rules for manipulating characters with register char*s
 
 inc	%[si|di]*
 inc	%[si|di]*
@@ -140,36 +154,43 @@ cld
 
 # Rules for manipulating short values
 
-# This is the broken rule - Chad
-
-#mov	%[ax|bx]2,%1
-#%[add|and|xor|sub|or]4	%[ax|bx]2,%3
-#mov	%1,%[ax|bx]2
-#=
-#mov	%2,%3
-#%4	%1,%2
+# These rules only apply at end of statment.
+mov	%[ax|bx]2,%1
+%[add|and|xor|sub|or]4	%[ax|bx]2,%3
+mov	%1,%[ax|bx]2
+!BCC_EOS
+=
+mov	%2,%3
+%4	%1,%2
+!BCC_EOS
 
 mov	%[ax|bx]2,%1
 %[add|and|xor|or]4	%[ax|bx]2,%3
 mov	%3,%[ax|bx]2
+!BCC_EOS
 =
 mov	%2,%1
 %4	%3,%2
-
-mov	%[ax|bx]4,%1
-%[add|and|xor|sub|or]2	%[si|di]3,%[ax|bx]4
-=
-%2	%3,%1
+!BCC_EOS
 
 mov	al,%1
 xor	ah,ah
 %[add|and|xor|sub|or]2	ax,%[#|*]0%3
 mov	%1,al
+!BCC_EOS
 =
 %2	byte ptr %1,%0%3
+!BCC_EOS
 
+# This is safe with an embedded assign.
+mov	%[ax|bx]4,%1
+%[add|and|xor|sub|or]2	%[si|di]3,%[ax|bx]4
+=
+%2	%3,%1
 
 # Rules for comparing short values
+
+# Compare doesn't need to leave any register in a specific state.
 
 mov	%[ax|bx]3,%1[%4]
 cmp	%[ax|bx]3,%[#|*]0%2
@@ -348,9 +369,11 @@ jmp .%1
 
 jmp .%1
 .%2:
+!BCC_EOS
 .%1:
 =
 .%2:
+!BCC_EOS
 .%1:
 
 jmp .%1
@@ -445,4 +468,83 @@ pop	bx
 pop	cx
 pop	dx
 =
-! push/pop
+! push/pop float
+
+# Long right shift by 16 unsigned
+mov	ax,%1
+mov	bx,%2
+xchg	bx,ax
+xor	bx,bx
+=
+mov	ax,%2
+xor	bx,bx
+
+# Long right shift by 16 signed
+mov	ax,%1
+mov	bx,%2
+xchg	bx,ax
+cwd
+=
+mov	ax,%2
+cwd
+
+# Load long and exchange
+mov	ax,%1
+mov	bx,%2
+xchg	bx,ax
+=
+mov	bx,%1
+mov	ax,%2
+
+# Repeated clear.
+xor	bx,bx
+xchg	bx,ax
+xor	ax,ax
+=
+xchg	bx,ax
+xor	ax,ax
+
+# Long expression assigned to an int
+cwd
+mov	bx,dx
+mov	%1,ax
+!BCC_EOS
+=
+mov	%1,ax
+!BCC_EOS
+
+# Load unsigned into high word of long
+mov	ax,%1
+xchg	bx,ax
+xor	ax,ax
+=
+mov	bx,%1
+xor	ax,ax
+
+# Souped up strcpy;  "while(*d++ = *s++);" in a function with no reg vars.
+.%3:
+!BCC_EOS
+.%4:
+mov	bx,%1
+inc	bx
+mov	%1,bx
+mov	si,%2
+inc	si
+mov	%2,si
+mov	al,-1[bx]
+mov	-1[si],al
+test	al,al
+jne	.%3
+=
+.%4:
+mov	si,%1
+mov	di,%2
+.%3:
+lodsb
+stosb
+test	al,al
+jne	.%3
+mov	%1,si
+mov	%2,di
+!BCC_EOS
+

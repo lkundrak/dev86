@@ -302,9 +302,9 @@ struct file_list * file;
    command_opts('p');
    if (!opt_e)
    {
-      command_opts('c');
       if (opt_arch<5 && !do_as)
 	 command_opt("-t");
+      command_opts('c');
    }
 
    if (!opt_I)
@@ -337,6 +337,9 @@ struct file_list * file;
    command_reset();
    newfilename(file, !(do_optim || do_as), 's', (opt_arch != 3 && opt_arch<5));
 
+   if (opt_arch<5 && !do_as)
+      command_opt("-t");
+
    command_opts('c');
 
    command_arch();
@@ -361,8 +364,8 @@ struct file_list * file;
    }
    command_opt(optim_rules);
 
-   command_opt("rules.start");
    command_opts('o');
+   command_opt("rules.start");
    if (opt_O)
    {
       sprintf(buf, "rules.%c86", opt_O);
@@ -434,6 +437,9 @@ run_link()
 
    command_opt("-o");
    command_opt(executable_name);
+
+   if (opt_arch < 2) 
+      command_opt("-y");
 
    command_opts('l');
    if (opt_arch != 2) 
@@ -754,6 +760,9 @@ char ** argv;
       case 'X':
          append_option(opt_arg, 'l');
 	 break;
+      case 'u':
+	 append_option(opt_arg, 'u');
+	 break;
 
       case 'L':
          append_option(argv[ar], 'l');
@@ -767,6 +776,8 @@ char ** argv;
          do_optim=1;
 	 if (!opt_arg[1] && ( opt_arg[0] >= '1' && opt_arg[0] <= '3' ))
 	    opt_O = opt_arg[0];
+	 else if (opt_arg[0] == '-')
+	    append_option(opt_arg, 'o');
 	 else
 	 {
 	    char * p = xalloc(strlen(opt_arg)+8);
@@ -935,6 +946,8 @@ char ** argv;
       opt_arch = 2;
       prepend_option("-D__unix__", 'p');
       prepend_option("-D__linux__", 'p');
+      /* This one works (in Debian potato), /usr/bin/gcc crashes. */
+      add_prefix("/usr/bin/i486-linuxlibc1-");
       break;
    case '8':		/* Use 'c386' program as compiler */
       opt_arch = 3;

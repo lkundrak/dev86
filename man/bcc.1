@@ -14,6 +14,7 @@ bcc \- Bruce's C compiler
 .RB [ -o\ outfile ]
 .RB [ -ansi ]
 .RB [ -Ccc1_option ]
+.RB [ -Pcpp_option ]
 .RB [ -Iinclude_dir ]
 .RB [ -Lld_option ]
 .RB [ -Ttmpdir ]
@@ -160,10 +161,6 @@ as -Ofile)
 .B -c
 produce object file
 .TP
-.B -e
-run the preprocess pass separately.  This takes less memory, and may help
-or harm by giving more traditional semantics like token pasting with /**/.
-.TP
 .B -f
 error (float emulation not supported)
 .TP
@@ -207,12 +204,7 @@ These are all options that the code generator pass
 .B bcc-cc1
 understands, only some will be useful for the
 .B -C
-option of bcc. The code generator is normally used as a combined C preprocessor
-and generator but the
-.B -e
-and
-.B -ansi
-options of bcc split the operation.
+option of bcc.
 .TP 
 .B -0
 8086 target (works even on 80386 host, not on 6809)

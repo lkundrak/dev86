@@ -375,6 +375,7 @@ PRIVATE void tfrlohi()
     outhiaccum();
     outncregname(BREG);
 }
+#ifdef I80386
 PUBLIC void ustoi()
 {
     outmovzx();
@@ -383,6 +384,7 @@ PUBLIC void ustoi()
     outshortregname(DREG);
     outnl();
 }
+#endif /* I80386 */
 #endif /* I8088 */
 
 #ifdef MC6809

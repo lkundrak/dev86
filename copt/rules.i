@@ -57,7 +57,7 @@ call	___set_es
 inc	sp
 inc	sp
 =
-mov	ax,#%1
+mov	ax,%0%1
 mov	es,ax
 
 mov	ax,%[#|*]0%1
@@ -66,7 +66,7 @@ call	___set_es
 inc	sp
 inc	sp
 =
-mov	ax,#%1
+mov	ax,%0%1
 mov	es,ax
 
 push	%0[%1]
@@ -290,5 +290,5 @@ mov	ax,%1
 
 mov	ax,ax
 =
-!
+!mov	ax,ax
 

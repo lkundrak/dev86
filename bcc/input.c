@@ -609,6 +609,9 @@ ts_s_includelist += sizeof *incnew;
     definestring("__HAS_NO_FLOATS__");
 #endif
     ctext = flag['t'];
+#ifdef DEBUG
+    if (ctext) debugon = 1;
+#endif
     watchlc = flag['w'];
     setoutbufs();
     inputinit(fname, fd);

@@ -15,7 +15,7 @@ CSRC=bios_min.c
 COBJ=bios_putc.o bios_getc.o
 
 DSRC=bios_disk.c
-DOBJ=bios_disk_read.o bios_disk_write.o bios_disk_reset.o bios_get_dpt.o
+DOBJ=bios_disk_rd.o bios_disk_wr.o bios_disk_rs.o bios_get_dpt.o
 
 OBJ=$(AOBJ) $(BOBJ) $(COBJ) $(DOBJ) \
     time.o fileops.o fs_dos.o rawio.o vt52.o ansi.o

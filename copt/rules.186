@@ -28,3 +28,13 @@ push	bx
 =
 push	#%1
 
+mov	ax,*%1
+push	ax
+=
+push	*%1
+
+mov	bx,*%1
+push	bx
+=
+push	*%1
+

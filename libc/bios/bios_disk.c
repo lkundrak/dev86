@@ -5,7 +5,7 @@
 #include <bios.h>
 #include <errno.h>
 
-#ifdef L_bios_disk_read
+#ifdef L_bios_disk_rd
 _bios_disk_read(drive, cyl, head, sect, length, buffer)
 {
 #asm
@@ -52,7 +52,7 @@ read_err1:
 }
 #endif
 
-#ifdef L_bios_disk_write
+#ifdef L_bios_disk_wr
 _bios_disk_write(drive, cyl, head, sect, length, buffer)
 {
 #asm
@@ -127,7 +127,7 @@ func_ok:
 }
 #endif
 
-#ifdef L_bios_disk_reset
+#ifdef L_bios_disk_rs
 _bios_disk_reset(drive)
 {
 #asm

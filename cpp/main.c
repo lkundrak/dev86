@@ -21,6 +21,8 @@ void define_macro _P((char *));
 void undefine_macro _P((char *));
 void cmsg _P((char * mtype, char * str));
 char * token_txn _P((int));
+void pr_indent _P((int));
+void hash_line _P((void));
 
 char * include_paths[MAXINCPATH];
 
@@ -28,6 +30,7 @@ char last_name[512] = "";
 int last_line = -1;
 int debug_mode = 0;
 int p_flag = 0;
+int exit_code = 0;
 
 char * outfile = 0;
 FILE * ofd = 0;
@@ -146,7 +149,7 @@ static char Usage[] = "Usage: cpp -E -0 -Dxxx -Uxxx -Ixxx infile -o outfile";
       print_toks_cpp();
 
    if (outfile) fclose(ofd);
-   exit(0);
+   exit(exit_code);
 }
 
 void
@@ -192,24 +195,34 @@ char * fname;
 char * mode;
 int checkrel;
 {
-   FILE * fd;
+   FILE * fd = 0;
    int i;
-   char buf[256];
+   char buf[256], *p;
 
    if( checkrel )
    {
-      fd=fopen(fname,  mode);
-      if( fd ) return fd;
+      strcpy(buf, c_fname);
+      p = strrchr(buf, '/');
+      if (p) *++p = 0; else *(p=buf) = 0;
+      strcpy(p, fname);
+
+      fd=fopen(buf, mode);
    }
-    for(i=0; i<MAXINCPATH; i++)
-       if (include_paths[i]) {
-	 strcpy(buf, include_paths[i]);
-	 if (buf[strlen(buf)-1] != '/') strcat(buf, "/");
-	 strcat(buf, fname);
-	 fd=fopen(buf,  mode);
-	 if( fd ) return fd;
-       }
-   return 0;
+   if (!fd) {
+      for(i=0; i<MAXINCPATH; i++)
+	 if (include_paths[i]) {
+	   strcpy(buf, include_paths[i]);
+	   if (buf[strlen(buf)-1] != '/') strcat(buf, "/");
+	   strcat(buf, fname);
+	   fd=fopen(buf,  mode);
+	   if( fd ) break;
+	 }
+   }
+   if (!fd) return fd;
+   c_fname = strdup(buf);
+   c_lineno = 1;
+
+   return fd;
 }
 
 /*----------------------------------------------------------------------*/
@@ -242,6 +255,7 @@ void
 cerror(str)
 char * str;
 {
+   exit_code = 1;
    cmsg("error", str);
 }
 

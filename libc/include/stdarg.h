@@ -43,5 +43,5 @@
 #endif /* __STDARG_H */
 
 #if __FIRST_ARG_IN_AX__
-#error First arg is in a register, stdarg.h cannot take its address
+#warning First arg is in a register, stdarg.h cannot take its address
 #endif

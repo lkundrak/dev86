@@ -161,7 +161,7 @@ struct nodestruct *exp;
 {
     if (!debugon)
 	return;
-    comment();
+    outstr("! Debug: ");
     if (exp->tag < FIRSTOP && exp->tag > LASTOP)
 	outstr("unknown op");
     else
@@ -186,7 +186,7 @@ struct nodestruct *exp;
 PUBLIC void debugswap()
 {
     if (debugon)
-	outnstr("* swapping");
+	outnstr("! Debug: expression subtree swapping");
 }
 
 PRIVATE void outindchars(byte, count)

@@ -15,8 +15,3 @@ pop	si
 pop	di
 pop	bp
 ret
-
-pmov	%1,%2
-=
-push	%1
-mov	%1,%2

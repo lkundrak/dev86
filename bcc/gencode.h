@@ -47,6 +47,7 @@ EXTERN bool_t scanf_fp;		/* nonzero if *scanf called with ptr-to-FP */
 EXTERN offset_T softsp;		/* software sp (leads sp during declares) */
 EXTERN offset_T sp;		/* hardware relative stack ptr */
 				/* depends on zero init */
+EXTERN store_t regfuse;		/* registers in use in function. */
 #ifdef FRAMEPOINTER
 EXTERN bool_t stackarg;		/* nonzero to show function has arg on stack */
 #endif

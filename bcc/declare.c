@@ -693,8 +693,34 @@ PRIVATE void declfunc()
        if( main_flag > 2 )
           globl("environ");
     }
+#ifdef I8088
+    regfuse = 0;
+#endif
     lbrace();
     compound();
+#ifdef I8088
+    if (regfuse & callee1mask) {
+        outstr("! Register");
+        if (regfuse & INDREG0 & callee1mask) outstr(" BX");
+        if (regfuse & INDREG1 & callee1mask) outstr(" SI");
+	if (regfuse & INDREG2 & callee1mask) outstr(" DI");
+	outstr(" used in function ");
+	outnstr(funcname);
+	if (optimise && !callersaves) {
+	    outstr(funcname);
+	    outnstr(".off = 0");
+	}
+    } else
+	if (optimise && !callersaves) {
+	    outstr(funcname);
+	    outstr(".off = ");
+#ifndef I80386
+	    outnhex(4);
+#else
+	    outnhex(i386_32?12:4);
+#endif
+	}
+#endif
     clearfunclabels();
 }
 
@@ -1122,6 +1148,7 @@ PUBLIC void rparen()
 
 PUBLIC void semicolon()
 {
+    outnstr("!BCC_EOS");
     if (sym != SEMICOLON)
 	need(';');
     else

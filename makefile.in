@@ -95,7 +95,7 @@ install-all: install install-other
 
 ##############################################################################
 
-LIBARGS= CC=ncc CCFLAGS= AR=$(AR) ARFLAGS=$(ARFLAGS)
+LIBARGS= CC=ncc "CCFLAGS=-O" AR=$(AR) ARFLAGS=$(ARFLAGS)
 
 # Season in the top makefile
 ELKSSRC= %ELKSSRC%

@@ -6,6 +6,7 @@
 #include "gencode.h"
 #include "reg.h"
 #include "type.h"
+#include "scan.h"
 
 /* change stack ptr without changing condition codes */
 
@@ -18,11 +19,20 @@ bool_pt absflag;
 #ifdef FRAMEPOINTER
 	if (newsp != framep || (!(bool_t) absflag && switchnow != NULL))
 	{
+            int off;
 	    outleasp();
 	    if (!(bool_t) absflag && switchnow != NULL)
-		outswoffset(newsp);
+		outswoffset(off = newsp);
 	    else
-		outoffset(newsp - framep);
+		outoffset(off = newsp - framep);
+#ifndef NO_DEL_PUSH
+	    if (optimise && !callersaves && off < 0)
+	    {
+	        outstr("+");
+	        outstr(funcname);
+	        outstr(".off");
+	    }
+#endif
 	    outindframereg();
 	    outnl();
 	}

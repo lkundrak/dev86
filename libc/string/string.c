@@ -139,6 +139,7 @@ sc_1:
   xor	ax,ax		; so return zero
   jmp	sc_3
 sc_2:
+  cmc
   sbb	ax,ax		; Collect correct val (-1,1).
   orb	al,#1
 sc_3:
