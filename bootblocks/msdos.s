@@ -213,8 +213,7 @@ no_boot:		! SI now has pointer to error message
 EOS:
   xor	ax,ax
   int	$16
-  int	$19		! This should be OK as we haven't touched anything.
-  jmpi	$0,$FFFF	! Wam! Try or die!
+  jmpi	$0,$FFFF	! Reboot.
 
 !---------------------------------------------------------------------------
 ! This loads the boot program 1 sector at a time, funny thing is it actually

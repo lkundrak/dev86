@@ -127,8 +127,10 @@ int level;
 
 PUBLIC void executable()
 {
+    if (errcount)
+        unlink(outputname);
 #ifndef MSDOS
-    if (errcount == 0)
+    else
 	chmod(outputname, outputperms);
 #endif
 }
@@ -618,6 +620,13 @@ PUBLIC void usage()
  [-03NMdimstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
        [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] [-H heapsize] infile...");
 #endif
+}
+
+PUBLIC void version_msg()
+{
+    stderr_out();
+    putstr("ld86 version: ");
+    errexit(VERSION);
 }
 
 PUBLIC void use_error(message)

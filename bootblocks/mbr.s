@@ -10,13 +10,15 @@
 ! Space for 12 extra partitions in the 'DiskManager' form that Linux 
 ! _does_ understand.
 !
-! NB: This needs Dev86 0.15.2 or later
+! NB: This needs as86 0.15.2 or later
 
 ! Lowest available is $0500, MSDOS appears to use $0600 ... I wonder why?
 ORGADDR=$0500
 preboot=0	! Include the pre-boot loader.
 mbrkey=0	! Option to choose the boot record base on keystroke
 message=1	! Display boot message
+use512=0	! Put the end marker at byte 510..512
+
 diskman=0	! Disk manager partitions, allows 16 partitions but
 		! don't overwrite this with a LILO BB.
 
@@ -137,7 +139,7 @@ no_boot:		! SI now has pointer to error message
   mov	si,#crlf
   call	puts
 tick:
-  call	key_wait
+  call	key_pause
   j	tick
 
  else
@@ -159,8 +161,7 @@ EOS:
 keyboot:		! Wait for a key then reboot
   xor	ax,ax
   int	$16
-! int	$19		! This rarely does anything useful...
-  jmpi	$0,$FFFF	! Wam! Try or die!
+  jmpi	$0,$FFFF	! Reboot.
 
 press_key:
   .asciz	"\r\nPress return:"
@@ -190,9 +191,16 @@ linearise:
 ! Choose the partition based on a pressed key ...
 
  if mbrkey
+key_pause:
+  mov	si,#Pause
+  call	puts
+  j	wait_key
+
 key_wait:
   mov	si,#Prompt
   call	puts
+
+wait_key:
   mov	di,#19			! Wait for 18-19 ticks
 
 next_loop:
@@ -214,18 +222,16 @@ bad_key:
   ret
 
 Got_key:
-  cmp	al,#$20
-  jnz	not_space
-  mov	si,#Pause
-  j	showit
-not_space:
-  mov	Showkey,al
-  mov	si,#Showkey
-showit:
-  call	puts
-
   mov	ah,#0			! Clean the kbd buffer.
   int	$16
+
+  cmp	al,#$20
+  jz	key_pause		! Recursion !?
+
+  mov	Showkey,al
+  mov	si,#Showkey
+  call	puts
+  mov	al,Showkey
 
   ! ... Now we use our key ...
   ! 0 		=> Floppy
@@ -270,11 +276,11 @@ EOS:
   ret
 
 Prompt:
-  .asciz	"MBR: "
+  .asciz	"\rMBR 0-4: "
 Unprompt:
-  .asciz	"\b\b\b\b\b     \b\b\b\b\b"
+  .asciz	"\r        \r"
 Pause:
-  .asciz	"\b\b> "
+  .asciz	"\rMBR 0-4> "
 Showkey:
   .ascii	" "
 crlf:
@@ -393,5 +399,9 @@ diskman_magic:
   .byte 0xFF
  endif
 
+ if use512
+  org ORGADDR+0x1FE
+  .word 0xAA55
+ endif
 
 !THE END

@@ -31,9 +31,16 @@ Contents
 
 1.1 ) Master boot sector
 
-   This MBR is a very simple one with no frills, being less that 254 bytes
-   long is can be used as an MBR for a disk with old style 'Disk manager'
-   partitions. All 16 partitions are bootable.
+   This MBR is a very simple one with no frills by default.
+
+   The actual code is less that 254 bytes long so it can be used as
+   an MBR for a disk with old style 'Disk manager' partitions. All 16
+   partitions are bootable.
+
+   Option 2 is a boot message that displayed as soon as the MBR loads.
+
+   Option 3 is code to accept a keypress from the user to select which
+   partition to boot (or the floppy).
 
 1.2 ) Dosfs boot sector
 
@@ -54,8 +61,9 @@ Contents
    as my testing has gone this is only significant on 8086 machines, all
    others (286 8Mhz +) are fast enough to keep up at a 1-1 interleve.
 
-   But some older versions of superformat defeat this because they do
-   not correctly calculate intersector gaps.
+   But some versions of superformat can defeat this because they do
+   not correctly calculate intersector gaps. I suggest using fdformat
+   as this uses a 'safe' layout for standard 1440k disks.
 
 1.3 ) Minixfs boot block
 

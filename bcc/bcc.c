@@ -41,6 +41,7 @@
 #define F_OK	0		/* Test for existence.	*/
 #define L_TREE	1		/* Use different tree style */
 #define DEFARCH 0		/* Default to 8086 code */
+#define VERSION	"MSDOS Compile"
 #else
 #define EXESUF
 #endif
@@ -224,8 +225,6 @@ char ** argv;
       if (do_compile && next_file->filetype == 'i') run_compile(next_file);
       if (do_optim   && next_file->filetype == 's') run_optim(next_file);
       if (do_as      && next_file->filetype == 's') run_as(next_file);
-
-      if (next_file->filetype == '~') error_count++;
    }
 
    if (do_link && !error_count)
@@ -979,7 +978,11 @@ int size;
 
 void Usage()
 {
-   fatal("Usage: bcc [-ansi] [-options] [-o output] file [files]");
+   if (opt_v)
+      fprintf(stderr, "%s: version %s\n", progname, VERSION);
+   fprintf(stderr,
+	 "Usage: %s [-ansi] [-options] [-o output] file [files].\n", progname);
+   exit(1);
 }
 
 void fatal(str)
@@ -1134,7 +1137,10 @@ static char ** minienviron[] = {
    (void) signal(SIGTERM, otsig);
    (void) signal(SIGCHLD, ocsig);
 #endif
-   if (status && file)
-      file->filetype = '~';
+   if (status)
+   {
+      if (file) file->filetype = '~';
+      error_count++;
+   }
 }
 

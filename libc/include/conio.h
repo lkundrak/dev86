@@ -9,6 +9,7 @@ int getch __P((void));
 int getche __P((void));
 int kbhit __P((void));
 int putch __P((int));
+int gotoxy __P((int, int));
 
 #if 0 /* Unimplemented as yet */
 char * cgets __P((char *));

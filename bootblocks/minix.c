@@ -230,8 +230,7 @@ min_nextc:
 min_eos:		! Wait for a key then reboot
   xor	ax,ax
   int	$16
-  !int	$19		! This should be OK as we haven't touched anything.
-  jmpi	$0,$FFFF	! Wam! Try or die!
+  jmpi	$0,$FFFF	! Reboot.
 
 fail_fs:
   .byte		13,10

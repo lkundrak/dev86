@@ -3,13 +3,10 @@
 # under the GNU Library General Public License.
 
 ASRC=conio.c
-AOBJ=getch.o getche.o kbhit.o putch.o
+AOBJ=getch.o getche.o kbhit.o putch.o cputs.o gotoxy.o
 
-BSRC=conio.c
-BOBJ=cputs.o
-
-BIOSOBJ=$(BOBJ) cprintf.o
-DOSOBJ=$(AOBJ) $(BOBJ) cprintf.o
+BIOSOBJ=cprintf.o
+DOSOBJ=$(AOBJ) cprintf.o
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 

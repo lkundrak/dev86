@@ -25,6 +25,9 @@ PRIVATE struct schain_s hid_mcpar[MACPSIZ];	/* MACRO params */
 PRIVATE struct macro_s hid_macstak[MAXBLOCK];	/* macro stack */
 PRIVATE struct sym_s *hid_spt[SPTSIZ];	/* hash table */
 
+PRIVATE char * binfilename = 0;
+PRIVATE char * objfilename = 0;
+
 FORWARD void initp1 P((void));
 FORWARD int my_creat P((char *name, char *message));
 FORWARD void process_args P((int argc, char **argv));
@@ -77,6 +80,16 @@ PUBLIC void finishup()
     if (lstfil != STDOUT && (toterr != 0 || totwarn != 0))
 	summary(STDOUT);
     statistics();
+
+    /* If an output binary is in error remove it */
+    close(binfil); binfil=0;
+    close(objfil); objfil=0;
+    if (toterr != 0) 
+    {
+       if(binfilename) unlink(binfilename);
+       if(objfilename) unlink(objfilename);
+    }
+
     exit(toterr != 0 ? 1 : 0);	/* should close output files and check */
 }
 
@@ -175,6 +188,11 @@ char **argv;
 	    }
 	    switch (arg[1])
 	    {
+	    case 'v':
+	       outfd = STDOUT;
+	       writes("as86 version: ");
+	       writesn(VERSION);
+	       exit(1);
 #ifdef I80386
 	    case '0': case '1': case '2':
 		idefsize = defsize = 0x2;
@@ -191,7 +209,7 @@ char **argv;
 	    case 'b':
 		if (!isnextarg || binfil != 0)
 		    usage();
-		binfil = my_creat(nextarg, "error creating binary file");
+		binfil = my_creat(binfilename=nextarg, "error creating binary file");
 		binaryg = TRUE;
 		--argc;
 		++argv;
@@ -234,7 +252,7 @@ char **argv;
 		if (!isnextarg || objfil != 0)
 		    usage();
 		objectg = TRUE;
-		objfil = my_creat(nextarg, "error creating object file");
+		objfil = my_creat(objfilename=nextarg, "error creating object file");
 		--argc;
 		++argv;
 		break;

@@ -12,8 +12,9 @@
 #undef	toupper
 #undef	tolower
 
-unsigned char __ctype[128] =
+unsigned char __ctype[257] =
 {
+   0,							/* -1 */
    __CT_c, __CT_c, __CT_c, __CT_c,			/* 0x00..0x03 */
    __CT_c, __CT_c, __CT_c, __CT_c,			/* 0x04..0x07 */
    __CT_c, __CT_c|__CT_s, __CT_c|__CT_s, __CT_c|__CT_s,	/* 0x08..0x0B */

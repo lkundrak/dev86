@@ -8,9 +8,13 @@ AOBJ=bios_start.o bios_isatty.o bios_nofiles.o \
      bios_read.o bios_write.o bios_lseek.o bios_close.o
 
 BSRC=bios_vid.c
-BOBJ=bios_putc.o bios_getc.o bios_getce.o bios_khit.o bios_rdline.o
+BOBJ=bios_putch.o bios_getch.o bios_getche.o bios_cputs.o bios_kbhit.o \
+     bios_rdline.o
 
-OBJ=$(AOBJ) $(BOBJ) time.o fileops.o fs_dos.o rawio.o
+CSRC=bios_min.c
+COBJ=bios_putc.o bios_getc.o
+
+OBJ=$(AOBJ) $(BOBJ) $(COBJ) time.o fileops.o fs_dos.o rawio.o vt52.o ansi.o
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
@@ -22,6 +26,10 @@ $(LIBC)($(AOBJ)): $(ASRC)
 	$(AR) $(ARFLAGS) $@ $*.o
 
 $(LIBC)($(BOBJ)): $(BSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+
+$(LIBC)($(COBJ)): $(CSRC)
 	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
 	$(AR) $(ARFLAGS) $@ $*.o
 else

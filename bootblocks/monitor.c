@@ -1,6 +1,5 @@
 
 #include "monitor.h"
-#include "version.h"
 
 char command_buf[256];
 
@@ -39,13 +38,11 @@ static char minibuf[2] = " ";
 #ifndef NOCOMMAND
       if( __get_ds() != 0x1000 )
       {
-	 /* First to top of RAM */
-	 relocator(-1);
+	 /* First out of the way. */
+	 relocator(3);
 	 /* Then align DS to 64k boundry -> DMA is simple. */
 	 relocator(0x1000-__get_ds()+__get_cs());
 
-	 /* Oops, relocate down didn't work, try a little higher. */
-	 if( __get_ds() > 0x1000 ) relocator(2);
 	 printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
       }
 #endif
@@ -127,7 +124,9 @@ static char minibuf[2] = " ";
 
 void init_prog()
 {
+   int offt;
 #ifdef COLOUR
+   vt52_putch(0);
    printf("\033E\033Rg\033Sa\033J");
 #endif
    printf("Linux x86");
@@ -170,16 +169,15 @@ void init_prog()
    }
    printf("\n");
 
-   printf("There is %dk of boot memory", boot_mem_top/64);
+   printf("There is %u bytes available", offt-sbrk(0));
+   printf(", %dk of boot memory", boot_mem_top/64);
    if( main_mem_top )
    {
-      printf(" %d.%dM %sof main memory",
+      printf(", %d.%dM of main memory",
 	      (int)(main_mem_top/1024),
-	      (int)((10*main_mem_top)/1024%10),
-              main_mem_top >= 0xFC00L ?"(perhaps more) ":""
-	      );
+	      (int)((10*main_mem_top)/1024%10));
    }
-   printf("\n");
+   printf(".\n");
 }
 
 /****************************************************************************/

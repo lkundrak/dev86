@@ -99,6 +99,8 @@ char **argv;
 	else
 	    switch (arg[1])
 	    {
+	    case 'v':
+	       version_msg();
 	    case 'r':		/* relocatable output */
 #ifndef REL_OUTPUT
 #ifndef MSDOS

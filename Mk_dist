@@ -2,7 +2,7 @@
 #
 # This script builds _and checks_ all the distribution files from my source
 # directory. It's very selective because I've got a lot of historical and
-# other 'junk' in the same directory. (85Mb!)
+# other 'junk' in the same directory. (120Mb at the last count!)
 #
 
 trap "exit 1" 1 2 3 15
@@ -13,22 +13,24 @@ TMPSRC=linux86
 ARCDIR="$DIR"/dev86arc
 
 SRCDIRS='bcc unproto as ar ld copt man elksemu dis88 tests libbsd bin86'
-DISTFILES='Libc_version Makefile README COPYING Changes Contributors
+DISTFILES='Makefile README COPYING Changes Contributors MAGIC
            mkcompile GNUmakefile libcompat ifdef.c makefile.in Mk_dist'
 
+VERSION="$1"
 TMPDIST=$TMPDIR/$TMPSRC
 rm -rf ${TMPDIR}
 mkdir -p ${TMPDIST}
 
+[ "$VERSION" = '' ] && {
+   echo 'Usage: $0 <version>' 1>&2
+   exit 1
+}
+
 #-----------------------------------------------------------------------
 
-echo Checking version
-
-make -s -C libc Libc_version
-make -s -C bin86 ungrab
-VER=`cat Libc_version`
-
 echo Copying most program files.
+
+make -s -C bin86 ungrab 	|| exit
 cp -a $DISTFILES $SRCDIRS ${TMPDIST}
 
 #-----------------------------------------------------------------------
@@ -64,10 +66,10 @@ mkdir ${TMPDIST}/doselks
   chmod -R og=u-w ${TMPDIST}
 }
 
-rm -f /tmp/bootblocks.tar.gz /tmp/doselks.tar.gz /tmp/libc-8086-$VER.tar.gz
+rm -f /tmp/bootblocks.tar.gz /tmp/doselks.tar.gz /tmp/libc-8086-$VERSION.tar.gz
 
 echo Extracting previous version
-rm -f $ARCDIR/Dev86src-$VER.tar.gz
+rm -f $ARCDIR/Dev86src-$VERSION.tar.gz
 
 mkdir ${TMPDIST}.tmp
 ( cd ${TMPDIST}.tmp
@@ -106,31 +108,33 @@ cd ${TMPDIR}
 mv ${TMPSRC}.old/bootblocks boot.old
 mv ${TMPSRC}/bootblocks boot
 
-diff -Nurd ${TMPSRC}.old ${TMPSRC} > ${ARCDIR}/Dev86src-$VER.patch
+diff -Nurd ${TMPSRC}.old ${TMPSRC} > ${ARCDIR}/Dev86src-$VERSION.patch
 
 mv boot.old ${TMPSRC}.old/bootblocks
 mv boot ${TMPSRC}/bootblocks
 
-diff -Nurd ${TMPSRC}.old/bootblocks ${TMPSRC}/bootblocks >> ${ARCDIR}/Dev86src-$VER.patch
+diff -Nurd ${TMPSRC}.old/bootblocks ${TMPSRC}/bootblocks >> ${ARCDIR}/Dev86src-$VERSION.patch
 
-gzip -f9 ${ARCDIR}/Dev86src-$VER.patch
+gzip -f9 ${ARCDIR}/Dev86src-$VERSION.patch
 
 echo Creating full source archive.
-ln -s ${TMPSRC} dev86-$VER
-tar cf ${ARCDIR}/Dev86src-$VER.tar dev86-$VER/*
-gzip -f9 ${ARCDIR}/Dev86src-$VER.tar
+ln -s ${TMPSRC} dev86-$VERSION
+tar cf ${ARCDIR}/Dev86src-$VERSION.tar dev86-$VERSION/*
+gzip -f9 ${ARCDIR}/Dev86src-$VERSION.tar
 
 echo Creating as86 source archive.
-ln -s ${TMPSRC}/as as86-$VER
-cp -p ${TMPSRC}/man/as86.1 as86-$VER/as86.1
-cp -p ${TMPSRC}/COPYING as86-$VER/COPYING
-tar cf ${ARCDIR}/as86-$VER.tar `find as86-$VER/* -prune -type f`
+ln -s ${TMPSRC}/as as86-$VERSION
+cp -p ${TMPSRC}/man/as86.1 as86-$VERSION/as86.1
+cp -p ${TMPSRC}/COPYING as86-$VERSION/COPYING
+echo VERSION=$VERSION > as86-$VERSION/Version
+tar cf ${ARCDIR}/as86-$VERSION.tar `find as86-$VERSION/* -prune -type f`
 gzip -f9 ${ARCDIR}/as86-*.tar
 
 echo Creating bin86 source archive.
-make -s -C ${TMPSRC}/bin86 grab
-ln -s ${TMPSRC}/bin86 bin86-$VER
-tar chf ${ARCDIR}/bin86-$VER.tar bin86-$VER
+make -s -C ${TMPSRC}/bin86 VERSION=${VERSION} grab 
+ln -s ${TMPSRC}/bin86 bin86-$VERSION
+echo VERSION=$VERSION > bin86-$VERSION/ld/Version
+tar chf ${ARCDIR}/bin86-$VERSION.tar bin86-$VERSION
 make -s -C ${TMPSRC}/bin86 ungrab
 gzip -f9 ${ARCDIR}/bin86-*.tar
 
@@ -143,16 +147,16 @@ mkdir -p ${TMPDIST}.ins
 make -C ${TMPDIST} install ARFLAGS=q DIST=${TMPDIST}.ins ELKSSRC=/dev/null || 
     exit
 make -C ${TMPDIST} other || exit
-tar cf ${ARCDIR}/Dev86bin-$VER.tar -C ${TMPDIST}.ins .
-rm -f ${ARCDIR}/Dev86clb-$VER.zip Bcc
+tar cf ${ARCDIR}/Dev86bin-$VERSION.tar -C ${TMPDIST}.ins .
+rm -f ${ARCDIR}/Dev86clb-$VERSION.zip Bcc
 ln -s ${TMPDIST} Bcc
 
-zip -9rpk ${ARCDIR}/Dev86clb-$VER.zip \
+zip -9rpk ${ARCDIR}/Dev86clb-$VERSION.zip \
  Bcc/lib/crt0.o Bcc/lib/libc.a Bcc/lib/libbsd.a \
  Bcc/lib/libdos.a Bcc/lib/libc_f.a Bcc/lib/libc_s.a \
  Bcc/lib/i386/crt0.o Bcc/lib/i386/libc.a  || exit
 rm Bcc
 
-gzip -9f ${ARCDIR}/Dev86bin-$VER.tar || exit
+gzip -9f ${ARCDIR}/Dev86bin-$VERSION.tar || exit
 
 echo Process completed.

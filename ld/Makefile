@@ -1,4 +1,8 @@
 
+ifeq ($(VERSION),)
+include Version
+endif
+
 LIBDIR	=/usr/bin
 CFLAGS	=-O
 LDFLAGS	=
@@ -9,7 +13,7 @@ LDFLAGS	=
 # -DSTANDARD_GNU_A_OUT		# a.out.h is like GNU normal.
 # -DNO_AOUT			# a.out.h is like nothing known!
 #
-DEFS	=-DREL_OUTPUT -DBUGCOMPAT
+DEFS	=-DREL_OUTPUT -DBUGCOMPAT -DVERSION='"$(VERSION)"'
 
 # An alternative file for a non-standard a.out.h (eg i386 linux on an Alpha)
 #

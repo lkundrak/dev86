@@ -352,7 +352,7 @@ static void doretval(void)
  */
 static long eval(char *str, int len)
 {
-  char *oldcp, *cp, c;
+  char *cp, c;
   int state = 0;
   int i, varnum;
 
@@ -438,7 +438,7 @@ static int match(char *ins, char *pat)
   char *cp, *oldpat;
   long val;
   int varnum;
-  int len;
+  int len = 0;
 
   while (*ins && *pat)
   {
@@ -811,7 +811,8 @@ static void usage(void)
 /*
  * Main program
  */
-void main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   char comment = NOCHAR;
   char *srcfile = NULL;

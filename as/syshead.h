@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #undef min
 #undef POSIX_HEADERS_MISSING
+#define VERSION "MSDOS Compile"
 #endif
 
 #if __STDC__ && !defined(__minix)

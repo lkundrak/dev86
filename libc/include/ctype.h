@@ -21,18 +21,20 @@ extern	unsigned char	__ctype[];
 #define	_tolower(c)	((c)^0x20)
 #define	toascii(c)	((c)&0x7F)
 
+#define __CT(c) (__ctype[1+(unsigned char)c])
+
 /* Note the '!!' is a cast to 'bool' and even BCC deletes it in an if()  */
-#define	isalnum(c)	(!!(__ctype[(int) c]&(__CT_u|__CT_l|__CT_d)))
-#define	isalpha(c)	(!!(__ctype[(int) c]&(__CT_u|__CT_l)))
+#define	isalnum(c)	(!!(__CT(c)&(__CT_u|__CT_l|__CT_d)))
+#define	isalpha(c)	(!!(__CT(c)&(__CT_u|__CT_l)))
 #define	isascii(c)	(!((c)&~0x7F))
-#define	iscntrl(c)	(!!(__ctype[(int) c]&__CT_c))
-#define	isdigit(c)	(!!(__ctype[(int) c]&__CT_d))
-#define	isgraph(c)	(!(__ctype[(int) c]&(__CT_c|__CT_s)))
-#define	islower(c)	(!!(__ctype[(int) c]&__CT_l))
-#define	isprint(c)	(!(__ctype[(int) c]&__CT_c))
-#define	ispunct(c)	(!!(__ctype[(int) c]&__CT_p))
-#define	isspace(c)	(!!(__ctype[(int) c]&__CT_s))
-#define	isupper(c)	(!!(__ctype[(int) c]&__CT_u))
-#define	isxdigit(c)	(!!(__ctype[(int) c]&__CT_x))
+#define	iscntrl(c)	(!!(__CT(c)&__CT_c))
+#define	isdigit(c)	(!!(__CT(c)&__CT_d))
+#define	isgraph(c)	(!(__CT(c)&(__CT_c|__CT_s)))
+#define	islower(c)	(!!(__CT(c)&__CT_l))
+#define	isprint(c)	(!(__CT(c)&__CT_c))
+#define	ispunct(c)	(!!(__CT(c)&__CT_p))
+#define	isspace(c)	(!!(__CT(c)&__CT_s))
+#define	isupper(c)	(!!(__CT(c)&__CT_u))
+#define	isxdigit(c)	(!!(__CT(c)&__CT_x))
 
 #endif /* __CTYPE_H */

@@ -3,36 +3,59 @@
 !
 !  cat boot_fpy.bin monitor.out > /dev/fd0
 !
-! Warning: Disk errors currently cause a hang.
-!          The boot sector does not end with $AA55 this is not a problem
-!          with the BIOS but many boot managers will not boot it.
 
 ORGADDR=0x0600
-EXEADDR=0x06E0
+EXEADDR=0x0800		! This must be up to 0x7E0 or 0x0800
 LOADSEG=0x0080		! Must be 512b aligned for DMA		
 
+! Padding so you can join with 'cat'.
 .org EXEADDR-1
-.byte 0xFF	! Marker
+.byte 0
+
+! This marker is needed by many boot managers (and bochs) but the BIOS does
+! NOT require it on a floppy.
+if EXEADDR=0x0800
+.org ORGADDR+0x1FE
+.word 0xAA55
+endif
 
 .org ORGADDR
 entry start
 public start
 start:
-  mov	ax,#$07C0	! Relocate to ORGADDR
-  mov	ds,ax
   xor	ax,ax
-  mov	es,ax
-  mov	cx,#256
-  mov	si,ax
+  mov	si,#$7C00
   mov	di,#ORGADDR
+
+  mov	ss,ax
+  mov	sp,di		! Or si or ax
+
+  push	ax
+  pop	ds
+  push	ax
+  pop	es
+
+  mov	cx,#256
   cld
   rep
-  movsw
+   movsw
   jmpi	go,#0
 go:
-  mov	ds,ax		! Setup SP & S-regs
-  mov	ss,ax
-  mov	sp,#ORGADDR
+
+! Grrr, have to load sector 1 in by hand.
+if EXEADDR=0x0800
+Loopi:
+  mov	ax,#$0201	! Read 1 sector
+  mov	bx,#EXEADDR	! Into EXEADDR
+  mov	cx,#$0002	! From sector 2
+  xor	dx,dx		! Of the floppy drive head zero
+  int	$13
+  jc	Loopi
+endif
+
+  mov	si,#Boot_message
+  call	puts
+
   mov	ax,[a_text]	! How many sectors to load
   mov	cl,#4
   shr	ax,cl
@@ -51,7 +74,7 @@ go:
   ! But occasionally some older machines have really poor BIOSes
   ! (Some modern ones too) so once we know how many sectors to read
   ! we switch to reading a track at a time. But we only try it once
-  ! for each track, normally, as long as the load address is sector
+  ! for each track. Normally, as long as the load address is sector
   ! aligned, this will work every time but with some BIOSes we can't
   ! read a track without messing with the BPB so if the track read
   ! fails it's one try we fall back to sector reads.
@@ -62,10 +85,11 @@ go:
   ! your BIOS is one of the bad ones you'll have to format your disks
   ! to a 2:1 interleave.
   !
-  ! BTW: There are some versions of superformat that incorrectly 
-  ! calculate the inter-sector gaps and end up squeezing the sectors 
-  ! to the start of the track. This means that only a full track read
-  ! is fast enough.
+  ! BTW: It's very easy to make superformat incorrectly calculate the 
+  ! inter-sector gaps so it ends up squeezing the sectors to the start 
+  ! of the track. This means that only a full track read is fast enough.
+  ! I suggest you use fdformat as it always uses 'safe' parameters for 
+  ! a 1440k floppy.
 
   			! AX = count of sectors
   mov	cx,#2		! CX = First sector
@@ -176,11 +200,36 @@ bad_magic:
   retf
 
 sect_error:
-  ! TODO Error.
-  j	sect_error
+  ! Disk error, wait then reboot.
+
+  mov	si,#reboot_msg
+  call	puts
+
+  xor   ax,ax		! Wait for the user.
+  int   $16
+  jmpi  $0,$FFFF
+
+puts:
+  lodsb
+  cmp   al,#0
+  jz    EOS
+  push  bx
+  mov   bx,#7
+  mov   ah,#$E                  ! Can't use $13 cause that's AT+ only!
+  int   $10
+  pop   bx
+  jmp   puts
+EOS:
+  ret
 
 maxsect:
   .word	0
+
+reboot_msg:
+  .asciz	"Disk error, press a key to reboot:"
+
+Boot_message:
+  .asciz	"Boot sector loaded.\r\n"
 
 ! Check for overlap
 end_of_code:

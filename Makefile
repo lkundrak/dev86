@@ -2,6 +2,8 @@
 # This file is part of the Linux-8086 Development environment and is
 # distributed under the GNU General Public License.
 
+VERSION=0.16.3
+
 TARGETS= \
     clean bcc unproto copt as86 ld86 elksemu \
     install install-all install-bcc install-emu install-lib \
@@ -18,10 +20,10 @@ CFLAGS=  -O
 
 # Some makes take the last of a list as the default ...
 all: make.fil
-	PATH="`pwd`/bin:$$PATH" $(MAKE) -f make.fil TOPDIR=`pwd` $@
+	PATH="`pwd`/bin:$$PATH" $(MAKE) -f make.fil VERSION=$(VERSION) TOPDIR=`pwd` $@
 
 $(TARGETS): make.fil
-	PATH="`pwd`/bin:$$PATH" $(MAKE) -f make.fil TOPDIR=`pwd` $@
+	PATH="`pwd`/bin:$$PATH" $(MAKE) -f make.fil VERSION=$(VERSION) TOPDIR=`pwd` $@
 
 $(TARGETS):
 
@@ -29,7 +31,7 @@ ld: ld86
 as: as86
 
 realclean:
-	-[ ! -f make.fil ] || $(MAKE) -f make.fil TOPDIR=`pwd` $@
+	-[ ! -f make.fil ] || $(MAKE) -f make.fil VERSION=$(VERSION) TOPDIR=`pwd` $@
 	-rm -f make.fil ifdef ifdef.o
 
 make.fil: ifdef makefile.in
@@ -70,5 +72,5 @@ Uninstall:
 	@# TO HERE
 
 distribution:
-	@[ `id -u` -eq 0 ] || fakeroot -- sh ./Mk_dist
-	@[ `id -u` -ne 0 ] || sh ./Mk_dist
+	@[ `id -u` -eq 0 ] || fakeroot -- sh ./Mk_dist $(VERSION)
+	@[ `id -u` -ne 0 ] || sh ./Mk_dist $(VERSION)

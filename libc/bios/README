@@ -5,6 +5,7 @@ under the GNU Library General Public License.
 This is a very simple set of functions for standalone executables.
 
 There is a choice as to which console type you want to use, I think
-the VT52 clone is best.
+the VT52 clone is best. To activate it you have to call 'vt52_putc'
+at least once.
 
 -Robert

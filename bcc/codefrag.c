@@ -1617,6 +1617,18 @@ offset_T value;
     outset();
     outshex(value);
     outnl();
+#ifdef FRAMEPOINTER
+    if (framep) 
+    {
+       outbyte(LOCALSTARTCHAR);
+       outstr(funcname);
+       outbyte(LOCALSTARTCHAR);
+       outstr(name);
+       outset();
+       outshex(value+sp-framep);
+       outnl();
+    }
+#endif
 }
 
 /* shift left register by 1 */

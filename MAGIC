@@ -1,0 +1,40 @@
+Useful bits for /etc/magic:
+
+#------------------------------------------------------------------------------
+# Linux 8086 executable
+0	lelong&0xFF0000FF 0xC30000E9	Linux-8086 executable, headerless
+>5	string		.		
+>>4	string		>\0		\b, libc version %s
+
+0	lelong&0xFF00FFFF 0x04000301	Linux-8086 executable
+>2	byte&0x01	!0		\b, unmapped zero page
+>2	byte&0x20	0		\b, impure
+>2	byte&0x20	!0
+>>2	byte&0x10	!0		\b, A_EXEC
+>2	byte&0x02	!0		\b, A_PAL
+>2	byte&0x04	!0		\b, A_NSYM
+>2	byte&0x08	!0		\b, A_STAND
+>2	byte&0x40	!0		\b, A_PURE
+>2	byte&0x80	!0		\b, A_TOVLY
+>28     long            !0              \b, not stripped
+>37	string		.		
+>>36	string		>\0		\b, libc version %s
+
+# Other ld86 executable formats ...
+0	lelong 		0x10200301	Minix-386 executable
+>28	long		!0		not stripped
+
+0	lelong 		0x10100301	Minix-386 impure executable
+>28	long		!0		not stripped
+
+0	lelong&0xFF00FFFF 0x10000301	ld86 I80386 executable
+>28	long		!0		not stripped
+
+# Never seen formats.
+# 0	belong&0xFFFF00FF 0x0103000B	ld86 M68K executable
+# 0	belong&0xFFFF00FF 0x0103000C	ld86 NS16K executable
+# 0	belong&0xFFFF00FF 0x01030017	ld86 SPARC executable
+
+# AS86/LD86 object files.
+# There is _no_ difference between 16 and 32 bit .o files that file can see.
+0	string		\243\206\001\0	Linux-8086 object file

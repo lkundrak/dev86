@@ -25,6 +25,7 @@
 #define SEEK_SET	0
 #define STDOUT_FILENO	0
 #define STDERR_FILENO	0
+#define VERSION 	"MSDOS Compile"
 #endif
 
 /******************************************************************************/

@@ -72,8 +72,7 @@ reboot:
 
   xor	ax,ax
   int	$16
-  int	$19		! This should be OK as we haven't touched anything.
-  jmpi	$0,$FFFF	! Wam! Try or die!
+  jmpi	$0,$FFFF	! Reboot.
 
 mesg2:	.asciz	"Disk error\r\n"
 mesg3:	.asciz	"Retrying\r\n"

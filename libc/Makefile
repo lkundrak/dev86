@@ -9,11 +9,6 @@ else
 TOP=$(TOPDIR)/libc
 endif
 
-VERMAJOR=0
-VERMINOR=16
-VERPATCH=2
-VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
-
 CC=bcc
 CCFLAGS=-I -I$(TOP)/include
 DEFS=-D__LIBC__
@@ -38,13 +33,13 @@ $(LIBC): transfer .config.dir
 	done
 
 crt3.o: crt0.c Makefile
-	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VER)"' -o $@ crt0.c
+	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VERSION)"' -o $@ crt0.c
 
 crt0.o: crt0.c Makefile
-	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VER)"' -o $@ crt0.c
+	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VERSION)"' -o $@ crt0.c
 
 crtg.o: crt0.c Makefile
-	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VER)"' -o $@ crt0.c
+	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VERSION)"' -o $@ crt0.c
 
 crtX.o:
 	@echo "You need to define the 'PLATFORM=...' variable,"
@@ -103,6 +98,3 @@ noconfig:
 	rm -f .config.dir .config.lst .config.tmp
 
 ############################################################################
-
-Libc_version:
-	echo $(VER) > ../Libc_version

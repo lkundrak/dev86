@@ -11,7 +11,7 @@ static unsigned char * __numout(long i, int base);
 int cprintf(char * fmt, ...)
 {
    register int c;
-   int count = 0;
+   register int count = 0;
    int type, base;
    long val;
    char * cp;

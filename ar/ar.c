@@ -293,7 +293,7 @@ extern void replace_members (void);
 extern void touch_symdef_member (int outdesc, char *outname);
 extern void two_operations (void);
 extern void update_symdefs (struct mapelt *map, int archive_indesc);
-extern void usage (char *s1, char *s2);
+extern void usage (char *s1, int val);
 extern void write_archive (struct mapelt *map, int appendflag);
 extern void write_symdef_member (struct mapelt *mapelt, struct mapelt *map, int outdesc, char *outname);
 #endif
@@ -507,7 +507,7 @@ main (argc, argv)
 	break;
 
     default:
-	usage ("invalid operation %d", (void*)operation);
+	usage ("invalid operation %d", operation);
     }
 
   exit (0);
@@ -1994,10 +1994,13 @@ update_symdefs (map, archive_indesc)
 /* Print error message and usage message, and exit.  */
 
 void
-usage (s1, s2)
-     char *s1, *s2;
+usage (s1, val)
+     char *s1;
+     int val;
 {
-  error (s1, s2);
+  char vbuf[16];
+  sprintf(vbuf, "%d", val);
+  error (s1, vbuf);
   fprintf (stderr, "\
 Usage: %s [d|m|p|q|r|t|x [[abi [position-name] [cilouv]] archive file...\n",
 	   program_name);

@@ -122,7 +122,6 @@ void mem_check()
    main_mem_top = 16384;
    return;	/* If not standalone don't try */
 #else
-   {
 #asm
   int	0x12		! Amount of boot memory
   mov	cl,#6
@@ -144,12 +143,66 @@ got_ext:
   mov	[_main_mem_top],ax
 
 #endasm
-  }
 
-  if( main_mem_top == 0xFFFFL )
-  {
-     /* It say 64Mb-1k - Hmmmm I think it might be 128! */
-  }
+   /* Rest are big memory for 80386+ */
+   if( x86 < 3 ) return;
+
+   /* Try int $15 EAX=$E820 */
+   {
+      struct e820_dat {
+	 unsigned long base_lo, base_hi;
+	 unsigned long len_lo, len_hi;
+	 long addr_type;
+      } e820_item;
+      long epoll = 0;
+
+      do
+      {
+	 e820_item.addr_type = 0;
+#asm
+	 mov eax,#$E820
+	 mov ebx,.mem_check.epoll[bp]
+	 mov ecx,#20
+	 mov edx,#$534D4150
+	 push ds
+	 pop es
+	 lea di,.mem_check.e820_item[bp]
+	 int $15
+	 jnc got_e820
+	 xor ebx,ebx
+got_e820:
+	 mov .mem_check.epoll[bp],ebx
+#endasm
+	 if (e820_item.addr_type == 1
+	       && e820_item.base_hi == 0
+	       && e820_item.base_lo == 0x100000L)
+	 {
+	    /* XXX Later ... */
+	    if (e820_item.len_hi) main_mem_top = 0x40000;
+	    else
+	       main_mem_top = (e820_item.len_lo >> 10);
+	    return;
+	 }
+      }
+      while(epoll);
+   }
+
+   /* Try int $15 EAX=$E801 */
+   {
+      unsigned int mem_64, mem_16;	/* For int $15,AX=$E801 */
+#asm
+      mov ax,#$E801
+      int $15
+      jc  no_e801
+      mov .mem_check.mem_16[bp],ax
+      mov .mem_check.mem_64[bp],bx
+#endasm
+      main_mem_top = ((unsigned long)mem_64<<6) + mem_16;
+#asm
+no_e801:
+#endasm
+   }
+
 #endif
 }
 

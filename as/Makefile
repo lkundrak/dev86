@@ -1,4 +1,8 @@
 
+ifeq ($(VERSION),)
+include Version
+endif
+
 CFLAGS=-O
 LDFLAGS=-s
 LIBDIR=/usr/bin
@@ -29,6 +33,9 @@ install: all
 
 clean realclean clobber:
 	rm -f *.o as86 as86_encap
+
+.c.o:
+	$(CC) -DVERSION='"$(VERSION)"' $(CFLAGS) -c $<
 
 as.o: const.h type.h byteord.h macro.h file.h flag.h globvar.h
 assemble.o: const.h type.h address.h globvar.h opcode.h scan.h

@@ -9,8 +9,7 @@
  * I'm not sure if these should be BIOS or dos calls, so I'll assume they're
  * BIOS calls but I may have to do something about Ctrl-C.
  *
- * These functions are also compiled for __STANDALONE__ so if ^C or DOS
- * versions are made this will have to be addressed.
+ * Not implemented: cgets() cscanf() getpass() ungetch()
  */
 
 #ifdef L_getch
@@ -73,22 +72,26 @@ char * str;
 }
 #endif
 
-#if 0
-
-cgets()
+#ifdef L_gotoxy
+static gotoxy(x,y)
 {
-}
-
-cscanf()
-{
-}
-
-getpass()
-{
-}
-
-gotoxy()
-{
-}
-
+#asm
+#if __FIRST_ARG_IN_AX__
+  mov	bx,sp
+  mov	dl,al
+  mov	ax,[bx+2]
+  mov	dh,al
+#else
+  mov	bx,sp
+  mov	ax,[bx+4]
+  mov	dh,al
+  mov	ax,[bx+2]
+  mov	dl,al
 #endif
+  mov	ah,#$02
+  mov	bx,#7
+  int	$10
+#endasm
+}
+#endif
+

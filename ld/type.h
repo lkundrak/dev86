@@ -119,6 +119,7 @@ void reserved P((char *name));
 void size_error P((int seg, bin_off_t count, bin_off_t size));
 void undefined P((char *name));
 void usage P((void));
+void version_msg P((void));
 void use_error P((char *message));
 
 /* ld.c */

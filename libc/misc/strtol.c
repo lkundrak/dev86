@@ -18,6 +18,8 @@
  *
  */
 
+/* TODO: This needs range clamping and setting errno when it's done. */
+
 #include <ctype.h>
 #include <stdlib.h>
 
@@ -86,13 +88,16 @@ strtoul(const char *nptr, char **endptr, int base)
     base=10;
 
   number=0;
-  while (isalnum(*nptr))
+  while (isascii(*nptr) && isalnum(*nptr))
     {
-      number= (number*base)+((isalpha(*nptr) ? toupper(*nptr) : *nptr)
-			     - (isdigit(*nptr) ? '0' : 'A' + 9));
-      nptr++;
-      if (*nptr>'0'+base)
+      int ch = *nptr;
+      if (islower(ch)) ch = toupper(ch);
+      ch -= (ch<='9' ? '0' : 'A'-10);
+      if (ch>base)
 	break;
+
+      number= (number*base)+ch;
+      nptr++;
     }
 
   /* Some code is simply _impossible_ to write with -Wcast-qual .. :-\ */

@@ -82,8 +82,8 @@ not_dos:
   sti
 
 zap_bss:		! Clear the BSS
-  mov	ax,ds
-  mov	es,ax		! ES now data seg
+  push	ds
+  pop	es		! ES now data seg
   mov	di,#__edata
   mov	cx,#__end
   sub	cx,di
@@ -143,21 +143,19 @@ __exit:
   seg	cs
   cmp	[dos_flag],#0	! Should we do a DOS exit
   je	do_reboot
-  int   #$20
+  mov	ax,#$4c00
+  int	$21
 do_reboot:
 #endif
   xor	ax,ax
-  mov	es,ax
+  mov	ds,ax
   mov	ax,cs
-  seg	es
   mov	[$E6*4+2],ax
   mov	ax,#iret_ins
-  seg	es
   mov	[$E6*4],ax
   mov	ax,#$FFFF
   int	$E6		! Try to exit DOSEMU
   			! If we get here we`re not in dosemu.
-  seg es
   mov	[$472],#$1234	! Warm reboot.
   jmpi	$0000,$FFFF
 iret_ins:
