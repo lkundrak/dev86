@@ -634,7 +634,7 @@ u32_T offset;
     char buf[sizeof offset];
 
     u4c4(buf, offset);
-    writeobj(buf, sizeof buf);
+    writeobj(buf, 4);
 }
 
 /* write sized offset to object code buffer assuming ... */

@@ -26,4 +26,4 @@ transfer:
 	cp -p string.h ../include/.
 
 clean:
-	rm -f *.o
+	rm -f *.o ../include/string.h

@@ -158,7 +158,7 @@ void init_prog()
    printf("\n");
 #endif
 
-   printf("There is %u bytes available", offt-sbrk(0));
+   printf("There is %u bytes available", &offt-sbrk(0));
    printf(", %dk of boot memory", boot_mem_top/64);
    if( main_mem_top )
    {

@@ -91,19 +91,23 @@ inc	%[si|di]*
 inc	%[si|di]*
 mov	al,-1[si]
 mov	-1[di],al
+!BCC_EOS
 =
 lodsb
 stosb
+!BCC_EOS
 
 inc	%[si|di]*
 inc	%[si|di]*
 mov	al,-1[di]
 mov	-1[si],al
+!BCC_EOS
 =
 xchg	si,di
 lodsb
 stosb
 xchg	si,di
+!BCC_EOS
 
 inc	si
 mov	al,-1[si]
@@ -285,23 +289,24 @@ inc	%2
 
 push	%1
 mov	%[ax|bx|cx|dx]3,%2
-%[add|sub|and|xor|or]4	%[ax|bx|cx|dx]3,%*[bp]
+%[add|and|xor|or]4	%[ax|bx|cx|dx]3,%*[bp]
 inc	sp
 inc	sp
 =
-mov	%3,%2
-%4	%3,%1
+mov	%3,%1
+%4	%3,%2
 
-push	%1
-mov	%[ax|bx|cx|dx]3,%2
-%[add|sub|and|xor|or]5	%[ax|bx|cx|dx]3,%6
-%[add|sub|and|xor|or]4	%[ax|dx|cx|dx]3,%*[bp]
-inc	sp
-inc	sp
-=
-mov	%3,%2
-%5	%3,%6
-%4	%3,%1
+# If %1 is ax this fails badly.
+# push	%1
+# mov	%[ax|bx|cx|dx]3,%2
+# %[add|sub|and|xor|or]5	%[ax|bx|cx|dx]3,%6
+# %[add|sub|and|xor|or]4	%[ax|dx|cx|dx]3,%*[bp]
+# inc	sp
+# inc	sp
+# =
+# mov	%3,%2
+# %5	%3,%6
+# %4	%3,%1
 
 push	%1
 mov	%[ax|bx|cx|dx]3,%*[bp]

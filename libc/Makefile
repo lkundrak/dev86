@@ -52,11 +52,10 @@ transfer: .config.dir
 	@for i in `cat .config.dir`; do \
 	   grep -s '^transfer' $$i/Makefile && $(MAKE) -s -C $$i $@ ; \
 	done ; echo -n
-	@[ -f kinclude/Used ] || \
-	{ rm -f include/linuxmt include/arch ; \
-	  ln -s $(ELKSSRC)/include/linuxmt include ; \
-	  ln -s $(ELKSSRC)/include/arch include ; \
-	  }
+	@[ -d include/linuxmt/. ] || \
+	  ln -s $(ELKSSRC)/include/linuxmt include
+	@[ -d include/arch/. ] || \
+	  ln -s $(ELKSSRC)/include/arch include
 
 ############################################################################
 
@@ -70,16 +69,11 @@ clean:
 
 ############################################################################
 
-install_incl:
+install_incl: transfer
 	install -d $(BCCHOME)/include
 	rm -f $(BCCHOME)/include/linuxmt $(BCCHOME)/include/arch ||:
-	cp -pr include/* $(BCCHOME)/include
-	if [ ! -f kinclude/Used ] ; \
-	then rm -rf $(BCCHOME)/include/linuxmt $(BCCHOME)/include/arch ; \
-	     ln -s $(ELKSSRC)/include/linuxmt $(BCCHOME)/include ; \
-	     ln -s $(ELKSSRC)/include/arch $(BCCHOME)/include ; \
-	fi
-	-chown -R root:root   $(BCCHOME)/include 2>/dev/null
+	cp -Lpr include/* $(BCCHOME)/include
+	-chown -R root:root   $(BCCHOME)/include
 	-chmod -R u=rwX,og=rX $(BCCHOME)/include
 
 ############################################################################

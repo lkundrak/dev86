@@ -59,7 +59,6 @@ static char Usage[] = "Usage: cpp -E -0 -Dxxx -Uxxx -Ixxx infile -o outfile";
    case 'K': dialect = DI_KNR; break;
 
 	     /* Some options for describing the code generator. */
-   case 'E': break;
    case '0': define_macro("__BCC__");
 	     define_macro("__AS386_16__");
 	     define_macro("__8086__");

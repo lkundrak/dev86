@@ -23,3 +23,4 @@ $(LIBC)(regsub.o):	regsub.c regexp.h regmagic.h
 
 clean:
 	rm -f libc.a *.o core mon.out timer.t.h dMakefile dtr try timer
+	rm -f ../include/regexp.h ../include/regmagic.h

@@ -7,7 +7,7 @@ AS86=as86
 DEFS=
 CC=$(BCC)
 CFLAGS=-ansi -Ms -Oi -O -s $(DEFS)
-# CFLAGS=-ansi -Ms
+# CFLAGS=-ansi -Ms -s $(DEFS)
 ASFLAGS=-0 -w
 MINIXDEFS=-DDOTS
 # LST=-l $*.lst
@@ -49,25 +49,25 @@ fs_min.o: minix.h
 
 bootfile.sys: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DDOSFLOPPY -i -d' monitor.out
+	make 'CFLAGS=$(CFLAGS) -i -DDOSFLOPPY -d' monitor.out
 	mv monitor.out bootfile.sys
 	@rm -f $(MOBJ)
 
 boottar.sys: $(MSRC) $(MINC) tarboot.bin
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DTARFLOPPY -i' monitor.out
+	make 'CFLAGS=$(CFLAGS) -i -DTARFLOPPY' monitor.out
 	mv monitor.out boottar.sys
 	@rm -f $(MOBJ)
 
 bootminix.sys: $(MSRC) $(MINC) minix.bin
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DMINFLOPPY -i' monitor.out
+	make 'CFLAGS=$(CFLAGS) -i -DMINFLOPPY' monitor.out
 	mv monitor.out bootminix.sys
 	@rm -f $(MOBJ)
 
 monitor.sys: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DNOMONITOR -i' monitor.out
+	make 'CFLAGS=$(CFLAGS) -DNOMONITOR' monitor.out
 	mv monitor.out monitor.sys
 	@rm -f $(MOBJ)
 

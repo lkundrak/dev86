@@ -13,7 +13,9 @@
 void xxerr P((char *));
 void xxerr(x) char * x; { write(2, x, strlen(x)); }
 
+#ifdef __AS386_16__
 static int no_swap   = 1;
+#endif
 
 static int long_off[4] = {0,1,2,3};
 static int int_off[2] = {0,1};
@@ -23,7 +25,9 @@ bool_pt big_endian;
 bool_pt long_big_endian;
 {
    int i;
+#ifdef __AS386_16__
    no_swap = (!big_endian && !long_big_endian);
+#endif
 
    for(i=0; i<4; i++) long_off[i] = i;
    for(i=0; i<2; i++) int_off[i] = i;

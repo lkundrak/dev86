@@ -415,7 +415,8 @@ bool_pt argxsym;
 			{
 			   int i;
 			   extsym.n_sclass = 0;
-			   extsym.n_value  = 0;
+			   memset((void*)&extsym.n_value,0,
+				   sizeof(extsym.n_value));
 
 			   for(i=sizeof extsym.n_name; i<strlen(symptr->name);
 			       i+=sizeof extsym.n_name)

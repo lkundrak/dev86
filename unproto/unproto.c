@@ -219,7 +219,7 @@ char  **argv;
 
     cpp_pid = pipe_stdin_through_cpp(argv);
 #endif
-#ifdef REOPEN
+#if defined(REOPEN) || defined(MSDOS)
 #ifdef PIPE_THROUGH_CPP
 #error Defines REOPEN and PIPE_THROUGH_CPP are incompatible.
 #endif

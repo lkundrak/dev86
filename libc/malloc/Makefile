@@ -15,7 +15,7 @@ $(LIBC)($(AOBJ)): $(ASRC)
 	$(AR) $(ARFLAGS) $@ $*.o
 
 clean:
-	rm -f *.o libc.a
+	rm -f *.o libc.a ../include/malloc.h
 
 transfer:
 	-@rm ../include/malloc.h

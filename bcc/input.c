@@ -511,7 +511,6 @@ char *argv[];
 	    case 't':		/* print source code in asm output */
 	    case 'w':		/* watch location counter */
 	    case 'O':		/* Optimisation. */
-	    case 'A':		/* Ansi mode. */
 		if (arg[2] == 0)
 		    flag[(int)arg[1]] = TRUE;
 		else if (arg[2] == '-' && arg[3] == 0)

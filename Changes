@@ -1,5 +1,9 @@
 For version 0.16.*.
 
+> Hitting bcc.c again, bcc-cpp now the default.
+
+> Some bugfixes for DEC Alpha -- 64 bit longs!
+
 > The fopen function (and friends) is now a real function not a macro.
 
 > Ctype.h updated to ansi.

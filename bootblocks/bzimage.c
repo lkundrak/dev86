@@ -487,8 +487,6 @@ static char * image_str = "BOOT_IMAGE=";
    char * free_cmd = 0, * cmd = 0;
    char * free_inp = 0;
 
-   image_name = strdup(image);
-
    if( linux_command_line ) free(linux_command_line);
    linux_command_line = 0;
 
@@ -650,19 +648,15 @@ unsigned int k_top;
    if( main_mem_top >= 15360 ) address = 0xFFFF;
    else                        address = 0x1000 + main_mem_top*4;
 
-   if( *initrd_name == '+' )
+   if( *fname == '+' ) fname++;
+
+   while( open_file(fname) < 0 )
    {
       char buf[2];
-      fname++;
       close_file();
-      printf("Insert root disk and press return:"); fflush(stdout);
+      printf("Cannot open %s, insert next disk and press return:", fname);
+      fflush(stdout);
       if( read(0, buf, 2) <=0 ) return -1;
-   }
-
-   if( open_file(fname) < 0 )
-   {
-      printf("Cannot open %s\n", fname);
-      return -1;
    }
    file_len = file_length();
    rd_len = (file_len+1023)/1024;

@@ -1060,6 +1060,8 @@ bool_pt argbits32;
 bool_pt argstripflag;
 bool_pt arguzp;
 {
-    fatalerror("Native a.out generation not included, sorry");
+    char * s  = "WARNING: Native a.out generation not included, sorry\n";
+    write(2, s, strlen(s));
+    write_elks(outfilename, argsepid, argbits32, argstripflag, arguzp, 0);
 }
 #endif

@@ -101,7 +101,7 @@ struct reloc {
 
 struct nlist {			/* symbol table entry */
   char n_name[8];		/* symbol name */
-  long n_value;			/* value */
+  Long n_value;			/* value */
   unsigned char	n_sclass;	/* storage class */
   unsigned char	n_numaux;	/* number of auxiliary entries (not used) */
   unsigned short n_type;	/* language base and derived type (not used) */

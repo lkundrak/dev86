@@ -42,7 +42,7 @@
 #define F_OK	0		/* Test for existence.	*/
 #define L_TREE	1		/* Use different tree style */
 #define DEFARCH 0		/* Default to 8086 code */
-#define VERSION	"MSDOS Compile"
+#include "version.h"
 #else
 #define EXESUF
 #endif
@@ -226,7 +226,8 @@ char ** argv;
 
       /* C source */
       if (do_preproc && next_file->filetype == 'c') run_preproc(next_file);
-      if (do_unproto && next_file->filetype == 'i') run_unproto(next_file);
+      if (do_unproto && do_compile && next_file->filetype == 'i')
+	                                            run_unproto(next_file);
       if (do_compile && next_file->filetype == 'i') run_compile(next_file);
       if (do_optim   && next_file->filetype == 's') run_optim(next_file);
       if (do_as      && next_file->filetype == 's') run_as(next_file);
@@ -257,18 +258,26 @@ void
 run_aspreproc(file)
 struct file_list * file;
 {
-   if (opt_arch<5) command.cmd = CPPBCC;
-   else            command.cmd = CPP;
+   static char * cc1bcc = CC1BCC;
+
+   if (opt_arch<5) {
+      if (opt_e)
+	 command.cmd = cc1bcc;
+      else {
+	 command.cmd = CPPBCC;
+	 command.altcmd = cc1bcc;
+      }
+   } else
+      command.cmd = CPP;
    command_reset();
-   newfilename(file, !do_as, 's', (opt_arch<5));
-   if (opt_arch<5)
+   newfilename(file, (!do_as && !do_optim), (do_compile?'s':'i'), (opt_arch<5));
+   if (opt_arch<5 && command.cmd == cc1bcc)
       command_opt("-E");
+   else if (opt_arch<5 && do_unproto)
+      command_opt("-A");
    command_opts('p');
    command_opt("-D__ASSEMBLER__");
-#if 0
-   if (!opt_I)
-      command_opt(default_include);
-#endif
+
    command_arch();
    run_command(file);
 }
@@ -277,30 +286,42 @@ void
 run_preproc(file)
 struct file_list * file;
 {
-   int last_stage = 0;;
+   int last_stage = 0;
+   int combined_cpp;
+   static char * cc1bcc = CC1BCC;
 
-   if (opt_arch<5 && !opt_e)
-      command.cmd = CC1BCC;
-   else if (opt_arch<5) {
-      command.cmd = CPPBCC;
-      command.altcmd = CC1BCC;
-   }
-   else
+   if (opt_arch<5) {
+      if (opt_e)
+	 command.cmd = cc1bcc;
+      else {
+	 command.cmd = CPPBCC;
+	 command.altcmd = cc1bcc;
+      }
+   } else
       command.cmd = CPP;
    command_reset();
 
-   if (!opt_e && !do_optim && !do_as )        last_stage =1;
-   if (opt_e && !do_unproto && !do_compile )  last_stage =1;
+   combined_cpp = (command.cmd == cc1bcc && 
+	           opt_arch != 3 &&
+		   opt_e < 2 &&
+	           !do_unproto && 
+		   do_compile);
 
-   newfilename(file, last_stage, (opt_e?'i':'s'), (opt_arch<5));
+   if (combined_cpp && !do_optim && !do_as )         last_stage =1;
+   if (!combined_cpp && !do_unproto && !do_compile ) last_stage =1;
 
-   if (opt_e && opt_arch<5) {
-      command_opt("-E");
-      if (do_unproto) command_opt("-A");
+   newfilename(file, last_stage, (combined_cpp?'s':'i'), (opt_arch<5));
+
+   if (!combined_cpp && opt_arch<5) {
+      if (command.cmd == cc1bcc)
+	 command_opt("-E");
+      else if (do_unproto)
+	 command_opt("-A");
    }
 
    command_opts('p');
-   if (!opt_e)
+   command_opts('C');
+   if (combined_cpp)
    {
       if (opt_arch<5 && !do_as)
 	 command_opt("-t");
@@ -341,6 +362,7 @@ struct file_list * file;
       command_opt("-t");
 
    command_opts('c');
+   command_opts('C');
 
    command_arch();
 
@@ -501,9 +523,13 @@ validate_link_opt(char * option)
    case 'o':           /* output file name */
       break;
    }
-   if (err)
-      fprintf(stderr, "warning: linker option %s not recognised.\n", option);
-   else if (!do_link)
+   if (err) {
+      if (do_link)
+	 fprintf(stderr, "warning: unknown option %s passed to linker.\n",
+	                 option);
+      else
+	 fprintf(stderr, "warning: option %s not recognised.\n", option);
+   } else if (!do_link)
       fprintf(stderr, "warning: linker option %s unused.\n", option);
 }
 
@@ -539,6 +565,7 @@ command_reset()
 #endif
    char buf[MAXPATHLEN];
    char ** prefix;
+   char * saved_cmd;
 
    if (command.arglist) 
    {
@@ -561,6 +588,7 @@ command_reset()
    /* Search for the exe, nb as this will probably be called from 'make'
     * there's not much point saving this.
     */
+   saved_cmd = command.cmd;
    for(;;)
    {
       for(prefix=exec_prefixs; *prefix; prefix++) 
@@ -590,10 +618,13 @@ command_reset()
       }
       if (command.fullpath || !command.altcmd) break;
       command.cmd = command.altcmd;
+      command.altcmd = 0;
    }
 
-   if (!command.fullpath)
+   if (!command.fullpath) {
+      command.cmd = saved_cmd;
       command.fullpath = copystr(command.cmd);
+   }
    command.altcmd = 0;
 }
 
@@ -895,9 +926,6 @@ char ** argv;
    if (exe_count && file_count != 1 && !do_link)
       fatal("only one input file for each non-linked output");
 
-   opt_e = !opt_e;
-   if (do_unproto || !do_compile) opt_e = 1;
-
    add_prefix(getenv("BCC_EXEC_PREFIX"));
 
 #ifdef MC6809
@@ -920,20 +948,14 @@ char ** argv;
    case 'f': 		/* Fast Call Elks */
       prepend_option("-D__unix__", 'p');
       prepend_option("-D__ELKS__", 'p');
-      append_option("-c", 'p');
-      append_option("-f", 'p');
-      if (opt_e) {
-	 append_option("-c", 'c');
-	 append_option("-f", 'c');
-      }
+      append_option("-c", 'C');
+      append_option("-f", 'C');
       libc="-lc_f";
       break;
    case 'c': 		/* Caller saves Elks */
       prepend_option("-D__unix__", 'p');
       prepend_option("-D__ELKS__", 'p');
-      append_option("-c", 'p');
-      if (opt_e)
-	 append_option("-c", 'c');
+      append_option("-c", 'C');
       libc="-lc";
       break;
    case 's': 		/* Standalone 8086 */
@@ -966,17 +988,21 @@ char ** argv;
       break;
    case '8':		/* Use 'c386' program as compiler */
       opt_arch = 3;
-      opt_e = 1;
       break;
    case '9':		/* 6809 compiler */
       opt_arch = 4;
+#ifndef L_TREE
       default_libdir0 = "-L~/lib/bcc/m09/";
       optim_rules     = "-d~/lib/bcc/m09";
       add_prefix("~/lib/bcc/m09/");
+#else
+      default_libdir0 = "-L~/lib/m09/";
+      optim_rules     = "-d~/lib/m09";
+      add_prefix("~/lib/m09/");
+#endif
       break;
    case '0':		/* Plain old Unix V7 style */
       opt_arch = 5;
-      opt_e = 1;
       opt_I = 1;
       opt_L = 1;
       opt_x = 1;
@@ -988,9 +1014,7 @@ char ** argv;
 
    if (do_optim)
    {
-      if (opt_e) 
-	 append_option("-O", 'c');
-      append_option("-O", 'p');
+      append_option("-O", 'C');
       append_option("-O", 'a');
    }
 }

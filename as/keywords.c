@@ -621,6 +621,7 @@ PUBLIC char page1ops[] =
     3, 'L', 'T', 'R', GROUP6, 0x18,
     5, 'M', 'O', 'V', 'S', 'X', MOVX, 0xBE,
     5, 'M', 'O', 'V', 'Z', 'X', MOVX, 0xB6,
+    5, 'R', 'D', 'M', 'S', 'R', INHER, 0x32,
     4, 'S', 'E', 'T', 'A', SETCC, 0x97,
     5, 'S', 'E', 'T', 'A', 'E', SETCC, 0x93,
     4, 'S', 'E', 'T', 'B', SETCC, 0x92,
@@ -661,6 +662,7 @@ PUBLIC char page1ops[] =
     4, 'V', 'E', 'R', 'R', GROUP6, 0x20,
     4, 'V', 'E', 'R', 'W', GROUP6, 0x28,
     6, 'W', 'B', 'I', 'N', 'V', 'D', INHER, 0x09,
+    5, 'W', 'R', 'M', 'S', 'R', INHER, 0x30,
     4, 'X', 'A', 'D', 'D', ExGx, 0xC0,
 #endif /* I80386 */
 

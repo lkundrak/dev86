@@ -9,8 +9,6 @@ transfer:
 	-@rm -f ../include/linuxmt ../include/arch
 	ln -s ../kinclude/linuxmt ../include
 	ln -s ../kinclude/arch ../include
-	@touch Used
 
 clean:
-	-@rm -f ../include/linuxmt ../include/arch
-	-@rm -f Used
+	-rm -f ../include/linuxmt ../include/arch

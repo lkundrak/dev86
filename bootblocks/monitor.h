@@ -48,7 +48,7 @@ extern union REGS __argr;
 #endif
 
 #ifdef SINGLEFS
-/* #define NOCOMMAND */
+#define NOCOMMAND
 #define NOMONITOR
 #endif
 

@@ -1,6 +1,9 @@
 #!/bin/sh
 
 SRC_BCC='bcc.c'
+SRC_CPP='main.c cpp.c hash.c token1.c token2.c'
+SRC_UPR='unproto.c error.c hash.c strsave.c symbol.c tok_clas.c tok_io.c
+	 tok_pool.c unproto.c vstring.c'
 SRC_CC1='bcc-cc1.c assign.c codefrag.c debug.c declare.c express.c exptree.c
          floatop.c function.c gencode.c genloads.c glogcode.c hardop.c input.c
          label.c loadexp.c longop.c output.c preproc.c preserve.c scan.c
@@ -26,10 +29,12 @@ main() {
    LDFLAGS=
    ARCH=-Ml
 
+   build cpp bcc-cpp lib $SRC_CPP
    build bcc bcc-cc1 lib $SRC_CC1
    build as  as86    bin $SRC_AS
    build ld  ld86    bin $SRC_LD
-   # build unproto  unproto    bin $SRC_UP
+
+   build unproto unproto lib $SRC_UPR
 
    echo "echo Compile complete."
    echo ":exit_now"

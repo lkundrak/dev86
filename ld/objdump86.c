@@ -371,9 +371,16 @@ read_syms()
 
       nameoff = get_word();
       symtype = get_word();
+      if (nameoff == -1 || symtype == -1) {
+	 printf("!!! EOF in symbol table\n");
+	 break;
+      }
       offset = get_sized((symtype>>14)&3);
       symtype &= 0x3FFF;
-      symnames[i] = symtab+nameoff;
+      if (nameoff > str_len || nameoff < 0)
+	 symnames[i] = symtab + str_len;
+      else
+	 symnames[i] = symtab+nameoff;
 
       if( !display_mode )
       {
