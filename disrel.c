@@ -5,7 +5,7 @@ static char *sccsid =
    "@(#) disrel.c, Ver. 2.1 created 00:00:00 87/09/01";
 
 char *release =
-   "release 2.1 (PC/IX)";
+   "release 2.1 (MINIX)";
 
  /*
  **
@@ -24,5 +24,7 @@ char *release =
  ** SEP 87:
  **    After internal shakeout, released on Usenet.
  **
+ ** JUN 88:
+ **    Ported to MINIX
  */
 

@@ -1,5 +1,4 @@
-static char *sccsid =
-   "@(#) dismain.c, Ver. 2.1 created 00:00:00 87/09/01";
+static char *sccsid =  "@(#) dismain.c, Ver. 2.1 created 00:00:00 87/09/01";
 
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   *                                                         *
@@ -33,30 +32,42 @@ static char *sccsid =
 #include "dis.h"              /* Disassembler declarations  */
 
 extern char *release;         /* Contains release string    */
-
 static char *IFILE = NULL;    /* Points to input file name  */
-
 static char *OFILE = NULL;    /* Points to output file name */
-
 static char *PRG;             /* Name of invoking program   */
-
 static unsigned long zcount;  /* Consecutive "0" byte count */
-
 int objflg = 0;               /* Flag: output object bytes  */
+
+#define unix 1
+#define i8086 1
+#define ibmpc 1
 
 #if unix && i8086 && ibmpc    /* Set the CPU identifier     */
 static int cpuid = 1;
 #else
 static int cpuid = 0;
 #endif
-
+
+_PROTOTYPE(static void usage, (char *s ));
+_PROTOTYPE(static void fatal, (char *s, char *t ));
+_PROTOTYPE(static void zdump, (unsigned long beg ));
+_PROTOTYPE(static void prolog, (void));
+_PROTOTYPE(static void distext, (void));
+_PROTOTYPE(static void disdata, (void));
+_PROTOTYPE(static void disbss, (void));
+
+_PROTOTYPE(static char *invoker, (char *s));
+_PROTOTYPE(static int objdump, (char *c));
+_PROTOTYPE(static char *getlab, (int type));
+_PROTOTYPE(static void prolog, (void));
+
  /* * * * * * * MISCELLANEOUS UTILITY FUNCTIONS * * * * * * */
 
 static void
 usage(s)
    register char *s;
 {
-   fprintf(stderr,"\07usage: %s [-o] ifile [ofile]\n",s);
+   fprintf(stderr,"Usage: %s [-o] ifile [ofile]\n",s);
    exit(-1);
 }
 
@@ -83,7 +94,6 @@ static char *
 invoker(s)
    register char *s;
 {
-   extern int strlen();
    register int k;
 
    k = strlen(s);
@@ -98,7 +108,7 @@ invoker(s)
 
    return (s);
 }
-
+
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   *                                                         *
   * This rather tricky routine supports the disdata() func- *
@@ -170,7 +180,7 @@ objdump(c)
    return (retval);
 
 }/* * * * * * * * * *  END OF  objdump()  * * * * * * * * * */
-
+
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   *                                                         *
   * This  routine,  called  at the  beginning  of the input *
@@ -186,9 +196,7 @@ objdump(c)
 
 static char *
 getlab(type)
-
-   register int type;
-
+register int type;
 {/* * * * * * * * * *  START OF getlab()  * * * * * * * * * */
 
    register int k;
@@ -221,7 +229,7 @@ getlab(type)
    return (NULL);
 
 }/* * * * * * * * * * * END OF getlab() * * * * * * * * * * */
-
+
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   *                                                         *
   * This routine  performs a preliminary scan of the symbol *
@@ -307,7 +315,7 @@ prolog()
       putchar('\n');
 
 }/* * * * * * * * * * * END OF prolog() * * * * * * * * * * */
-
+
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   *                                                         *
   * This function is  responsible  for  disassembly  of the *
@@ -369,7 +377,7 @@ distext()
       }
 
 }/* * * * * * * * * *  END OF  distext()  * * * * * * * * * */
-
+
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   *                                                         *
   * This  function  handles the object file's data segment. *
@@ -430,7 +438,7 @@ disdata()
    objdump("");
 
 }/* * * * * * * * * *  END OF  disdata()  * * * * * * * * * */
-
+
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   *                                                         *
   * This  function  handles the object  file's bss segment. *
@@ -439,8 +447,7 @@ disdata()
   *                                                         *
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-static void
-disbss()
+static void disbss()
 
 {/* * * * * * * * * *  START OF disbss()  * * * * * * * * * */
 
@@ -475,7 +482,7 @@ disbss()
       zdump(beg);
 
 }/* * * * * * * * * * * END OF disbss() * * * * * * * * * * */
-
+
  /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
   *                                                         *
   * This is the program  entry  point.  The command line is *
@@ -527,7 +534,7 @@ main(argc,argv)
    if (IFILE == NULL)
       usage(PRG);
    else
-      if ((fd = open(IFILE,O_RDONLY)) < 0)
+      if ((fd = open(IFILE,0)) < 0)
          {
          sprintf(a,"can't access input file %s",IFILE);
          fatal(PRG,a);
@@ -543,7 +550,7 @@ main(argc,argv)
    if ( ! cpuid )
       fprintf(stderr,"\07%s: warning: host/cpu clash\n",PRG);
 
-   read(fd,&HDR,sizeof(struct exec));
+   read(fd, (char *) &HDR,sizeof(struct exec));
 
    if (BADMAG(HDR))
       {
@@ -558,9 +565,11 @@ main(argc,argv)
       }
 
    if (HDR.a_hdrlen <= A_MINHDR)
-      HDR.a_trsize = HDR.a_drsize =
-      HDR.a_tbase = HDR.a_dbase =
+      HDR.a_trsize = HDR.a_drsize = 0L;
+      HDR.a_tbase = HDR.a_dbase = 0L;
+/*   AST emergency patch
       HDR.a_lnums = HDR.a_toffs = 0L;
+*/
 
    reloff = HDR.a_text        /* Compute reloc data offset  */
           + HDR.a_data
@@ -587,7 +596,7 @@ main(argc,argv)
       else
          {
          for (relptr = 0; relptr < relnum; ++relptr)
-            read(fd,&relo[relptr],sizeof(struct reloc));
+            read(fd, (char *) &relo[relptr],sizeof(struct reloc));
          relptr--;
          }
 
@@ -597,7 +606,7 @@ main(argc,argv)
       else
          {
          for (symptr = 0; symptr < tabnum; ++symptr)
-            read(fd,&symtab[symptr],sizeof(struct nlist));
+            read(fd, (char *) &symtab[symptr],sizeof(struct nlist));
          symptr--;
          }
    else
@@ -620,5 +629,3 @@ main(argc,argv)
    exit(0);
 
 }/* * * * * * * * * * *  END OF main()  * * * * * * * * * * */
-
-

@@ -24,15 +24,13 @@
   *                                                         *
   * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#include <stdio.h>      /* System standard I/O definitions  */
-#include <fcntl.h>      /* System file-control definitions  */
+#include <sys/types.h>
 #include <a.out.h>      /* Object file format definitions   */
-
-#if i8086 || i8088      /* For CPU's with 16-bit integers   */
-#undef int
-#else                   /* Defaults (for 32-bit CPU types)  */
-#define int short
-#endif
+#include <fcntl.h>      /* System file-control definitions  */
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>      /* System standard I/O definitions  */
 
 #define MAXSYM 1500     /* Maximum entries in symbol table  */
 
@@ -43,61 +41,21 @@ extern struct reloc     /* Array to hold relocation table   */
    relo[MAXSYM];
 
 extern int symptr;      /* Index into the symtab[] array    */
-
 extern int relptr;      /* Index into the relo[] array      */
 
 struct opcode           /* Format for opcode data records   */
-   {
-   char     *text;            /* Pointer to mnemonic text   */
-   void     (*func)();        /* Pointer to handler routine */
-   unsigned min;              /* Minimum # of object bytes  */
-   unsigned max;              /* Maximum # of object bytes  */
-   };
+{
+   char *text;          /* Pointer to mnemonic text   */
+   void (*func)();      /* Pointer to handler routine */
+   unsigned min;        /* Minimum # of object bytes  */
+   unsigned max;        /* Maximum # of object bytes  */
+};
 
 extern struct opcode    /* Array to hold the opcode table   */
   optab[256];
 
- /*
-   +---------------------------------------------
-   | The following  functions are the specialized
-   | handlers for each opcode group. They are, of
-   | course, highly MACHINE-SPECIFIC.  Each entry
-   | in the opcode[]  array contains a pointer to
-   | one of these  handlers.  The handlers in the
-   | first group are in  dishand.c;  those in the
-   | second group are in disfp.c.
-   +---------------------------------------------
- */
-
-extern void dfhand(),   /* Default handler routine          */
-            sbhand(),   /* Single-byte handler              */
-            aohand(),   /* Arithmetic-op handler            */
-            sjhand(),   /* Short-jump handler               */
-            imhand(),   /* Immediate-operand handler        */
-            mvhand(),   /* Simple move handler              */
-            mshand(),   /* Segreg-move handler              */
-            pohand(),   /* Pop memory/reg handler           */
-            cihand(),   /* Intersegment call handler        */
-            mihand(),   /* Immediate-move handler           */
-            mqhand(),   /* Quick-move handler               */
-            tqhand(),   /* Quick-test handler               */
-            rehand(),   /* Return handler                   */
-            mmhand(),   /* Move-to-memory handler           */
-            srhand(),   /* Shift and rotate handler         */
-            aahand(),   /* ASCII-adjust handler             */
-            iohand(),   /* Immediate port I/O handler       */
-            ljhand(),   /* Long-jump handler                */
-            mahand(),   /* Misc. arithmetic handler         */
-            mjhand();   /* Miscellaneous jump handler       */
-
-extern void eshand(),   /* Bus-escape opcode handler        */
-            fphand(),   /* Floating-point handler           */
-            inhand();   /* Interrupt-opcode handler         */
-
 extern char *REGS[];    /* Table of register names          */
-
 extern char *REGS0[];   /* Mode 0 register name table       */
-
 extern char *REGS1[];   /* Mode 1 register name table       */
 
 #define AL REGS[0]      /* CPU register manifests           */
@@ -126,11 +84,8 @@ extern char *REGS1[];   /* Mode 1 register name table       */
 #define BP_DI REGS0[3]
 
 extern int symrank[6][6];     /* Symbol type/rank matrix    */
-
 extern unsigned long PC;      /* Current program counter    */
-
 extern int segflg;      /* Flag: segment override in effect */
-
 extern int objflg;      /* Flag: output object as a comment */
 
 #define OBJMAX 8        /* Size of the object code buffer   */
@@ -138,22 +93,7 @@ extern int objflg;      /* Flag: output object as a comment */
 extern unsigned char    /* Internal buffer for object code  */
    objbuf[OBJMAX];
 
-extern void objini(),   /* Object-buffer init routine       */
-            objout();   /* Object-code output routine       */
-
 extern int objptr;      /* Index into the objbuf[] array    */
-
-extern void badseq();   /* Bad-code-sequence function       */
-
-extern char *getnam();  /* Symbol-name string function      */
-
-extern char *lookup();  /* Symbol-table lookup function     */
-
-extern int lookext();   /* Extern-definition lookup routine */
-
-extern char *mtrans();  /* Interpreter for the mode byte    */
-
-extern void mtrunc();   /* Mode string truncator function   */
 
 extern char ADD[],      /* Opcode family mnemonic strings   */
             OR[],
@@ -173,7 +113,6 @@ extern char ADD[],      /* Opcode family mnemonic strings   */
             AMBIG[];
 
 extern char *OPFAM[];   /* Indexed mnemonic family table    */
-
 extern struct exec HDR; /* Holds the object file's header   */
 
 #define LOOK_ABS 0      /* Arguments to lookup() function   */
@@ -184,20 +123,45 @@ extern struct exec HDR; /* Holds the object file's header   */
 #define TR_SEG 8
 
                         /* Macro for byte input primitive   */
-#define FETCH(p) \
-   ++PC; p = getchar() & 0xff; objbuf[objptr++] = p
+#define FETCH(p)  ++PC; p = getchar() & 0xff; objbuf[objptr++] = p
 
-extern int close();     /* System file-close primitive      */
-extern int fprintf();   /* Library file-output function     */
-extern long lseek();    /* System file-position primitive   */
-extern int open();      /* System file-open primitive       */
-extern int printf();    /* Library output-format function   */
-extern int read();      /* System file-read primitive       */
-extern int sprintf();   /* Library string-output function   */
-extern char *strcat();  /* Library string-join function     */
-extern char *strcpy();  /* Library string-copy function     */
-extern int strlen();    /* Library string-length function   */
 
- /* * * * * * * * * * *  END OF  dis.h  * * * * * * * * * * */
-
+/* disfp.c */
+_PROTOTYPE(void eshand, (int j ));
+_PROTOTYPE(void fphand, (int j ));
+_PROTOTYPE(void inhand, (int j ));
 
+/* dishand.c */
+_PROTOTYPE(void objini, (int j ));
+_PROTOTYPE(void objout, (void));
+_PROTOTYPE(void badseq, (int j, int k ));
+_PROTOTYPE(void dfhand, (int j ));
+_PROTOTYPE(void sbhand, (int j ));
+_PROTOTYPE(void aohand, (int j ));
+_PROTOTYPE(void sjhand, (int j ));
+_PROTOTYPE(void imhand, (int j ));
+_PROTOTYPE(void mvhand, (int j ));
+_PROTOTYPE(void mshand, (int j ));
+_PROTOTYPE(void pohand, (int j ));
+_PROTOTYPE(void cihand, (int j ));
+_PROTOTYPE(void mihand, (int j ));
+_PROTOTYPE(void mqhand, (int j ));
+_PROTOTYPE(void tqhand, (int j ));
+_PROTOTYPE(void rehand, (int j ));
+_PROTOTYPE(void mmhand, (int j ));
+_PROTOTYPE(void srhand, (int j ));
+_PROTOTYPE(void aahand, (int j ));
+_PROTOTYPE(void iohand, (int j ));
+_PROTOTYPE(void ljhand, (int j ));
+_PROTOTYPE(void mahand, (int j ));
+_PROTOTYPE(void mjhand, (int j ));
+
+/* dismain.c */
+_PROTOTYPE(void main, (int argc, char **argv ));
+
+/* distabs.c */
+_PROTOTYPE(char *getnam, (int k ));
+_PROTOTYPE(int lookext, (long off, long loc, char *buf ));
+_PROTOTYPE(char *lookup, (long addr, int type, int kind, long ext ));
+_PROTOTYPE(char *mtrans, (int c, int m, int type ));
+_PROTOTYPE(void mtrunc, (char *a ));
