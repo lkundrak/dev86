@@ -990,7 +990,7 @@ PUBLIC void ptext()
 
 PUBLIC void pwarn()
 {
-    bumpsem(&warn, -1);
+    bumpsem(&as_warn, -1);
 }
 
 #ifdef I80386

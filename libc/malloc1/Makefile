@@ -1,23 +1,22 @@
-
-TOP=..
-include $(TOP)/Make.defs
+# Copyright (C) 1995,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
+# This file is part of the Linux-8086 C library and is distributed
+# under the GNU Library General Public License.
 
 ASRC=malloc.c
 AOBJ=malloc.o alloca.o free.o calloc.o realloc.o
 
-OBJ=$(AOBJ)
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-all: $(OBJ)
+all: $(LIBC)($(AOBJ))
+	@:
 
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
+$(LIBC)($(AOBJ)): $(ASRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
 clean:
 	rm -f *.o libc.a
-
-$(AOBJ): $(ASRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ASRC)
 
 transfer:
 	-@rm ../include/malloc.h

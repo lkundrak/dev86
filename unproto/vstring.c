@@ -15,13 +15,19 @@
 /*	struct vstring *vs;
 /*	char *wp;
 /*	int ch;
+/*
+/*	char *vs_strcpy(vp, dst, src)
+/*	struct vstring *vp;
+/*	char *dst;
+/*	char *src;
 /* DESCRIPTION
 /*	These functions and macros implement a small library for
 /*	arbitrary-length strings that grow automatically when
 /*	they fill up. The allocation strategy is such that there
 /*	will always be place for the terminating null character.
 /*
-/*	vs_alloc() allocates storage for a variable-length string.
+/*	vs_alloc() allocates storage for a variable-length string
+/*	of at least "len" bytes.
 /*
 /*	VS_ADDCH() adds a character to a variable-length string
 /*	and automagically extends the string if fills up.
@@ -30,11 +36,19 @@
 /*	array; \fIch\fP the character value to be written.
 /*	Note that VS_ADDCH() is a macro that evaluates some
 /*	arguments more than once.
+/*
+/*	vs_strcpy() appends a null-terminated string to a variable-length
+/*	string. \fIsrc\fP provides the data to be copied; \fIvp\fP is the
+/*	target, and \fIdst\fP the current write position within the target.
+/*	The result is null-terminated. The return value is the new write
+/*	position.
 /* DIAGNOSTICS
 /*	VS_ADDCH() returns zero if it was unable to dynamically
 /*	resize a string.
 /*
 /*	vs_alloc() returns a null pointer in case of problems.
+/*
+/*	vs_strcpy() returns a null pointer if the request failed.
 /* BUGS
 /*	Auto-resizing may change the address of the string data in
 /*	a vstring structure. Beware of dangling pointers.
@@ -44,12 +58,12 @@
 /*	Department of Mathematics and Computer Science
 /*	Den Dolech 2, P.O. Box 513, 5600 MB Eindhoven, The Netherlands
 /* LAST MODIFICATION
-/*	91/09/22 21:21:38
+/*	92/01/15 21:53:06
 /* VERSION/RELEASE
-/*	1.2
+/*	1.3
 /*--*/
 
-static char vstring_sccsid[] = "@(#) vstring.c 1.2 91/09/22 21:21:38";
+static char vstring_sccsid[] = "@(#) vstring.c 1.3 92/01/15 21:53:06";
 
 /* C library */
 
@@ -89,3 +103,20 @@ char   *cp;
     vp->last = vp->str + len - 1;
     return (vp->str + where);
 }
+
+/* vs_strcpy - copy string */
+
+char   *vs_strcpy(vp, dst, src)
+register struct vstring *vp;
+register char *dst;
+register char *src;
+{
+    while (*src) {
+	if (VS_ADDCH(vp, dst, *src) == 0)
+	    return (0);
+	src++;
+    }
+    *dst = '\0';
+    return (dst);
+}
+

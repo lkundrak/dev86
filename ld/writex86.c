@@ -263,9 +263,9 @@ bool_pt arguzp;
     if( headerless ) setsym("__segoff", (bin_off_t)(segadj[1]-segadj[0])/0x10);
     if( !bits32 )
     {
-        if( etextoffset > 65535L )
+        if( etextoffset > 65536L )
             fatalerror("text segment too large for 16bit");
-        if( endoffset > 65535L )
+        if( endoffset > 65536L )
             fatalerror("data segment too large for 16bit");
     }
 
@@ -528,9 +528,11 @@ PRIVATE void writeheader()
     if (uzp)
 	offtocn((char *) &header.a_entry, page_size(),
 		sizeof header.a_entry);
-    offtocn((char *) &header.a_total, (bin_off_t)
-	(endoffset < 0x00008000L ? endoffset+0x8000L :
-	(endoffset < 0x00010000L ? 0x00010000L : endoffset + 0x0008000L)),
+    if( heap_top_value < 0x100 || endoffset > heap_top_value-0x100)
+       heap_top_value = endoffset + 0x8000;
+    if( heap_top_value > 0x10000 && !bits32 ) heap_top_value = 0x10000;
+
+    offtocn((char *) &header.a_total, (bin_off_t) heap_top_value,
 	    sizeof header.a_total);
     if( FILEHEADERLENGTH )
        writeout((char *) &header, FILEHEADERLENGTH);

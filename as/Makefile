@@ -1,35 +1,33 @@
 
-ifneq ($(TOPDIR),)
-include $(TOPDIR)/Make.defs
-else
 CFLAGS=-O
+LDFLAGS=-s
 LIBDIR=/usr/bin
 BINDIR=/usr/bin
-endif
-
-# Temp needed for libc-5.4.7
-CFLAGS+= -Dwarn=as_warn
 
 OBJS		=as.o assemble.o error.o express.o \
 		 genbin.o genlist.o genobj.o gensym.o \
 		 keywords.o macro.o mops.o pops.o readsrc.o \
 		 scan.o table.o typeconv.o
 
-all: as86
+all: as86 as86_encap
 
 as86: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -o as86
 
+as86_encap: as86_encap.sh
+	sed "s:%%LIBDIR%%:$(LIBDIR):" < as86_encap.sh > tmp
+	@mv -f tmp as86_encap
+	chmod +x as86_encap
+	
 install: all
 	install -d $(LIBDIR)
 	install -m 755 as86 $(LIBDIR)
-	sed "s:%%LIBDIR%%:$(LIBDIR):" < as86_encap > tmp
 	install -d $(BINDIR)
 	install -m 755 tmp $(BINDIR)/as86_encap
 	-@rm -f tmp
 
-clean:
-	rm -f *.o as86
+clean realclean:
+	rm -f *.o as86 as86_encap
 
 as.o: const.h type.h byteord.h macro.h file.h flag.h globvar.h
 assemble.o: const.h type.h address.h globvar.h opcode.h scan.h

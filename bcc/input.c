@@ -433,7 +433,10 @@ ts_s_pathname_tot -= strlen(inputbuf->fname) + 1;
 ts_s_inputbuf_tot -= sizeof *inputbuf;
 #endif
     ourfree((char *) inputbuf);
-    close(input.fd);
+#ifndef NO_EOFHACK
+    if(input.fd>=0)
+#endif
+       close(input.fd);
 #ifdef FAKE_INBUFSIZE_1
     fclose(input.fp);
 #endif
@@ -675,7 +678,23 @@ case0:
 #endif
     *lineptr = ich;
 #else
-    nread = read(input.fd, lineptr = inputbuf->fbuf, INBUFSIZE);
+#ifndef NO_EOFHACK
+    if(input.fd<0)
+        nread=0;
+    else
+    {
+#endif
+        nread = read(input.fd, lineptr = inputbuf->fbuf, INBUFSIZE);
+#ifndef NO_EOFHACK
+        if( nread == 0 && inclevel > 0 )
+	{
+	   close(input.fd);
+	   input.fd = -1;
+	   memcpy(inputbuf->fbuf, "\n", 1);
+	   nread = 1;
+	}
+    }
+#endif
 #endif
     if (nread < 0)
 	fatalerror("input error");

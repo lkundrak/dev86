@@ -2,6 +2,12 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
+#ifdef __STDC__
+#include <stdlib.h>
+#else
+#include <malloc.h>
+#endif
+
 /* switches for code generation */
 
 #if !defined(I8088) && !defined(MC6809)

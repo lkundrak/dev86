@@ -29,11 +29,9 @@ call_main:
 saved_arg1:
   .word 0
 #endif
-#if __CALLER_SAVES__
   .data
-loopy_safe:
+loop_safe:
   .word 0
-#endif
   .text
 
 export ___cstartup
@@ -57,24 +55,20 @@ ___mkargv:		! BCC tells the linker to init argc,argv with this.
   push	cx		! Push argc
 #endif
 
-  mov	si,#auto_start	! Pointer to first autostart function
+  mov	bx,#auto_start	! Pointer to first autostart function
 auto_run:
 #if __FIRST_ARG_IN_AX__
   mov	ax,[saved_arg1]
 #endif
-#if __CALLER_SAVES__
-  mov   [loopy_safe],si
-#endif
-  mov	bx,[si]
+  mov   [loop_safe],bx
+  mov	bx,[bx]
   test	bx,bx
   jz	no_entry
   call	bx		! Call the function
 no_entry:
-#if __CALLER_SAVES__
-  mov   si,[loopy_safe]
-#endif
-  inc	si		! SI at next
-  inc	si
+  mov   bx,[loop_safe]
+  inc	bx		! next
+  inc	bx
   jmp	auto_run	! And round for the next.
 
 call_exit:		! Last item called by above.

@@ -1,0 +1,55 @@
+exit	1	1	*  c exit does stdio, _exit in crt0
+fork	2	0	 
+read	3	3	 
+write	4	3	 
+open	5	3	 
+close	6	1	 
+wait	7	0	. THIS one is different
+creat	8	0	. THIS one is different
+link	9	2	 
+unlink	10	1	 
+exec	11	3	*  minix style exec
+chdir	12	1	 
+time	13	0	. THIS one is different
+mknod	14	3	 
+chmod	15	2	 
+chown	16	3	 
+brk	17	1	* This is only to tell the system
+stat	18	2	 
+lseek	19	3	*  nb 2nd arg is an io ptr to long not a long.
+getpid	20	1	*  this gets both pid & ppid
+mount	21	5	 
+umount	22	1	 
+setuid	23	1	 
+getuid	24	1	*  this gets both uid and euid
+stime	25	2	-  this must not exist - even as a libc.
+ptrace	26	4	 
+alarm	27	2	 
+fstat	28	2	 
+pause	29	0	 
+utime	30	2	 
+access	33	2	 
+nice	34	1	. 
+sleep	35	0	. THIS one is different
+sync	36	0	 
+kill	37	2	 
+rename	38	2	 
+mkdir	39	2	 
+rmdir	40	1	 
+dup	41	1	-  using nasty fcntl function
+pipe	42	1	 
+times	43	2	*  2nd arg is pointer for long ret val.
+profil	44	0	 
+setgid	46	1	 
+getgid	47	1	*  this gets both gid and egid
+signal	48	2	*  have put the despatch table in user space.
+getinfo	49	1	-  possible? gets pid,ppid,uid,euid etc
+fcntl	50	3	 
+acct	51	1	- 
+phys	52	0	. THIS one is different
+lock	53	0	. THIS one is different
+ioctl	54	3	.  make this and fcntl the same ?
+reboot	55	3	.  the magic number is 0xfee1,0xdead,...
+mpx	56	0	. THIS one is different
+dup2	57	0	. THIS one is different
+umask	60	1	 

@@ -5,14 +5,11 @@
 # Author:	Rick Sladkey, <jrs@world.std.com>
 # Ported to linux-86 (by removing select.c):	Dick Porter <dick@cymru.net>
 #
-
-# Copyright (C) 1995,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=..
-include $(TOP)/Make.defs
-include ./Make.defs
+TOP=$(TOPDIR)
+include Make.defs
 
 LIBBSD=libbsd.a
 TARGETS=$(LIBBSD)
@@ -38,9 +35,8 @@ $(LIBBSD): $(OBJS)
 	$(AR) rcs $(LIBBSD) $(OBJS)
 
 realclean: clean
-	rm -f $(LIBBSD)
-
 clean: dummy
 	rm -f *.o
+	rm -f $(LIBBSD)
 
 dummy:

@@ -1,41 +1,41 @@
-This is a development environment for ELKS-86
+This is a development environment for ELKS-86 and standalone 8086 code.
 
-To install the basic environment you have to do 'make install' as root
-Or:
+The only hand configuration is to choose one of libc/syscall/syscall.dat.*
+to be used as libc/syscall/syscall.dat The '*.chad' one matches the *.50
+elks kernel but you're best to pickup the one in the kernel you're compiling
+for.
 
-$ make bcc
-$ su -c "make install-bcc"
-$ make library
-$ su -c "make install-lib"
-$ make elksemu
-$ su -c "make install-emu"
+All you then need to do then is 'make' from the top directory and the main
+parts of the package will be made. These can be tested by use the 'ncc'
+program from the newly created bin subdirectory.
 
-All from the top directory.
-Once this is done new files will be /lib/elksemu, /usr/bcc/*, /usr/bin/bcc
-and /usr/bin/as86_encap.
+Use 'make install' to install them.
+Use 'make Uninstall' to remove everything (Beware with this though!)
+
+Some other bits can be built by 'make other' and installed with
+'make install-other'.
 
 The manual pages in the man subdirectory are a start as some pages matched
 to these programs, there are also some hints for using as86 well.
 The tests and bootblocks directories give some example code.
 
 The bcc command defaults to using /usr/bcc/include and /usr/bcc/lib the
-libraries _and_ include files are compied to these locations by install.
+libraries _and_ include files are copied to these locations by install.
 
-After this you may want to install the other libraries, 'fast', 'MSDOS',
+All the versions of the library are built by make; 'normal', 'fast', 'MSDOS',
 'standalone' and Linux-i386.
-$ su -c "make install-lib2"
 
-Use these libraries like this:
+You use the other libraries like this:
    'FAST'    	$ bcc -Mf prog.c -o prog
+   Caller saves $ bcc -Mc prog.c -o prog
    MSDOS	$ bcc -Md prog.c -o prog.com
    Standalone	$ bcc -Ms prog.c -o prog.sys
-   Minix 386	$ bcc -3  prog.c -o prog
-   Linux-i386	$ bcc -3 -N prog.c -o prog
+   Linux-i386	$ bcc -Ml prog.c -o prog
 
 The Linux-i386 version generates static Linux a.out programs, they need
 neither elksemu nor a.out shared libries to run. If you want you can
 convert them to an odd ELF executable with:
-    $ bcc -N -3 prog.c -o prog
+    $ bcc -Ml prog.c -o prog
     $ objcopy -O elf32-i386 prog
 
 If you want to install everything in one go just login as root an do:
@@ -46,12 +46,28 @@ linux-i386 kernel but can replace them, the kernel-i386 ones _will_ _not_
 work correctly here!
 
 Unfortunatly, the DOSEMU folks have been using the '-r' option of ld86
-This version does accept '-r' but it generates _LINUX_ a.out object files.
-I think they should really be using 'as86_encap'. Neverthless this ld86
-will call a program called /usr/bin/ld86r if it's given -r without -N.
+This version does accept '-r' (with -N) but it generates _LINUX_ a.out
+object files.  I think they should really be using 'as86_encap' but in 
+the short term DOSEMU is being changed to be able to use the new ld86.
+
+Neverthless this ld86 will call a program called /usr/bin/ld86r if it's
+given -r without -N, this can be the old ld86 renamed.  For simplicity
+Dev86 doesn't yet overwrite /usr/bin/ld86 but stores the linker in 
+/usr/bcc/lib.
 
 I _strongly_ suggest you install the kernel patch or load the module in
 the elksemu directory in your Linux-i386 kernel, it makes things _much_
-easier.
+easier. (They both need the elksemu executable installed correctly)
 
--Rob.
+Copyrights
+----------
+This software is for the most part under GPL style copyright, the libc and
+libbsd are covered by the 'weaker' library versions of this document.
+(See the COPYING files in this and the libc directories for details)
+
+The copyrights of other parts are documented in the relevent files. Some
+parts are explicitly PD others like the unproto code have copyrights that
+allow free distribution but are otherwise more vague.
+
+--
+Rob.                           (Robert de Bath <robert@mayday.cix.co.uk>)

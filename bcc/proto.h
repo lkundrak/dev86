@@ -7,7 +7,6 @@
 #else
 #define P(x)	()
 #endif
-#include <malloc.h>
 
 /* assign.c */
 void assign P((struct symstruct *source, struct symstruct *target));

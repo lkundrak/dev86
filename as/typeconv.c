@@ -34,6 +34,7 @@
 	preprocessor is too dumb to tell us at compile time.
 */
 
+#include "syshead.h"
 #include "const.h"
 #include "type.h"
 #include "globvar.h"

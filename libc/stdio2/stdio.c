@@ -506,12 +506,12 @@ int   ref;
 {
    /* Use fflush to sync the pointers */
 
-#if 0
+#if 1
    /* if __MODE_READING and no ungetc ever done can just move pointer */
    /* This needs testing! */
 
    if ( (fp->mode &(__MODE_READING | __MODE_UNGOT)) == __MODE_READING && 
-        ( ref == SEEK_SET || ref == SEEK_CUR )
+        ( ref == SEEK_SET || ref == SEEK_CUR ))
    {
       long fpos = lseek(fp->fd, 0L, SEEK_CUR);
       if( fpos == -1 ) return EOF;

@@ -29,6 +29,10 @@
 #endif
 #endif
 
+#ifdef MSDOS
+#define off_t		long	/* Not a typedef! */
+#endif
+
 #ifndef MINIBUF
 #define MINIBUF		1	/* Add in a reasonable buffer */
 #endif
@@ -94,8 +98,13 @@ char *name;
        fd = 0;
     else
 #endif
+#ifdef O_BINARY
     if ((unsigned) (fd = open(name, O_RDONLY|O_BINARY)) > 255)
 	as_abort("error opening input file");
+#else
+    if ((unsigned) (fd = open(name, O_RDONLY)) > 255)
+	as_abort("error opening input file");
+#endif
 
 #if BIGBUFFER == 1
     if( mem_start == 0 )
@@ -254,9 +263,9 @@ PUBLIC void pproceof()
 	{
 	   list.current = list.global;
 	   maclist.current = maclist.global;
-	   warn.current = TRUE;
-	   if (warn.semaphore < 0)
-	       warn.current = FALSE;
+	   as_warn.current = TRUE;
+	   if (as_warn.semaphore < 0)
+	       as_warn.current = FALSE;
 	}
 
 	if (infiln != 0)
@@ -348,6 +357,10 @@ PUBLIC void readline()
 		}
 	    }
 	    macstak->text = bufptr;
+#if 0
+            *reglineptr = 0;
+            printf("MLINE:%s.\n", lineptr);
+#endif
 	    *reglineptr = EOLCHAR;
 	    return;
 	}

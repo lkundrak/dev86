@@ -1,0 +1,427 @@
+# Rules to optimize BCC assembler output for 386
+
+# Rules for loading a long constant
+
+xor	ax,ax
+xor	%[bx|si|di]1,%[bx|si|di]1
+=
+xor	eax,eax
+
+xor	eax,eax
+mov	%[ebx|ecx|edx]1,eax
+=
+xor	%1,%1
+
+xor	ax,ax
+mov	%[bx|si|di]*,%[*|#]0%1
+=
+mov	eax,%0%1<<16
+
+mov	ax,%[*|#]0%1
+xor	%[bx|si|di]2,%[bx|si|di]2
+=
+mov	eax,%0%1 & $0000FFFF
+
+mov	ax,%0[%1]
+xor	%[bx|si|di]2,%[bx|si|di]2
+=
+movzx	eax,word ptr %0[%1]
+
+mov	ax,%[si|di]1
+xor	bx,bx
+=
+movzx	eax,%1
+
+%[movzx|movsx]5	eax,%1
+mov	%[ebx|ecx|edx]2,eax
+=
+%5	%2,%1
+
+%[movzx|movsx]5	%[ebx|ecx|edx]1,%2
+mov	eax,%[#|*]0%3
+%[add|and|xor|or]4	eax,%[ebx|ecx|edx]1
+=
+%5	eax,%2
+%4	eax,%0%3
+
+mov	ax,%0[%1]
+cwde
+=
+movsx	eax,word ptr %0[%1]
+
+mov	ax,%[si|di]1
+cwde
+=
+movsx	eax,%1
+
+mov	ax,%[#|*]3%1
+mov	%[bx|si|di]*,%[#|*]4%2
+=
+mov	eax,%4%2<<16 + %1
+
+
+# Rules for pushing variables and constants onto the stack
+
+push	%![dword ptr]%1[%[bx|si|di|bp]3]
+push	%![dword ptr]%(%1-2)[%[bx|si|di|bp]3]
+=
+push	dword ptr %(%1-2)[%3]
+
+push	[%1+2]
+push	[%1]
+=
+push	dword ptr [%1]
+
+push	%[bx|si|di]*
+push	ax
+=
+push	eax
+
+mov	eax,%[#|*]0%1
+push	eax
+=
+push	dword %0%1
+
+mov	%1,%[eax|ebx|ecx|edx]2
+push	dword ptr %1
+=
+mov	%1,%2
+push	%2
+
+
+# Rules for loading long variables
+
+mov	ax,[%1]
+mov	%[bx|si|di]*,[%1+2]
+=
+mov	eax,[%1]
+
+mov	ax,%1[%[bx|si|di|bp]3]
+mov	%[bx|si|di]*,%(%1+2)[%[bx|si|di|bp]3]
+=
+mov	eax,%1[%3]
+
+mov	ax,#%1[bx]
+mov	%[bx|si|di]*,#%1+2[bx]
+=
+mov	eax,#%1[bx]
+
+mov	[%1],ax
+mov	[%1+2],%[bx|si|di]*
+=
+mov	[%1],eax
+
+mov	[%1+%3],ax
+mov	[%1+%(%3+2)],%[bx|si|di]*
+=
+mov	[%1+%3],eax
+
+mov	%1[%[si|di|bp]3],ax
+mov	%(%1+2)[%[si|di|bp]3],%[bx|si|di]*
+=
+mov	%1[%3],eax
+
+mov	#%1[bx],ax
+mov	#%1+2[bx],%[bx|si|di]*
+=
+mov	#%1[bx],eax
+
+mov	eax,%[#|*]0%1
+mov	%![dword ptr]%3[%2],eax
+=
+mov	dword ptr %3[%2],%0%1
+
+xor	ax,ax
+xor	%[bx|si|di]3,%[bx|si|di]3
+mov	%1[%[bx|bp]4],ax
+mov	%(%1+2)[%[bx|bp]4],%[bx|si|di]3
+=
+mov	dword ptr %1[%4],#0
+
+mov	ax,%1
+mov	%[bx|si|di]5,%2
+mov	%3[%[bx|bp]6],ax
+mov	%(%3+2)[%[bx|bp]6],%[bx|si|di]5
+=
+mov	eax,dword ptr %1
+mov	dword ptr %3[%6],eax
+
+
+# Long return values are in EAX, so we can skip dx
+
+mov	dx,bx
+add	sp,*%1
+=
+add	sp,*%1
+
+
+# Rules for manipulating long values
+
+call	%1
+mov	bx,dx
+=
+call	%1
+
+call	l%[tstu|tst]*l
+=
+test	eax,eax
+
+call	l%[comu|com]*l
+=
+not	eax
+
+mov	eax,eax
+%1
+=
+%1
+
+mov	%2,%[eax|ebx|ecx|edx]1
+mov	%[eax|ebx|ecx|edx]1,%2
+=
+mov	%2,%1
+
+cwd
+mov	bx,dx
+=
+cwde
+
+mov	%[ebx|ecx|edx]0,%1
+mov	eax,%2
+%3	eax,%[ebc|ecx|edx]0
+=
+mov	eax,%2
+%3	eax,%1
+
+%[movzx|movsx|mov]0	%[eax|ebx|ecx|edx]2,%4
+%[add|and|xor|sub|or]1	%[eax|ebx|ecx|edx]2,%6
+mov	%6,%[eax|ebx|ecx|edx]2
+=
+%0	%2,%4
+%1	%6,%2
+
+mov	eax,%[#|*]0%1
+cmp	eax,%2
+%[jbe |jae |jne |jge |jle ]3	%4
+=
+cmp	dword ptr %2,%0%1
+%=[jbe |jae |jne |jge |jle ][jae |jbe |jne |jle |jge ]3	%4
+
+mov	eax,%[#|*]0%1
+cmp	eax,%2
+%[jb  |ja  |je  |jg  |jl  ]3	%4
+=
+cmp	dword ptr %2,%0%1
+%=[jb  |ja  |je  |jg  |jl  ][ja  |jb  |je  |jl  |jg  ]3	%4
+
+mov	eax,%1[%3]
+cmp	eax,dword %[#|*]0%2
+=
+cmp	dword ptr %1[%3],%0%2
+
+
+# Rules for calling the bcc library routines.
+
+push	%1
+push	%2
+mov	eax,%3[bp]
+%4	eax,%(%3-4)[bp]
+add	sp,*8
+=
+mov	edx,%2
+mov	eax,%1
+%4	eax,edx
+
+push	%1
+mov	eax,%2
+push	eax
+mov	eax,%3[bp]
+%4	eax,%(%3-4)[bp]
+add	sp,*8
+=
+mov	edx,%2
+mov	eax,%1
+%4	eax,edx
+
+push	%1
+xor	eax,eax
+push	eax
+mov	eax,%2[bp]
+%3	eax,%(%2-4)[bp]
+add	sp,*8
+=
+mov	eax,%1
+%3	eax,#0
+
+push	%1
+mov	eax,%2
+%3	eax,%4[bp]
+add	sp,*4
+=
+mov	edx,%1
+mov	eax,%2
+%3	eax,edx
+
+push	%1
+mov	eax,%2
+%3	eax,%4[bp]
+mov	%2,eax
+add	sp,*4
+=
+mov	edx,%1
+%3	%2,edx
+
+
+push	%1
+push	%2
+mov	eax,%3[bp]
+%4	eax,%(%3-4)[bp]
+lea	sp,%(%3+4)[bp]
+=
+mov	edx,%2
+mov	eax,%1
+%4	eax,edx
+
+push	%1
+mov	eax,%2
+push	eax
+mov	eax,%3[bp]
+%4	eax,%(%3-4)[bp]
+lea	sp,%(%3+4)[bp]
+=
+mov	edx,%2
+mov	eax,%1
+%4	eax,edx
+
+push	%1
+xor	eax,eax
+push	eax
+mov	eax,%2[bp]
+%3	eax,%(%2-4)[bp]
+lea	sp,%(%2+4)[bp]
+=
+mov	eax,%1
+%3	eax,#0
+
+push	%1
+mov	eax,%2
+%3	eax,%4[bp]
+lea	sp,%(%4+4)[bp]
+=
+mov	edx,%1
+mov	eax,%2
+%3	eax,edx
+
+
+# Rules for calling the basic bcc library routines.
+
+mov	di,#%2
+call	l%3%[ul|l]*
+=
+%3	eax,[%2]
+
+lea	di,%2
+call	l%3%[ul|l]*
+=
+%3	eax,%2
+
+mov	di,%[si|di]1
+call	l%3%[ul|l]*
+=
+%3	eax,[%1]
+
+mov	di,%[ax|bx|cx|dx]1
+call	l%3%[ul|l]*
+=
+mov	di,%[ax|bx|cx|dx]1
+%3	eax,[di]
+
+
+# Rules for pushing short values
+
+mov	%[ax|bx|cx|dx|si|di]2,%0[%1]
+push	%[ax|bx|cx|dx|si|di]2
+=
+push	word ptr %0[%1]
+
+mov	%[ax|bx|cx|dx|si|di]2,%[#|*]0%1
+push	%[ax|bx|cx|dx|si|di]2
+=
+push	word %0%1
+
+
+# Shifting rules
+
+%[shl|shr]2	%1,*1
+%[shl|shr]2	%1,*1
+=
+%2	%1,*2
+
+mov	cl,*%1
+%[shl|shr]2	%3,cl
+=
+%2	%3,*%1
+
+mov	dx,ax
+shl	ax,*%1
+add	ax,dx
+shl	ax,*%2
+=
+mov	dx,ax
+imul	ax,*%(1<%1+1<%2)
+
+mov	dx,ax
+imul	ax,*%1
+add	ax,dx
+=
+mov	dx,ax
+imul	ax,*%(%1+1)
+
+mov	dx,ax
+imul	ax,*%1
+shl	ax,*%2
+=
+mov	dx,ax
+imul	ax,*%(%1<%2)
+
+mov	ax,%![#|*]%4
+mov	dx,ax
+imul	ax,*%1
+%[add|and|xor|sub|or]2	ax,%![dx]%3
+=
+imul	ax,%4,*%1
+%2	ax,%3
+
+mov	ax,%![#|*]%4
+mov	dx,ax
+imul	ax,*%1
+push	ax
+=
+imul	ax,%4,*%1
+push	ax
+
+imul	ax,%2,%[#|*]0%1
+add	ax,%3
+mov	bx,ax
+=
+imul	bx,%2,%0%1
+add	bx,%3
+
+
+# Different rules
+
+%1	dword ptr %[eax|ebx|ecx|edx]3,*%2
+=
+%1	%3,*%2
+
+%1	dword ptr %[eax|ebx|ecx|edx]3,#%2
+=
+%1	%3,#%2
+
+eor	%1,%2
+=
+xor	%1,%2
+
+com	%1
+=
+not	%1
+

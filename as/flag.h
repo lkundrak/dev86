@@ -2,4 +2,4 @@
 
 EXTERN struct flags_s list;	/* listing on/off */
 EXTERN struct flags_s maclist;	/* list macros on/off */
-EXTERN struct flags_s warn;	/* warnings on/off */
+EXTERN struct flags_s as_warn;	/* warnings on/off */

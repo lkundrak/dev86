@@ -277,24 +277,13 @@ END{
 
 cat >> syscall.mak <<\!
 
-TOP=..
-include $(TOP)/Make.defs
+all: $(LIBC)($(OBJ))
+	@:
 
-all: $(OBJ)
-
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
-
-$(OBJ): syscall.dat mksyscall
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ syscall.c
+$(LIBC)($(OBJ)): syscall.dat
+	$(CC) $(CFLAGS) -DL_$* syscall.c -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 !
 
-rv=$?
-if [ "$rv" != 0 ]
-then exit $rv
-fi
-
-export MAKELEVEL
-MAKELEVEL=0
-exec make -f syscall.mak $1 
+exit $?

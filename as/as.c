@@ -63,7 +63,7 @@ char **argv;
     initobj();
     initsource();		/* only nec to init for unsupported mem file */
     typeconv_init(BIG_ENDIAN, LONG_BIG_ENDIAN);
-    warn.global = TRUE;		/* constant */
+    as_warn.global = TRUE;		/* constant */
     last_pass=1;
     process_args(argc, argv);
     initscan();
@@ -158,6 +158,7 @@ char **argv;
     bool_t isnextarg;
     char *nextarg = 0;
     int opened_file = 0;
+    int flag_state;
 
 #ifdef I80386
     setcpu(0xF);
@@ -170,6 +171,10 @@ char **argv;
 	arg = *++argv;
 	if (arg[0] == '-' && arg[1] != '\0')
 	{
+	    flag_state = 1;
+	    if (arg[2] == '-' && arg[3] == 0 )
+	       flag_state = 0;
+	    else
 	    if (arg[2] != 0)
 		usage();	/* no multiple options */
 	    isnextarg = FALSE;
@@ -191,7 +196,7 @@ char **argv;
 		setcpu(0xF);
 		break;
 	    case 'a':
-		asld_compatible = TRUE;
+		asld_compatible = flag_state;
 		break;
 #endif
 	    case 'b':
@@ -203,12 +208,13 @@ char **argv;
 		++argv;
 		break;
 	    case 'g':
-		globals_only_in_obj = TRUE;
+		globals_only_in_obj = flag_state;
 		break;
 #ifdef I80386
 	    case 'j':
-		jumps_long = TRUE;
-		++last_pass;
+		jumps_long = flag_state;
+		if( jumps_long ) ++last_pass;
+		else             last_pass = 1;
 		break;
 #endif
 	    case 'l':
@@ -250,10 +256,12 @@ char **argv;
 		++argv;
 		break;
 	    case 'u':
-		inidata = IMPBIT | SEGM;
+		if( flag_state ) inidata = IMPBIT | SEGM;
+		else             inidata = 0;
 		break;
 	    case 'w':
-		warn.semaphore = -1;
+		if( flag_state ) as_warn.semaphore = -1;
+		else             as_warn.semaphore = 0;
 		break;
 	    default:
 		usage();	/* bad option */

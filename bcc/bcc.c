@@ -24,19 +24,29 @@
 
 #ifdef __STDC__
 #define P(x)	x
+#define HASHIT(x) #x
+#define QUOT(x) HASHIT(x)
 #else
 #define P(x)	()
+/* Well you find something that works! */
+#define QUOT(x) "x"
 #endif
 
 #ifdef MSDOS
-#define LOCALPREFIX	"/linux86"
+#define LOCALPREFIX	/linux86
 #define EXESUF          ".exe"
 #define	R_OK	4		/* Test for read permission.  */
 #define	W_OK	2		/* Test for write permission.  */
 #define	X_OK	1		/* Test for execute permission.  */
 #define	F_OK	0		/* Test for existence.  */
+#define L_TREE	1		/* Use different tree style */
+#define DEFARCH 0		/* Default to 8086 code */
 #else
 #define EXESUF
+#endif
+
+#ifdef __minix
+#define realpath(x,y) 0
 #endif
 
 #define BAS86
@@ -51,8 +61,9 @@
 #define GCC			"gcc"
 #define LD			"ld86" EXESUF
 #define UNPROTO 		"unproto" EXESUF
+#define OPTIM	 		"copt" EXESUF
 
-#ifdef MSDOS
+#ifdef L_TREE
 #define STANDARD_CRT0_0_PREFIX	"~/lib/"
 #define STANDARD_CRT0_3_PREFIX	"~/lib/i386/"
 #define STANDARD_EXEC_PREFIX	"~/lib/"
@@ -60,6 +71,7 @@
 #define DEFAULT_INCLUDE 	"-I~/include"
 #define DEFAULT_LIBDIR0		"-L~/lib/"
 #define DEFAULT_LIBDIR3		"-L~/lib/i386/"
+#define OPTIM_RULES    		"-d~/lib"
 #else
 #define STANDARD_CRT0_0_PREFIX	"~/lib/bcc/i86/"
 #define STANDARD_CRT0_3_PREFIX	"~/lib/bcc/i386/"
@@ -68,6 +80,7 @@
 #define DEFAULT_INCLUDE         "-I~/include"
 #define DEFAULT_LIBDIR0         "-L~/lib/bcc/i86/"
 #define DEFAULT_LIBDIR3         "-L~/lib/bcc/i386/"
+#define OPTIM_RULES    		"-d~/lib/bcc/i86"
 #endif
 
 #ifdef CCC
@@ -117,6 +130,7 @@ PRIVATE struct arg_s asargs = { AS, };
 PRIVATE struct arg_s ccargs = { CC1, CC1_MINUS_O_BROKEN, };
 PRIVATE struct arg_s cppargs = { CPP, };
 PRIVATE struct arg_s unprotoargs = { UNPROTO, TRUE };
+PRIVATE struct arg_s optargs =     { OPTIM };
 #ifdef STANDARD_CRT0_PREFIX
 PRIVATE struct prefix_s crt0_prefix = { STANDARD_CRT0_PREFIX, };
 #endif
@@ -137,7 +151,7 @@ PRIVATE struct arg_s tmpargs;	/* = empty */
 PRIVATE char *tmpdir;
 PRIVATE unsigned verbosity;	/* = 0 */
 
-PRIVATE char * localprefix = LOCALPREFIX;
+PRIVATE char * localprefix = QUOT(LOCALPREFIX);
 
 #ifdef REDECLARE_STDC_FUNCTIONS
 void exit P((int status));
@@ -173,7 +187,7 @@ FORWARD char *my_mktemp P((void));
 FORWARD void my_unlink P((char *name));
 FORWARD void outofmemory P((char *where));
 FORWARD int run P((char *in_name, char *out_name, struct arg_s *argp));
-#ifdef MSDOS
+#ifdef L_TREE
 FORWARD void reset_localprefix P((void));
 #endif
 FORWARD void set_trap P((void));
@@ -218,6 +232,11 @@ char **argv;
     char *crt0;
 #endif
     char *libc = "-lc";
+#ifdef MSDOS
+    char major_mode = 'd';
+#else
+    char major_mode = 0;
+#endif
     bool_T debug = FALSE;
     bool_T echo = FALSE;
     unsigned errcount = 0;
@@ -234,13 +253,14 @@ char **argv;
     unsigned nifiles = 0;
     unsigned npass_specs;
     bool_T optimize = FALSE;
+    char *optflags = 0;
     char *out_name;
     bool_T profile = FALSE;
     bool_T prep_only = FALSE;
     bool_T prep_line_numbers = FALSE;
     int status;
     char *temp;
-    bool_T patch_exe = FALSE;
+    bool_T patch_exe = FALSE; /* Hackish patch to convert minix i386->OMAGIC */
 
     progname = argv[0];
     addarg(&cppargs, CPPFLAGS);
@@ -252,9 +272,11 @@ char **argv;
     addarg(&ldrargs, "-r");
     addarg(&ldrargs, "-N");	/* GCC uses native objects */
     				/* GCC also uses 386 how to add -3 too ? */
+    addarg(&optargs, "-c!");
+    optflags = stralloc("start");
 #endif
 
-#ifdef MSDOS
+#ifdef L_TREE
     reset_localprefix();
 #endif
     /* Pass 1 over argv to gather compile options. */
@@ -287,7 +309,10 @@ char **argv;
 		prep_line_numbers = FALSE;
 		break;
 	    case 'O':
-		optimize = TRUE;	/* unsupported( arg, "optimize" ); */
+		optimize = TRUE;
+		temp = optflags;
+		optflags=stralloc2(optflags,",86");
+		free(temp);
 		break;
 	    case 'S':
 		cc_only = TRUE;
@@ -390,31 +415,19 @@ char **argv;
 		addarg(&ldargs, arg);
 		break;
 	    case 'M':
-	        switch(arg[2])
+		major_mode=arg[2];
+		break;
+
+	    case 'O':
+		optimize = TRUE;
+		temp=optflags; optflags=stralloc2(optflags,","); free(temp);
+		temp=optflags; optflags=stralloc2(optflags,arg+2); free(temp);
+		if( arg[3] == 0 && ( arg[2] >= '1' && arg[2] <= '3' ))
 		{
-		case 'd': /* DOS compile */
-#ifndef CCC
-		   addarg(&ccargs, "-D__MSDOS__");
-#endif
-		   addarg(&cppargs, "-D__MSDOS__");
-		   addarg(&ldargs, "-d");
-		   addarg(&ldargs, "-s");
-		   addarg(&ldargs, "-T100");
-		   libc= "-ldos";
-		   break;
-		case 'f': /* Caller saves+ax is first arg */
-		   libc= "-lc_f";
-		   addarg(&ccargs, "-f");
-		   addarg(&ccargs, "-c");
-		   break;
-		case 's': /* Standalone executable */
-#ifndef CCC
-		   addarg(&ccargs, "-D__STANDALONE__");
-#endif
-		   addarg(&cppargs, "-D__STANDALONE__");
-		   addarg(&ldargs, "-s");
-		   libc= "-lc_s";
-		   break;
+		   temp=optflags;
+		   optflags=stralloc2(optflags,"86,86");
+		   free(temp);
+		   addarg(&optargs, "-huse16 386");
 		}
 		break;
 	    case 'P':
@@ -467,7 +480,61 @@ char **argv;
     if (errcount != 0)
 	exit(1);
 
-    if( !aswarn )
+#ifdef BCC86
+    switch(major_mode)
+    {
+    case 'd': /* DOS compile */
+       bits32 = FALSE;
+       libc= "-ldos";
+#ifndef CCC
+       addarg(&ccargs, "-D__MSDOS__");
+#endif
+       addarg(&cppargs, "-D__MSDOS__");
+       addarg(&ldargs, "-d");
+       addarg(&ldargs, "-s");
+       addarg(&ldargs, "-T100");
+       break;
+
+    case 'n': /* Normal Linux-86 */
+       bits32 = FALSE;
+       libc= "-lc";
+       break;
+
+    case 'f': /* Caller saves+ax is first arg */
+       bits32 = FALSE;
+       libc= "-lc_f";
+       addarg(&ccargs, "-f");
+       addarg(&ccargs, "-c");
+       break;
+
+    case 'c': /* Just caller saves, normal C-lib is ok */
+       bits32 = FALSE;
+       libc= "-lc";
+       addarg(&ccargs, "-c");
+       break;
+
+    case 's': /* Standalone executable */
+       bits32 = FALSE;
+       libc= "-lc_s";
+#ifndef CCC
+       addarg(&ccargs, "-D__STANDALONE__");
+#endif
+       addarg(&cppargs, "-D__STANDALONE__");
+       break;
+
+    case 'l': /* Large Linux compile */
+       bits32 = TRUE;
+       libc= "-lc";
+#ifndef CCC
+       addarg(&ccargs, "-D__linux__");
+#endif
+       addarg(&cppargs, "-D__linux__");
+       addarg(&ldargs, "-N"); /* Make OMAGIC */
+       break;
+    }
+#endif
+
+if( !aswarn )
        addarg(&asargs, "-w");
     if( patch_exe )
        addarg(&ldargs, "-s");
@@ -500,6 +567,14 @@ char **argv;
 #endif
 	    addarg(&ldargs, DEFAULT_LIBDIR0);
     }
+
+    addarg(&optargs, OPTIM_RULES);
+    temp=optflags; optflags=stralloc2(optflags,",end"); free(temp);
+    for(temp=strtok(optflags,","); temp; temp=strtok((char*)0,","))
+    {
+       temp = stralloc2("rules.", temp);
+       addarg(&optargs, temp);
+    }
     addprefix(&exec_prefix, STANDARD_EXEC_PREFIX);
     addprefix(&exec_prefix, STANDARD_EXEC_PREFIX_2);
     cppargs.prog = fixpath(cppargs.prog, &exec_prefix, X_OK);
@@ -510,6 +585,7 @@ char **argv;
     ldrargs.prog = fixpath(ldrargs.prog, &exec_prefix, X_OK);
 #endif
     unprotoargs.prog=fixpath(unprotoargs.prog, &exec_prefix, X_OK);
+    optargs.prog = fixpath(optargs.prog, &exec_prefix, X_OK);
     if (tmpdir == NUL_PTR && (tmpdir = getenv("TMPDIR")) == NUL_PTR)
 #ifdef MSDOS
 	tmpdir = ".";
@@ -603,7 +679,7 @@ char **argv;
 		{
 		    if (prep_only)
 			continue;
-		    if (cc_only)
+		    if (cc_only && !optimize)
 		    {
 			if (f_out != NUL_PTR)
 			    out_name = f_out;
@@ -618,6 +694,25 @@ char **argv;
 		    if (run(in_name, out_name, &ccargs) != 0)
 			continue;
 		    in_name = out_name;
+		    if( optimize )
+		    {
+		        if (cc_only)
+		        {
+			    if (f_out != NUL_PTR)
+			        out_name = f_out;
+			    else
+			    {
+			        out_name = stralloc(basename);
+			        out_name[strlen(out_name) - 1] = 's';
+			    }
+		        }
+		        else
+			    out_name = my_mktemp();
+
+		        if (run(in_name, out_name, &optargs) != 0)
+			    continue;
+		        in_name = out_name;
+		    }
 		    ext = 's';
 		}
 		if (ext == 'S')
@@ -826,6 +921,7 @@ static struct  aout_exec {
    close(fd);
 }
 
+#ifdef L_TREE
 #ifdef MSDOS
 PRIVATE void reset_localprefix()
 {
@@ -846,6 +942,68 @@ PRIVATE void reset_localprefix()
    else
       free(temp);
 }
+#else
+
+PRIVATE void reset_localprefix()
+{
+   char *ptr, *temp;
+
+   if( *progname == '/' )
+      temp = stralloc(progname);
+   else
+   {
+      char * s, * d;
+      ptr = getenv("PATH");
+      if( ptr==0 || *ptr == 0 ) return;
+      ptr = stralloc(ptr);
+      temp = stralloc("");
+
+      for(d=s=ptr; d && *s; s=d)
+      {
+#ifdef MAXPATHLEN
+         char buf[MAXPATHLEN];
+#else
+         char buf[1024];
+#endif
+
+	 free(temp);
+         d=strchr(s, ':');
+	 if( d ) *d='\0';
+	 temp = my_malloc(strlen(progname)+strlen(s)+2, "prefixing");
+	 strcpy(temp, s);
+	 strcat(temp, "/");
+	 strcat(temp, progname);
+         if( realpath(temp, buf) != 0 )
+	 {
+	    free(temp);
+	    temp = stralloc(buf);
+         }
+	 if( access(temp, X_OK) == 0 ) break;
+	 d++;
+      }
+      if( s == 0 )
+      {
+         free(temp);
+	 temp = stralloc(progname);
+      }
+      free(ptr);
+   }
+
+   if( (ptr = strrchr(temp, '/')) != 0
+         && temp<ptr-4 && strncmp(ptr-4, "/bin", 4) == 0 )
+   {
+      ptr[-4] = 0;
+      localprefix = temp;
+      if (verbosity > 2)
+      {
+         show_who("localprefix is now ");
+	 writesn(localprefix);
+      }
+   }
+   else
+      free(temp);
+}
+#endif
 #endif
 
 PRIVATE char * expand_tilde(str, canfree)
@@ -966,13 +1124,14 @@ PRIVATE char *my_mktemp()
     static unsigned tmpnum;
 
 #ifdef MSDOS
-    p = template = stralloc2(tmpdir, "/$$YYYXXX");
+    digits = 42;
+    p = template = stralloc2(tmpdir, "/$$YYYYXX");
 #else
+    digits = getpid();
     p = template = stralloc2(tmpdir, "/bccYYYYXXXX");
 #endif
     p += strlen(p);
 
-    digits = getpid();
     while (*--p == 'X')
     {
 	if ((digit = digits % 16) > 9)
@@ -1060,6 +1219,12 @@ struct arg_s *argp;
     if (verbosity > 4 ) return 0;
 #ifdef MSDOS
     status = spawnv(0, argp->prog, argp->argv+arg0);
+    if( status<0 )
+    {
+	show_who("spawn of ");
+	writes(argp->prog);
+	writesn(" failed");
+    }
 #else
     switch (fork())
     {

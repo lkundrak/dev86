@@ -2,14 +2,8 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=..
-include $(TOP)/Make.defs
-
-OBJ=
-
-all: $(OBJ)
-
-libc.a: 
+all:
+	@:
 
 transfer:
 	-@rm -f ../include/linuxmt

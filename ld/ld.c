@@ -17,6 +17,7 @@
 
 PUBLIC bin_off_t text_base_value = 0;	/* XXX */
 PUBLIC bin_off_t data_base_value = 0;	/* XXX */
+PUBLIC bin_off_t heap_top_value  = 0;	/* XXX */
 PUBLIC int headerless = 0;
 PUBLIC char hexdigit[] = "0123456789abcdef";
 
@@ -77,6 +78,7 @@ char **argv;
     static char libsuffix[] = ".a";
     char *outfilename;
     char *tfn;
+    int icount=0;
 
     ioinit(argv[0]);
     objinit();
@@ -90,7 +92,10 @@ char **argv;
     {
 	arg = argv[argn];
 	if (*arg != '-')
+	{
 	    readsyms(arg, flag['t']);
+	    icount++;
+	}
 	else
 	    switch (arg[1])
 	    {
@@ -132,6 +137,7 @@ char **argv;
 		    infilename = tfn;
 		    /*fatalerror(tfn);	* XXX - need to describe failure */
 		readsyms(infilename, flag['t']);
+		icount++;
 		break;
 	    case 'L':		/* library path */
 		if (lastlib < MAX_LIBS)
@@ -167,12 +173,24 @@ char **argv;
 		if (errno != 0)
 		    use_error("invalid data address");
 		break;
+	    case 'H':		/* heap top address */
+		if (arg[2] == 0 && ++argn >= argc)
+		    usage();
+		errno = 0;    
+		if (arg[2] == 0 )
+		   heap_top_value = strtoul(argv[argn], (char **)0, 16);
+		else
+		   heap_top_value = strtoul(arg+2, (char **)0, 16);
+		if (errno != 0)
+		    use_error("invalid heap top");
+		break;
 	    case 'l':		/* library name */
 		tfn = buildname(libprefix, arg + 2, libsuffix);
 		if ((infilename = expandlib(tfn)) == NUL_PTR)
 		    infilename = tfn;
 		    /* fatalerror(tfn);	* XXX */
 		readsyms(infilename, flag['t']);
+		icount++;
 		break;
 	    case 'o':		/* output file name */
 		if (arg[2] != 0 || ++argn >= argc || outfilename != NUL_PTR)
@@ -183,6 +201,7 @@ char **argv;
 		usage();
 	    }
     }
+    if(icount==0) fatalerror("no input files");
 
 #ifdef REL_OUTPUT
 #ifndef MSDOS

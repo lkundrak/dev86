@@ -1,108 +1,80 @@
-# Copyright (C) 1995,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
-# This file is part of the Linux-8086 C library and is distributed
-# under the GNU Library General Public License.
+############################################################################
+# Normal standard 8086 code
 
-# Set PLATFORM to i386-Linux to build for Linux/386 and to i86-ELKS to
-# build for ELKS.  This doesn't quite work yet, though, because of some of
-# the platform and/or compiler-specific code flying around here.
-# Eventually, compiler-specificity won't be an issue, and we can put
-# platform-specific code in i86/ and i386/.   -Nat
-
-# Define enviroment var for others.
-ifeq ($(PLATFORM),)
-# PLATFORM=i86-ELKS
-# PLATFORM=i86-FAST  PLATFORM=i86-DOS  PLATFORM=i386-BCC  PLATFORM=i386-Linux
-
-PLATFORM=$(shell if [ -f $(TOP)/.config.otype ] ; \
-                 then cat $(TOP)/.config.otype ; \
-                 else echo i86-ELKS ; fi)
-export PLATFORM
+ifeq ($(PLATFORM),i86-ELKS)
+OBJ=crt0.o
+LIBC=$(TOP)/libc.a
+ARCH=-Mn
+LIB_CPU=i86
+LIB_OS=ELKS
 endif
-
-VERMAJOR=0
-VERMINOR=0
-VERPATCH=9
-VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
-
-LIBDEFS='-D__LIBC__="$(VER)"'
-LIBC=libc.a
 
 ##############################################################################
-
-# Normal standard 8086 code
-ifeq ($(PLATFORM),i86-ELKS)
-ARCH=
-LIB_CPU=i86
-LIB_OS=ELKS
-endif
-
 # 8086 elks code With "Caller saves" and "First arg in AX"
+
 ifeq ($(PLATFORM),i86-FAST)
+OBJ=crt0.o
+LIBC=$(TOP)/libc_f.a
 ARCH=-Mf
-LIBC=libc_f.a
 LIB_CPU=i86
 LIB_OS=ELKS
 endif
 
+##############################################################################
 # Standalone executable
+
 ifeq ($(PLATFORM),i86-BIOS)
+OBJ=crt0.o
+LIBC=$(TOP)/libc_s.a
 ARCH=-Ms
-LIBC=libc_s.a
 LIB_CPU=i86
 LIB_OS=BIOS
 endif
 
+##############################################################################
 # MSDOS COM file (msdos libs don't support "First arg in AX")
+
 ifeq ($(PLATFORM),i86-DOS)
+OBJ=crt0.o
+LIBC=$(TOP)/libdos.a
 ARCH=-Md
-LIBC=libdos.a
 LIB_CPU=i86
 LIB_OS=DOS
 endif
 
 ##############################################################################
-
 # BCC 386.
+
 ifeq ($(PLATFORM),i386-BCC)
-ARCH=-3 -N
+OBJ=crt3.o
+LIBC=$(TOP)/libc3.a
+ARCH=-Ml
 LIB_CPU=i386
 LIB_OS=ELKS
-
-CC=bcc $(ARCH)
-CCFLAGS=-I -I$(TOP)/include
-LKFLAGS=-L -L$(TOP)/
 endif
 
-ifeq ($(PLATFORM),i386-Linux)
-LIB_CPU=g386
-LIB_OS=ELKS
+##############################################################################
+# Anonymous
 
-CC=gcc $(ARCH)
-# ARCH=-b i486-linuxaout
-LKFLAGS=-static -N
-CCFLAGS=-O6 -fomit-frame-pointer -I- -I$(TOP)/include -I. -fno-builtin
-WALL=	-ansi -pedantic -Wwrite-strings -Wpointer-arith -Wcast-qual \
-	-Wcast-align -Wtraditional -Wstrict-prototypes -Wmissing-prototypes \
-	-Wnested-externs -Winline -Wshadow
+ifeq ($(PLATFORM),ANON)
+OBJ=crt0.o
+LIBC=$(TOP)/libc.a
+ARCH=
+LIB_CPU=Bigbad
+LIB_OS=Nice
+CC=cc
+CCFLAGS=-I$(TOP)/include
 endif
 
-############################################################################
-
-ifeq ($(LIB_CPU),i86)
-CC=bcc $(ARCH)
-CCFLAGS=-I -I$(TOP)/include # -O
-LKFLAGS=-L -L$(TOP)/ -s
-endif
+##############################################################################
+# Unknown
 
 ifeq ($(LIB_CPU),)
+OBJ=crtX.o
+LIBC=$(TOP)/libc_X.a
+ARCH=
 LIB_CPU=Unknown
 LIB_OS=Unknown
-LIBC=libc_X.a
-CCFLAGS=-I$(TOP)/include
-LKFLAGS=
 endif
-
-CFLAGS=$(CCFLAGS) $(LIBDEFS)
-LDFLAGS=$(LKFLAGS)
 
 .PRECIOUS: $(LIBC)

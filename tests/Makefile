@@ -2,22 +2,25 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-CC=bcc
-CFLAGS=-O -ansi
-LDFLAGS=
+BCC=bcc
+CC=$(BCC)
+CFLAGS=-O -s
 
-ifeq (Real_make,$(wildcard Real_make))
-include Real_make
-endif
+SRC=env.c ft.c hd.c size.c sync.c compr.c ucomp.c ouch.c lines.c \
+    wc.c line2.c rand.c grab.c
+OBJ=
+EXE=env ft hd size sync compr ucomp ouch lines wc line2 rand grab
 
-ifneq ($(TOPDIR),)
-starter:
-	make -C ../libc/tests fetch_them
-	make all
-endif
+LINK_FILES=cat chgrp chmod chown cp install ln mkdir mkfifo mknod mv rm
 
-not_from_here:
-	@echo Do make tests from the top directory
+all: $(EXE)
 
-clean:
-	rm -f Real_make $(SRC) $(OBJ) $(EXE) $(LINK_FILES)
+install links:
+	for i in $(LINK_FILES) ; do ln -s ft $$i ; done
+
+no_links:
+	rm -f $(LINK_FILES)
+
+clean realclean:
+	rm -f $(OBJ) $(EXE) $(LINK_FILES)
+

@@ -42,6 +42,10 @@ PRIVATE int trelfd;		/* text relocation output file descriptor */
 #endif
 PRIVATE unsigned warncount;	/* count of warnings */
 
+#ifdef MSDOS
+#define off_t	long		/* NOT a typedef */
+#endif
+
 FORWARD void errexit P((char *message));
 FORWARD void flushout P((void));
 #ifdef REL_OUTPUT
@@ -117,14 +121,8 @@ int level;
 
 PUBLIC void executable()
 {
-    mode_t oldmask;
-
     if (errcount == 0)
-    {
-	oldmask = umask(0);
-	umask(oldmask);
-	chmod(outputname, outputperms | (EXEC_PERMS & ~oldmask));
-    }
+	chmod(outputname, outputperms);
 }
 
 PUBLIC void flusherr()
@@ -164,7 +162,11 @@ char *filename;
     {
 	closein();
 	inputname = filename;	/* this relies on filename being static */
+#ifdef O_BINARY
 	if ((infd = open(filename, O_BINARY|O_RDONLY)) < 0)
+#else
+	if ((infd = open(filename, O_RDONLY)) < 0)
+#endif
 	    inputerror("cannot open");
 	inbufptr = inbufend = inbuf;
     }
@@ -173,21 +175,30 @@ char *filename;
 PUBLIC void openout(filename)
 char *filename;
 {
-    struct stat statbuf;
+    mode_t oldmask;
 
     outputname = filename;
+#ifdef O_BINARY
     if ((outfd = open(filename, O_BINARY|O_RDWR|O_CREAT|O_TRUNC, CREAT_PERMS)) == ERR)
+#else
+    if ((outfd = creat(filename, CREAT_PERMS)) == ERR)
+#endif
 	outputerror("cannot open");
-    if (fstat(outfd, &statbuf) != 0) 
-	outputerror("cannot stat");
-    outputperms = statbuf.st_mode;
+
+    oldmask = umask(0); umask(oldmask);
+    outputperms = ((CREAT_PERMS | EXEC_PERMS) & ~oldmask);
     chmod(filename, outputperms & ~EXEC_PERMS);
+
 #ifdef REL_OUTPUT
     drelbufptr = drelbuf;
 #endif
     outbufptr = outbuf;
 #ifdef REL_OUTPUT
-    if ((trelfd = open(filename, O_BINARY|O_WRONLY|O_CREAT|O_TRUNC, CREAT_PERMS)) == ERR)
+#ifdef O_BINARY
+    if ((trelfd = open(filename, O_BINARY|O_WRONLY, CREAT_PERMS)) == ERR)
+#else
+    if ((trelfd = open(filename, O_WRONLY, CREAT_PERMS)) == ERR)
+#endif
 	outputerror("cannot reopen");
     trelbufptr = trelbuf;
 #endif
@@ -556,11 +567,11 @@ PUBLIC void usage()
 #ifdef REL_OUTPUT
     errexit("\
  [-03NMdimrstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
-       [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] infile...");
+       [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] [-H heapsize] infile...");
 #else
     errexit("\
  [-03NMdimstz[-]] [-llib_extension] [-o outfile] [-Ccrtfile]\n\
-       [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] infile...");
+       [-Llibdir] [-Olibfile] [-T textaddr] [-D dataaddr] [-H heapsize] infile...");
 #endif
 }
 

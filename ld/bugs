@@ -12,6 +12,3 @@ TODO:
 
 TODO:
 	do malloc stuff better, as in compiler
-
-2. Error message about "foo.a is not an object file" is confusing - should
-   name archive member.

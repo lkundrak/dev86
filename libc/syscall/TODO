@@ -1,5 +1,3 @@
-It appears that a 386 version of the syscall libs is also wanted ...
-
 SYSV IPC, there's and __ipc syscall and the hardware can manage messages and
 semaphores.
 

@@ -14,8 +14,8 @@ preboot=1	! Include the pre-boot loader ?
 org ORGADDR
 include sysboot.s
 
-org ORGADDR+$7
-.ascii "ELKS MBR Copyright 1996, Robert de Bath"
+org ORGADDR+$3
+.ascii "ELKS MBR     Copyright 1996, Robert de Bath"
 
 ! Start after dos fsstat data, not strictly required.
 org codestart

@@ -33,12 +33,12 @@
 /*	Department of Mathematics and Computer Science
 /*	Den Dolech 2, P.O. Box 513, 5600 MB Eindhoven, The Netherlands
 /* LAST MODIFICATION
-/*	91/11/30 21:10:33
+/*	92/02/15 18:59:56
 /* VERSION/RELEASE
-/*	1.2
+/*	1.4
 /*--*/
 
-static char symbol_sccsid[] = "@(#) symbol.c 1.2 91/11/30 21:10:33";
+static char symbol_sccsid[] = "@(#) symbol.c 1.4 92/02/15 18:59:56";
 
 /* C library */
 
@@ -59,30 +59,6 @@ static struct symbol *sym_tab[SYM_TABSIZE] = {0,};
 
 #define	STREQ(x,y)	(*(x) == *(y) && strcmp((x),(y)) == 0)
 
-/* hash - hash a string; original author: P. J. Weinberger at Bell Labs. */
-
-static unsigned hash(s, size)
-register char *s;
-unsigned size;
-{
-    register unsigned long h = 0;
-    register unsigned long g;
-
-    /*
-     * For a performance comparison with the hash function presented in K&R,
-     * first edition, see the "Dragon" book by Aho, Sethi and Ullman.
-     */
-
-    while (*s) {
-	h = (h << 4) + *s++;
-	if (g = (h & 0xf0000000)) {
-	    h ^= (g >> 24);
-	    h ^= g;
-	}
-    }
-    return (h % size);
-}
-
 /* sym_enter - enter symbol into table */
 
 void    sym_enter(name, type)
@@ -94,7 +70,7 @@ int     type;
 
     if ((s = (struct symbol *) malloc(sizeof(*s))) == 0
 	|| (s->name = malloc(strlen(name) + 1)) == 0)
-	error(1, "out of memory");
+	fatal("out of memory");
     (void) strcpy(s->name, name);
     s->type = type;
 
@@ -135,6 +111,7 @@ struct sym {
 static struct sym syms[] = {
     "if", TOK_CONTROL,
     "else", TOK_CONTROL,
+    "for", TOK_CONTROL,
     "while", TOK_CONTROL,
     "do", TOK_CONTROL,
     "switch", TOK_CONTROL,
@@ -146,6 +123,12 @@ static struct sym syms[] = {
     "goto", TOK_CONTROL,
     "struct", TOK_COMPOSITE,
     "union", TOK_COMPOSITE,
+    "__DATE__", TOK_DATE,
+    "__TIME__", TOK_TIME,
+#if defined(MAP_VOID_STAR) || defined(MAP_VOID)
+    "void", TOK_VOID,
+#endif
+    "asm", TOK_OTHER,
     0,
 };
 

@@ -358,26 +358,32 @@ PUBLIC void scompare()
 	register char *string1;
 	register char *string2;
 
-	for (string2 = string1 = lineptr; *string2 != ')'; ++string2)
+	for (string2 = string1 = lineptr; *string2 != ','; ++string2)
 	    if (*string2 == 0 || *string2 == ')')
 	    {
 		symname = string2;
 		experror(COMEXP);
 		return;
 	    }
+	string2++;
 	while (*string1++ == *string2++)
 	    ;
 	if (string2[-1] == ')')
 	{
 	    if (string1[-1] == ',')
 		lastexp.offset = TRUE;	/* else leave FALSE */
+	    lineptr = string2;
 	}
 	else			/* FALSE, keep reading to verify syntax */
+	{
 	    for (; *string2 != ')'; ++string2)
 		if (*string2 == 0 || *string2 == ',')
 		{
 		    symname = string2;
 		    experror(RPEXP);
 		}
+	    lineptr = ++string2;
+	}
+	getsym();
     }
 }

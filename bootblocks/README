@@ -12,10 +12,35 @@ $ tar cvfV /dev/fd0 ENIAC monitor.out item2 item3
 
 Make it bootable
 
-$ makeboot /dev/fd0
+$ makeboot tar /dev/fd0
 
 Note, the distribution tar file is made using this procedure and can be booted
 if uncompressed and copied onto a raw floppy.
+
+To install the dosfs boot sector
+--------------------------------
+
+$ make makeboot
+$ makeboot dosfs /dev/fd0
+
+or 
+$ make makeboot.com
+C:\> makeboot dos a:
+
+   Place a Linux-8086 executable in the root directory of the floppy.
+
+$ make monitor.out
+$ mount -t msdos /dev/fd0 /mnt
+$ cp monitor.out /mnt/bootfile.sys
+$ umount /dev/fd0
+
+or 
+C:\> copy monitor.out a:\bootfile.sys
+
+   This works on my 3 1/5 floppy and my 5 1/4, and it _should_ work on
+   any double sided drive. (It does work on a 3.5/720k floppy too)
+   For single sided floppies you need to alter msdos.s (the heads var)
+   and remove the check in makeboot.c
 
 To install the minixfs boot sector
 ----------------------------------
@@ -23,7 +48,7 @@ To install the minixfs boot sector
    Make a minix filesystem on the floppy:
 
 $ mkfs -t minix /dev/fd0 1440
-
+or 
 $ mkfs -t minix /dev/fd0 1200
 
    Make the bootblock program.
@@ -41,22 +66,51 @@ $ mount -t minix /dev/fd0 /mnt
 $ cp monitor.out /mnt/linux
 $ umount /dev/fd0
 
-   Or in a tar file:
-
-$ make monitor.out
-$ mount -t minix /dev/fd0 /mnt
-$ tar cvf /mnt/linux monitor.out long list of other files
-$ umount /dev/fd0
-
    This works on my 3 1/4 floppy, and it _should_ work on any double sided
    drive. Be sure to make the filesystem the full size of the floppy.
 
-To boot the floppy in DOSEMU
-----------------------------
 
-$ dos -A
+Booting a Linux-386 bzImage
+---------------------------
 
-   Press ^C to exit DOSEMU from inside monitor.c
+NOTE: This only works with bzImage files NOT zImage files.
 
-Rob.
+Take 1 msdos floppy.
+
+$ makeboot dos /dev/fd0
+$ mount -t msdos /dev/fd0 /mnt
+$ cp monitor.out /mnt/bootfile.sys
+$ umount /dev/fd0
+$ cp /usr/src/linux/arch/i386/boot/bzImage /mnt/fd0/vmlinuz
+$ echo 'root=/dev/ram ramdisk_file=ramdisk.gz mem=80M' > /mnt/fd0/vmlinuz.cmd
+$ cp /archive/ramdisk.gz /mnt/fd0/ramdisk.gz
+$ umount /dev/fd0
+
+The stuff about ramdisk is only if you want an init ramdisk. You can also use:
+
+vmlinuz.app:	Arguments prepended to the Linux command line.
+vmlinuz.cmd:	Arguments appended to the Linux command line.
+vmlinux.dfl:	Arguments appended to the Linux command line.
+
+If there's a *.cmd file you won't be asked anything. If there's a *.dfl or
+neither you'll be asked:
+
+vmlinuz:
+
+where you can type a command line to override the *.dfl file. If there's
+a *.cmd file the *.dfl file is ignored, the *.app file is placed at the
+start of the line whichever you do.
+
+If the file isn't called 'vmlinuz' you can still boot it by typing "=linux"
+at the prompt '>' where 'linux' is the name of the bzImage file.
+
+Escape or ^C will interrupt the boot and drop you to the '>' prompt.
+Esacpe or ^C at the '>' prompt will reboot
+   (This may be a little sensitive :-)
+
+A file called 'help.txt' will be displayed upto the first line that starts
+with a '%', chunks after that (seperated by '%'s) will be displayed when
+the user presses a function key, home, page up or page down. (Note it's
+best if you try to ensure 'help.txt' is completely contained on one track
+so the file is entirely in the track buffer)
 

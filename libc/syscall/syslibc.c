@@ -50,6 +50,19 @@ int * status;
 }
 #endif
 
+/********************** Function wait3 **************************************/
+
+#ifdef L_wait3
+int
+wait3(status, opts, usage)
+int * status;
+int opts;
+struct rusage * usage;
+{
+   return wait4(-1, status, opts, usage);
+}
+#endif
+
 /********************** Function waitpid ************************************/
 
 #ifdef L_waitpid

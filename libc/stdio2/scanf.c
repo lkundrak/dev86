@@ -1,19 +1,27 @@
 #include <stdio.h>
 #include <ctype.h>
-#include <stdarg.h>
 #include <string.h>
+
+#ifdef __STDC__
+#include <stdarg.h>
+#define va_strt      va_start
+#else
+#include <varargs.h>
+#define va_strt(p,i) va_start(p)
+#endif
 
 #ifdef L_scanf
 #ifdef __STDC__
 int scanf(const char * fmt, ...)
 #else
-int scanf(fmt)
+int scanf(fmt, va_alist)
 __const char *fmt;
+va_dcl
 #endif
 {
   va_list ptr;
   int rv;
-  va_start(ptr, fmt);
+  va_strt(ptr, fmt);
   rv = vfscanf(stdin,fmt,ptr);
   va_end(ptr);
   return rv;
@@ -24,9 +32,10 @@ __const char *fmt;
 #ifdef __STDC__
 int sscanf(char * sp, const char * fmt, ...)
 #else
-int sscanf(sp, fmt)
+int sscanf(sp, fmt, va_alist)
 char * sp;
 __const char *fmt;
+va_dcl
 #endif
 {
 static FILE  string[1] =
@@ -37,7 +46,7 @@ static FILE  string[1] =
 
   va_list ptr;
   int rv;
-  va_start(ptr, fmt);
+  va_strt(ptr, fmt);
   string->bufpos = sp;
   rv = vfscanf(string,fmt,ptr);
   va_end(ptr);
@@ -49,14 +58,15 @@ static FILE  string[1] =
 #ifdef __STDC__
 int fscanf(FILE * fp, const char * fmt, ...)
 #else
-int fscanf(fp, fmt)
+int fscanf(fp, fmt, va_alist)
 FILE * fp;
 __const char *fmt;
+va_dcl
 #endif
 {
   va_list ptr;
   int rv;
-  va_start(ptr, fmt);
+  va_strt(ptr, fmt);
   rv = vfscanf(fp,fmt,ptr);
   va_end(ptr);
   return rv;

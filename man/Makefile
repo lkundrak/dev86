@@ -1,9 +1,5 @@
-ifneq ($(TOPDIR),)
-include $(TOPDIR)/Make.defs
-else
-MANDIR=/usr/man
-endif
 
+MANDIR=/usr/man
 MAN1PG=as86.1 bcc.1 elks.1 elksemu.1 ld86.1
 MAN1DIR=$(MANDIR)/man1
 

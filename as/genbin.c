@@ -213,18 +213,22 @@ opcode_pt ch;
 	    else
 #endif
 	    {
+#ifdef MSDOS
+static PT zapptr = 0;
+#endif
 		outfd = binfil;
+#ifdef MSDOS
+		while (binfbuf < (PT)binmbuf && binfbuf >= zapptr+binmin)
+		{
+		    writec(0);
+		    ++binfbuf;
+		    ++zapptr;
+		}
+#endif
 		if( binfbuf != (PT)binmbuf)
 		    if( lseek(binfil, (long)((PT)binmbuf-binfbuf), 1) < 0 )
 			error(BWRAP);
 		binfbuf = binmbuf;
-#if 0
-		while (binfbuf < (PT)binmbuf)
-		{
-		    writec(0x0);/* pad with nulls if file buffer behind */
-		    ++binfbuf;
-		}
-#endif
 		writec(ch);
 		binmbuf = ++binfbuf;
 	    }

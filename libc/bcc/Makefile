@@ -2,10 +2,6 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=..
-include $(TOP)/Make.defs
-CFLAGS=$(CCFLAGS)
-
 # Support for integer arithmetic 
 ifeq ($(LIB_CPU),i86)
 IOBJ=__idiv.o __idivu.o __imod.o __imodu.o __imul.o __isl.o __isr.o __isru.o
@@ -49,26 +45,43 @@ endif
 
 OLDOBJ=$(ROBJ) $(POBJ)
 
-all: $(OBJ)
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-$(IOBJ): $(ISRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ISRC)
+ifneq ($(OBJ),)
 
-$(LOBJ): $(LSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(LSRC)
+all: $(LIBC)
+	@:
 
-$(AOBJ): $(ASRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ASRC)
+$(LIBC): $(LIBC)($(OBJ))
 
-$(ROBJ): $(RSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(RSRC)
+$(LIBC)($(IOBJ)): $(ISRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
-$(POBJ): $(PSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(PSRC)
+$(LIBC)($(LOBJ)): $(LSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
+$(LIBC)($(AOBJ)): $(ASRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(ROBJ)): $(RSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(POBJ)): $(PSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+else
+all:
+	@:
+endif
 
 clean:
 	rm -f *.o libc.a

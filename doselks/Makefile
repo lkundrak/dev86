@@ -1,5 +1,6 @@
 
-CC=bcc
+CC=$(BCC)
+BCC=bcc
 CFLAGS=-Md
 LDFLAGS=-Md -s
 

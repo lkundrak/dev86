@@ -90,7 +90,7 @@ struct reloc {
 #define S_BSS		((unsigned short)-4)
 
 struct nlist {			/* symbol table entry */
-  char n_name[24];		/* symbol name */
+  char n_name[8];		/* symbol name */
   long n_value;			/* value */
   unsigned char	n_sclass;	/* storage class */
   unsigned char	n_numaux;	/* number of auxiliary entries (not used) */

@@ -2,9 +2,6 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=..
-include $(TOP)/Make.defs
-
 ASRC=msdos.c
 AOBJ= dos_start.o __mkargv.o __mkenvp.o dos__fconv.o dos_read.o		\
       dos_write.o dos_open.o dos_close.o dos_unlink.o dos_lseek.o	\
@@ -17,24 +14,32 @@ BOBJ= __seg_regs.o __peek_es.o __poke_es.o __deek_es.o __doke_es.o	\
 
 ifeq ($(LIB_CPU),i86)
 ifeq ($(LIB_OS),DOS)
-OBJ=$(AOBJ) $(BOBJ)
+OBJ=$(AOBJ) $(BOBJ) time.o
 else
 OBJ=$(BOBJ)
 endif
+
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
+
+all: $(LIBC)
+	@:
+
+$(LIBC): $(LIBC)($(OBJ))
+
+$(LIBC)($(AOBJ)): $(ASRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(BOBJ)): $(BSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+else
+all:
+	@:
 endif
-
-all: $(OBJ)
-
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
 
 clean:
 	rm -f *.o libc.a
-
-$(AOBJ): $(ASRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ASRC)
-
-$(BOBJ): $(BSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(BSRC)
 

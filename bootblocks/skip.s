@@ -33,6 +33,7 @@ cont:
 
   mov	di,#5
 hcode:
+  mov	bx,#$7C00		! Pointer to start of BB.
   mov	ax,#$0201		! Read 1 sector
   mov	cx,#$0001		! From sector 1
   mov	dx,#BOOTDISK		! Of the hard drive head zero

@@ -1,0 +1,18 @@
+# Rules to optimize BCC assembler output
+
+# Redo the changes done in rules.start
+
+proc_start
+=
+push	bp
+mov	bp,sp
+push	di
+push	si
+
+proc_end
+=
+pop	si
+pop	di
+pop	bp
+ret
+

@@ -1,6 +1,6 @@
-
-TOP=..
-include $(TOP)/Make.defs
+# Copyright (C) 1995,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
+# This file is part of the Linux-8086 C library and is distributed
+# under the GNU Library General Public License.
 
 ifneq ($(LIB_CPU),i86)
 CFLAGS=$(CCFLAGS) $(LIBDEFS) -DFLOATS
@@ -19,11 +19,27 @@ SOBJ=scanf.o sscanf.o fscanf.o vscanf.o vsscanf.o vfscanf.o
 
 OBJ= $(AOBJ) $(POBJ) $(SOBJ)
 
-all: $(OBJ)
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
+all: $(LIBC)
+	@:
+
+$(LIBC): $(LIBC)($(OBJ))
+
+$(LIBC)($(AOBJ)): $(ASRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(POBJ)): $(PSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(SOBJ)): $(SSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
 transfer:
 	-@rm -f ../include/stdio.h
@@ -32,14 +48,5 @@ transfer:
 clean:
 	rm -f *.o libc.a
 
-$(OBJ): stdio.h
-
-$(AOBJ): $(ASRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ASRC)
-
-$(POBJ): $(PSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(PSRC)
-
-$(SOBJ): $(SSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(SSRC)
+$(LIBC)($(OBJ)): stdio.h
 

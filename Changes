@@ -1,3 +1,89 @@
+For version 0.0.11.
+
+> New, most recent, version of unproto inserted.
+
+> AAARG! First_arg_in_ax breaks stdarg.h! As a consequence printf wasn't
+  working, now why didn't _you_ notice! OK. printf now uses varargs, that
+  is more likely to work and does for printf & scanf.
+
+> Added -Mc for 'caller saves' _without_ first_arg_in_ax. As this uses the
+  normal libc there are likely to be problems with library -> user callbacks.
+
+> Added -Ml for 386 'Large linux' compile.
+
+> Added -Mn for 'normal' elks compiles so the default for dos can be -Md
+
+> Brand new, an optimiser has been added, it's in its early stages yet
+  the 8086 (plain -O) version seems ok. The 386 generator (-O3) is definitly
+  missing some requirements. It's probably not a good idea to use -Ml and -O.
+  (Later: The 8086 can generate bad code it seems, oh well)
+
+> Some changes to the makefile, minix make will now _try_ to compile bcc,
+  it doesn't seem to succeed yet though. Also because of this I've gone
+  back over the headers, should be better on non-ansi or non-posix systems
+  now.  BTW: minix make has no chance with compiling libc so I've added
+  another zip archive containing just the compiled libcs.
+
+> Add the -a-, -j-, -g-, -u- and -w- flags to as86; specifically for -w-
+  to allow easy enabling of assembler warnings while using bcc.
+
+> Bugfix for assembler 'ifc' pseudo op.
+
+> Bugfix for preprocessor and unterminated last line of included file.
+
+> Add minix syscall detector to elksemu, I may make it into an emulator ...
+
+> I've split of the 8086 ELKS and i386 Linux libc stuff into seperate
+  directories. I expect Chad will want to take over the 8086 one for a while.
+  Plus some other files moved around to help new users.
+
+For version 0.0.10.
+
+> Some serious changes to the makefiles, practically a rewrite of them.
+  'make', 'make all', 'make install', 'make clean' and 'make realclean'
+  do the expected things. 'make distribution' should let you create the
+  partial and binary dirtributions from the full source.
+
+> The makefiles now allow multiple libc binaries to co-exist.
+
+> The makefiles now allow a _full_ compile without installing anything.
+
+> In part because of the makefile changes a lot of files in the library
+  have been moved, this is a large portion of the patch size.
+
+> ifdef.c added as part of makefile changes, I'm not quite sure if I like
+  this way of doing things but it's ok for the mo.
+
+> MSDOS, in the output of *.bin files from as86 skipped areas have zeros
+  written not semi-random bytes.
+
+> MSDOS (+ other machines where sizeof(char*) != sizeof(int)) problem with
+  macros resolved, they appear to work correctly now.
+
+> NCC added, this is a different version of bcc with libs and include dirs
+  in the same format as the MSDOS driver.
+  This is used for 'uninstalled' compiling and also if you do:
+      $ ln -s `pwd`/bcc/ncc $HOME/bin/bcc
+  The bcc will use the 'uninstalled' include and library files for when you
+  don't have root access.
+
+> -H option added to ld86, this controls the size of the heap or 'chmem'
+  field in the executable.
+
+> BOOT-Blocks, makeboot can be compiled as a DOS COM, bootblock for msdos
+  filesystem completed, this will allow lilo, monitor.out or any Linux-86
+  standalone executable to be executed from an msdos floppy. Makeboot
+  can also install several other types of bootblock.
+
+> Monitor.out not includes 'bzimage' command, which will boot a Linux-i386
+  bzImage with command line and initrd.
+
+> 'skip.s' bootblock fixed.
+
+> A few more functions now work in 'standalone' mode, malloc() especially.
+
+-Rob
+
 For version 0.0.9.
 
 > The debian stuff has been removed again, Christoph want's to keep contol
@@ -107,7 +193,7 @@ For version 0.0.8.
 > Added for bcc-cc1, code between #asm and #endasm _is_ scanned for #defined
   words and functions, it didn't effect the libc at all. Of course we now
   need some way to put multiple instructions in one #define, I've nominated
-  '^' as the statment terminator, I didn't have many choices :-(
+  '^' as the statement terminator, I didn't have many choices :-(
 
 > Added '-t' for bcc-cc1 when bcc gets -S
 

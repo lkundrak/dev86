@@ -1,4 +1,4 @@
-/* @(#) vstring.h 1.1 91/09/01 23:08:42 */
+/* @(#) vstring.h 1.2 92/01/15 21:53:19 */
 
 struct vstring {
     char   *str;			/* string value */
@@ -7,6 +7,7 @@ struct vstring {
 
 extern struct vstring *vs_alloc();	/* initial allocation */
 extern char *vs_realloc();		/* string extension */
+extern char *vs_strcpy();		/* copy string */
 
 /* macro to add one character to auto-resized string */
 

@@ -1,0 +1,103 @@
+#!/bin/sh
+
+SRC_BCC='bcc.c'
+SRC_CC1='bcc-cc1.c assign.c codefrag.c debug.c declare.c express.c exptree.c
+         floatop.c function.c gencode.c genloads.c glogcode.c hardop.c input.c
+         label.c loadexp.c longop.c output.c preproc.c preserve.c scan.c
+         softop.c state.c table.c type.c'
+SRC_AS=' as.c assemble.c error.c express.c genbin.c genlist.c genobj.c gensym.c
+         keywords.c macro.c mops.c pops.c readsrc.c scan.c table.c typeconv.c'
+SRC_LD=' ld.c dumps.c io.c linksyms.c readobj.c table.c typeconv.c
+         writebin.c writex86.c'
+
+HDR_BCC=''
+HDR_CC1='align.h byteord.h condcode.h const.h gencode.h input.h label.h os.h
+         output.h parse.h proto.h reg.h sc.h scan.h sizes.h table.h type.h
+         types.h'
+HDR_AS=' address.h byteord.h const.h file.h flag.h globvar.h macro.h opcode.h
+         proto.h scan.h source.h syshead.h type.h'
+HDR_LD=' align.h ar.h bindef.h byteord.h config.h const.h globvar.h obj.h
+         syshead.h type.h x86_aout.h'
+
+main() {
+   echo    '@echo off'
+   echo -n 'if not exist later.exe '
+   echo    'bcc -O later.c'
+   echo
+
+   CFLAGS='-O -D__STDC__=1 -DMSDOS'
+   LDFLAGS=''
+   ARCH=
+   build bcc bcc     bin "$HDR_BCC" $SRC_BCC
+
+   CFLAGS='-O -D__STDC__=1 -DMSDOS -DPOSIX_HEADERS_MISSING'
+   LDFLAGS=
+   ARCH=-ml
+   build bcc bcc-cc1 lib "$HDR_CC1" $SRC_CC1
+   build as  as86    bin "$HDR_AS"  $SRC_AS
+   build ld  ld86    lib "$HDR_LD"  $SRC_LD
+   echo ":exit_now"
+}
+
+build() {
+   DIR="$1" ; shift
+   PRG="$1" ; shift
+   BIN="$1" ; shift
+   HDR="$1" ; shift
+   OBJ=
+   BOBJ=
+   COBJ=
+   LOBJ=
+   SRC="$*"
+
+   for i in $SRC
+   do
+      j=`basename $i .c`
+      check_time $DIR/$j.obj $i $HDR
+      echo -n "if errorlevel 1 "
+
+      echo "bcc $ARCH $CFLAGS -c -I$DIR -o$DIR\\$j.obj $DIR\\$i"
+      if [ "$BOBJ" = "" ]
+      then BOBJ="$DIR\\$j.obj"
+      else LOBJ="$LOBJ +$DIR\\$j.obj"
+      fi
+      COBJ="$COBJ $DIR\\$j.obj"
+      OBJ="$OBJ $j.obj"
+
+      echo "if errorlevel 1 goto exit_now"
+   done
+
+   if [ `echo $COBJ | wc -c` -lt 50 ]
+   then
+        check_time $BIN/$PRG.exe $OBJ
+	echo -n "if errorlevel 1 "
+        echo "bcc $ARCH -e$BIN\\$PRG.exe$COBJ $LDFLAGS"
+        echo "if errorlevel 1 goto exit_now"
+   else
+        check_time $BIN/$PRG.exe $OBJ
+	echo "if not errorlevel 1 goto done_$PRG"
+        echo "if exist doslib.lib del doslib.lib"
+        echo $LOBJ | fmt -62 | \
+	sed 's/\(.*\)/tlib doslib.lib \1/'
+        echo "bcc $ARCH -e$BIN\\$PRG.exe $BOBJ doslib.lib $LDFLAGS"
+        echo "if errorlevel 1 goto exit_now"
+        echo "if exist doslib.lib del doslib.lib"
+        echo "if exist doslib.bak del doslib.bak"
+	echo ":done_$PRG"
+   fi
+   echo
+}
+
+check_time() {
+   TARG="$1" ; shift
+
+   for i 
+   do echo "$DIR/$i"
+   done | fmt -70 | \
+   sed -e "s;\(.*\);later $TARG \1@if errorlevel 3 goto exit_now;" \
+       -e '2,$s/^/if not errorlevel 1 /' | \
+   tr '@' '\012'
+}
+
+main "$@" | sed 's/$//' > compile.bat
+

@@ -40,6 +40,9 @@ static void elks_init()
 
 static void elks_take_interrupt(int arg)
 {
+#if 1
+	if(arg==0x20) { minix_syscall(); return; }
+#endif
 	if(arg!=0x80)
 	{
 		dbprintf(("Took an int %d\n", arg));
@@ -48,7 +51,7 @@ static void elks_take_interrupt(int arg)
 		return;
 	}
 	
-	dbprintf(("syscall AX=%X BX=%X CX=%X DX=%x\n",
+	dbprintf(("syscall AX=%x BX=%x CX=%x DX=%x\n",
 		(unsigned short)elks_cpu.regs.eax,
 		(unsigned short)elks_cpu.regs.ebx,
 		(unsigned short)elks_cpu.regs.ecx,

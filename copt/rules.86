@@ -1,0 +1,427 @@
+# Rules for optimizing BCC assembler output
+
+# Rules for loading short variables
+
+# Chad says this one (I think) is broken
+# mov	%0$0[%2],%3
+# =
+# mov	%0[%2],%3
+
+mov	%2,%[ax|bx|cx|dx]1
+mov	%[ax|bx|cx|dx]1,%2
+=
+mov	%2,%1
+
+mov	%[ax|bx|cx|dx]3,%[#|*]0%1
+mov	%2[%4],%[ax|bx|cx|dx]3
+=
+mov	word ptr %2[%4],%0%1
+
+mov	%[ax|bx|cx|dx]3,%[#|*]0%1
+mov	%[ax|bx|cx|dx]2,%[ax|bx|cx|dx]3
+=
+mov	%2,%0%1
+
+mov	al,%[#|*]0%1
+mov	%2,al
+=
+mov	byte ptr %2,%0%1
+
+xor	ax,ax
+mov	bx,%[#|*]0%1
+mov	[%2],ax
+mov	[%2+2],bx
+=
+mov	word ptr [%2],#0
+mov	word ptr [%2+2],%0%1
+
+mov	ax,%[#|*]0%1
+xor	bx,bx
+mov	[%2],ax
+mov	[%2+2],bx
+=
+mov	word ptr [%2],%0%1
+mov	word ptr [%2+2],#0
+
+mov	ax,%[#|*]4%1
+mov	bx,%[#|*]5%3
+mov	[%2],ax
+mov	[%2+2],bx
+=
+mov	word ptr [%2],%4%1
+mov	word ptr [%2+2],%5%3
+
+
+# Rules for incrementing short variables
+
+mov	%[ax|bx]2,%1
+%[inc|dec]3	%[ax|bx]2
+mov	%1,%[ax|bx]2
+=
+%3	word ptr %1
+mov	%2,%1
+
+
+# Rules for manipulating characters
+
+inc	%[si|di]*
+inc	%[si|di]*
+mov	al,-1[si]
+mov	-1[di],al
+=
+cld
+lodsb
+stosb
+
+inc	%[si|di]*
+inc	%[si|di]*
+mov	al,-1[di]
+mov	-1[si],al
+=
+cld
+xchg	si,di
+lodsb
+stosb
+xchg	si,di
+
+inc	si
+mov	al,-1[si]
+=
+cld
+lodsb
+
+inc	di
+mov	-1[di],al
+=
+cld
+stosb
+
+dec	%[si|di]*
+dec	%[si|di]*
+mov	al,1[si]
+mov	1[di],al
+=
+std
+lodsb
+stosb
+
+dec	%[si|di]*
+dec	%[si|di]*
+mov	al,1[di]
+mov	1[si],al
+=
+std
+xchg	si,di
+lodsb
+stosb
+xchg	si,di
+
+dec	si
+mov	al,1[si]
+=
+std
+lodsb
+
+dec	di
+mov	1[di],al
+=
+std
+stosb
+
+
+# Rules for manipulating short values
+
+mov	%[ax|bx]2,%1
+%[add|and|xor|sub|or]4	%[ax|bx]2,%3
+mov	%1,%[ax|bx]2
+=
+mov	%2,%3
+%4	%1,%2
+
+mov	%[ax|bx]2,%1
+%[add|and|xor|or]4	%[ax|bx]2,%3
+mov	%3,%[ax|bx]2
+=
+mov	%2,%1
+%4	%3,%2
+
+mov	%[ax|bx]4,%1
+%[add|and|xor|sub|or]2	%[si|di]3,%[ax|bx]4
+=
+%2	%3,%1
+
+mov	al,%1
+xor	ah,ah
+%[add|and|xor|sub|or]2	ax,%[#|*]0%3
+mov	%1,al
+=
+%2	byte ptr %1,%0%3
+
+
+# Rules for comparing short values
+
+mov	%[ax|bx]3,%1[%4]
+cmp	%[ax|bx]3,%[#|*]0%2
+=
+cmp	word ptr %1[%4],%0%2
+
+mov	al,%1[%4]
+cmp	al,%[#|*]0%2
+=
+cmp	byte ptr %1[%4],%0%2
+
+mov	%[ax|bx]3,%[ax|bx|cx|dx|si|di]2
+cmp	%[ax|bx]3,%1
+=
+cmp	%2,%1
+
+
+# General comparison rules
+
+xor	%1,%1
+mov	%2,%3
+cmp	%2,%1
+=
+mov	%2,%3
+cmp	%2,#0
+
+mov	%1,%[#|*]0%2
+mov	%3,%4
+cmp	%3,%1
+=
+mov	%3,%4
+cmp	%3,%0%2
+
+mov	%1,%2
+cmp	%1,%[#|*]00
+%[jne |je  ]4	%3
+=
+mov	%1,%2
+test	%1,%1
+%4	%3
+
+%[and|xor|or]1	%2,%3
+test	%2,%2
+=
+%1	%2,%3
+
+
+# General incrementation and decrementation rules
+
+inc	%3 ptr %1
+mov	%2,%1
+dec	%2
+=
+mov	%2,%1
+inc	%3 ptr %1
+
+dec	%3 ptr %1
+mov	%2,%1
+inc	%2
+=
+mov	%2,%1
+dec	%3 ptr %1
+
+mov	%1,%2
+inc	%3 ptr %2
+push	%1
+=
+push	%3 ptr %2
+inc	%3 ptr %2
+
+mov	%1,%2
+dec	%3 ptr %2
+push	%1
+=
+push	%3 ptr %2
+dec	%3 ptr %2
+
+
+# Misc. rules
+
+push	word %[#|*]0%1
+inc	%[si|di]2
+inc	%[si|di]2
+mov	%[ax|bx|cx|dx]3,%*[bp]
+mov	%4[%[si|di]2],%[ax|bx|cx|dx]3
+inc	sp
+inc	sp
+=
+mov	word ptr %(%4+2)[%2],%0%1
+inc	%2
+inc	%2
+
+push	%1
+mov	%[ax|bx|cx|dx]3,%2
+%[add|sub|and|xor|or]4	%[ax|bx|cx|dx]3,%*[bp]
+inc	sp
+inc	sp
+=
+mov	%3,%2
+%4	%3,%1
+
+push	%1
+mov	%[ax|bx|cx|dx]3,%2
+%[add|sub|and|xor|or]5	%[ax|bx|cx|dx]3,%6
+%[add|sub|and|xor|or]4	%[ax|dx|cx|dx]3,%*[bp]
+inc	sp
+inc	sp
+=
+mov	%3,%2
+%5	%3,%6
+%4	%3,%1
+
+push	%1
+mov	%[ax|bx|cx|dx]3,%*[bp]
+%[add|sub|and|xor|or]4	%2,%[ax|bx|cx|dx]3
+inc	sp
+inc	sp
+=
+mov	%3,%1
+%4	%2,%3
+
+mov	%1,%[ax|bx|cx|dx]2
+push	%1
+=
+mov	%1,%2
+push	%2
+
+
+# Rules to remove superflous mov instructions
+
+mov	%1,%2
+mov	%1,%2
+=
+mov	%1,%2
+
+mov	%1,%2
+.%3:
+mov	%1,%2
+=
+.%3:
+mov	%1,%2
+
+mov	%1,%2
+mov	%2,%1
+=
+mov	%1,%2
+
+mov	%1,%[ax|bx|cx|dx|eax|ebx|ecx|edx]2
+mov	%[ax|bx|cx|dx|eax|ebx|ecx|edx]3,%1
+=
+mov	%1,%2
+mov	%3,%2
+
+mov	%1,%1
+=
+!mov	%1,%1
+
+# Sometimes the compiler puts a jump right after a ret or another jump
+# (in if-else-if constructions). Eliminate the second unnecessary jump.
+# Also it puts a jump to the next instruction in extensive if-else
+# constructions. That jump can also be removed.
+
+jmp	.%1
+jmp	.%2
+=
+jmp	%1
+
+ret
+jmp	%2
+=
+ret
+
+jmp .%1
+.%1:
+=
+.%1
+
+jmp .%1
+.%2:
+.%1:
+=
+.%2:
+.%1:
+
+jmp .%1
+.%3:
+.%2:
+.%1:
+=
+.%3:
+.%2:
+.%1:
+
+
+# When using register variables the compiler initializes them when
+# they are found in the source code, and sets up the stack frame for
+# other local variables lateron. Move initialization of register variables
+# behind the add-sp instruction to make further optimization easier.
+
+proc_start
+mov	%[si|di]3,%1
+add	sp,*%2
+=
+proc_start
+add	sp,*%2
+mov	%3,%1
+
+proc_start
+mov	%[si|di]3,%1
+dec	sp
+dec	sp
+=
+proc_start
+dec	sp
+dec	sp
+mov	%3,%1
+
+add	sp,*%1
+add	sp,*%2
+=
+add	sp,*%1+%2
+
+dec	sp
+dec	sp
+add	sp,*%1
+=
+add	sp,*%1-2
+
+add	sp,*%1
+dec	sp
+dec	sp
+=
+add	sp,*%1-2
+
+inc	sp
+inc	sp
+%1	%2
+inc	sp
+inc	sp
+=
+%1	%2
+add	sp,*4
+
+inc	sp
+inc	sp
+%1	%2
+add	sp,*%3
+=
+%1	%2
+add	sp,*%3+2
+
+add	sp,*%3
+%1	%2
+inc	sp
+inc	sp
+=
+%1	%2
+add	sp,*%3+2
+
+add	sp,*%3
+%1	%2
+add	sp,*%4
+=
+%1	%2
+add	sp,*%3+%4
+

@@ -23,7 +23,7 @@ export no_op
 no_op:			! Generic no operation call
   ret
 
-  .ascii __LIBC__	! Version id.
+  .ascii __LIBC_VER__	! Version id.
 
   loc	1		! Segment 1 is where the pointers to the autostart
 			! functions are stored.

@@ -34,9 +34,9 @@ struct stat {
 	unsigned long	__unused4;
 	unsigned long	__unused5;
 };
+#endif
 
-#else
-
+#ifdef __AS386_16__
 struct stat
 {
 	dev_t st_dev;

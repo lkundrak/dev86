@@ -1,0 +1,19 @@
+# Rules to optimize BCC assembler output
+
+# The following rules protect the procedure prolog and epilogue from
+# getting optimized away in later steps
+
+push	bp
+mov	bp,sp
+push	di
+push	si
+=
+proc_start
+
+pop	si
+pop	di
+pop	bp
+ret
+=
+proc_end
+

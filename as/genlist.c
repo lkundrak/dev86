@@ -138,7 +138,7 @@ error_pt errnum;
     register struct error_s *errptrlow;
     unsigned char position;
 
-    if ((unsigned) errnum < MINWARN || warn.current)
+    if ((unsigned) errnum < MINWARN || as_warn.current)
     {
 	if (errcount >= MAXERR)
 	    erroverflow = TRUE;

@@ -1,0 +1,25 @@
+
+From gero@gkminix.han.de Thu Jan 30 19:54:34 1997
+Date: Wed, 29 Jan 1997 23:46:50 +0100 (MET)
+From: Gero Kuhlmann <gero@gkminix.han.de>
+Subject: Re: 8086 Development environment
+
+Hello again,
+
+And one hint for using the optimizer I sent you in an earlier mail: the
+order of the rules files matters! You should try:
+
+copt -c! -h"use16 386" rules.start rules.386 rules.86 rules.end
+
+If you don't want to optimize for 386 long integer operations, you
+can leave out the -h option and the rules.386 file. The rules.net file
+is only necessary for my bootrom code, and does some optimizations I
+can't do with preprocessor commands.
+
+gero.
+
+>-- 
+Life sucks, but it's better than the alternative.
+  - Peter da Silva
+--
+Gero Kuhlmann, Hannover     0511/6497525 (Voice)        gero@gkminix.han.de

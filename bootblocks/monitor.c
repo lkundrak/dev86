@@ -1,13 +1,17 @@
 
-#define VERSION "0.0.0-ALPHA"
-#define NOT_ANSICOLOUR
-#define VT52COLOUR
+#define VERSION "0.1.1-ALPHA"
 
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
-#include <i86_funcs.h>
 #include <dos.h>
+#include "i86_funcs.h"
+#include "readfs.h"
+
+#ifdef __STANDALONE__
+#define VT52COLOUR
+#define NOT_ANSICOLOUR
+#endif
 
 char command_buf[256];
 
@@ -37,41 +41,29 @@ static char minibuf[2] = " ";
    char *cmd, *args, *ptr;
    struct t_cmd_list * cptr;
 
+#ifdef __STANDALONE__
    printf("\n\n");
-#ifdef ANSICOLOUR
-   printf("\033[H\033[0;44;37m\033[2J");
-#endif
-#ifdef VT52COLOUR
-   printf("\033E\033Rg\033Sa\033J");
-#endif
-   printf("Linux x86 boot monitor Version %s\n", VERSION);
-
-#ifndef __STANDALONE__
+#else
    if( argc > 1 && strcmp(argv[1], "-t") == 0 ) x86_test=0; else x86_test=1;
 #endif
 
    init_prog();
+
+#if 0
 #ifdef __STANDALONE__
-   {
-      extern union REGS __argr;
-      printf("REGS: AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x\n",
-             __argr.x.ax, __argr.x.bx, __argr.x.cx, __argr.x.dx,
-             __argr.x.si, __argr.x.di);
-   }
+   reg_line();
 #endif
 #ifdef VT52COLOUR
-   printf("Colours: ");
-   printf("\033S \033R_UNL ");
-   printf("\033S \033R*BLK ");
-   printf("\033S \033R+BLD ");
-   printf("\033S \033R!REV");
-   printf("\033Sa\033Rg  ");
-   printf("\033R@@\033Raa\033Rbb\033Rcc\033Rdd\033Ree\033Rff\033Rgg");
-   printf("\033Rhh\033Rii\033Rjj\033Rkk\033Rll\033Rmm\033Rnn\033Roo");
-   printf("\033Sa\033Rg\n");
+   colour_line();
+#endif
 #endif
 
-   printf("Type ^C to exit\n");
+   display_help(0);
+
+   if(1) /* ( x86 > 2 && !x86_emu )	/* Check some basics */
+      cmd_bzimage((void*)0);
+   else
+      printf("System appears incompatible use '=' <return> to try anyway\n");
 
    for (;;)
    {
@@ -88,7 +80,7 @@ static char minibuf[2] = " ";
       command_buf[ch] = '\0';
       if( ch == 1 && command_buf[0] != '\n' )
       {
-         sprintf(command_buf, "func 0x%02x\n", command_buf[0]&0xFF);
+         sprintf(command_buf, "?$%02x\n", command_buf[0]&0xFF);
 	 printf("%s", command_buf);
       }
       if( command_buf[ch-1] == '\n' ) command_buf[ch-1] = 0;
@@ -127,6 +119,7 @@ static char minibuf[2] = " ";
 #ifdef VT52COLOUR
       printf("\033S \033Sa\033Rg");
 #endif
+      fflush(stdout);
       if( cptr->command )
 	 (void) (*cptr->func)(args);
       else
@@ -138,6 +131,14 @@ static char minibuf[2] = " ";
 
 void init_prog()
 {
+#ifdef ANSICOLOUR
+   printf("\033[H\033[0;44;37m\033[2J");
+#endif
+#ifdef VT52COLOUR
+   printf("\033E\033Rg\033Sa\033J");
+#endif
+   printf("Linux x86 boot monitor Version %s\n", VERSION);
+
    cpu_check();
    mem_check();
 
@@ -162,16 +163,41 @@ void init_prog()
    printf("There is %dk of boot memory", boot_mem_top/64);
    if( main_mem_top )
    {
-      printf(" %ld.%ldM of main memory",
+      printf(" %ld.%ldM %sof main memory",
 	      main_mem_top/1024,
-	      (10*main_mem_top)/1024%10
+	      (10*main_mem_top)/1024%10,
+              main_mem_top >= 0xFC00L ?"(perhaps more) ":""
 	      );
    }
    printf("\n");
-
-   if( main_mem_top >= 0xFC00L )
-      printf("There may be more main memory available but the BIOS don't say\n");
 }
+
+#ifdef __STANDALONE__
+reg_line()
+{
+   extern union REGS __argr;
+   printf("REGS: AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x\n",
+	  __argr.x.ax, __argr.x.bx, __argr.x.cx, __argr.x.dx,
+	  __argr.x.si, __argr.x.di);
+}
+#endif
+
+#ifdef VT52COLOUR
+colour_line()
+{
+   printf("Colours: \033S  ");
+   printf("\033R_UNL\033S  ");
+   printf("\033R*BLK\033S  ");
+   printf("\033R+BLD\033S  ");
+   printf("\033R!REV\033S  ");
+   printf("\033Sa\033Rg ");
+   printf("\033R@@\033Raa\033Rbb\033Rcc\033Rdd\033Ree\033Rff\033Rgg");
+   printf("\033Rhh\033Rii\033Rjj\033Rkk\033Rll\033Rmm\033Rnn\033Roo");
+   printf("\033Sa\033Rg\n");
+
+   printf("\033S \033Sa\033Rg");
+}
+#endif
 
 /****************************************************************************/
 
@@ -320,29 +346,84 @@ char * ptr;
    printf("to 0x%04x\n", __get_cs());
 }
 
+int cmd_dir(ptr)
+char * ptr;
+{
+   open_file(".");
+   return 0;
+}
+
+int cmd_type(ptr)
+char * ptr;
+{
+   char * fname;
+   char buffer[1024];
+   long len;
+
+   while(*ptr == ' ') ptr++;
+   if( (fname=ptr) == 0 ) return 0;
+   while(*ptr & *ptr != ' ') ptr++;
+
+   if( open_file(fname) >= 0 ) for(len=file_length(); len>0; len-=1024)
+   {
+      if( read_block(buffer) < 0 ) break;
+      if( len > 1024 )
+         write(1, buffer, 1024);
+      else
+         write(1, buffer, len);
+   }
+   else
+      printf("Cannout open file '%s'\n", fname);
+   close_file();
+   return 0;
+}
+
+/****************************************************************************/
+
+/* Others */
+extern int cmd_bzimage();
+extern int cmd_help();
+
 /****************************************************************************/
 
 struct t_cmd_list cmd_list[] = 
 {
    {"exit",   cmd_quit}, {"quit",  cmd_quit}, {"q",  cmd_quit},
-   {"memdump",cmd_memdump}, {"m",  cmd_memdump},
+   {"#",      cmd_nop},
+   {"help",   cmd_help},    /* Display from help.txt */
+   {"?",      cmd_help},    /* Display from help.txt */
+   {"bzimage",cmd_bzimage}, /* Load and run 386 bzimage file */
+   {"=",      cmd_bzimage}, /* Load and run 386 bzimage file */
+   {"dir",    cmd_dir},     /* Display directory */
+   {"type",   cmd_type},    /* Cat/Type a file to the screen */
+   {"cat",    cmd_type},    /* Cat/Type a file to the screen */
+
+   /* Debugger/monitor commands */
+   {"memdump",cmd_memdump}, {"mem",cmd_memdump}, {"m",  cmd_memdump},
                             /* Display bytes */
    {"seg",    cmd_seg},     /* Set default segment */
    {"rel",    cmd_rel},	    /* Relocate self */
    {"base",   cmd_set_base},
    {"n",      cmd_set_base},
-   {"#",      cmd_nop},
+
+#ifdef VT52COLOUR
+   {"colour", colour_line},
+#endif
+   {"init",   init_prog},
+#ifdef __STANDALONE__
+   {"reg",    reg_line},
+   {"r",      reg_line},
+#endif
+
 /*
    {"edit",   cmd_edit},    Alter memory
    {"move",   cmd_move},    Move memory contents
 
-   {"dir",    cmd_dir},     Display dir of inode
    {"load",   cmd_load},    Load file of inode
    {"stat",   cmd_stat},    Stat info of inode
 
-   {"zimage", cmd_zimage},  Load and run 386 zimage from inode or tar file
-   {"bimage", cmd_bimage},  Load and run 386 bzimage from inode or tar file
-   {"image",  cmd_image},   Load and run 8086 image from inode or tar file
+   {"zimage", cmd_zimage},  Load and run 386 zimage file
+   {"image",  cmd_image},   Load and run 8086 image file
 
    {"read",   cmd_read},    Read sector
    {"write",  cmd_write},   Write sector

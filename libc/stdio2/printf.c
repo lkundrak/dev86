@@ -19,7 +19,13 @@
 
 #include <sys/types.h>
 #include <fcntl.h>
+#ifdef __STDC__
 #include <stdarg.h>
+#define va_strt      va_start
+#else
+#include <varargs.h>
+#define va_strt(p,i) va_start(p)
+#endif
 
 #include "stdio.h"
 
@@ -28,13 +34,14 @@
 #ifdef __STDC__
 int printf(const char * fmt, ...)
 #else
-int printf(fmt)
+int printf(fmt, va_alist)
 __const char *fmt;
+va_dcl
 #endif
 {
   va_list ptr;
   int rv;
-  va_start(ptr, fmt);
+  va_strt(ptr, fmt);
   rv = vfprintf(stdout,fmt,ptr);
   va_end(ptr);
   return rv;
@@ -45,9 +52,10 @@ __const char *fmt;
 #ifdef __STDC__
 int sprintf(char * sp, const char * fmt, ...)
 #else
-int sprintf(sp, fmt)
+int sprintf(sp, fmt, va_alist)
 char * sp;
 __const char *fmt;
+va_dcl
 #endif
 {
 static FILE  string[1] =
@@ -58,7 +66,7 @@ static FILE  string[1] =
 
   va_list ptr;
   int rv;
-  va_start(ptr, fmt);
+  va_strt(ptr, fmt);
   string->bufpos = sp;
   rv = vfprintf(string,fmt,ptr);
   va_end(ptr);
@@ -71,14 +79,15 @@ static FILE  string[1] =
 #ifdef __STDC__
 int fprintf(FILE * fp, const char * fmt, ...)
 #else
-int fprintf(fp, fmt)
+int fprintf(fp, fmt, va_alist)
 FILE * fp;
 __const char *fmt;
+va_dcl
 #endif
 {
   va_list ptr;
   int rv;
-  va_start(ptr, fmt);
+  va_strt(ptr, fmt);
   rv = vfprintf(fp,fmt,ptr);
   va_end(ptr);
   return rv;

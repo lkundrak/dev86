@@ -6,15 +6,14 @@
 #endif
 
 #ifndef POSIX_HEADERS_MISSING
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <fcntl.h>
 #endif
 
 #ifdef MSDOS
 #undef POSIX_HEADERS_MISSING
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -25,10 +24,6 @@
 #define mode_t		unsigned short
 #define SEEK_SET	0
 #define STDOUT_FILENO	0
-#endif
-
-#ifndef O_BINARY
-#define O_BINARY	0
 #endif
 
 /******************************************************************************/
@@ -54,8 +49,6 @@ void *memset P((void *s, int c, unsigned n));
 #endif
 
 #ifdef POSIX_HEADERS_MISSING
-#include <sys/types.h>
-#include <sys/stat.h>
 
 #define R_OK	0
 int access P((const char *path, int amode));
@@ -76,3 +69,12 @@ mode_t umask P((int oldmask));
 int write P((int fd, const void *buf, unsigned nbytes));
 #endif
 
+#ifndef O_RDONLY
+#define O_RDONLY	0
+#endif
+#ifndef O_WRONLY
+#define O_WRONLY	1
+#endif
+#ifndef O_RDWR
+#define O_RDWR		2
+#endif

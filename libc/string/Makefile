@@ -2,9 +2,6 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=..
-include $(TOP)/Make.defs
-
 SSRC=string.c
 SOBJ=strlen.o strcat.o strcpy.o strcmp.o strncat.o strncpy.o strncmp.o	\
     strchr.o strrchr.o strdup.o memcpy.o memccpy.o memchr.o memset.o	\
@@ -13,19 +10,21 @@ SOBJ=strlen.o strcat.o strcpy.o strcmp.o strncat.o strncpy.o strncmp.o	\
 OBJ=$(SOBJ) strpbrk.o strsep.o strstr.o strtok.o strcspn.o	\
     strspn.o strcasecmp.o strncasecmp.o
 
-all: $(OBJ)
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
+all: $(LIBC)
+	@:
+
+$(LIBC): $(LIBC)($(OBJ))
+
+$(LIBC)($(SOBJ)): $(SSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
 transfer:
 	-@rm -f ../include/string.h
 	cp -p string.h ../include/.
 
 clean:
-	rm -f *.o libc.a
-
-$(SOBJ): $(SSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(SSRC)
-
+	rm -f *.o

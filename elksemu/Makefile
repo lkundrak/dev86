@@ -4,7 +4,7 @@
 
 ifeq ($(CC),bcc)
 # Use BCC to make a tiny static a.out version.
-CFLAGS=-O -3 -N -ansi
+CFLAGS=-O -3 -N -ansi -s
 else
 # For gcc with the default compiler
 CFLAGS=-O2 -fno-strength-reduce -Wall -idirafter . $(DEFS)
@@ -13,7 +13,7 @@ endif
 # For gcc making a.out with a basically ELF compiler
 # CFLAGS=-O2 -fno-strength-reduce -b i486-linuxaout -N -s -static
 
-OBJ=elks.o elks_sys.o elks_signal.o
+OBJ=elks.o elks_sys.o elks_signal.o minix.o
 
 elksemu:	$(OBJ)
 		$(CC) $(CFLAGS) -o elksemu $(OBJ)
@@ -32,7 +32,7 @@ install: elksemu
 	install -d $(DIST)/lib
 	install -s -o root -g root -m 4555 elksemu $(DIST)/lib/elksemu
 
-clean:
+clean realclean:
 	rm -f $(OBJ) elksemu call_tab.v defn_tab.v
 
 module: binfmt_elks.o

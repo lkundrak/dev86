@@ -2,9 +2,6 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=..
-include $(TOP)/Make.defs
-
 MSRC=aliases.c
 MOBJ=abs.o raise.o bcopy.o bzero.o bcmp.o index.o rindex.o remove.o creat.o
 
@@ -29,31 +26,37 @@ ifneq ($(LIB_CPU),i86)
 OBJ+=strtod.o
 endif
 
-all: $(OBJ)
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
+all: $(LIBC)
+	@:
+
+$(LIBC): $(LIBC)($(OBJ))
+
+$(LIBC)($(MOBJ)): $(MSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(EOBJ)): $(ESRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
 clean:
 	rm -f *.o libc.a
 
-$(MOBJ): $(MSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(MSRC)
+$(LIBC)(strtol.o): strtol.c
+	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
-$(EOBJ): $(ESRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ESRC)
+$(LIBC)(strtod.o): strtod.c
+	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
-crypt.o: crypt.c
-ifeq ($(LIB_CPU),g386)
-	$(CC) $(CFLAGS) $< -c -o $@ $(WALL)
-else
-	$(CC) $(CFLAGS) $< -c -o $@ -ansi
-endif
-	
-strto%.o: strto%.c
-ifeq ($(LIB_CPU),g386)
-	$(CC) $(CFLAGS) $< -c -o $@ $(WALL)
-else
-	$(CC) $(CFLAGS) $< -c -o $@ -ansi
-endif
+$(LIBC)(crypt.o): crypt.c
+	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o

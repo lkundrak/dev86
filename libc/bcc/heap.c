@@ -49,7 +49,7 @@ has_change:
   jb	Enomem
 
 sbrk_ok:
-#ifndef __MSDOS__
+#if !defined(__MSDOS__) && !defined(__STANDALONE__)
   push	ax 		! MSDOS `kernel` doesn`t care
   call	___brk		! Tell the kernel
   test	ax,ax
@@ -96,7 +96,7 @@ Enomem:
   mov	ax,#-1
   ret
 brk_ok:
-#ifndef __MSDOS__
+#if !defined(__MSDOS__) && !defined(__STANDALONE__)
   push	ax
   call	___brk		! Tell the kernel
   test	ax,ax

@@ -1,0 +1,226 @@
+#ifdef COMMENT
+##############################################################################
+#
+# This Makefile has been completely re-vamped. Two reasons, first to allow
+# for a full compile before installation, hence allowing us to make a binary
+# distribution without installing and second to allow proper dependancy trees
+# for the different versions of the library.
+#
+# As an aside, it would be useful if I could avoid GNU-make constucts.
+#
+##############################################################################
+#endif
+
+# Defaults, generic C
+ARFLAGS =r
+CFLAGS	=-O
+LDFLAGS	=-s
+MAKEARG	=CC='$(CC)' CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' PREFIX=$(PREFIX) \
+         LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)'
+MAKEC=$(MAKE) -C
+MAKEX=
+
+#ifdef __GNUC__
+WALL  =-Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
+       -Wcast-qual -Wcast-align -Wconversion -Waggregate-return \
+       -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls \
+       -Wnested-externs -Winline 
+
+# unproto is yukky, I've included '-w' in the local makefile.
+WALL  =-Wstrict-prototypes
+
+CC	=gcc $(GCCFLAG)
+CFLAGS	=-Wall $(WALL) -O2 -fno-strength-reduce
+LDFLAGS	=-s
+#endif
+
+#ifdef __minix
+# Minix make doesn't understand -C, cc runs out of memory with the headers.
+MAKEC=ash makec
+MAKEX=makec
+CFLAGS=-O -m -w -DPOSIX_HEADERS_MISSING
+#endif
+
+#ifdef __BCC__
+CC	=bcc
+#ifdef __AS386_32__
+CFLAGS	=-3
+LDFLAGS	=-3 -s -N
+#else
+CFLAGS	=-0
+LDFLAGS	=-0 -s -H10000
+#endif
+#endif
+
+# Alter these if for some reason you don't want this done as root.
+INDAT=-o root -g root -m 644
+INEXE=-o root -g root -m 755
+
+all: check_config bcc unproto copt as86 ld86 library alt-libs elksemu 
+
+install: check_config install-bcc install-man install-lib install-lib2 install-emu
+
+install-all: install install-other
+
+##############################################################################
+
+LIBARGS= CC=ncc CCFLAGS= ARFLAGS=$(ARFLAGS)
+
+# Season to taste
+PREFIX=	 /usr/bcc
+BINDIR=	 /usr/bin
+LIBDIR=  $(PREFIX)/lib/bcc
+
+DISTBIN= $(DIST)$(BINDIR)
+DISTLIB= $(DIST)$(LIBDIR)
+DISTPRE= $(DIST)$(PREFIX)
+
+# Others to install
+OTHERS=  tests dis88 doselks bootblocks
+
+CLEANLIST= bcc as ld unproto copt libc elksemu libbsd $(OTHERS)
+
+##############################################################################
+
+bindir: $(MAKEX)
+	@mkdir -p bin lib lib/i386
+	@rm -f include
+	@ln -s libc/include include 2>/dev/null || true
+
+phony:
+
+bcc: bindir
+	$(MAKEC) bcc $(MAKEARG) bcc ncc bcc-cc1
+	cp -p bcc/bcc bin/bcc
+	cp -p bcc/ncc bin/ncc
+	cp -p bcc/bcc-cc1 lib/bcc-cc1
+
+unproto:  bindir
+	$(MAKEC) unproto $(MAKEARG) unproto
+	cp -p unproto/unproto lib/unproto
+
+copt:  bindir
+	$(MAKEC) copt $(MAKEARG) copt
+	cp -p copt/copt lib/copt
+	cp -p copt/rules.* lib/.
+
+as86: bindir
+	$(MAKEC) as $(MAKEARG) all
+	cp -p as/as86 lib/as86
+	cp -p as/as86_encap bin/as86_encap
+
+ld86: bindir
+	$(MAKEC) ld $(MAKEARG) ld86
+	cp -p ld/ld86 lib/ld86
+
+elksemu: bindir
+	$(MAKEC) elksemu $(MAKEARG) elksemu
+	cp -p elksemu/elksemu bin/elksemu
+
+install-bcc: bcc unproto copt as86 ld86
+	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
+	install $(INEXE) bin/bcc 	$(DISTBIN)/bcc
+	install $(INEXE) lib/bcc-cc1 	$(DISTLIB)/bcc-cc1
+	install $(INEXE) lib/unproto 	$(DISTLIB)/unproto
+	install $(INEXE) lib/as86 	$(DISTLIB)/as86
+	install $(INEXE) bin/as86_encap	$(DISTBIN)/as86_encap
+	install $(INEXE) lib/ld86 	$(DISTLIB)/ld86
+	install $(INEXE) lib/copt 	$(DISTLIB)/copt
+	install $(INDAT) lib/rules.* 	$(DISTLIB)/i86
+
+install-emu: elksemu
+	install -d $(DIST)/lib
+	install $(INEXE) bin/elksemu 	$(DIST)/lib/elksemu
+
+install-man:
+	-$(MAKEC) man MANDIR=$(DIST)/usr/man install
+
+install-lib: lib/lib0-done
+	install -d $(DISTLIB)/i86
+	$(MAKEC) libc $(LIBARGS) BCCHOME=$(DISTPRE) install_incl
+	install $(INDAT) lib/crt0.o 	$(DISTLIB)/i86/crt0.o
+	install $(INDAT) lib/libc.a 	$(DISTLIB)/i86/libc.a
+	install -d $(DIST)/usr/lib
+	install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
+
+install-lib2: lib/lib1-done
+	install -d $(DISTLIB)/i86
+	install $(INDAT) lib/libbsd.a	$(DISTLIB)/i86/libbsd.a
+	install $(INDAT) lib/libc_f.a	$(DISTLIB)/i86/libc_f.a
+	install $(INDAT) lib/libc_s.a	$(DISTLIB)/i86/libc_s.a
+	install $(INDAT) lib/libdos.a	$(DISTLIB)/i86/libdos.a
+
+	install -d $(DISTLIB)/i386
+	install $(INDAT) lib/i386/crt0.o 	$(DISTLIB)/i386/crt0.o
+	install $(INDAT) lib/i386/libc.a 	$(DISTLIB)/i386/libc.a
+
+lib/lib0-done:
+	$(MAKE) -f make.fil library
+
+lib/lib1-done:
+	$(MAKE) -f make.fil alt-libs
+
+library: bindir
+	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-ELKS
+	cp -p libc/crt0.o libc/libc.a lib/.
+	@touch lib/lib0-done
+
+alt-libs: lib-bsd lib-fast lib-stand lib-dos lib-386 
+	@touch lib/lib1-done
+
+lib-bsd: bindir
+	$(MAKEC) libbsd $(LIBARGS)
+	cp -p libbsd/libbsd.a lib/libbsd.a
+
+lib-fast: bindir
+	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-FAST
+	cp -p libc/libc_f.a lib/libc_f.a
+
+lib-stand: bindir
+	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-BIOS
+	cp -p libc/libc_s.a lib/libc_s.a
+
+lib-dos: bindir
+	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-DOS
+	cp -p libc/libdos.a lib/libdos.a
+
+lib-386: bindir
+	$(MAKEC) libc $(LIBARGS) PLATFORM=i386-BCC
+	cp -p libc/crt3.o lib/i386/crt0.o
+	cp -p libc/libc3.a lib/i386/libc.a
+
+##############################################################################
+
+check_config:
+	$(MAKEC) libc .config.dir
+
+config:
+	$(MAKEC) libc config
+
+makec:
+	echo 'cd $$1 ; shift ; make "$$@"' > makec
+	chmod +x makec
+
+##############################################################################
+
+install-other: phony
+	@for i in $(OTHERS) ; do \
+		$(MAKEC) $$i BCC=ncc DIST=$(DIST) install || exit 1 ; \
+	done
+
+other: phony
+	@for i in $(OTHERS) ; do \
+		$(MAKEC) $$i BCC=ncc || exit 1 ; done
+
+tests: phony
+	$(MAKEC) tests BCC=ncc
+
+clean:
+	-@for i in $(CLEANLIST) ; do $(MAKEC) $$i $@ ; true ; done
+
+realclean:
+	-@for i in $(CLEANLIST) ; do $(MAKEC) $$i $@ ; true ; done
+	rm -rf bin lib
+	rm -f include
+
+##############################################################################

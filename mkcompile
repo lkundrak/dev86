@@ -27,7 +27,7 @@ main() {
 
    CFLAGS='-nologo -O'
    LDFLAGS='%LIB%\setargv.obj -link /NOE'
-   ARCH=-Ml
+   ARCH=-Ms
    build bcc bcc     bin "$HDR_BCC" $SRC_BCC
 
    CFLAGS='-nologo -O -DPOSIX_HEADERS_MISSING'

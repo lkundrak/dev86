@@ -2,67 +2,63 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=..
-include $(TOP)/Make.defs
-
 LSRC=syslibc.c
-LOBJ=time.o abort.o wait.o waitpid.o killpg.o setpgrp.o sleep.o \
+LOBJ=time.o abort.o wait.o waitpid.o wait3.o killpg.o setpgrp.o sleep.o \
      usleep.o
-
-LSRC3=syslib3.c
-LOBJ3=__cstart3.o
 
 LSRC0=syslib0.c
 LOBJ0=__cstartup.o lseek.o getpid.o getppid.o getuid.o geteuid.o getgid.o \
       getegid.o dup2.o dup.o getpgrp.o times.o
 
 ESRC=exec.c
-E2OBJ=execl.o execv.o execle.o execlp.o execvp.o
-EOBJ=execve.o $(E2OBJ)
+EOBJ=execve.o execl.o execv.o execle.o execlp.o execvp.o
 
 DSRC=dirent.c
 DOBJ=opendir.o closedir.o readdir.o
 
 ifeq ($(LIB_CPU)-$(LIB_OS),i86-ELKS)
-SYSCALLS=sh mksyscall
 OBJ=$(LOBJ0) $(LOBJ) $(DOBJ) $(EOBJ) signal.o setjmp.o
-DEP=mksyscall syscall.dat
-endif
-
-ifeq ($(LIB_CPU)-$(LIB_OS),i386-ELKS)
-SYSCALLS=sh mksys386
-OBJ=setjmp.o $(LOBJ3) $(LOBJ) $(E2OBJ) $(DOBJ)
-DEP=mksys386 sys386.dat
+SYSCALLS=call_i86
 endif
 
 ifeq ($(SYSCALLS),)
-SYSCALLS=true
 OBJ=setjmp.o
-DEP=
 endif
 
-all: $(DEP) $(OBJ)
-	$(SYSCALLS)
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-libc.a:	$(DEP) $(OBJ)
-	$(SYSCALLS) libc.a
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
+all: $(SYSCALLS) $(LIBC)
+	@:
+
+call_i86: syscall.mak
+	$(MAKE) -f syscall.mak LIBC="$(LIBC)" CFLAGS="$(CFLAGS)"
+
+syscall.mak: mksyscall syscall.dat
+	sh mksyscall
+
+$(LIBC): $(LIBC)($(OBJ))
+
+$(LIBC)($(LOBJ)): $(LSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(DOBJ)): $(DSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(EOBJ)): $(ESRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
+
+$(LIBC)($(LOBJ0)): $(LSRC0)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 
 clean:
-	rm -f *.o libc.a syscall.c syscall.mak call_tab.v defn_tab.v
-
-$(LOBJ): $(LSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(LSRC)
-
-$(DOBJ): $(DSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(DSRC)
-
-$(EOBJ): $(ESRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ESRC)
-
-$(LOBJ0): $(LSRC0)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(LSRC0)
-
-$(LOBJ3): $(LSRC3)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(LSRC3)
+	rm -f *.o libc.a
+	rm -f syscall.c syscall.mak
+	rm -f call_tab.v defn_tab.v

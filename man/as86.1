@@ -1,4 +1,4 @@
-.TH as86 1 "Oct, 1996"
+.TH as86 1 "Jan, 1997"
 .BY Bruce Evans
 .nh
 .SH NAME
@@ -124,6 +124,35 @@ take undefined symbols as imported-with-unspecified segment
 don't print warnings
 .P
 .SH AS86 SOURCE
+Special characters
+.TP
+.B *
+Address of the start of the current line.
+.TP
+.B ; !
+Either of these marks the start of a comment. In addition any 'unexpected'
+character at the start of a line is assumed to be a comment.
+.TP
+.B #
+Prefix for immediate operands.
+.TP
+.B $
+Prefix for hexadecimal numbers, the 'C' syntax, eg\ 0x1234, is also accepted.
+.TP
+.B %
+Prefix for binary numbers.
+.TP
+.B [ ]
+Specifies an indirect operand.
+.br
+Offsets from registers are represented by adding the register to the
+expression inside the
+.B [ ] 
+brackets. eg:
+.br
+	MOV AX,[BX+Table]
+.br
+.P
 Conditionals
 .TP
 .B IF, ELSE, ELSEIF, ENDIF
@@ -142,7 +171,8 @@ Set current segment. These can be preceded by the keyword
 .B .SECT
 .TP
 .B LOC
-Set numeric segment 0=TEXT, 3=DATA,ROM,BSS, 15=MAX
+Set numeric segment 0=TEXT, 3=DATA,ROM,BSS, 15=MAX. Only segment zero is
+in the text segment, all others are data.
 .P
 Label type definition
 .TP

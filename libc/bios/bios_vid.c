@@ -84,6 +84,9 @@ static int ctrl = 0;
       default:
 	 asm_putc(c);
 	 break;
+      case CTRL('I'):
+	 asm_putc(' ');	/* Only some BIOS's have this, so play safe */
+	 break;
       case CTRL('L'):
 	 asm_cpos(0,0);
 	 asm_cls();
@@ -424,6 +427,7 @@ int len;
 	    return 1;
 	 }
 	 ch &= 0x7F;
+	 if( ch == '\033' ) ch=3;	/* ESC= Interrupt too */
       }
       if( ch == '\r' )
       {
@@ -454,6 +458,26 @@ bios_getc()
 #asm
   xor	ax,ax
   int	$16
+#endasm
+}
+#endif
+
+/****************************************************************************/
+
+#ifdef L_bios_khit
+bios_khit()
+{
+#asm
+  mov	ah,#1
+  int	$16
+  jz	nokey
+  cmp	ax,#0
+  jnz	dort
+  mov	ax,#3
+dort:
+  ret
+nokey:
+  xor	ax,ax
 #endasm
 }
 #endif

@@ -1,0 +1,42 @@
+# Rules for optimizing BCC assembler output
+
+# Rules for converting short number from host to network order
+
+push	word %[#|*]0%1
+call	__htons
+inc	sp
+inc	sp
+=
+mov	ax,#((%1 & $00FF) << 8) + ((%1 & $FF00) >> 8)
+
+mov	ax,%[#|*]0%1
+push	ax
+call	__htons
+inc	sp
+inc	sp
+=
+mov	ax,#((%1 & $00FF) << 8) + ((%1 & $FF00) >> 8)
+
+push	%0[%1]
+call	__htons
+inc	sp
+inc	sp
+=
+mov	ax,%0[%1]
+xchg	al,ah
+
+push	ax
+call	__htons
+inc	sp
+inc	sp
+=
+xchg	al,ah
+
+push	%[bx|cx|dx]1
+call	__htons
+inc	sp
+inc	sp
+=
+mov	ax,%1
+xchg	al,ah
+

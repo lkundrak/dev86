@@ -1,0 +1,142 @@
+#
+# Name		No	Args	Flag, comment
+#
+#				. = Ok, with comment
+#				* = Needs libc code (Prefix __)
+#				- = Obsolete/not required
+#
+# WARNING!
+# This file is used to generate includes for ELKSemu too.
+# This file is continually changing, when you upgrade you _MUST_ ensure
+#      that ELKSemu is of a matching build!
+#
+# Calls that use one fd
+READ                    3   3
+WRITE                   4   3
+CLOSE                   6   1
+LSEEK                   19  3   * NB 2nd arg is an IO ptr to long not a long.
+FSTAT                   28  2
+IOCTL                   54  3	. Make this and fcntl the same ?
+FCNTL                   55  3
+FTRUNCATE               93  3
+FCHMOD                  94  2
+FCHOWN                  95  3
+FSYNC                   118 1
+FCHDIR                  133 1
+LLSEEK                  140 3	* 2nd arg is ptr to two longs
+READV                   145 3
+WRITEV                  146 3
+FLOCK                   143 2	- Use fcntl
+DUP                     41  1   - Using nasty fcntl function
+
+# 
+SETUP                   0   X
+EXIT                    1   1   * C exit does stdio, _exit in crt0
+FORK                    2   0
+OPEN                    5   3
+WAIT4                   7   4
+VFORK                   8   0 	. Needed for 8086
+GETINFO			49  1	- Possible? Gets pid,ppid,uid,euid etc
+LINK                    9   2
+UNLINK                  10  1
+EXEC                    11  3   * Minix style exec
+CHDIR                   12  1
+GETTIMEOFDAY            13  2	. time() exists only in libc
+MKNOD                   14  3
+CHMOD                   15  2
+CHOWN                   16  3
+BRK                     17  1   * This is only to tell the system
+STAT                    18  2
+GETPID                  20  1   * This gets both pid & ppid
+MOUNT                   21  5
+UMOUNT                  22  1
+SETUID                  23  1
+GETUID                  24  1   * This gets both uid and euid
+SETTIMEOFDAY            25  2	. STIME should _NOT_ exist even as a libc.
+STIME                   25  2   - This must NOT exist - even as a libc.
+PTRACE                  26  4
+ALARM                   27  2
+PAUSE                   29  0
+UTIME                   30  2
+ACCESS                  33  2
+NICE                    34  1   .
+FTIME                   35  1   - Use gettimeofday
+SYNC                    36  0
+KILL                    37  2
+RENAME                  38  2
+MKDIR                   39  2
+RMDIR                   40  1
+PIPE                    42  1
+TIMES                   43  2	* 2nd arg is pointer for long ret val.
+SETGID                  46  1
+GETGID                  47  1   * This gets both gid and egid
+SIGNAL                  48  2   * Have put the despatch table in user space.
+ACCT                    51  1	-
+SETPGID                 57  2
+ULIMIT                  58  2
+UMASK                   60  1
+CHROOT                  61  1
+USTAT                   62  2
+GETPGRP                 65  0	- use getpgid(0)
+SETSID                  66  0
+SIGACTION               67  X
+SGETMASK                68  X
+SSETMASK                69  X
+SETREUID                70  2
+SETREGID                71  2
+SIGSUSPEND              72  X
+SIGPENDING              73  X
+SETHOSTNAME             74  2
+SETRLIMIT               75  2
+GETRLIMIT               76  2
+GETRUSAGE               77  2
+GETGROUPS               80  2
+SETGROUPS               81  2
+SYMLINK                 83  2
+LSTAT                   84  2
+READLINK                85  3
+SWAPON                  87  X
+REBOOT                  88  3   . The magic number is 0xfee1,0xdead,...
+MUNMAP                  91  X
+TRUNCATE                92  3
+GETPRIORITY             96  2
+SETPRIORITY             97  3
+PROFIL                  98  X
+STATFS                  99  2
+FSTATFS                 100 2
+SOCKETCALL              102 X
+SYSLOG                  103 X
+SETITIMER               104 3
+GETITIMER               105 2
+UNAME                   109 1
+VHANGUP                 111 0
+SWAPOFF                 115 X
+SYSINFO                 116 X	- Use /proc
+IPC                     117 5   * This is for all SYSV IPC
+SIGRETURN               119 X
+SETDOMAINNAME           121 X
+ADJTIMEX                124 X
+MPROTECT                125 X
+SIGPROCMASK             126 X
+QUOTACTL                131 X
+GETPGID                 132 1
+SYSFS                   135 X
+PERSONALITY             136 X
+SETFSUID                138 1
+SETFSGID                139 1
+GETDENTS                141 X
+SELECT                  142 5	*
+MSYNC                   144 X
+GETSID                  147 X
+FDATASYNC               148 X
+SYSCTL                  149 X
+MUNLOCK                 151 X
+MUNLOCKALL              153 X
+SCHED_SETPARAM          154 X
+SCHED_GETPARAM          155 X
+SCHED_SETSCHEDULER      156 X
+SCHED_GETSCHEDULER      157 X
+SCHED_YIELD             158 X
+SCHED_GET_PRIORITY_MAX  159 X
+SCHED_GET_PRIORITY_MIN  160 X
+SCHED_RR_GET_INTERVAL   161 X

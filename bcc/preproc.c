@@ -64,7 +64,9 @@ FORWARD void undef P((void));
 
 PRIVATE void asmcontrol()
 {
+#ifdef ASM_BARE
     char treasure;		/* to save at least one leading blank */
+#endif
 
     asmmode = TRUE;
     if (orig_cppmode)

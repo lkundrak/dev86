@@ -15,31 +15,33 @@
 
 sysboot_start:
 j codestart
+nop		! DOS appears to _require_ this to identify an MSDOS disk!!
 
 .blkb sysboot_start+3-*
 public dosfs_stat
+dos_sysid:	.ascii "LINUX"	! System ID
+		.byte 0,0,0
 dosfs_stat:
-dos_sysid:	.blkb 8		! System ID
-dos_sect:	.word 0		! Sector size
-dos_clust:	.byte 0		! Cluster size
-dos_resv:	.word 0		! Res-sector
-dos_nfat:	.byte 0		! FAT count
-dos_nroot:	.word 0		! Root dir entries
-dos_maxsect:	.word 0		! Sector count (=0 if large FS)
-dos_media:	.byte 0		! Media code
-dos_fatlen:	.word 0		! FAT length
-dos_spt:	.word 0		! Sect/Track
-dos_heads:	.word 0		! Heads
-dos_hidden:	.long 0		! Hidden sectors
+dos_sect:	.blkw 1		! Sector size
+dos_clust:	.blkb 1		! Cluster size
+dos_resv:	.blkw 1		! Res-sector
+dos_nfat:	.blkb 1		! FAT count
+dos_nroot:	.blkw 1		! Root dir entries
+dos_maxsect:	.blkw 1		! Sector count (=0 if large FS)
+dos_media:	.blkb 1		! Media code
+dos_fatlen:	.blkw 1		! FAT length
+dos_spt:	.blkw 1		! Sect/Track
+dos_heads:	.blkw 1		! Heads
+dos_hidden:	.blkw 2		! Hidden sectors
 
 ! Here down is DOS 4+ and probably not needed for floppy boots.
 floppy_temp:
 
-dos4_maxsect:	.long 0		! Large FS sector count
-dos4_phy_drive:	.byte 0		! Phys drive
-.byte 0		! Reserved
-.byte 0		! DOS 4
-dos4_serial:	.long 0		! Serial number
+dos4_maxsect:	.blkw 2		! Large FS sector count
+dos4_phy_drive:	.blkb 1		! Phys drive
+.blkb 1		! Reserved
+.blkb 1		! DOS 4
+dos4_serial:	.blkw 2		! Serial number
 dos4_label:	.blkb 11	! Disk Label (DOS 4+)
 dos4_fattype:	.blkb 8		! FAT type
 
@@ -57,24 +59,28 @@ public bootblock_magic
 
 .blkb sysboot_start+0x1BE-*
 partition_1:
-.byte 0,0,0,0,0,0,0,0	! IN,SH,SS,ST,OS,EH,ES,ET
-.long 0			! Linear position (0 based)
-.long 0			! Linear length
+.byte 0			! IN
+.blkb 7			! SH,SS,ST,OS,EH,ES,ET
+.blkw 2			! Linear position (0 based)
+.blkw 2			! Linear length
 .blkb sysboot_start+0x1CE-*
 partition_2:
-.byte 0,0,0,0,0,0,0,0	! IN,SH,SS,ST,OS,EH,ES,ET
-.long 0			! Linear position (0 based)
-.long 0			! Linear length
+.byte 0			! IN
+.blkb 7			! SH,SS,ST,OS,EH,ES,ET
+.blkw 2			! Linear position (0 based)
+.blkw 2			! Linear length
 .blkb sysboot_start+0x1DE-*
 partition_3:
-.byte 0,0,0,0,0,0,0,0	! IN,SH,SS,ST,OS,EH,ES,ET
-.long 0			! Linear position (0 based)
-.long 0			! Linear length
+.byte 0			! IN
+.blkb 7			! SH,SS,ST,OS,EH,ES,ET
+.blkw 2			! Linear position (0 based)
+.blkw 2			! Linear length
 .blkb sysboot_start+0x1EE-*
 partition_4:
-.byte 0,0,0,0,0,0,0,0	! IN,SH,SS,ST,OS,EH,ES,ET
-.long 0			! Linear position (0 based)
-.long 0			! Linear length
+.byte 0			! IN
+.blkb 7			! SH,SS,ST,OS,EH,ES,ET
+.blkw 2			! Linear position (0 based)
+.blkw 2			! Linear length
 
 bootblock_magic:
 .blkb sysboot_start+0x1FE-*

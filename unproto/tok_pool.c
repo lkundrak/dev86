@@ -28,12 +28,12 @@
 /*	Department of Mathematics and Computer Science
 /*	Den Dolech 2, P.O. Box 513, 5600 MB Eindhoven, The Netherlands
 /* LAST MODIFICATION
-/*	91/09/01 23:08:36
+/*	92/01/15 21:53:04
 /* VERSION/RELEASE
-/*	1.1
+/*	1.2
 /*--*/
 
-static char pool_sccsid[] = "@(#) tok_pool.c 1.1 91/09/01 23:08:36";
+static char pool_sccsid[] = "@(#) tok_pool.c 1.2 92/01/15 21:53:04";
 
 /* C library */
 
@@ -43,8 +43,7 @@ extern char *malloc();
 
 #include "token.h"
 #include "vstring.h"
-
-extern void error();
+#include "error.h"
 
 #define	TOKLEN	5			/* initial string buffer length */
 
@@ -62,7 +61,7 @@ struct token *tok_alloc()
     } else {					/* create a new one */
 	if ((t = (struct token *) malloc(sizeof(struct token))) == 0
 	    || (t->vstr = vs_alloc(TOKLEN)) == 0)
-	    error(1, "out of memory");
+	    fatal("out of memory");
     }
     t->next = t->head = t->tail = 0;
 #ifdef	DEBUG
@@ -83,7 +82,7 @@ register struct token *t;
 
     for (p = tok_pool; p; p = p->next)
 	if (p == t)
-	    error(1, "freeing free token");
+	    fatal("freeing free token");
 #endif
 
     /* Free neighbours and subordinates first */

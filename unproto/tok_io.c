@@ -8,16 +8,15 @@
 /* SYNOPSIS
 /*	#include "token.h"
 /*
-/*	struct token *tok_get(skip_flag)
-/*	int skip_flag;
-/*
-/*	void tok_unget(t)
-/*	struct token *t;
+/*	struct token *tok_get()
 /*
 /*	void tok_flush(t)
 /*	struct token *t;
 /*
 /*	void tok_show(t)
+/*	struct token *t;
+/*
+/*	void tok_show_ch(t)
 /*	struct token *t;
 /*
 /*	void put_str(s)
@@ -26,38 +25,40 @@
 /*	void put_ch(c)
 /*	int c;
 /*
-/*	void show_line_control()
+/*	void put_nl()
 /*
-/*	char curr_path[];
-/*	int curr_line;
+/*	char *in_path;
+/*	int in_line;
 /* DESCRIPTION
 /*	These functions read from stdin and write to stdout. The
-/*	output functions maintain some memory so that two successive
-/*	words will always be separated by white space.
-/*
-/*	The input routines eliminate backslash-newline from the input.
+/*	tokenizer keeps track of where the token appeared in the input
+/*	stream; on output, this information is used to preserve correct
+/*	line number information (even after lots of token lookahead or
+/*	after function-header rewriting) so that diagnostics from the
+/*	next compiler stage make sense.
 /*
 /*	tok_get() reads the next token from standard input. It returns
-/*	a null pointer when the end of input is reached. If the skip_flag
-/*	argument is nonzero, white space (except newline) will be skipped.
-/*
-/*	tok_unget() implements a limited amount of token push back.
+/*	a null pointer when the end of input is reached.
 /*
 /*	tok_show() displays the contents of a (possibly composite) token
 /*	on the standard output.
+/*
+/*	tok_show_ch() displays the contents of a single-character token
+/*	on the standard output. The character should not be a newline.
 /*
 /*	tok_flush() displays the contents of a (possibly composite) token
 /*	on the standard output and makes it available for re-use.
 /*
 /*	put_str() writes a null-terminated string to standard output.
+/*	There should be no newline characters in the string argument.
 /*
-/*	put_ch() writes one character to standard output.
+/*	put_ch() writes one character to standard output. The character
+/*	should not be a newline.
 /*
-/*	show_line_control() displays the line number of the next line
-/*	to be written to standard output, in a format suitable for the C
-/*	compiler parser phase.
+/*	put_nl() outputs a newline character and adjusts the program's idea of
+/*	the current output line.
 /*
-/*	The curr_path[] and curr_line variables contain the input file name and 
+/*	The in_path and in_line variables contain the file name and
 /*	line number of the most recently read token.
 /* BUGS
 /*	The tokenizer is just good enough for the unproto filter.
@@ -68,12 +69,12 @@
 /*	Department of Mathematics and Computer Science
 /*	Den Dolech 2, P.O. Box 513, 5600 MB Eindhoven, The Netherlands
 /* LAST MODIFICATION
-/*	91/11/30 21:10:26
+/*	92/01/15 21:52:59
 /* VERSION/RELEASE
-/*	1.2
+/*	1.3
 /*--*/
 
-static char io_sccsid[] = "@(#) tok_io.c 1.2 91/11/30 21:10:26";
+static char io_sccsid[] = "@(#) tok_io.c 1.3 92/01/15 21:52:59";
 
 /* C library */
 
@@ -91,38 +92,55 @@ extern char *strcpy();
 #include "vstring.h"
 #include "error.h"
 
+extern char *strsave();			/* XXX need include file */
+
 /* Stuff to keep track of original source file name and position */
 
-char    curr_path[BUFSIZ];		/* current file name */
-int     curr_line = 0;			/* # of last read line */
+static char def_path[] = "";		/* default path name */
+
+char   *in_path = def_path;		/* current input file name */
+int     in_line = 1;			/* current input line number */
+
+static char *out_path = def_path;	/* last name in output line control */
+static int out_line = 1;		/* current output line number */
+int     last_ch;			/* type of last output */
 
 /* Forward declarations */
 
-static void read_quoted();
+static int read_quoted();
 static void read_comment();
+static int backslash_newline();
+static char *read_hex();
+static char *read_octal();
+static void fix_line_control();
 
-/* Buffered i/o stuff */
+ /*
+  * Character input with one level of pushback. The INPUT() macro recursively
+  * strips backslash-newline pairs from the input stream. The UNPUT() macro
+  * should be used only for characters obtained through the INPUT() macro.
+  * 
+  * After skipping a backslash-newline pair, the input line counter is not
+  * updated, and we continue with the same logical source line. We just
+  * update a counter with the number of backslash-newline sequences that must
+  * be accounted for (backslash_newline() updates the counter). At the end of
+  * the logical source line, an appropriate number of newline characters is
+  * pushed back (in tok_get()). I do not know how GCC handles this, but it
+  * seems to produce te same output.
+  * 
+  * Because backslash_newline() recursively calls itself (through the INPUT()
+  * macro), we will run out of stack space, given a sufficiently long
+  * sequence of backslash-newline pairs.
+  */
 
-static struct vstring *buf = 0;		/* read-ahead buffer */
-static char *bp = "";			/* buffer position */
+static char in_char = 0;		/* push-back storage */
+static int in_flag = 0;			/* pushback available */
+static int nl_compensate = 0;		/* line continuation kluge */
 
-#ifdef DEBUG
-#define	INITBUF	1			/* small initial buffer size */
-#else
-#define	INITBUF BUFSIZ			/* reasonable initial buffer size */
-#endif
-
-#define	input()		(*bp ? *bp++ : next_line())
-#define	unput(c)	(*--bp = (c))
-
-#define	TOK_BUFSIZE	5		/* token push-back buffer size */
-
-static struct token *tok_buf[TOK_BUFSIZE];
-static int tok_bufpos = 0;
-
-/* Type of last token sent to output, for pretty printing */
-
-static int last_tok = 0;
+#define INPUT(c) (in_flag ? (in_flag = 0, c = in_char) : \
+		    (c = getchar()) != '\\' ? c : \
+		    (c = getchar()) != '\n' ? (ungetc(c, stdin), c = '\\') : \
+		    (c = backslash_newline()))
+#define	UNPUT(c) (in_flag = 1, in_char = c)
 
 /* Directives that should be ignored. */
 
@@ -143,6 +161,8 @@ static char *ignore_directives[] = {
 #define	ISALPHA(c)	(isalpha(c) || (c) == '_')
 #define	ISSPACE(c)	(isspace(c) && c != '\n')
 #define	ISDOT(c)	(c == '.')
+#define	ISHEX(c)	(isdigit(c) || strchr("abcdefABCDEF", c) != 0)
+#define	ISOCTAL(c)	(isdigit(c) && (c) != '8' && (c) != '9')
 
 /* Collect all characters that satisfy one condition */
 
@@ -150,236 +170,246 @@ static char *ignore_directives[] = {
 				register struct vstring *vs = v; \
 				register char *cp = vs->str; \
 				*cp++ = c; \
-				for (;;) { \
-				    if ((c = input()) == 0) { \
-					break; \
-				    } else if (cond) { \
+				while (INPUT(c) != EOF) { \
+				    if (cond) { \
 					if (VS_ADDCH(vs, cp, c) == 0) \
-					    error(1, "out of memory"); \
+					    fatal("out of memory"); \
 				    } else { \
-					unput(c); \
+					UNPUT(c); \
 					break; \
 				    } \
 				} \
 				*cp = 0; \
 			    }
 
-/* do_control - parse control line, uses tok_get() */
+/* Ensure that output line information is correct */
+
+#define	CHECK_LINE_CONTROL(p,l) { if (out_path != (p) || out_line != (l)) \
+					fix_line_control((p),(l)); }
+
+/* do_control - parse control line */
 
 static int do_control()
 {
-    struct token *t1;
-    struct token *t2;
-    int     pass_thru = 1;		/* 0 = ignore, 1 = output */
+    struct token *t;
+    int     line;
+    char   *path;
 
-    (void) input();				/* skip the hash */
+    /* Make sure that the directive shows up in the right place. */
 
-    if (t1 = tok_get(NO_WSPACE)) {
-	switch (t1->tokno) {
+    CHECK_LINE_CONTROL(in_path, in_line);
 
-	    /*
-	     * In case of line number control, the remainder of the line has
-	     * the format: linenumber "pathname".
-	     */
-	case TOK_NUMBER:
-	    if (t2 = tok_get(NO_WSPACE)) {
-		if (t2->tokno == '"') {
-		    curr_line = atoi(t1->vstr->str) - 1;
-		    strcpy(curr_path, t2->vstr->str);
-		}
-		tok_free(t2);
-	    }
+    while (t = tok_get()) {
+	switch (t->tokno) {
+
+	case TOK_WSPACE:
+	    /* Ignore blanks after "#" token. */
+	    tok_free(t);
 	    break;
 
+	case TOK_NUMBER:
+
+	    /*
+	     * Line control is of the form: number pathname junk. Since we
+	     * have no idea what junk the preprocessor may generate, we copy
+	     * all line control tokens to stdout.
+	     */
+
+	    put_str("# ");
+	    line = atoi(t->vstr->str);		/* extract line number */
+	    tok_flush(t);
+	    while ((t = tok_get()) && t->tokno == TOK_WSPACE)
+		tok_flush(t);			/* copy white space */
+	    if (t) {				/* extract path name */
+		path = (t->tokno == '"') ? strsave(t->vstr->str) : in_path;
+		do {
+		    tok_flush(t);		/* copy until newline */
+		} while (t->tokno != '\n' && (t = tok_get()));
+	    }
+	    out_line = in_line = line;		/* synchronize */
+	    out_path = in_path = path;		/* synchronize */
+	    return;
+
 #ifdef IGNORE_DIRECTIVES
+
 	case TOK_WORD:
-	    /* Optionally ignore other #directives, such as #pragma. */
+
+	    /*
+	     * Optionally ignore other #directives. This is only a partial
+	     * solution, because the preprocessor will still see them.
+	     */
 	    {
 		char  **cpp;
-		char   *cp = t1->vstr->str;
+		char   *cp = t->vstr->str;
 
 		for (cpp = ignore_directives; *cpp; cpp++) {
 		    if (STREQUAL(cp, *cpp)) {
-			pass_thru = 0;
-			break;
+			do {
+			    tok_free(t);
+			} while (t->tokno != '\n' && (t = tok_get()));
+			return;
 		    }
 		}
 	    }
-	    break;
+	    /* FALLTHROUGH */
 #endif
+	default:
+	    /* Pass through. */
+	    put_ch('#');
+	    do {
+		tok_flush(t);
+	    } while (t->tokno != '\n' && (t = tok_get()));
+	    return;
+
+	case 0:
+	    /* Hit EOF, punt. */
+	    put_ch('#');
+	    return;
 	}
-	tok_free(t1);
     }
-    return (pass_thru);
 }
 
-/* next_line - read one logical line, handle #control */
+/* backslash_newline - fix up things after reading a backslash-newline pair */
 
-static int next_line()
+static int backslash_newline()
 {
     register int c;
-    register char *cp;
 
-    /* Allocate buffer upon first entry */
-
-    if (buf == 0)
-	buf = vs_alloc(INITBUF);
-
-    for (;;) {
-	cp = buf->str;
-
-	/* Account for EOF and line continuations */
-
-	while ((c = getchar()) != EOF) {
-	    if (VS_ADDCH(buf, cp, c) == 0)	/* store character */
-		error(1, "out of memory");
-	    if (c == '\n') {			/* real end of line */
-		curr_line++;
-		break;
-	    } else if (c == '\\') {
-		if ((c = getchar()) == EOF) {	/* XXX strip backslash-EOF */
-		    break;
-		} else if (c == '\n') {		/* strip backslash-newline */
-		    curr_line++;
-		    put_ch('\n');		/* preserve line count */
-		    cp--;			/* un-store backslash */
-		} else {
-		    ungetc(c, stdin);		/* keep backslash-other */
-		}
-	    }
-	}
-	*cp = 0;
-	bp = buf->str;
-
-	/* Account for EOF and #control */
-
-	switch (bp[0]) {
-	case 0:					/* EOF */
-	    return (0);
-	case '#':				/* control */
-	    if (do_control())
-		fputs(buf->str, stdout);	/* pass through */
-	    else
-		putchar('\n');			/* filter out */
-	    break;
-	default:				/* non-control */
-	    return (input());
-	}
-    }
-}
-
-/* tok_unget - push back one token */
-
-void    tok_unget(t)
-register struct token *t;
-{
-    if (tok_bufpos >= TOK_BUFSIZE)
-	error(1, "too much pushback");
-    tok_buf[tok_bufpos++] = t;
+    nl_compensate++;
+    return (INPUT(c));
 }
 
 /* tok_get - get next token */
 
-struct token *tok_get(skip_flag)
-int     skip_flag;
+static int last_tokno = '\n';
+
+struct token *tok_get()
 {
     register struct token *t;
     register int c;
     int     d;
 
-    /* Use push-back token, if any. */
-
-    if (tok_bufpos) {
-	t = tok_buf[--tok_bufpos];
-	return (t);
-    }
-
     /*
-     * Get one from the pool and fill it in. The loop is here in case we
-     * should skip white-space tokens, which happens in a minority of all
-     * cases.
+     * Get one from the pool and fill it in. The loop is here in case we hit
+     * a preprocessor control line, which happens in a minority of all cases.
+     * We update the token input path and line info *after* backslash-newline
+     * processing or the newline compensation would go wrong.
      */
 
     t = tok_alloc();
 
     for (;;) {
-	if ((c = input()) == 0) {
+	if ((INPUT(c)) == EOF) {
 	    tok_free(t);
 	    return (0);
-	} else if (!isascii(c)) {
+	} else if ((t->line = in_line, t->path = in_path), !isascii(c)) {
 	    t->vstr->str[0] = c;
 	    t->vstr->str[1] = 0;
 	    t->tokno = TOK_OTHER;
-	    return (t);
-	} else if (c == '"' || c == '\'') {
-	    read_quoted(t, c);
-	    t->tokno = c;
-	    return (t);
+	    break;
+	} else if (ISSPACE(c)) {
+	    COLLECT(t->vstr, c, ISSPACE(c));
+	    t->tokno = TOK_WSPACE;
+	    break;
 	} else if (ISALPHA(c)) {
 	    COLLECT(t->vstr, c, ISALNUM(c));
 	    t->tokno = TOK_WORD;
-	    return (t);
+	    break;
 	} else if (isdigit(c)) {
 	    COLLECT(t->vstr, c, isdigit(c));
 	    t->tokno = TOK_NUMBER;
-	    return (t);
-	} else if (ISSPACE(c)) {
-	    COLLECT(t->vstr, c, ISSPACE(c));
-	    if (skip_flag)
-		continue;
-	    t->tokno = TOK_WSPACE;
-	    return (t);
+	    break;
+	} else if (c == '"' || c == '\'') {
+	    t->tokno = read_quoted(t->vstr, c);	/* detect missing end quote */
+	    break;
 	} else if (ISDOT(c)) {
 	    COLLECT(t->vstr, c, ISDOT(c));
 	    t->tokno = TOK_OTHER;
-	    return (t);
+	    break;
+	} else if (c == '#' && last_tokno == '\n') {
+	    do_control();
+	    continue;
 	} else {
 	    t->vstr->str[0] = c;
-	    if (c == '/') {
-		if ((d = input()) == '*') {
+	    if (c == '\n') {
+		in_line++;
+		if (nl_compensate > 0) {	/* compensation for bs-nl */
+		    UNPUT('\n');
+		    nl_compensate--;
+		}
+	    } else if (c == '/') {
+		if ((INPUT(d)) == '*') {
 		    t->vstr->str[1] = d;	/* comment */
 		    read_comment(t->vstr);
-		    if (skip_flag)
-			continue;
 		    t->tokno = TOK_WSPACE;
-		    return (t);
+		    break;
 		} else {
-		    unput(d);
+		    if (d != EOF)
+			UNPUT(d);
 		}
+	    } else if (c == '\\') {
+		t->vstr->str[1] = (INPUT(c) == EOF ? 0 : c);
+		t->vstr->str[2] = 0;
+		t->tokno = TOK_OTHER;
+		break;
 	    }
 	    t->vstr->str[1] = 0;
 	    t->tokno = c;
-	    return (t);
+	    break;
 	}
     }
+    last_tokno = t->tokno;
+    t->end_line = in_line;
+    return (t);
 }
 
-/* read_qouted - read string or character literal */
+/* read_quoted - read string or character literal, canonicalize escapes */
 
-static void read_quoted(t, ch)
-register struct token *t;
+static int read_quoted(vs, ch)
+register struct vstring *vs;
 int     ch;
 {
-    register char *cp = t->vstr->str;
+    register char *cp = vs->str;
     register int c;
+    int     ret = TOK_OTHER;
 
     *cp++ = ch;
 
-    while (c = input()) {
+    /*
+     * Clobber the token type in case of a premature newline or EOF. This
+     * prevents us from attempting to concatenate string constants with
+     * broken ones that have no closing quote.
+     */
+
+    while (INPUT(c) != EOF) {
 	if (c == '\n') {			/* newline in string */
-	    unput(c);
+	    UNPUT(c);
 	    break;
 	}
-	if (VS_ADDCH(t->vstr, cp, c) == 0)	/* store character */
-	    error(1, "out of memory");
-	if (c == ch)				/* end of string */
+	if (VS_ADDCH(vs, cp, c) == 0)		/* store character */
+	    fatal("out of memory");
+	if (c == ch) {				/* closing quote */
+	    ret = c;
 	    break;
-	if (c == '\\')				/* eat next character */
-	    if ((c = input()) != 0 && VS_ADDCH(t->vstr, cp, c) == 0)
-		error(1, "out of memory");
+	}
+	if (c == '\\') {			/* parse escape sequence */
+	    if ((INPUT(c)) == EOF) {		/* EOF, punt */
+		break;
+	    } else if (c == 'a') {		/* \a -> audible bell */
+		if ((cp = vs_strcpy(vs, cp, BELL)) == 0)
+		    fatal("out of memory");
+	    } else if (c == 'x') {		/* \xhh -> \nnn */
+		cp = read_hex(vs, cp);
+	    } else if (ISOCTAL(c) && ch != '\'') {
+		cp = read_octal(vs, cp, c);	/* canonicalize \octal */
+	    } else {
+		if (VS_ADDCH(vs, cp, c) == 0)	/* \other: leave alone */
+		    fatal("out of memory");
+	    }
+	}
     }
     *cp = 0;
-    return;
+    return (ret);
 }
 
 /* read_comment - stuff a whole comment into one huge token */
@@ -391,74 +421,192 @@ register struct vstring *vs;
     register int c;
     register int d;
 
-    while (c = input()) {
+    while (INPUT(c) != EOF) {
 	if (VS_ADDCH(vs, cp, c) == 0)
-	    error(1, "out of memory");
+	    fatal("out of memory");
 	if (c == '*') {
-	    if ((d = input()) == '/') {
+	    if ((INPUT(d)) == '/') {
 		if (VS_ADDCH(vs, cp, d) == 0)
-		    error(1, "out of memory");
+		    fatal("out of memory");
 		break;
 	    } else {
-		unput(d);
+		if (d != EOF)
+		    UNPUT(d);
 	    }
+	} else if (c == '\n') {
+	    in_line++;
+	} else if (c == '\\') {
+	    if ((INPUT(d)) != EOF && VS_ADDCH(vs, cp, d) == 0)
+		fatal("out of memory");
 	}
     }
     *cp = 0;
 }
 
-/* put_str - output a string */
+/* read_hex - rewrite hex escape to three-digit octal escape */
 
-void    put_str(s)
-char   *s;
+static char *read_hex(vs, cp)
+struct vstring *vs;
+register char *cp;
 {
-    fputs(s, stdout);
-    last_tok = s[0];				/* XXX */
-#ifdef DEBUG
-    fflush(stdout);
-#endif
+    register int c;
+    register int i;
+    char    buf[BUFSIZ];
+    int     len;
+    unsigned val;
+
+    /*
+     * Eat up all subsequent hex digits. Complain later when there are too
+     * many.
+     */
+
+    for (i = 0; i < sizeof(buf) && (INPUT(c) != EOF) && ISHEX(c); i++)
+	buf[i] = c;
+    buf[i] = 0;
+
+    if (i < sizeof(buf) && c)
+	UNPUT(c);
+
+    /*
+     * Convert hex form to three-digit octal form. The three-digit form is
+     * used so that strings can be concatenated without problems. Complain
+     * about malformed input; truncate the result to at most three octal
+     * digits.
+     */
+
+    if (i == 0) {
+	error("\\x escape sequence without hexadecimal digits");
+	if (VS_ADDCH(vs, cp, 'x') == 0)
+	    fatal("out of memory");
+    } else {
+	(void) sscanf(buf, "%x", &val);
+	sprintf(buf, "%03o", val);
+	if ((len = strlen(buf)) > 3)
+	    error("\\x escape sequence yields non-character value");
+	if ((cp = vs_strcpy(vs, cp, buf + len - 3)) == 0)
+	    fatal("out of memory");
+    }
+    return (cp);
 }
 
-/* put_ch - put character */
+/* read_octal - convert octal escape to three-digit format */
 
-void    put_ch(c)
-int     c;
+static char obuf[] = "00123";
+
+static char *read_octal(vs, cp, c)
+register struct vstring *vs;
+register char *cp;
+register int c;
 {
-    last_tok = putchar(c);
-#ifdef DEBUG
-    fflush(stdout);
-#endif
+    register int i;
+
+#define	buf_input (obuf + 2)
+
+    /* Eat up at most three octal digits. */
+
+    buf_input[0] = c;
+    for (i = 1; i < 3 && (INPUT(c) != EOF) && ISOCTAL(c); i++)
+	buf_input[i] = c;
+    buf_input[i] = 0;
+
+    if (i < 3 && c)
+	UNPUT(c);
+
+    /*
+     * Leave three-digit octal escapes alone. Convert one-digit and two-digit
+     * octal escapes to three-digit form by prefixing them with a suitable
+     * number of '0' characters. This is done so that strings can be
+     * concatenated without problems.
+     */
+
+    if ((cp = vs_strcpy(vs, cp, buf_input + i - 3)) == 0)
+	fatal("out of memory");
+    return (cp);
+}
+
+/* put_nl - emit newline and adjust output line count */
+
+void    put_nl()
+{
+    put_ch('\n');
+    out_line++;
+}
+
+/* fix_line_control - to adjust path and/or line count info in output */
+
+static void fix_line_control(path, line)
+register char *path;
+register int line;
+{
+
+    /*
+     * This function is called sporadically, so it should not be a problem
+     * that we repeat some of the tests that preceded this function call.
+     * 
+     * Emit a newline if we are not at the start of a line.
+     * 
+     * If we switch files, or if we jump backwards, emit line control. If we
+     * jump forward, emit the proper number of newlines to compensate.
+     */
+
+    if (last_ch != '\n')			/* terminate open line */
+	put_nl();
+    if (path != out_path || line < out_line) {	/* file switch or back jump */
+	printf("# %d %s\n", out_line = line, out_path = path);
+	last_ch = '\n';
+    } else {					/* forward jump */
+	while (line > out_line)
+	    put_nl();
+    }
+}
+
+/* tok_show_ch - output single-character token (not newline) */
+
+void    tok_show_ch(t)
+register struct token *t;
+{
+    CHECK_LINE_CONTROL(t->path, t->line);
+
+    put_ch(t->tokno);				/* show token contents */
 }
 
 /* tok_show - output (possibly composite) token */
 
 void    tok_show(t)
-struct token *t;
+register struct token *t;
 {
     register struct token *p;
-    register struct token *s;
 
-    switch (t->tokno) {
-    case TOK_LIST:
+    if (t->tokno == TOK_LIST) {
+	register struct token *s;
+
+	/*
+	 * This branch is completely in terms of tok_xxx() primitives, so
+	 * there is no need to check the line control information.
+	 */
+
 	for (s = t->head; s; s = s->next) {
-	    put_ch(s->tokno);			/* opening paren or ',' */
+	    tok_show_ch(s);			/* '(' or ',' or ')' */
 	    for (p = s->head; p; p = p->next)
-		tok_show(p);
+		tok_show(p);			/* show list element */
 	}
-	put_ch(')');				/* closing paren */
-	break;
-    case TOK_WORD:
-	if (ISALPHA(last_tok))
-	    putchar(' ');
-	/* FALLTRHOUGH */
-    default:
-	fputs(t->vstr->str, stdout);		/* token contents */
-	last_tok = t->vstr->str[0];
-#ifdef DEBUG
-	fflush(stdout);
-#endif
-	if (t->head)				/* trailing blanks */
-            for (p = t->head; p; p = p->next)
-                tok_show(p);
+    } else {
+	register char *cp = t->vstr->str;
+
+	/*
+	 * Measurements show that it pays off to give special treatment to
+	 * single-character tokens. Note that both types of token may cause a
+	 * change of output line number.
+	 */
+
+	CHECK_LINE_CONTROL(t->path, t->line);
+	if (cp[1] == 0) {
+	    put_ch(*cp);			/* single-character token */
+	} else {
+	    put_str(cp);			/* multi_character token */
+	}
+	out_line = t->end_line;			/* may span multiple lines */
+	for (p = t->head; p; p = p->next)
+	    tok_show(p);			/* trailing blanks */
     }
 }

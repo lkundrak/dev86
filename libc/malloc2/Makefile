@@ -1,22 +1,12 @@
 
-TOP=..
-include $(TOP)/Make.defs
+OBJ=malloc.o stack.o
 
-MOBJ=malloc.o stack.o
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-OBJ=$(MOBJ)
-
-all: $(OBJ)
-
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
-
+all: $(LIBC)($(OBJ))
+	@:
 clean:
-	rm -f $(OBJ) libc.a
-
-$(AOBJ): $(ASRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(ASRC)
+	rm -f *.o libc.a
 
 transfer:
 	-@rm ../include/malloc.h

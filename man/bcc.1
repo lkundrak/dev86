@@ -1,4 +1,4 @@
-.TH bcc 1 "Oct, 1996"
+.TH bcc 1 "Jan, 1997"
 .BY Bruce Evans
 .nh
 .SH NAME
@@ -86,9 +86,12 @@ don't add default library to search list
 .TP
 .B -Md
 alters the arguments for all passes to produce MSDOS executable COM files.
+These are small model executables, use
+.B -i-
+to get tiny model.
 .TP
 .B -Mf
-sets the code generator to pass the
+sets bcc to pass the
 .B -c
 and
 .B -f
@@ -96,16 +99,31 @@ arguments to the code generator for smaller faster code. Note this code is
 not compatible with the standard calling conventions so a different version
 of the C library is linked too.
 .TP
+.B -Mc
+sets bcc to pass the
+.B -c
+argument to the code generator for smaller faster code. Note the standard
+libc is normally transparent to this, but there are exceptions.
+.TP
 .B -Ms
 alters the arguments for all passes and selects C-library
 to produce standalone Linux-86 executables
+.TP
+.B -Ml
+switches to i386-Linux code generator and library.
 .TP
 .B -N
 makes the linker produce a native a.out file (Linux OMAGIC) if combined
 with -3 the executable will run under Linux-i386.
 .TP
 .B -O
-optimize (does nothing)
+optimize, call
+.BR copt ( 1 )
+to optimize 8086 code. Specifiers to choose which rules 
+.B copt
+should use can be appended to the
+.B -O
+and the option can be repeated.
 .TP
 .B -P
 produce preprocessor output with no line numbers to standard output.
@@ -161,7 +179,7 @@ being searched.
 allow the assembler to generate warnings, useful for finding 80186+
 instructions.
 .P
-Other options are passed to the linker, in particular -i-, -lx, -M, -m, -s.
+Other options are passed to the linker, in particular -i-, -lx, -M, -m, -s, -H.
 The -i option is always passed to the linker but can be cancelled using -i-.
 
 .SH CODE GENERATOR OPTIONS

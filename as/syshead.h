@@ -6,9 +6,9 @@
 #endif
 
 #ifndef POSIX_HEADERS_MISSING
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <fcntl.h>
 #endif
 
@@ -18,6 +18,12 @@
 #include <fcntl.h>
 #undef min
 #undef POSIX_HEADERS_MISSING
+#endif
+
+#if __STDC__ && !defined(__minix)
+#define P(x) x
+#else
+#define P(x) ()
 #endif
 
 #ifdef STDC_HEADERS_MISSING
@@ -38,13 +44,17 @@ int creat P((const char *path, int mode));
 int open P((const char *path, int oflag, ...));
 int read P((int fd, void *buf, unsigned nbytes));
 int write P((int fd, const void *buf, unsigned nbytes));
-off_t lseek P((int fd, off_t offset, int whence));
 typedef long off_t;
-#define O_RDONLY	0
-
+off_t lseek P((int fd, off_t offset, int whence));
 #define BIGBUFFER	0	/* Can't use a big buffer ... sorry */
 #endif
 
-#ifndef O_BINARY
-#define O_BINARY	0
+#ifndef O_RDONLY
+#define O_RDONLY	0
+#endif
+#ifndef O_WRONLY
+#define O_WRONLY	1
+#endif
+#ifndef O_RDWR
+#define O_RDWR		2
 #endif

@@ -341,9 +341,9 @@ bool_pt arguzp;
     if( headerless ) setsym("__segoff", (bin_off_t)(segadj[1]-segadj[0])/0x10);
     if( !bits32 )
     {
-        if( etextoffset > 65535L )
+        if( etextoffset > 65536L )
             fatalerror("text segment too large for 16bit");
-        if( endoffset > 65535L )
+        if( endoffset > 65536L )
             fatalerror("data segment too large for 16bit");
     }
 
@@ -915,8 +915,7 @@ PRIVATE void writeheader()
     if (!reloc_output)
 #endif
     {
-	if (uzp)
-	    offtocn((char *) &header.a_entry, page_size(),
+	offtocn((char *) &header.a_entry, btextoffset,
 		    sizeof header.a_entry);
 #ifndef STANDARD_GNU_A_OUT
 	offtocn((char *) &header.a_total, (bin_off_t)

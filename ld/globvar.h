@@ -16,3 +16,4 @@ extern int  headerless;			/* Don't output header on exe */
 
 extern bin_off_t text_base_value;	/* Base address of text seg */
 extern bin_off_t data_base_value;	/* Base or alignment of data seg */
+extern bin_off_t heap_top_value;	/* Minimum 'total' value in x86 header */

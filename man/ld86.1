@@ -1,4 +1,4 @@
-.TH ld86 1 "Oct, 1996"
+.TH ld86 1 "Jan, 1997"
 .BY Bruce Evans
 .nh
 .SH NAME
@@ -12,6 +12,7 @@ ld86 \- Linker for as86(1)
 .RB [ -Llibdir ]
 .RB [ -Olibfile ]
 .RB [ -Ttextaddr ]
+.RB [ -Hheapsize ]
 .RB [ -Ddataaddr ]
 .B infile...
 
@@ -46,6 +47,9 @@ add file libdir-from-search/crtx.o to list of files linked
 .TP
 .B -D
 data base address follows (in format suitable for strtoul)
+.TP
+.B -H
+the top of heap (initial stack) address (in format suitable for strtoul)
 .TP
 .B -Lx
 add dir name x to the head of the list of library dirs searched

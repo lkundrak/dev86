@@ -10,7 +10,7 @@ int   x86_a20_closed = 1;	/* Is the A20 gate closed ? */
 int   x86_test = 0;		/* In test mode */
 int   x86_fpu = 0;
 
-unsigned boot_mem_top = 0x4000;	/* Default 64k, the minimum */
+unsigned boot_mem_top = 0x2000;	/* Default 128k, the minimum */
 long     main_mem_top = 0;	/* K of extended memory */
 
 int a20_closed()
@@ -49,6 +49,22 @@ empty_8042:
   in	al,#0x64	! 8042 status port
   test	al,#2		! is input buffer full?
   jnz	empty_8042	! yes - loop, with no timeout!
+#endasm
+}
+
+/* This calls the BIOS to open the A20 gate, officially this is only supported
+   on PS/2s but if the normal routine fails we may as well try this.
+ */
+void bios_open_a20()
+{
+#asm
+  mov	ax,#$2401
+  int	$15
+  jc	bios_failed_a20
+  xor	ax,ax
+bios_failed_a20:
+  mov	al,ah
+  xor	ah,ah
 #endasm
 }
 
@@ -130,10 +146,10 @@ static struct {
    char gdt1[8];
    unsigned short src_len;
    long           src_seg;
-   unsigned int   spad;
+   unsigned short spad;
    unsigned short dst_len;
    long           dst_seg;
-   unsigned int   dpad;
+   unsigned short dpad;
    char gdt5[8];
 } GDT = {
   "","",
@@ -174,7 +190,7 @@ static asm_copy(length)
   push	es
   push	si
   mov	cx,ax
-  mov	ah,$87
+  mov	ah,#$87
   push	ds
   pop	es
   mov	si,#_GDT
@@ -184,7 +200,7 @@ static asm_copy(length)
 err:
   mov	al,ah
   xor	ah,ah
-  push	si
-  push	es
+  pop	si
+  pop	es
 #endasm
 }

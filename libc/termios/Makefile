@@ -2,9 +2,6 @@
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=..
-include $(TOP)/Make.defs
-
 TSRC=termios.c
 TOBJ=tcsetattr.o tcgetattr.o tcdrain.o tcflow.o tcflush.o tcsendbreak.o	\
      tcsetpgrp.o tcgetpgrp.o isatty.o	\
@@ -12,19 +9,22 @@ TOBJ=tcsetattr.o tcgetattr.o tcdrain.o tcflow.o tcflush.o tcsendbreak.o	\
 
 ifeq ($(LIB_OS),ELKS)
 OBJ=$(TOBJ) ttyname.o
+
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
+
+all: $(LIBC)
+	@:
+
+$(LIBC): $(LIBC)($(OBJ))
+
+$(LIBC)($(TOBJ)): $(TSRC)
+	$(CC) $(CFLAGS) -DL_$* $< -c -o $*.o
+	$(AR) $(ARFLAGS) $@ $*.o
+	$(RM) $*.o
 else
-OBJ=
+all:
+	@:
 endif
-
-all: $(OBJ)
-
-libc.a: $(OBJ)
-	ar r ../$(LIBC) $(OBJ)
-	@touch libc.a
 
 clean:
 	rm -f *.o libc.a
-
-$(TOBJ): $(TSRC)
-	$(CC) $(CFLAGS) -c -DL_$* -o $@ $(TSRC)
-

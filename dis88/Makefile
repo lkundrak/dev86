@@ -37,12 +37,12 @@ dis88:	$(OBJ)
 
 install:	dis88
 	install -m 755 -s dis88   $(DIST)/usr/bin/dis88
-	install -m 644 -s dis88.1 $(DIST)/usr/man/man1/dis88.1
+	install -m 644    dis88.1 $(DIST)/usr/man/man1/dis88.1
 
 $(OBJ): dis.h a.out.h
 
 a.out.h:
 	ln -s ../libc/include/a.out.h .
 
-clean:	
+clean realclean:	
 	rm -f *.bak *.lst *.o core dis88 a.out.h

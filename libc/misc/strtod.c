@@ -20,6 +20,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#ifndef __AS386_16__
+/* BCC-16 has broken FP code */
+
 double
 strtod(const char *nptr, char ** endptr)
 {
@@ -94,3 +97,4 @@ strtod(const char *nptr, char ** endptr)
     }
   return (negative ? -number:number);
 }
+#endif

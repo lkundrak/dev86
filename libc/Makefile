@@ -1,31 +1,73 @@
-# Copyright (C) 1995,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
+# Copyright (C) 1996,1997 Robert de Bath <robert@mayday.cix.co.uk>
 # This file is part of the Linux-8086 C library and is distributed
 # under the GNU Library General Public License.
 
-TOP=.
-include $(TOP)/Make.defs
+ifeq ($(TOPDIR),)
+# This should work, but ..
+TOP=..
+else
+TOP=$(TOPDIR)/libc
+endif
 
-SRC=crt0.c
-OBJ=crt0.o
+VERMAJOR=0
+VERMINOR=0
+VERPATCH=11
+VER=$(VERMAJOR).$(VERMINOR).$(VERPATCH)
 
-TARGETS=$(OBJ) $(LIBC)
-TXT=Makefile Make.defs README KERNEL COPYING Contributors MAGIC \
-    New_subdir Pre_main Config_sh
+CC=bcc
+CCFLAGS=-I -I$(TOP)/include
+DEFS=-D__LIBC__
 
-all: .config.dir .config.otype $(TARGETS)
+include Make.defs
 
-install: all install_incl
-	install -d $(BCCHOME)
-	install -d $(LIBDIR)/$(LIB_CPU)
-	install -m 644 crt0.o $(LIBDIR)/$(LIB_CPU)
-	install -m 644 $(LIBC) $(LIBDIR)/$(LIB_CPU)
-	-install -d $(DIST)/usr/lib
-	-install -m 644 error/liberror.txt $(DIST)/usr/lib/liberror.txt
+CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 
-# I've changed this so it'll be easier to make a binary dist.
-old_install_incl:
-	rm -rf $(BCCHOME)/include
-	ln -s $(TOPDIR)/libc/include $(BCCHOME)/include
+############################################################################
+
+MAKEPASS=	\
+         LIBC='$(LIBC)' CC='$(CC)' ARCH='$(ARCH)' CCFLAGS='$(CCFLAGS)'	\
+         DEFS='$(DEFS)' LIB_CPU='$(LIB_CPU)' LIB_OS='$(LIB_OS)' \
+
+
+all: $(OBJ) $(LIBC)
+	@:
+
+$(LIBC): transfer .config.dir
+	@for i in `cat .config.dir` ; do \
+	   $(MAKE) $(MAKEPASS) -C $$i all || exit 1 ; \
+	done
+
+crt3.o: crt0.c Makefile
+	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VER)"' -o $@ crt0.c
+
+crt0.o: crt0.c Makefile
+	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VER)"' -o $@ crt0.c
+
+crtX.o:
+	@echo "You need to define the 'PLATFORM=...' variable"
+	@exit 1
+
+############################################################################
+
+transfer: .config.dir
+	@for i in `cat .config.dir`; do \
+	   grep -s '^transfer' $$i/Makefile && $(MAKE) -s -C $$i $@ ; \
+	done ; echo -n
+	@[ -f kinclude/Used ] || \
+	{ rm -f include/linuxmt ; \
+	  ln -s $(ELKSSRC)/include/linuxmt include ; }
+
+############################################################################
+
+realclean: clean noconfig
+
+clean:
+	rm -f *.o *.a
+	@for i in */Makefile ; do \
+	   $(MAKE) -C `dirname $$i` $@ || exit 1 ; \
+	done
+
+############################################################################
 
 install_incl:
 	rm -rf $(BCCHOME)/include
@@ -38,66 +80,22 @@ install_incl:
 	-chown -R root:root   $(BCCHOME)/include 2>/dev/null
 	-chmod -R u=rwX,og=rX $(BCCHOME)/include
 
-tests: dummy
-	$(MAKE) -C tests
+############################################################################
 
-dummy:
-
-$(LIBC): transfer .config.dir
-	@for i in `cat .config.dir` ; do \
-	   echo $(MAKE) -C $$i libc.a ; $(MAKE) -C $$i libc.a || exit 1 ; \
-	done
-
-transfer: .config.dir
-	@echo Checking for transfers
-	@for i in `cat .config.dir`; do \
-	   grep -q '^transfer' $$i/Makefile && $(MAKE) -s -C $$i $@ ; \
-	done ; echo -n
-	@[ -f kinclude/Used ] || \
-	{ rm -f include/linuxmt ; \
-	  ln -s $(ELKSSRC)/include/linuxmt include ; }
-
-realclean: noconfig clean dellib
-
-clean:
-	rm -f $(OBJ) $(LIBC)
-	@for i in */Makefile ; do \
-	   $(MAKE) -C `dirname $$i` $@ || exit 1 ; \
-	done
-
-dellib:
-	rm -f *.a
-
-##############################################################################
-
-.config.lst: Makefile Make.defs Config_sh
+config: 
 	sh Config_sh
-	
-config:
-	sh Config_sh
-
-noconfig:
-	rm -f .config.dir .config.lst .config.otype
 
 .config.dir: .config.lst
-	@grep '^[^:]*:+:' < .config.lst | sed 's/:.*//' > .config.dir
+	@grep '^[^:]*:+:' < .config.lst | sed 's/:.*//' > .config.tmp
+	@mv -f .config.tmp .config.dir
 
-.config.otype: dummy
-	@[ -f .config.otype ] || echo $(PLATFORM) > .config.otype
-	@[ "$(PLATFORM)" = "`cat .config.otype `" ] || $(MAKE) -$(MAKEFLAGS) clean
-	@rm -f .config.otype
-	@echo $(PLATFORM) > .config.otype
+.config.lst: Config_sh
+	sh Config_sh
+	
+noconfig:
+	rm -f .config.dir .config.lst .config.tmp
 
-dist: clean
-	-rm -f include/linuxmt
-	tar cf temp.tar \
-		$(TXT) $(SRC) include \
-		`for i in */Makefile */Config; do dirname $$i; done | sort -u`
-	rm -rf libc-$(VER)
-	mkdir libc-$(VER) ; cd libc-$(VER) ; tar xf ../temp.tar
-	tar czf libc-8086-$(VER).tar.gz libc-$(VER)
-	rm -rf libc-$(VER) temp.tar
+############################################################################
 
-dist_ver: dist
-	mv libc-8086-$(VER).tar.gz ..
+Libc_version:
 	echo $(VER) > ../Libc_version

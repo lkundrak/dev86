@@ -8,6 +8,9 @@ setjmp(env)
 jmp_buf env;
 {
 #asm
+export __setjmp
+__setjmp:
+
   pop	cx		! PC
 #if __FIRST_ARG_IN_AX__
   mov	bx,ax
@@ -31,6 +34,9 @@ jmp_buf env;
 int rv;
 {
 #asm
+export __longjmp
+__longjmp:
+
   pop	cx	! pc
 #if __FIRST_ARG_IN_AX__
   mov	bx,ax	! env->

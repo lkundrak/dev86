@@ -3,20 +3,13 @@
 # $Id$
 #
 
-ifneq ($(TOPDIR),)
-include $(TOPDIR)/Make.defs
-BCCDEFS	=-DLOCALPREFIX="\"$(BCCROOT)\"" -DDEFARCH=0
-else
+PREFIX=/usr
+
 CFLAGS	=-O
 LDFLAGS	=-s
 BINDIR	=/usr/bin
 LIBDIR	=/usr/lib/bcc
-BCCDEFS	=-DLOCALPREFIX="\"/usr\"" -DDEFARCH=0
-endif
-
-ifeq ($(CC),bcc)
-CFLAGS=-Mf
-endif
+BCCDEFS	=-DLOCALPREFIX=$(PREFIX) -DDEFARCH=0
 
 OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \
 	function.o gencode.o genloads.o glogcode.o hardop.o input.o label.o \
@@ -34,6 +27,9 @@ install: all
 bcc: bcc.c
 	$(CC) -ansi $(CFLAGS) $(BCCDEFS) $(LDFLAGS) bcc.c -o $@
 
+ncc: bcc.c
+	$(CC) -ansi $(CFLAGS) -DL_TREE -DDEFARCH=0 $(LDFLAGS) bcc.c -o $@
+
 bcc09: bcc.c
 	$(CC) -ansi $(CFLAGS) -DMC6809 $(BCCDEFS) $(LDFLAGS) bcc.c -o $@
 
@@ -43,8 +39,8 @@ ccc: bcc.c
 bcc-cc1: $(OBJS)
 	$(CC) $(LDFLAGS) $(OBJS) -o bcc-cc1
 
-clean:
-	rm -f bcc bcc-cc1 bcc09 ccc bcc.o $(OBJS)
+clean realclean:
+	rm -f bcc bcc-cc1 ncc bcc09 ccc bcc.o $(OBJS)
 
 
 $(OBJS): align.h byteord.h condcode.h const.h gencode.h input.h label.h os.h \

@@ -50,11 +50,10 @@ unsigned newseg;
        moved += lump;
    }
 
-   /* re-link int 0x80
-   __set_es(0);
-   __doke_es(0x80*4+2, newseg);
-   __set_es(es);
-   */
+   /* re-link int 0x80, this one is only an example (used by 'standalone.c') */
+   /*
+      __set_es(0); __doke_es(0x80*4+2, newseg); __set_es(es);
+    */
 
    /* The actual jump ... */
    memseg = newseg;

@@ -26,6 +26,8 @@ defarg:
   .word boot_str, 0
 boot_str:
   .asciz "boot"
+loop_save:
+  .word 0
 
   .text
 export ___cstartup	! Crt0 startup
@@ -54,15 +56,17 @@ zap_bss:		! Clear the BSS
   mov	ax,#1
   push	ax
 
-  mov	si,#auto_start	! Pointer to first autostart function
+  mov	bx,#auto_start	! Pointer to first autostart function
 auto_run:
-  mov	bx,[si]
+  mov	[loop_save],bx
+  mov	bx,[bx]
   test	bx,bx
   jz	no_entry
   call	bx		! Call the function
 no_entry:
-  inc	si		! SI at next
-  inc	si
+  mov	bx,[loop_save]
+  inc	bx		! next
+  inc	bx
   jmp	auto_run	! And round for the next.
 
 call_exit:		! Last item called by above.
