@@ -6,7 +6,7 @@ MAN1DIR=$(MANDIR)/man1
 all:
 
 install:
-	install -m 755 -o man -g other -d $(MAN1DIR)
-	install -m 644 -o man -g other    $(MAN1PG) $(MAN1DIR)
+	install -m 755 -d $(MAN1DIR)
+	install -m 644    $(MAN1PG) $(MAN1DIR)
 
 clean:

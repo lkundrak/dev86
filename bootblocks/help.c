@@ -5,8 +5,7 @@
  * previous and next page.
  */
 
-#include <stdio.h>
-#include "readfs.h"
+#include "monitor.h"
 
 struct keys {
    int key;

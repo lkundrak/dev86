@@ -27,14 +27,15 @@ install: ld86
 	install -d $(LIBDIR)
 	install -m 755 ld86 $(LIBDIR)
 
-clean realclean:
+clean realclean clobber:
 	rm -f *.o ld86 ld86r objchop catimage objdump86
 
 $(OBJS): align.h ar.h bindef.h byteord.h config.h const.h globvar.h obj.h \
 	 syshead.h type.h x86_aout.h
 
 ar.h:
-	ln -s ../libc/include/ar.h . || \
+	[ -f ar.h ] || \
+	{ rm -f ar.h ; ln -s ../libc/include/ar.h . ; } || \
 	ln ../libc/include/ar.h .
 
 writebin.o: writebin.c

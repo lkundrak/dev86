@@ -1,7 +1,5 @@
 
-#include <stdio.h>
-#include <dos.h>
-#include "readfs.h"
+#include "monitor.h"
 
 #define HEADER_SIZE	512
 #define NAME_SIZE	100
@@ -37,10 +35,6 @@ int  valid_tar_checksum();
 void tar_set_drive();
 
 static int disk_size = 0;
-
-#ifdef __STANDALONE__
-extern union REGS __argr;
-#endif
 
 struct tx {
    char name[NAME_SIZE];

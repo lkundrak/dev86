@@ -1,7 +1,7 @@
 
-#ifdef __ELKS__
+#include "monitor.h"
 
-#include <stdio.h>
+#ifdef __ELKS__
 
 bios_khit() {
    return 0;
@@ -31,11 +31,16 @@ extern long lseek();
    int rv = 0;
    long offset;
    int i;
+extern int disk_spt;
+   int spt = 18;
 
    if( phy_fd == -1 ) open_fd();
    if( phy_fd <  0  ) return -1;
+   if( len <= 0 ) return -1;
 
-   offset = (((cyl*2 + head)*18L + sect-1)*512L);
+   if( disk_spt > 1 ) spt = disk_spt;
+
+   offset = (((cyl*2 + head)*(long)spt + sect-1)*512L);
 
    fprintf(stderr, "PHY_READ(d%d, c%d, h%d, s%d, l%d, b%d) (Sect=%ld)\n",
        drive, cyl, head, sect, len, buffer, offset/512);

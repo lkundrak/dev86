@@ -10,9 +10,10 @@ TARGETS= \
     config other tests dis88 doselks bootblocks ld86r
 
 ELKSSRC= /usr/src/elks
-PREFIX=	 /usr/bcc
-BINDIR=	 /usr/bin
-LIBDIR=  $(PREFIX)/lib/bcc
+PREFIX=  /usr
+LIBPRE=  $(PREFIX)/bcc
+BINDIR=	 $(PREFIX)/bin
+LIBDIR=  $(LIBPRE)/lib/bcc
 CFLAGS=  -O
 
 # Some makes take the last of a list as the default ...
@@ -34,7 +35,9 @@ realclean:
 
 make.fil: ifdef makefile.in
 	./ifdef -MU makefile.in >tmp.mak
-	sed -e "s:%PREFIX%:$(PREFIX):" \
+	sed \
+	    -e "s:%PREFIX%:$(PREFIX):" \
+	    -e "s:%LIBPRE%:$(LIBPRE):" \
 	    -e "s:%BINDIR%:$(BINDIR):" \
 	    -e "s:%LIBDIR%:$(LIBDIR):" \
 	    -e "s:%ELKSSRC%:$(ELKSSRC):" \
@@ -87,6 +90,13 @@ distribution:
 	tar cf Dist/as86-$$VER.tar `find as86/* -prune -type f`		&&\
 	rm as86/as86.1 as86
 	gzip -f9 /tmp/Dist/as86-*.tar &
+
+	cd /tmp/linux-86						&&\
+	VER=`cat Libc_version`						&&\
+	make -C bin86 grab						&&\
+	tar cf /tmp/Dist/bin86-$$VER.tar bin86				&&\
+	make -C bin86 ungrab
+	gzip -f9 /tmp/Dist/bin86-*.tar &
 
 	cd /tmp 							&&\
 	VER=`cat linux-86/Libc_version`					&&\

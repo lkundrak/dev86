@@ -27,7 +27,7 @@ install: all
 	install -m 755 as86_encap $(BINDIR)/as86_encap
 	-@rm -f tmp
 
-clean realclean:
+clean realclean clobber:
 	rm -f *.o as86 as86_encap
 
 as.o: const.h type.h byteord.h macro.h file.h flag.h globvar.h

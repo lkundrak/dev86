@@ -4,12 +4,13 @@
 #
 
 PREFIX=/usr
+LIBPRE=$(PREFIX)
 
 CFLAGS	=-O
 LDFLAGS	=-s
-BINDIR	=/usr/bin
-LIBDIR	=/usr/lib/bcc
-BCCDEFS	=-DLOCALPREFIX=$(PREFIX) -DBINDIR=$(BINDIR) -DDEFARCH=0
+BINDIR	=$(PREFIX)/bin
+LIBDIR	=$(LIBPRE)/lib/bcc
+BCCDEFS	=-DLOCALPREFIX=$(LIBPRE) -DBINDIR=$(BINDIR) -DDEFARCH=0
 
 OBJS = bcc-cc1.o codefrag.o debug.o declare.o express.o exptree.o floatop.o \
 	function.o gencode.o genloads.o glogcode.o hardop.o input.o label.o \

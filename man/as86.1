@@ -214,8 +214,10 @@ Set current segment. These can be preceded by the keyword
 .B .SECT
 .TP
 .B LOC
-Set numeric segment 0=TEXT, 3=DATA,ROM,BSS, 15=MAX. Only segment zero is
-in the text segment, all others are data.
+Set numeric segment 0=TEXT, 3=DATA,ROM,BSS, 14=MAX. 
+The segment order set by the linker is now 0,4,5,6,7,8,9,A,B,C,D,E,1,2,3.
+Segment 0 and all segments above 3 are assumed to be text segment.
+Note the 64k size restrictions are not imposed for segments 3-14.
 .P
 Label type definition
 .TP

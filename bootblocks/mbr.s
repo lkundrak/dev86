@@ -180,14 +180,11 @@ pre_boot_table:
  endif
 
  if diskman
-  if *>ORGADDR+0xfc
-   fail! Disk manager partition overlap
-  endif
 
   org ORGADDR+0xFC
 public diskman_magic
 diskman_magic:
-  .word $55AA
+  .word 0xAA55
 low_partition:
 public partition_16
 partition_16 = low_partition+0x00

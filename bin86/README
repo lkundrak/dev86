@@ -1,0 +1,27 @@
+
+This is a simple assember and linker for 8086 - 80386 machine code.
+There have been a large number of changes since bin86-0.4 so I strongly
+suggest you read the manpages.
+
+To install:
+   make PREFIX=/usr install
+or
+   make PREFIX=/usr/local install
+
+This version has been tested under Linux, older versions were also tested
+and working under SunOS and AIX.
+
+-------------
+
+This is based on the as86 and ld86 distribution written by Bruce Evans.
+Bruce has released this under the GPL and the changes I've made are 
+also under the same license
+
+The BCC components that were distributed in this package are now in
+the dev86 package along with a working C compiler and libc for 8086
+ELKS, DOS and standalone code.
+
+The most recent address I have for Bruce is <bde@FreeBSD.org>
+
+Robert de Bath		<rdebath@poboxes.com>
+1998/7/31

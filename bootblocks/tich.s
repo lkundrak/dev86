@@ -35,4 +35,4 @@ mesg:
 emesg:
 
 org 510
- .word 0xAA55
+ .word 0

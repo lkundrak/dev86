@@ -1,10 +1,9 @@
 
-#include <stdio.h>
-#include <ctype.h>
-#include <malloc.h>
-#include "readfs.h"
+#include "monitor.h"
 
-#define DONT_BUFFER_FAT
+#ifdef MINI_BUF
+#define BUFFER_FAT
+#endif
 
 #define DOS_SECT(P)        get_uint(P,0x0B)
 #define DOS_CLUST(P)       get_byte(P,0x0D)
@@ -28,7 +27,7 @@
 
 static int read_bootblock();
 static int dir_nentry, dir_sect;
-static int dos_clust0, dos_spc, dos_fatpos;
+static int dos_clust0, dos_spc, dos_fatpos, dos_fatlen;
 static int last_serial = 0;
 
 #ifdef BUFFER_FAT
@@ -87,22 +86,17 @@ char * fname;
    memset(&cur_file, '\0', sizeof(cur_file));
 
 #ifdef BUFFER_FAT
-   s = read_sector(0);
-
    if( !dodir )
    {
       /* Read in and buffer the FAT */
       if( fat_buf ) free(fat_buf);
-      fat_buf = malloc(DOS_FATLEN(s) * 512);
+      fat_buf = malloc(dos_fatlen * 512);
       if( fat_buf == 0 ) return -1;
       else
       {
-	 int fatsec = DOS_RESV(s);
-	 int nsec = DOS_FATLEN(s);
-
-	 for(i=0; i<nsec; i++)
+	 for(i=0; i<dos_fatlen; i++)
 	 {
-	    s = read_sector(fatsec+i);
+	    s = read_sector(dos_fatpos+i);
 	    if(s == 0) return -1;
 	    memcpy(fat_buf+i*512, s, 512);
 	 }
@@ -118,6 +112,9 @@ char * fname;
       d = s + (i%16)*32;
       if( dodir )
       {
+#ifdef NOCOMMAND
+         break;
+#else
          char dtime[20];
 	 char lbuf[90];
 	 *lbuf = 0;
@@ -143,6 +140,7 @@ char * fname;
 	    break;
 	 }
 	 if( more_strn(lbuf, sizeof(lbuf)) < 0 ) break;
+#endif
       }
       else if( memcmp(d, conv_name, 11) == 0 && (d[11]&0x18) == 0 )
       { /* Name matches and is normal file */
@@ -303,6 +301,7 @@ static int read_bootblock()
    dir_nentry = DOS_NROOT(sptr);
 
    dos_fatpos = DOS_RESV(sptr);
+   dos_fatlen = DOS_FATLEN(sptr);
    dos_spc = DOS_CLUST(sptr);
    if( dos_spc < 1 ) dos_spc = 1;
    dos_clust0 = dir_sect + (dir_nentry+15)/16 - 2*dos_spc;

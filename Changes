@@ -1,3 +1,40 @@
+For version 0.15.0.
+
+> Altered initial make variables, you only need to modify 'PREFIX=' to allow
+  installs into /usr/local.
+
+> Added bin86-0.... source distribution archive.
+
+> Fixed bug in -t option to as
+
+> Added assembly externals in as86_encap generated code.
+
+> I appear to have bcc generating a consistant set of code fragments for
+  floating point operations. No floating libs though ...
+
+> Added lsys.com to install the dosfs boot sector under dos.
+
+> monitor.out now (finally!) loads zImage files.
+
+> Monitor.out now works with a TAR "filesystem" on a floppy.
+
+> Added two conpile time options (-DTARFLOPPY and -DDOSFLOPPY) for smaller
+  executables to only boot linux-386 from a floppy.
+
+> Makeboot can install the mbr.
+
+> Removed the ELKS specific code from the minixfs loader, added a helper 
+  program to load and relocate ELKS.
+
+> Fixed/avoided some problems with the optimiser breaking hand optimised code.
+
+> I've made some alterations to the header files in an effort to merge the
+  ELKS kernel files with fewer problems.
+
+> Oops, Claudio says that qsort went the wrong way, hmm.
+
+> Added some more library code for MSDOS programs, there's still more to go.
+
 For version 0.14.0.
 
 > Objdump86 utility added, also includes nm86 and size86 that work on

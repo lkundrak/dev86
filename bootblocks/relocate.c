@@ -1,7 +1,5 @@
 
-#include <stdio.h>
-#include <dos.h>
-#include "i86_funcs.h"
+#include "monitor.h"
 
 static unsigned memseg = 0, memlen = 0;
 
@@ -21,10 +19,9 @@ void
 relocator(newseg)
 unsigned newseg;
 {
+#ifdef __STANDALONE__
    unsigned moved, codelen;
    unsigned es      = __get_es();
-
-   if( x86_test ) return;	/* I don't think so! */
 
    /* Where do we start */
    if(memseg == 0)
@@ -90,3 +87,7 @@ unsigned newseg;
 L_x:
    retf
 #endasm
+
+#else
+}
+#endif

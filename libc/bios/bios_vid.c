@@ -108,6 +108,7 @@ static int vidcnt = 0;
 static int ansi_2 = 0;
 static int ansi_argc = 0;
 static int ansi_argv[MAX_ARGS];
+static void do_ansi();
 
 bios_putc(c)
 int c;
@@ -169,6 +170,7 @@ int c;
    }
 }
 
+void 
 do_ansi(ctrl, argc, argv)
 int ctrl, argc, *argv;
 {

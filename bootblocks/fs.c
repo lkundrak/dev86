@@ -1,8 +1,7 @@
 
-#ifdef __ELKS__
-#include <stdio.h>
-#endif
-#include "readfs.h"
+#include "monitor.h"
+
+#ifndef SINGLEFS
 
 int fs_type = 0;
 
@@ -79,3 +78,5 @@ char * buffer;
    }
    return -1;
 }
+
+#endif

@@ -22,6 +22,10 @@ unsigned char buffer[1024];
 #define FS_ZERO 5	/* Boot sector must be Zapped */
 #define FS_MBR  6	/* Boot sector is an MBR */
 
+#ifndef __MSDOS__
+#define NOT_HAS_2M20
+#endif
+
 struct bblist {
    char * name;
    char * desc;
@@ -192,6 +196,7 @@ char * diskname;
 #endif
    disktype = 0;
    diskfd = fopen(diskname, "r+");
+   if( diskfd == 0 ) diskfd = fopen(diskname, "r");
    if( diskfd == 0 )
    {
       fprintf(stderr, "Cannot open %s\n", diskname);
@@ -243,6 +248,7 @@ char * loadaddr;
       fprintf(stderr, "Cannot write sector %d\n", sectno);
       return -1;
    }
+   printf("Wrote sector %d\n", sectno);
    return 0;
 }
 
@@ -649,9 +655,17 @@ check_msdos()
                 ( dosflds[DOS_MEDIA].value != (0xFF&buffer[512])
                && dosflds[DOS_RESV].value == 1 ) )
 	 {
-            printf("Bad 2nd boot block - reloading first\n");
-            if( read_sector(0, buffer) != 0 )
-               exit(1);
+	    if( force )
+	    {
+               printf("Bad 2nd boot block - reloading first\n");
+               if( read_sector(0, buffer) != 0 )
+                  exit(1);
+	    }
+	    else
+	    {
+               printf("Bad 2nd boot block\n");
+	       exit(1);
+	    }
 	 }
          check_msdos();
       }
@@ -734,6 +748,8 @@ char * mbr_data;
 }
 
 /**************************************************************************/
+
+#ifdef HAS_2M20
 
 char boot_sector_2m_23_82[] = {
 0xe9,0x7d,0x00,0x32,0x4d,0x2d,0x53,0x54,0x56,0x30,0x34,0x00,0x02,0x01,0x01,0x00,
@@ -968,21 +984,28 @@ char program_2m_vsn_20[] = {
 0x26,0x88,0x26,0x43,0x00,0xbf,0xfc,0x09,0xbe,0x4c,0x00,0xfc,0xfa,0xa5,0xa5,0xc7,
 0x44,0xfc,0x5b,0x00,0x8c,0x44,0xfe,0xfb,0x1f,0xcb,0x00,0x00,0xd9,0x09,0x55,0xaa
 };
+#endif
+
+char program_2m_magic[] = {
+0x2b,0x00,0x43,0x00,0x32,0x30,0x32,0x4d,0x2d,0x53,0x54,0x56,0x00,0x00,0x00,0x00
+};
 
 do_2m_write()
 {
    int i;
+   char * mbr;
 
    if( read_sector(bs_offset+1, buffer+512) != 0 )
       exit(1);
 
-   if( memcmp(buffer+512, program_2m_vsn_20, 16) == 0 )
+   if( memcmp(buffer+512, program_2m_magic, 16) == 0 )
    {
       /* Seems to be properly formatted already */
 
       write_sector(bs_offset, buffer);
       return;
    }
+#ifdef HAS_2M20
    else if( disk_trck != 82 || disk_sect != 22 )
    {
       fprintf(stderr, "To be bootable a 2M disk must be 22 sectors 82 tracks or formatted with 2m20.\n");
@@ -994,10 +1017,13 @@ do_2m_write()
    /* This needs to be altered to allow for the disk format description to
       be copied from the old boot sector */
 
+   if( disk_sect == 23 ) mbr = boot_sector_2m_23_82;
+   else                  mbr = boot_sector_2m_22_82;
+
    for(i=0; i<sysboot_dosfs_stat; i++)
-      buffer[i] = boot_sector_2m_22_82[i];
+      buffer[i] = mbr[i];
    for(i=sysboot_codestart; i<512; i++)
-      buffer[i] = boot_sector_2m_22_82[i];
+      buffer[i] = mbr[i];
 
    write_sector(0, buffer);
 
@@ -1005,4 +1031,8 @@ do_2m_write()
    {
       write_sector(bs_offset+i/512+1, program_2m_vsn_20+i);
    }
+#else
+   fprintf(stderr, "To be bootable a 2M disk must be formatted with the 2m20 device driver.\n");
+   exit(1);
+#endif
 }

@@ -4,10 +4,11 @@ HOSTCCFLAGS=-O
 BCC=bcc
 
 CC=$(BCC)
-CFLAGS=-ansi -Ms -Oi -O -s
+CFLAGS=-ansi -Ms -Oi -O -s $(MONDEFS)
 # CFLAGS=-ansi -Ms
 ASFLAGS=-0 -w
-MDEFS=-DDOTS
+MINIXDEFS=-DDOTS
+MONDEFS=
 # LST=-l $*.lst
 # CLST=-A-l -A$*.lst
 
@@ -23,46 +24,49 @@ SSRC=sysboot.s \
 encap: $(SSRC:s=v) $(CSRC:c=v) minixhd.v
 bin: $(SSRC:s=bin) $(CSRC:c=bin) minixhd.bin
 
-MOBJ=monitor.o i86_funcs.o relocate.o help.o bzimage.o trk_buf.o unix.o \
-     fs.o fs_tar.o fs_min.o fs_dos.o
-MSRC=monitor.c i86_funcs.c relocate.c help.c bzimage.c trk_buf.c unix.c \
-     fs.c fs_tar.c fs_min.c fs_dos.c
-MINC=i86_funcs.h readfs.h
+MOBJ=monitor.o commands.o i86_funcs.o relocate.o help.o bzimage.o \
+     trk_buf.o min_buf.o unix.o fs.o fs_tar.o fs_min.o fs_dos.o
+MSRC=monitor.c commands.c i86_funcs.c relocate.c help.c bzimage.c \
+     trk_buf.c min_buf.c unix.c fs.c fs_tar.c fs_min.c fs_dos.c
+MINC=i86_funcs.h readfs.h monitor.h
 
 BOOTBLOCKS=sysboot.v noboot.v skip.v msdos.v tarboot.v minix.v minixhd.v mbr.v
 
 EXTRAS=minix.h elf_info.c elf_info.h standalone.c li86.s \
-       zimage.s minix_elks.c crc.c
+       zimage.s minix_elks.c crc.c lsys.c
 
 install:
 
 monitor.out: $(MOBJ)
-	$(CC) $(CFLAGS) -H0x10000 $(MOBJ) -o monitor.out
+	$(CC) $(CFLAGS) -H0x10000 $(MOBJ) -o monitor.out -M > monitor.sym
 
 $(MOBJ): $(MINC) version.h
 
 monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=-ansi -H0x8000' monitor.out
+	make 'CFLAGS=-ansi -H0x8000 $(MONDEFS)' monitor.out
 	mv monitor.out monitor
 	@rm -f $(MOBJ)
 
 bzimage.o: bzimage.c zimage.v
 
 minix.s: minix.c Makefile
-	$(BCC) -Mf -O -DTRY_FLOPPY $(MDEFS) -S minix.c
+	$(BCC) -Mf -O -DTRY_FLOPPY $(MINIXDEFS) -S minix.c
 
 minix_elks.s: minix_elks.c Makefile minix.v
-	$(BCC) -Mf -O $(MDEFS) -S minix_elks.c
+	$(BCC) -Mf -O $(MINIXDEFS) -S minix_elks.c
 
 minixhd.s: minix.c Makefile
-	$(BCC) -Mf -O -DHARDDISK $(MDEFS) -S minix.c -o minixhd.s
+	$(BCC) -Mf -O -DHARDDISK $(MINIXDEFS) -S minix.c -o minixhd.s
 
 makeboot:	makeboot.c $(BOOTBLOCKS)
 	$(HOSTCC) $(HOSTCCFLAGS) -o makeboot makeboot.c
 
 makeboot.com:	makeboot.c $(BOOTBLOCKS)
-	$(BCC) -Md -o makeboot.com makeboot.c
+	$(BCC) -Md -O -o makeboot.com makeboot.c
+
+lsys.com:	lsys.c msdos.v
+	$(BCC) -Md -O -o lsys.com lsys.c
 
 version.h:
 	head -1 ../Libc_version | \

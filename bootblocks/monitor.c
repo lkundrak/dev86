@@ -1,22 +1,15 @@
 
-#include <stdio.h>
-#include <errno.h>
-#include <ctype.h>
-#include <dos.h>
-#include "i86_funcs.h"
-#include "readfs.h"
+#include "monitor.h"
 #include "version.h"
-
-#ifdef __STANDALONE__
-#define NOT_VT52COLOUR
-#define NOT_ANSICOLOUR
-#endif
 
 char command_buf[256];
 
 typedef int (*proc)();
 
-int cmd_quit(), cmd_dump(), cmd_seg(), cmd_rel();
+int cmd_quit(), cmd_dump(), cmd_seg(), cmd_rel(), cmd_bzimage(), cmd_help();
+int cmd_nop(), cmd_memdump(), cmd_set_base(), cmd_dir(), cmd_type(), cmd_more();
+int cmd_regs();
+
 void init_prog();
 
 extern struct t_cmd_list {
@@ -24,19 +17,10 @@ extern struct t_cmd_list {
    proc func;
 } cmd_list[];
 
-static unsigned int current_address;
-static int number_base = 16;
-#ifdef __STANDALONE__
-   extern union REGS __argr;
-#endif
+unsigned int current_address;
+int number_base = 16;
 
-#ifdef __STANDALONE__
 main()
-#else
-main(argc, argv)
-int   argc;
-char ** argv;
-#endif
 {
 static char minibuf[2] = " ";
    int   ch, i;
@@ -45,11 +29,11 @@ static char minibuf[2] = " ";
 
 #ifdef __STANDALONE__
    printf("\r");
-#else
-   if( argc > 1 && strcmp(argv[1], "-t") == 0 ) x86_test=0; else x86_test=1;
 #endif
 
    init_prog();
+#ifdef __STANDALONE__
+#ifndef NOCOMMAND
    if( __get_ds() != 0x1000 )
    {
       relocator(-1);
@@ -57,27 +41,26 @@ static char minibuf[2] = " ";
       if( __get_ds() > 0x1000 ) relocator(2);
       printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
    }
+#endif
 
-#ifdef __STANDALONE__
    if( (__argr.x.dx & 0xFF) == 0 )
 #endif
    {
       display_help(0);
-
+#ifndef NOCOMMAND
       if( x86 > 2 && !x86_emu )	/* Check some basics */
-         cmd_bzimage((void*)0);
-#if 0
-      else
-         printf("System is not an 80386 compatible in real mode, load aborted.\nUse 'bzimage' command to attempt load.\n");
 #endif
+         cmd_bzimage((void*)0);
    }
 
+#ifdef NOCOMMAND
+   printf("Unable to boot, sorry\nreboot:");
+   fflush(stdout);
+   read(0, command_buf, sizeof(command_buf)-1) ;
+#else
    for (;;)
    {
-#ifdef ANSICOLOUR
-      printf("\033[36m");
-#endif
-#ifdef VT52COLOUR
+#ifdef COLOUR
       printf("\033S \033R+\033Sa\033Rc");
 #endif
       printf(">");
@@ -120,10 +103,7 @@ static char minibuf[2] = " ";
          if( strcmp(cptr->command, cmd) == 0 )
 	    break;
       }
-#ifdef ANSICOLOUR
-      printf("\033[37m");
-#endif
-#ifdef VT52COLOUR
+#ifdef COLOUR
       printf("\033S \033Sa\033Rg");
 #endif
       fflush(stdout);
@@ -132,23 +112,34 @@ static char minibuf[2] = " ";
       else
          printf("Command not found.\n");
    }
+#endif
 }
 
 /****************************************************************************/
 
 void init_prog()
 {
-#ifdef ANSICOLOUR
-   printf("\033[H\033[0;44;37m\033[2J");
-#endif
-#ifdef VT52COLOUR
+#ifdef COLOUR
    printf("\033E\033Rg\033Sa\033J");
 #endif
-#ifdef VERSION
-   printf("Linux x86 boot monitor, Version %s.\n", VERSION);
+   printf("Linux x86");
+#ifdef NOCOMMAND
+#ifdef TARFLOPPY
+   printf(" TAR floppy booter");
 #else
-   printf("Linux x86 boot monitor.\n");
+#ifdef DOSFLOPPY
+   printf(" DOS floppy booter");
+#else
+   printf(" floppy booter");
 #endif
+#endif
+#else
+   printf(" boot monitor");
+#endif
+#ifdef VERSION
+   printf(", Version %s", VERSION);
+#endif
+   printf(".\n");
 
    cpu_check();
    mem_check();
@@ -156,7 +147,7 @@ void init_prog()
    printf("Processor: %s", x86_name);
    if(x86_fpu) printf(" with FPU");
    if(x86_emu) printf(" in protected mode");
-   if(!x86_test && x86 > 1)
+   if(x86 > 1)
    {
       printf(", A20 gate ");
       if( a20_closed() )
@@ -174,40 +165,14 @@ void init_prog()
    printf("There is %dk of boot memory", boot_mem_top/64);
    if( main_mem_top )
    {
-      printf(" %ld.%ldM %sof main memory",
-	      main_mem_top/1024,
-	      (10*main_mem_top)/1024%10,
+      printf(" %d.%dM %sof main memory",
+	      (int)(main_mem_top/1024),
+	      (int)((10*main_mem_top)/1024%10),
               main_mem_top >= 0xFC00L ?"(perhaps more) ":""
 	      );
    }
    printf("\n");
 }
-
-#ifdef __STANDALONE__
-reg_line()
-{
-   printf("REGS: AX=%04x BX=%04x CX=%04x DX=%04x SI=%04x DI=%04x\n",
-	  __argr.x.ax, __argr.x.bx, __argr.x.cx, __argr.x.dx,
-	  __argr.x.si, __argr.x.di);
-}
-#endif
-
-#ifdef VT52COLOUR
-colour_line()
-{
-   printf("Colours: \033S  ");
-   printf("\033R_UNL\033S  ");
-   printf("\033R*BLK\033S  ");
-   printf("\033R+BLD\033S  ");
-   printf("\033R!REV\033S  ");
-   printf("\033Sa\033Rg ");
-   printf("\033R@@\033Raa\033Rbb\033Rcc\033Rdd\033Ree\033Rff\033Rgg");
-   printf("\033Rhh\033Rii\033Rjj\033Rkk\033Rll\033Rmm\033Rnn\033Roo");
-   printf("\033Sa\033Rg\n");
-
-   printf("\033S \033Sa\033Rg");
-}
-#endif
 
 /****************************************************************************/
 
@@ -264,216 +229,25 @@ unsigned int * valptr;
    return flg;
 }
 
-more_char(ch)
-int ch;
-{
-static int line_number = 0;
-
-   if( ch == -1 ) { line_number = 0; return 0; }
-
-   if( (ch & 0xE0 ) || ch == '\n' )
-      putchar(ch);
-   if( ch == '\n' && ++line_number == 24)
-   {
-      char buf[4];
-      printf("More ?"); fflush(stdout);
-      if( read(0, buf, 1) <= 0 )            return -1;
-      if( buf[0] == 3 || buf[0] == '\033'
-       || buf[0] == 'q' || buf[0] == 'Q' )  return -1;
-      if( buf[0] == '\r' ) line_number--;
-      if( buf[0] == ' ' ) line_number=2;
-      printf("\r      \r");
-   }
-   return 0;
-}
-
-more_strn(str, len)
-char * str;
-int len;
-{
-   for(; len>0 && *str ; len--,str++)
-      if( more_char( *str & 0xFF ) < 0 ) return -1;
-   return 0;
-}
-
 /****************************************************************************/
 
-int cmd_quit(args)
-char * args;
-{
-   printf("Bye\n");
-   exit(0);
-}
-
-cmd_memdump(ptr)
-char * ptr;
-{
-   int count = 128;
-   int i,j;
-   int es = __get_es();
-
-#define rmem(x) __peek_es( (x)+current_address )
-
-   getnum(&ptr, &current_address);
-   getnum(&ptr, &count);
-
-   for(i=0; i<count; i+=16)
-   {
-      printf("%04x:%04x:", es, current_address);
-      for(j=0; j<16; j++)
-         printf(" %s%02x", (j==8)?" ":"", rmem(j));
-      printf("  ");
-      for(j=0; j<16; j++)
-	 if( rmem(j) >= ' ' && rmem(j) <= '~' )
-            putchar(rmem(j));
-	 else
-	    putchar('.');
-      putchar('\n');
-      current_address += 16;
-      current_address &= 0xFFFF;
-   }
-
-#undef rmem
-}
-
-int cmd_nop(ptr)
-char * ptr;
-{
-}
-
-int cmd_seg(ptr)
-char * ptr;
-{
-   int es = __get_es();
-
-   if( getnum(&ptr, &es) )
-   {
-      __set_es(es);
-      current_address = 0;
-   }
-   else
-      printf("Current segment 0x%04x\n", es);
-   return 0;
-}
-
-int cmd_set_base(ptr)
-{
-   int obase = number_base;
-   int nbase;
-   number_base = 10;
-
-   if( getnum(&ptr, &nbase) )
-   {
-      if( nbase < 2 || nbase > 36 )
-         printf("Can't use that base\n");
-      else
-         obase = nbase;
-   }
-   else printf("Current base is %d\n", obase);
-
-   number_base = obase;
-   return 0;
-}
-
-int cmd_rel(ptr)
-char * ptr;
-{
-   int nseg = 0xFFFF;
-   int cs = __get_cs();
-
-   getnum(&ptr, &nseg);
-
-   relocator(nseg);
-   if( __get_cs() == cs )
-      printf("Didn't relocate; CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
-   else
-      printf("Relocated to CS=$%04x DS=$%04x\n", __get_cs(), __get_ds());
-}
-
-int cmd_dir(ptr)
-char * ptr;
-{
-   open_file(".");
-   return 0;
-}
-
-int cmd_type(ptr)
-char * ptr;
-{
-   char * fname;
-   char buffer[1024];
-   long len;
-
-   while(*ptr == ' ') ptr++;
-   if( (fname=ptr) == 0 ) return 0;
-   while(*ptr & *ptr != ' ') ptr++;
-
-   if( open_file(fname) >= 0 ) for(len=file_length(); len>0; len-=1024)
-   {
-      if( read_block(buffer) < 0 ) break;
-      if( len > 1024 )
-         write(1, buffer, 1024);
-      else
-         write(1, buffer, len);
-   }
-   else
-      printf("Cannot open file '%s'\n", fname);
-   close_file();
-   return 0;
-}
-
-int cmd_more(ptr)
-char * ptr;
-{
-   char * fname;
-   char buffer[1024];
-   long len;
-   int cc;
-   char * sptr;
-
-   while(*ptr == ' ') ptr++;
-   if( (fname=ptr) == 0 ) return 0;
-   while(*ptr & *ptr != ' ') ptr++;
-
-   more_char(-1);
-
-   if( open_file(fname) >= 0 ) for(len=file_length(); len>0; len-=1024)
-   {
-      if( read_block(buffer) < 0 ) break;
-      if( len > 1024 ) cc = 1024; else cc = len;
-      for(sptr=buffer; cc>0 ; cc--,sptr++)
-      {
-	 if( more_char(*sptr & 0xFF) < 0 ) goto break_break;
-      }
-   }
-   else
-      printf("Cannot open file '%s'\n", fname);
-break_break:;
-   close_file();
-   return 0;
-}
-
-/****************************************************************************/
-
-/* Others */
-extern int cmd_bzimage();
-extern int cmd_help();
-
-/****************************************************************************/
-
+#ifndef NOCOMMAND
 struct t_cmd_list cmd_list[] = 
 {
+   {"zimage", cmd_bzimage}, /* Load and run 386 zimage file */
+   {"bzimage",cmd_bzimage}, /* Load and run 386 bzimage file */
+   {"=",      cmd_bzimage}, /* Load and run 386 bzimage file */
+
    {"exit",   cmd_quit}, {"quit",  cmd_quit}, {"q",  cmd_quit},
    {"#",      cmd_nop},
    {"help",   cmd_help},    /* Display from help.txt */
    {"?",      cmd_help},    /* Display from help.txt */
-   {"zimage", cmd_bzimage}, /* Load and run 386 zimage file */
-   {"bzimage",cmd_bzimage}, /* Load and run 386 bzimage file */
-   {"=",      cmd_bzimage}, /* Load and run 386 bzimage file */
    {"dir",    cmd_dir},     /* Display directory */
    {"cat",    cmd_type},    /* Cat/Type a file to the screen */
+   {"type",   cmd_type},    /* Cat/Type a file to the screen */
    {"more",   cmd_more},    /* More a file to the screen */
 
+#ifndef NOMONITOR
    /* Debugger/monitor commands */
    {"memdump",cmd_memdump}, {"mem",cmd_memdump}, {"m",  cmd_memdump},
                             /* Display bytes */
@@ -482,14 +256,9 @@ struct t_cmd_list cmd_list[] =
    {"base",   cmd_set_base},
    {"n",      cmd_set_base},
 
-#ifdef VT52COLOUR
-   {"colour", colour_line},
-#endif
    {"init",   init_prog},
-#ifdef __STANDALONE__
-   {"reg",    reg_line},
-   {"r",      reg_line},
-#endif
+   {"reg",    cmd_regs},
+   {"r",      cmd_regs},
 
 /*
    {"edit",   cmd_edit},    Alter memory
@@ -505,5 +274,8 @@ struct t_cmd_list cmd_list[] =
 
    {"call",   cmd_call},    load and run a bcc linux-8086 program.
 */
+#endif
+
    {0,0}
 };
+#endif

@@ -1,15 +1,13 @@
 
-#include <stdio.h>
-#include <errno.h>
-#include <dos.h>
-#include "i86_funcs.h"
+#include "monitor.h"
 
 int   x86 = 0;			/* CPU major number */
 char *x86_name = "";		/* and it's name */
 int   x86_emu = 0;		/* Is this a PC emulator ? */
 int   x86_a20_closed = 1;	/* Is the A20 gate closed ? */
-int   x86_test = 0;		/* In test mode */
 int   x86_fpu = 0;
+
+int   x86_test = 0;		/* In test mode */
 
 unsigned boot_mem_top = 0x2000;	/* Default 128k, the minimum */
 long     main_mem_top = 0;	/* K of extended memory */
@@ -17,8 +15,7 @@ long     main_mem_top = 0;	/* K of extended memory */
 int a20_closed()
 {
    register int v, rv = 0;
-   if (x86_test)
-      return 1;			/* If not standalone don't try */
+   if (x86_test) return 1;	/* If not standalone don't try */
 
    __set_es(0);
    v = __peek_es(512);
@@ -36,7 +33,7 @@ int a20_closed()
    return x86_a20_closed = rv;
 }
 
-void open_a20()
+static void asm_open_a20()
 {
 #asm
   call	empty_8042
@@ -53,10 +50,12 @@ empty_8042:
 #endasm
 }
 
+void open_a20() { if(!x86_test) asm_open_a20(); }
+
 /* This calls the BIOS to open the A20 gate, officially this is only supported
    on PS/2s but if the normal routine fails we may as well try this.
  */
-void bios_open_a20()
+void asm_bios_open_a20()
 {
 #asm
   mov	ax,#$2401
@@ -68,6 +67,8 @@ bios_failed_a20:
   xor	ah,ah
 #endasm
 }
+
+void bios_open_a20() { if(!x86_test) asm_bios_open_a20(); }
 
 void cpu_check()
 {
@@ -105,11 +106,22 @@ void cpu_check()
       x86_name = cpubuf;
       if (c & 0x01) x86_emu = 1;	/* Already in protected mode !!! */
    }
+
+#ifdef __STANDALONE__
+   x86_test = x86_emu;
+#else
+   x86_test = 1;
+#endif
 }
 
 void mem_check()
 {
-   if (x86_test) return;	/* If not standalone don't try */
+   if (x86_test) 
+   {
+      main_mem_top = 16384;
+      return;	/* If not standalone don't try */
+   }
+
    {
 #asm
   int	0x12		! Amount of boot memory

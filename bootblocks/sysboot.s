@@ -57,30 +57,25 @@ public bootblock_magic
 
 .blkb sysboot_start+0x1BE-*
 partition_1:
-.byte 0			! IN
-.blkb 7			! SH,SS,ST,OS,EH,ES,ET
+.blkb 8			! IN,SH,SS,ST,OS,EH,ES,ET
 .blkw 2			! Linear position (0 based)
 .blkw 2			! Linear length
 .blkb sysboot_start+0x1CE-*
 partition_2:
-.byte 0			! IN
-.blkb 7			! SH,SS,ST,OS,EH,ES,ET
+.blkb 8			! IN,SH,SS,ST,OS,EH,ES,ET
 .blkw 2			! Linear position (0 based)
 .blkw 2			! Linear length
 .blkb sysboot_start+0x1DE-*
 partition_3:
-.byte 0			! IN
-.blkb 7			! SH,SS,ST,OS,EH,ES,ET
+.blkb 8			! IN,SH,SS,ST,OS,EH,ES,ET
 .blkw 2			! Linear position (0 based)
 .blkw 2			! Linear length
 .blkb sysboot_start+0x1EE-*
 partition_4:
-.byte 0			! IN
-.blkb 7			! SH,SS,ST,OS,EH,ES,ET
+.blkb 8			! IN,SH,SS,ST,OS,EH,ES,ET
 .blkw 2			! Linear position (0 based)
 .blkw 2			! Linear length
 
-bootblock_magic:
 .blkb sysboot_start+0x1FE-*
+bootblock_magic:
 .word 0xAA55
-

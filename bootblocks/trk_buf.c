@@ -1,9 +1,7 @@
 
-#include <stdio.h>
-#include <dos.h>
-#include <ctype.h>
-#include <malloc.h>
-#include "readfs.h"
+#include "monitor.h"
+
+#ifndef MINI_BUF
 
 int disk_drive = 0;
 int disk_spt   = 7;
@@ -273,3 +271,4 @@ func_ok:
 }
 #endif
 
+#endif

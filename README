@@ -10,9 +10,9 @@ Use 'make Uninstall' to remove everything (Beware with this though!)
 Some other bits can be built by 'make other' and installed with
 'make install-other'.
 
-If you don't want it to install some bits in /usr/bin you can override
-the bindir on the first make ie: 'make BINDIR=/usr/local/bin' this
-is remembered until 'make.fil' is rebuilt. 
+If you want it to install under /usr/local instead you can specify
+the prefix on the first make ie: 'make PREFIX=/usr/local' this is
+remembered until 'make.fil' is rebuilt. 
 
 The manual pages in the man subdirectory are matched to these programs,
 there are also some hints for using as86 well.  The tests and bootblocks
@@ -20,10 +20,14 @@ directories give some example code.
 
 The bcc command defaults to using /usr/bcc/include and /usr/bcc/lib/bcc
 the libraries _and_ include files are copied to these locations by
-install.  This can be changed by overriding 'PREFIX=/usr/bcc' or
+install.  This can be changed by overriding 'PREFIX=/usr' or
 'LIBDIR=/usr/bcc/lib/bcc' on the initial make. Also available in the
 same way the 'ELKSSRC=/usr/src/elks' variable can be altered if you
 have ELKS on a different path.
+
+In the unlikely event you're makeing a non-cross development environment
+you can, on the initial make, do "make LIBPRE=/usr' to have the libraries
+and include files directly under /usr rather than /usr/bcc.
 
 All the versions of the library are built by make; 'normal', 'fast',
 'MSDOS', 'standalone' and Linux-i386.

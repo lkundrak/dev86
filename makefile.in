@@ -17,7 +17,7 @@ CC      =%CC%
 CFLAGS	=%CFLAGS%
 LDFLAGS	=
 MAKEARG	=CC='$(CC)' CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' PREFIX=$(PREFIX) \
-         LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' ANSI='$(ANSI)'
+         LIBPRE='$(LIBPRE)' LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' ANSI='$(ANSI)'
 MAKEC=$(MAKE) -C
 MAKEX=
 
@@ -33,7 +33,7 @@ WALL  =-Wstrict-prototypes
 
 CC	=gcc
 #ifdef __i386__
-CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O2 -m486 -fno-strength-reduce -g
+CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O2 -m486 -g
 #else
 CFLAGS	=$(GCCFLAG) -Wall $(WALL) -O6 -g
 #endif
@@ -90,6 +90,7 @@ LIBARGS= CC=ncc CCFLAGS= ARFLAGS=$(ARFLAGS)
 # Season in the top makefile
 ELKSSRC= %ELKSSRC%
 PREFIX=	 %PREFIX%
+LIBPRE=	 %LIBPRE%
 BINDIR=	 %BINDIR%
 LIBDIR=  %LIBDIR%
 
@@ -99,7 +100,7 @@ export ELKSSRC
 
 DISTBIN= $(DIST)$(BINDIR)
 DISTLIB= $(DIST)$(LIBDIR)
-DISTPRE= $(DIST)$(PREFIX)
+DISTPRE= $(DIST)$(LIBPRE)
 
 # Others to install
 OTHERS=  tests dis88 doselks bootblocks
@@ -156,7 +157,7 @@ elksemu: bindir
 #ifndef __AS386_16__
 #ifdef __i386__
 	$(MAKEC) elksemu \
-	CC='$(CC)' PREFIX=$(PREFIX) LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' \
+	CC='$(CC)' PREFIX=$(PREFIX) LIBPRE='$(LIBPRE)' LIBDIR='$(LIBDIR)' BINDIR='$(BINDIR)' \
 	elksemu
 #else
 	$(MAKEC) elksemu CC='ncc' elksemu
@@ -173,8 +174,8 @@ install-ln: bcc unproto copt as86 ld86 elksemu
 #ifndef __AS386_16__
 	ln -fs `pwd`/bin/elksemu 	$(DIST)/lib/elksemu
 #endif
-	install -d $(DIST)/usr/lib
-	install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
+	-install -d $(DIST)/usr/lib
+	-install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
 
 install-bcc: bcc unproto copt as86 ld86 objdump86
 	install -d $(DISTBIN) $(DISTLIB) $(DISTLIB)/i86
@@ -200,7 +201,7 @@ install-emu: elksemu
 #endif
 
 install-man:
-	-$(MAKEC) man MANDIR=$(DIST)/usr/man install
+	-$(MAKEC) man MANDIR=$(DIST)$(PREFIX)/man install
 
 install-lib: lib/lib0-done lib/lib2-done
 	install -d $(DISTLIB)/i86
@@ -208,8 +209,8 @@ install-lib: lib/lib0-done lib/lib2-done
 	install $(INDAT) lib/crt0.o 	$(DISTLIB)/i86/crt0.o
 	install $(INDAT) lib/libc.a 	$(DISTLIB)/i86/libc.a
 	install $(INDAT) lib/libbsd.a	$(DISTLIB)/i86/libbsd.a
-	install -d $(DIST)/usr/lib
-	install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
+	-install -d $(DIST)/usr/lib
+	-install $(INDAT) libc/error/liberror.txt $(DIST)/usr/lib/liberror.txt
 
 install-lib2: lib/lib1-done
 	install -d $(DISTLIB)/i86
@@ -307,7 +308,7 @@ makec:
 
 install-other: phony
 	@for i in $(OTHERS) ; do \
-		$(MAKEC) $$i BCC=ncc DIST=$(DIST) install || exit 1 ; \
+		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) install || exit 1 ; \
 	done
 
 other: $(OTHERS)
