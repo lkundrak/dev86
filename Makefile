@@ -2,7 +2,7 @@
 # This file is part of the Linux-8086 Development environment and is
 # distributed under the GNU General Public License.
 
-VERSION=0.16.4
+VERSION=0.16.5
 
 TARGETS= \
     clean bcc unproto copt as86 ld86 elksemu \
@@ -58,7 +58,8 @@ ifdef.o: ifdef.c
 Uninstall:
 	@# CHECK FROM HERE
 	@make -n Uninstall
-	@echo 'Are you really sure... have you checked this... ^C to interrupt'
+	@echo 'Are you really sure... have you checked this...'
+	@echo "I haven't used this in _years_ ... ^C to interrupt"
 	@read line
 	rm -rf /usr/bcc
 	rm -f $(BINDIR)/bcc $(BINDIR)/as86_encap $(BINDIR)/dis86

@@ -4,6 +4,7 @@
 
 #include "syshead.h"
 #include "x86_aout.h"
+#include "x86_cpm86.h"
 #include "const.h"
 #include "obj.h"
 #include "type.h"
@@ -17,7 +18,7 @@
 #define ELF_SYMS 0
 #endif
 
-#  define FILEHEADERLENGTH (headerless?0:A_MINHDR)
+#  define FILEHEADERLENGTH (headerless?0:(cpm86?CPM86_HEADERLEN:A_MINHDR))
 				/* part of header not counted in offsets */
 #define DPSEG 2
 
@@ -76,6 +77,7 @@ FORWARD void symres P((char *name));
 FORWARD void setseg P((fastin_pt newseg));
 FORWARD void skip P((unsigned countsize));
 FORWARD void writeheader P((void));
+FORWARD void cpm86header P((void));
 FORWARD void writenulls P((bin_off_t count));
 
 EXTERN bool_t reloc_output;
@@ -322,7 +324,8 @@ bool_pt argxsym;
     setsym("__heap_top", (bin_off_t)heap_top_value);
 
     openout(outfilename);
-    writeheader();
+    if (cpm86) cpm86header();
+    else writeheader();
     for (modptr = modfirst; modptr != NUL_PTR; modptr = modptr->modnext)
 	if (modptr->loadflag)
 	{
@@ -597,6 +600,31 @@ PRIVATE void skip(countsize)
 unsigned countsize;
 {
     writenulls((bin_off_t) readsize(countsize));
+}
+
+PRIVATE void cpm86header()
+{
+    struct cpm86_exec header;
+    memset(&header, 0, sizeof header);
+
+    if (sepid)
+    {
+      header.ce_group[0].cg_type = CG_CODE;
+      u2c2(header.ce_group[0].cg_len, (15 + etextpadoff) / 16);
+      u2c2(header.ce_group[0].cg_min, (15 + etextpadoff) / 16);
+      header.ce_group[1].cg_type = CG_DATA;
+      u2c2(header.ce_group[1].cg_len, (15 + edataoffset) / 16);
+      u2c2(header.ce_group[1].cg_min, (15 + endoffset  ) / 16);
+      u2c2(header.ce_group[1].cg_max, 0x1000);
+    }
+    else
+    {
+      header.ce_group[0].cg_type = CG_CODE;
+      u2c2(header.ce_group[0].cg_len, (15 + edataoffset) / 16);
+      u2c2(header.ce_group[0].cg_min, (15 + endoffset  ) / 16);
+    }
+    if( FILEHEADERLENGTH )
+       writeout((char *) &header, FILEHEADERLENGTH);
 }
 
 PRIVATE void writeheader()

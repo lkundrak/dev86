@@ -397,7 +397,12 @@ struct nodestruct *p2;
 	if (target->storage == CONSTANT)
 	{
 	    if (rscalar & CHAR)
+	    {
 		target->offset.offv &= CHMASKTO;
+		if (p2->nodetype == sctype &&
+			target->offset.offv&((~CHMASKTO)>>1))
+		    target->offset.offv |= ~CHMASKTO;
+	    }
 	    else if (rscalar & SHORT)
 	    {
 		target->offset.offv &= shortmaskto;

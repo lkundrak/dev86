@@ -325,6 +325,7 @@ void softop P((op_pt op, struct symstruct *source, struct symstruct *target));
 void compound P((void));
 void outswoffset P((offset_T offset));
 void outswstacklab P((void));
+void doasm P((void));
 
 /* table.c */
 struct symstruct *addglb P((char *name, struct typestruct *type));

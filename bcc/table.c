@@ -30,7 +30,7 @@
 #define MAXEXPR 500
 #endif
 #define MAXLOCAL 100
-#define NKEYWORDS 36
+#define NKEYWORDS 38
 #ifdef NOFLOAT
 #define NSCALTYPES 10
 #else
@@ -117,6 +117,7 @@ PRIVATE struct keywordstruct keywords[NKEYWORDS] =
 
     { "#asm", ASMCNTL, },
     { "#define", DEFINECNTL, },
+    { "#elif", ELIFCNTL, },
     { "#else", ELSECNTL, },
     { "#endasm", ENDASMCNTL, },
     { "#endif", ENDIFCNTL, },
@@ -126,6 +127,7 @@ PRIVATE struct keywordstruct keywords[NKEYWORDS] =
     { "#ifndef", IFNDEFCNTL, },
     { "#line", LINECNTL, },
     { "#undef", UNDEFCNTL, },
+    { "#warning", WARNINGCNTL, },
 
     { "defined", DEFINEDSYM, },	/* should be deactivated except in #if's */
 };

@@ -238,6 +238,7 @@ PUBLIC void include()
 	if (ch == terminator)
 	{
 	    gch1();
+	    blanks();
 	    break;
 	}
 	if (charptr >= chartop)

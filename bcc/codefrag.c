@@ -350,6 +350,7 @@ PUBLIC void sctoi()
     if (i386_32)
     {
 	outmovsx();
+	outaccum();
 	outncregname(BREG);
     }
     else

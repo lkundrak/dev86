@@ -171,6 +171,7 @@ enum scan_states
     INCLUDECNTL,
     LINECNTL,
     UNDEFCNTL,
+    WARNINGCNTL,
 
     ELIFCNTL,			/* "IF" controls must be contiguous */
     ELSECNTL,

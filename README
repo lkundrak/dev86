@@ -1,11 +1,11 @@
 This is a development environment for ELKS-86 and standalone 8086 code.
 
-All you need to do is 'make' from the top directory and the main
-parts of the package will be made. These can be tested by use the 'ncc'
-program from the newly created bin subdirectory.
+All you need to do is 'make' from the top directory and the main parts
+of the package will be made. These can be tested by using the 'ncc'
+program from the newly created bin subdirectory. (ncc is a varient of
+the bcc driver program that doesn't need to be installed to be used).
 
 Use 'make install' to install them.
-Use 'make Uninstall' to remove everything (Beware with this though!)
 
 Some other bits can be built by 'make other' and installed with
 'make install-other'.
@@ -29,6 +29,11 @@ In the unlikely event you're makeing a non-cross development environment
 you can, on the initial make, do "make LIBPRE=/usr' to have the libraries
 and include files directly under /usr rather than /usr/bcc.
 
+Note: These prefix options only effect the 'bcc.c' driver program and
+      the install scripts, all the others get their paths from bcc.c.
+      The ELKSSRC location can, however, greatly effect how the ELKS
+      libraries are built.
+
 All the versions of the library are built by make; 'normal', 'fast',
 'MSDOS', 'standalone' and Linux-i386.
 
@@ -49,7 +54,8 @@ the BSS and Stack can be upto 64k on top of that.
 The 'standalone' version creates executables like normal ELKS a.out
 files but with no operating system calls, just BIOS ones. These 
 files are suitable for running on a bare machine started by one of
-the boot blocks in the bootblocks subdirectory.
+the boot blocks in the bootblocks subdirectory. If you add a '-d'
+option to the link stage the a.out header will be removed.
 
 The Linux-i386 version generates static Linux OMAGIC a.out programs,
 they need neither elksemu nor a.out shared libraries to run. Unfortunatly

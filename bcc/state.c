@@ -72,7 +72,6 @@ FORWARD void doswitch P((void));
 FORWARD void dowhile P((void));
 FORWARD void jumptocases P((void));
 FORWARD void statement P((void));
-FORWARD void doasm P((void));
 
 /* --- utility routines --- */
 
@@ -233,7 +232,7 @@ PUBLIC void compound()		/* have just seen "{" */
     rbrace();
 }
 
-PRIVATE void doasm()
+PUBLIC void doasm()
 {
     if (sym == LPAREN) nextsym();
     if (sym!=STRINGCONST)

@@ -141,6 +141,7 @@ void command_arch P((void));
 void command_opts P((int opykey));
 void newfilename P((struct file_list * file, int last_stage, int new_extn, int use_o));
 void run_unlink P((void));
+void validate_link_opts P((void));
 void append_file P((char * filename, int ftype));
 void append_option P((char * option, int otype));
 void prepend_option P((char * option, int otype));
@@ -200,6 +201,7 @@ char ** argv;
    reset_localprefix();
 #endif
    getargs(argc, argv);
+   validate_link_opts();
 
    default_include = expand_tilde(default_include);
    default_libdir0 = expand_tilde(default_libdir0);
@@ -444,6 +446,60 @@ run_link()
    if (opt_arch != 2) 
       command_opt(libc);
    run_command(0);
+}
+
+void
+validate_link_opt(char * option)
+{
+   int err = 0;
+   if (option[0] != '-') return;
+
+   switch(option[1]) {
+   default:
+	 err = 1;
+      break;
+   case '0':           /* use 16-bit libraries */
+   case '3':           /* use 32-bit libraries */
+   case 'M':           /* print symbols linked */
+   case 'i':           /* separate I & D output */
+   case 'm':           /* print modules linked */
+   case 's':           /* strip symbols */
+   case 't':           /* trace modules linked */
+   case 'z':           /* unmapped zero page */
+   case 'N':           /* Native format a.out */
+   case 'd':           /* Make a headerless outfile */
+   case 'c':           /* Write header in CP/M-86 format */
+   case 'y':           /* Use a newer symbol table */
+      if (option[2] != 0 && option[2] != '-')
+	 err = 1;
+      break;
+   case 'C':           /* startfile name */
+   case 'L':           /* library path */
+   case 'O':           /* library file name */
+   case 'T':           /* text base address */
+   case 'D':           /* data base address */
+   case 'H':           /* heap top address */
+   case 'l':           /* library name */
+   case 'o':           /* output file name */
+      break;
+   }
+   if (err)
+      fprintf(stderr, "warning: linker option %s not unrecognised.\n", option);
+}
+
+void
+validate_link_opts()
+{
+   struct opt_list * ol;
+   struct file_list * next_file;
+   if (opt_arch>1) return; /* Only check ld86 options */
+
+   for(ol=options; ol; ol=ol->next)
+      if (ol->opttype == 'l')
+	 validate_link_opt(ol->opt);
+
+   for(next_file = files; next_file; next_file = next_file->next) 
+      validate_link_opt(next_file->file);
 }
 
 void
@@ -868,6 +924,8 @@ char ** argv;
       opt_x = 1;
       append_option("/lib/crt0.o", 'l');
       break;
+   default:
+      fatal("Unknown model specifier for -M");
    }
 
    if (do_optim)

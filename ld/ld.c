@@ -19,6 +19,7 @@ PUBLIC bin_off_t text_base_value = 0;	/* XXX */
 PUBLIC bin_off_t data_base_value = 0;	/* XXX */
 PUBLIC bin_off_t heap_top_value  = 0;	/* XXX */
 PUBLIC int headerless = 0;
+PUBLIC int cpm86 = 0;
 PUBLIC char hexdigit[] = "0123456789abcdef";
 
 PRIVATE bool_t flag[128];
@@ -123,6 +124,7 @@ char **argv;
 	    case 'z':		/* unmapped zero page */
 	    case 'N':		/* Native format a.out */
 	    case 'd':		/* Make a headerless outfile */
+	    case 'c':		/* Write header in CP/M-86 format */
 	    case 'y':		/* Use a newer symbol table */
 		if (arg[2] == 0)
 		    flag[(int) arg[1]] = TRUE;
@@ -236,6 +238,10 @@ char **argv;
     /* Headerless executables can't use symbols. */
     headerless = flag['d'];
     if( headerless ) flag['s'] = 1;
+
+    /* CP/M-86 executables can't use symbols. */
+    cpm86 = flag['c'];
+    if ( cpm86 ) flag['s'] = 1;
 
     linksyms(flag['r']);
     if (outfilename == NUL_PTR)

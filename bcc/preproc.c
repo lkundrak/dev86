@@ -40,6 +40,7 @@ struct macroposition
     char *paramspot;
     bool_t inparam;
     indn_t nparam;
+    struct symstruct *symptr;
 };
 
 PRIVATE char dummyparam[] = { EOL, 0 };
@@ -51,8 +52,10 @@ PRIVATE struct ifstruct ifstack[MAX_IF];
 PRIVATE struct macroposition macrostack[MAX_MACRO];
 
 FORWARD void asmcontrol P((void));
+FORWARD void warningcntl P((void));
 FORWARD void control P((void));
 FORWARD void defineorundefinestring P((char *str, bool_pt defineflag));
+FORWARD void elifcontrol P((void));
 FORWARD void elsecontrol P((void));
 FORWARD void endif P((void));
 FORWARD fastin_pt getparnames P((void));
@@ -154,6 +157,22 @@ PUBLIC void checknotinif()
     }
 }
 
+
+/* This is a major hack.  It doesn't handle continued lines.
+ * It does let me avoid wrapping warning directives though. */
+PRIVATE void warningcntl()
+{
+    char *s = lineptr;
+
+    while (*lineptr && (*lineptr != EOL)) {
+	++lineptr;
+    }
+    write(2, "warning: #warning", 17);
+    write(2, s, lineptr - s);
+    write(2, "\n", 1);
+    ch = *lineptr;
+}
+
 /* control() - select and switch to control statement */
 
 PRIVATE void control()
@@ -193,7 +212,7 @@ PRIVATE void control()
     }
     ctlcase = symptr->offset.offsym;
     if (ifstate.ifflag == FALSE &&
-	(ctlcase < ELSECNTL || ctlcase > IFNDEFCNTL))
+	(ctlcase < ELIFCNTL || ctlcase > IFNDEFCNTL))
 	return;
     switch (ctlcase)
     {
@@ -208,6 +227,9 @@ PRIVATE void control()
 	break;
     case DEFINECNTL:
 	define();
+	break;
+    case ELIFCNTL:
+	elifcontrol();
 	break;
     case ELSECNTL:
 	elsecontrol();
@@ -235,6 +257,9 @@ PRIVATE void control()
 	{ linecontol(); break; }
     case UNDEFCNTL:
 	undef();
+	break;
+    case WARNINGCNTL:
+	warningcntl();
 	break;
     }
 }
@@ -344,8 +369,12 @@ ts_s_macstring += 2;
 	    {
 		gch1();
 		skipcomment();
+#if 0
 		/* comment is space in modern cpp's but they have '##' too */
 		ch = *--lineptr = ' ';
+#else
+		continue;
+#endif
 	    }
 	}
 #ifdef TS
@@ -364,12 +393,13 @@ ts_s_macstring += 2;
 	     && (--rcp == macstring || *(rcp - 1) != EOL); )
 	    charptr = rcp;
     }
-    if (charptr >= char1top)
-	macstring = growobject(macstring, 2);
+    if (charptr+1 >= char1top)
+	macstring = growobject(macstring, 3);
 #ifdef TS
 ++ts_n_macstring_term;
-ts_s_macstring += 2;
+ts_s_macstring += 3;
 #endif
+    *charptr++ = ' ';	/* Added to prevent tail recursion on expansion */
     *charptr++ = EOL;
     *charptr++ = 0;
     if (nparnames)
@@ -498,6 +528,29 @@ PUBLIC void docontrol()
     }
 }
 
+/* elifcontrol() - process #elif */
+
+PRIVATE void elifcontrol()
+{
+    if (iflevel == 0)
+    {
+	error("elif without if");
+	return;
+    }
+    if (ifstate.elseflag) {
+	register struct ifstruct *ifptr;
+
+	ifptr = &ifstack[(int)--iflevel];
+	ifstate.elseflag = ifptr->elseflag;
+	ifstate.ifflag = ifptr->ifflag;
+
+	ifcontrol(IFCNTL);
+    } else {
+	ifstate.ifflag = ifstate.elseflag;
+	ifstate.elseflag = FALSE;
+    }
+}
+
 /* elsecontrol() - process #else */
 
 PRIVATE void elsecontrol()
@@ -547,6 +600,7 @@ PUBLIC void entermac()
 	return;
     }
     symptr = gsymptr;
+    symptr->name.namea[0] |= 0x80; /* SMUDGE macro definition */
     ngoodparams = 0;
     paramhead = NULL;
     if (symptr->indcount != 0)
@@ -572,6 +626,7 @@ ts_s_macparam_tot += sizeof *paramlist * nparleft;
 	{
 	    if (nparleft > 0)	/* macro has params, doesn't match bare word */
 	    {
+		symptr->name.namea[0] &= 0x7f; /* UnSMUDGE macro definition */
 		outstr(symptr->name.namea);
 		return;
 	    }
@@ -737,6 +792,8 @@ ts_s_macparam_string_tot -= charptr - oldparam;
 	ch = *(lineptr = symptr->offset.offp);
 	mpptr->inparam = FALSE;
 	mpptr->nparam = ngoodparams;
+	mpptr->symptr = symptr;
+	mpptr->symptr->name.namea[0] |= 0x80; /* SMUDGE macro definition */
 	++maclevel;
     }
 /*
@@ -853,6 +910,7 @@ PUBLIC void leavemac()
 	}
 	else
 	{
+	    mpptr->symptr->name.namea[0] &= 0x7F;/* UnSMUDGE macro definition */
 	    ch = *++lineptr;	/* gch1() would mess up next param == EOL-1 */
 	    if (ch != 0)
 	    {

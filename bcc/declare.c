@@ -493,6 +493,10 @@ PRIVATE bool_pt declspec()
 	    ++nunsigned;
 	    nextsym();
 	    break;
+	case ASMSYM:
+	    nextsym();
+	    doasm();
+	    break;
 	default:
 	    goto break2;
 	}
