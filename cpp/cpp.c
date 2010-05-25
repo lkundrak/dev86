@@ -686,8 +686,11 @@ do_preproc()
 	 } else 
 	    no_match=1;
       }
+   } else if (!val) {
+       /* Empty directives used to denote that a file is to be run through
+        * the preprocessor in K&R. Do not complain if we got no token. */
+       no_match=1;
    }
-   else no_match=1;
    
    if( no_match )
    {
