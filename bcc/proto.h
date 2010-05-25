@@ -119,6 +119,11 @@ void rbracket P((void));
 void rparen P((void));
 void semicolon P((void));
 struct typestruct *typename P((void));
+#ifndef VERY_SMALL_MEMORY
+int lastanon P((void));
+void anonname P((char *name, int i));
+void anonstruct P((void));
+#endif
 
 /* express.c */
 struct nodestruct *assignment_exp P((void));
@@ -355,6 +360,9 @@ void outofmemoryerror P((char *message));
 void *qmalloc P((unsigned size));
 void swapsym P((struct symstruct *sym1, struct symstruct *sym2));
 void syminit P((void));
+#ifndef VERY_SMALL_MEMORY
+struct symstruct *findstrm P((struct typestruct *type, char *name));
+#endif
 
 /* type.c */
 struct typestruct *addstruct P((char *structname));

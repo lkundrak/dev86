@@ -691,3 +691,41 @@ PUBLIC void syminit()
 	addkeyword(kwptr->kwname, kwptr->kwcode);
     constemplate.type = itype;
 }
+
+#ifndef VERY_SMALL_MEMORY
+PUBLIC struct symstruct *findstrm(type, name)
+struct typestruct *type;
+char *name;
+{
+    struct symstruct *symptr;
+    int i;
+    char anon[2 + NAMESIZE];
+    struct typelist *tl;
+
+    /* Look for a struct member named as given */
+    name[0] = type->structkey[0];
+    name[1] = type->structkey[1];
+	if ((symptr = findlorg(name)) != NULL)
+	    return symptr;
+
+    /* No match? Fine, let's see if there are any anynymous structures
+     * or unions that we could recurse into */
+    for (i = 0; i < lastanon(); i++)
+    {
+	anon[0] = type->structkey[0];
+	anon[1] = type->structkey[1];
+	anonname(&anon[2], i);
+	if ((symptr = findlorg(anon)) != NULL)
+	{
+	    /* Found an anonymous struture */
+	    if (!(symptr->type->constructor & STRUCTU))
+		error("Anonymous structure not a structure?!");
+	    /* Look for the member */
+	    strcpy(&anon[2], &name[2]);
+	    if ((symptr = findstrm(symptr->type, anon)) != NULL)
+		return symptr;
+	}
+    }
+    return NULL;
+}
+#endif

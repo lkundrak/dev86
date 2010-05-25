@@ -2,6 +2,9 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
+#ifndef VERY_SMALL_MEMORY
+#include <stdio.h>
+#endif
 #include "bcc.h"
 #include "align.h"
 #include "byteord.h"
@@ -25,6 +28,10 @@ PRIVATE char gvar2name[2 + NAMESIZE];	/* space for structure keys and .. */
 #define gvarname (gvar2name + 2)	/* last identifier declared */
 PRIVATE struct typestruct *gvartype;	/* type of last identifier declared */
 PRIVATE bool_t initlistflag;	/* remembers whether initializer is a list */
+
+#ifndef VERY_SMALL_MEMORY
+PRIVATE int anons = 0;		/* number of anonymous structures/unions seen */
+#endif
 
 FORWARD struct typestruct *chainprefix P((struct typestruct *pretype,
 					   struct typestruct *sufftype));
@@ -219,7 +226,12 @@ PRIVATE void declarator()
 {
     rdeclarator();
     if (gvartype->constructor == STRUCTU && gvartype->typesize == 0 &&
+/* We don't do the anonymous union/structure trickery on low mem machines */
+#ifdef VERY_SMALL_MEMORY
 	gvarsc != TYPEDEFDECL && gvarsc != EXTERNDECL)
+#else
+	gvarsc != TYPEDEFDECL && gvarsc != EXTERNDECL && gvarsc != NULLDECL)
+#endif
 	error("undefined structure");
 }
 
@@ -328,10 +340,21 @@ struct typelist **ptypelist;
     if (gvarsc != NULLDECL)
 	error("illegal type name");
     basetype = gvartype;
+
+#ifndef VERY_SMALL_MEMORY
+    if (sym == SEMICOLON || sym == EOFSYM) {
+	/* Generate a fake structure if none specified... */
+	anonstruct ();
+	/* ....and pretend it was regularly present in source */
+	goto anonstr;
+    }
+#endif
+
     while (sym != SEMICOLON && sym != EOFSYM)
     {
 	gvartype = basetype;
 	declarator();
+anonstr:
 	fieldwidth = -1;
 	if (sym == COLON)
 	{
@@ -1189,3 +1212,24 @@ PUBLIC struct typestruct *typename()
     gvartype = ogvartype;
     return type;
 }
+
+#ifndef VERY_SMALL_MEMORY
+PUBLIC int lastanon()
+{
+    return anons;
+}
+
+PUBLIC void anonname(name, i)
+char *name;
+int i;
+{
+    if (i == 0xfff)
+        fatalerror("Too many anonymous structs/unions");
+    sprintf (name, "__an%03x", i);
+}
+
+PUBLIC void anonstruct()
+{
+    anonname (gvarname, anons++);
+}
+#endif

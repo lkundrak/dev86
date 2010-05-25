@@ -285,9 +285,16 @@ bool_pt seenlp;
 	    nodeptr = node(INDIRECTOP, nodeptr, NULLNODE);
 	case STRUCELTOP:
 	    nextsym();
-	    gs2name[0] = nodeptr->nodetype->structkey[0];
-	    gs2name[1] = nodeptr->nodetype->structkey[1];
-	    if ((gsymptr = findlorg(gs2name)) == NULL)
+/* On memory constrained systems we save space that would be needed to keep */
+/* track of anonymous structure members by not implementing lookup in them */
+/* at all. */
+#ifdef VERY_SMALL_MEMORY
+            gs2name[0] = nodeptr->nodetype->structkey[0];
+            gs2name[1] = nodeptr->nodetype->structkey[1];
+            if ((gsymptr = findlorg(gs2name)) == NULL)
+#else
+	    if ((gsymptr = findstrm(nodeptr->nodetype, gs2name)) == NULL)
+#endif
 	    {
 		error("undefined structure element");
 		gsymptr = addglb(gs2name, itype);
