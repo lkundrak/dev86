@@ -358,7 +358,12 @@ struct nodestruct *p2;
 	needspv(p2);
 	if (p1->nodetype == p2->nodetype)
 	{
-	    p1->flags &= ~LVALUE;
+/* No ancient switch on low mem systems */
+#ifndef VERY_SMALL_MEMORY
+	    /* In ancient UNIX C, casts remain lvalues */
+	    if (!ancient)
+#endif
+		p1->flags &= ~LVALUE;
 	    return p1;
 	}
 	if ((rscalar = p2->nodetype->scalar) & ISCALAR)
@@ -455,7 +460,12 @@ struct nodestruct *p2;
 	}
 	else
 	    goto node1;
-	p1->flags &= ~LVALUE;
+/* No ancient switch on low mem systems */
+#ifndef VERY_SMALL_MEMORY
+	/* In ancient UNIX C, casts remain lvalues */
+	if (!ancient)
+#endif
+	    p1->flags &= ~LVALUE;
 	p1->nodetype = target->type = p2->nodetype;
 	return p1;
     case INDIRECTOP:

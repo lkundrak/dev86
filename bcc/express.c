@@ -43,7 +43,12 @@ PRIVATE struct nodestruct *cast_exp()
     if (vartype->scalar & INT && scalar & (CHAR | SHORT | INT)
 	&& !((vartype->scalar ^ scalar) & UNSIGNED))
     {
-	nodeptr->flags &= ~LVALUE;
+/* No ancient switch on low mem systems */
+#ifndef VERY_SMALL_MEMORY
+	/* In ancient UNIX C, casts remain lvalues */
+	if (!ancient)
+#endif
+	    nodeptr->flags &= ~LVALUE;
 	return nodeptr;		/* skip casts that are default promotions */
     }
     return castnode(vartype, nodeptr);
