@@ -636,6 +636,12 @@ PRIVATE void declfunc()
     if( strcmp(funcname, "main") != 0 ) main_flag = -1;
     if (gvarsymptr == NULL)
 	gvarsymptr = addglb(gvarname, gvartype);
+/* No ancient switch on small memory systems */
+#ifndef VERY_SMALL_MEMORY
+    else if (ancient) {}
+	/* Full declaration type different from the prior implicit
+	 * one. Even gcc allows this, just comes up with a warning */
+#endif
     else if (gvarsymptr->type != gvartype ||
 	     (gvarsymptr->flags & INITIALIZED))
 	multidecl(gvarname);	/* different type or full declare */
