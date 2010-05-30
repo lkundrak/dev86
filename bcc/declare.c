@@ -857,11 +857,24 @@ PRIVATE void idecllist()
 	    gvarsymptr->flags = KEYWORD;
 	    gvarsymptr->offset.offsym = TYPEDEFNAME;
 	}
+#ifndef VERY_SMALL_MEMORY
+	if (sym == ASSIGNOP || (ancient && sym == LBRACE))
+#else
 	if (sym == ASSIGNOP)
+#endif
 	{
+	    /* This is always false for low-memory environments given */
+	    /* there's no ancient switch there. */
+            int oldstyle = (sym == LBRACE);
+
 	    if (gvarsymptr->flags & INITIALIZED)
 		multidecl(gvarname);
-	    nextsym();
+            /* If we're initializing an array, let's pretend there */
+            /* was a new-fashioned initializer with an equal sign */
+            if (oldstyle && gvartype->constructor == ARRAY)
+                oldstyle = 0;
+            else
+	        nextsym();
 	    if (level == GLBLEVEL || gvarsc == STATICDECL)
 	    {
 #ifndef DIRECTPAGE
@@ -914,6 +927,8 @@ PRIVATE void idecllist()
 		    break;
 		}
 	    }
+            if (oldstyle)
+                rbrace();
 	}
 	else if (level != GLBLEVEL && gvarsc == STATICDECL &&
 		 gvartype->constructor != FUNCTION)
