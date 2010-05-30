@@ -12,6 +12,9 @@
 #include "sizes.h"
 #include "table.h"
 #include "type.h"
+#ifndef VERY_SMALL_MEMORY
+#include "parse.h"
+#endif
 
 #undef EXTERN
 #define EXTERN
@@ -598,6 +601,46 @@ PUBLIC void nextsym()
 		sym = EQOP;
 		gch1();
 	    }
+/* There's no ancient switch on low memory systems */
+#ifndef VERY_SMALL_MEMORY
+            /* This is how things were in old K&R code.
+             * Note that =- and =* behave differently from ANSI C,
+             * where =- would be assignment and unary minus and
+             * =* would be assignment and pointer dereference. */
+	    else if (ancient)
+	    {
+		if (ch == '+')
+		{
+		    sym = ADDABOP;
+		    gch1();
+		}
+		else if (ch == '-')
+		{
+		    sym = SUBABOP;
+		    gch1();
+		}
+		else if (ch == '*')
+		{
+		    sym = MULABOP;
+		    gch1();
+		}
+		else if (ch == '/')
+		{
+		    sym = DIVABOP;
+		    gch1();
+		}
+		else if (ch == '|')
+		{
+		    sym = ORABOP;
+		    gch1();
+		}
+		else if (ch == '&')
+		{
+		    sym = ANDABOP;
+		    gch1();
+		}
+	    }
+#endif
 	    return;
 	case ADDOP:
 	    if (ch == '+')
