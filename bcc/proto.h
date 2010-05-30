@@ -366,6 +366,9 @@ struct symstruct *findstrm P((struct typestruct *type, char *name));
 
 /* type.c */
 struct typestruct *addstruct P((char *structname));
+#ifndef VERY_SMALL_MEMORY
+void laststruct P((char *sname));
+#endif
 struct typestruct *iscalartotype P((scalar_pt scalar));
 struct typestruct *newtype P((void));
 void outntypechar P((struct typestruct *type));

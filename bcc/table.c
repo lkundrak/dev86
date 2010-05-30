@@ -726,6 +726,24 @@ char *name;
 		return symptr;
 	}
     }
+
+#ifndef VERY_SMALL_MEMORY
+    /* In ancient UNIX, C structure members were global */
+    if (!ancient)
+        return NULL;
+
+    /* Find any structure member of given name */
+    laststruct(name);
+    while (name[0]) {
+	if ((symptr = findlorg(name)) != NULL)
+	    return symptr;
+        if (--name[1] == 0) {
+            name[1] = 255;
+            name[0]--;
+	}
+    }
+#endif
+
     return NULL;
 }
 #endif

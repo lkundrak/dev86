@@ -56,6 +56,14 @@ ts_s_structname += namelength + 1;
     return structype;
 }
 
+#ifndef VERY_SMALL_MEMORY
+PUBLIC void laststruct(char *sname)
+{
+    sname[0] = skey0;
+    sname[1] = skey1;
+}
+#endif
+
 PUBLIC struct typestruct *iscalartotype(scalar)
 scalar_pt scalar;
 {
