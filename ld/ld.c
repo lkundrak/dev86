@@ -19,6 +19,9 @@ PUBLIC bin_off_t text_base_value = 0;	/* XXX */
 PUBLIC bin_off_t data_base_value = 0;	/* XXX */
 PUBLIC bin_off_t heap_top_value  = 0;	/* XXX */
 PUBLIC int headerless = 0;
+#ifndef VERY_SMALL_MEMORY
+PUBLIC int v7 = 0;
+#endif
 #ifndef MSDOS
 PUBLIC int cpm86 = 0;
 #endif
@@ -125,6 +128,9 @@ char **argv;
 	    case 'c':		/* Write header in CP/M-86 format */
 #endif
 	    case 'y':		/* Use a newer symbol table */
+#ifndef VERY_SMALL_MEMORY
+	    case '7':		/* Produce a UNIX v7 a.out header */
+#endif
 		if (arg[2] == 0)
 		    flag[(int) arg[1]] = TRUE;
 		else if (arg[2] == '-' && arg[3] == 0)
@@ -236,6 +242,11 @@ char **argv;
     /* Headerless executables can't use symbols. */
     headerless = flag['d'];
     if( headerless ) flag['s'] = 1;
+
+#ifndef VERY_SMALL_MEMORY
+    /* UNIX seventh edition executables */
+    v7 = flag['7'];
+#endif
 
 #ifndef MSDOS
     /* CP/M-86 executables can't use symbols. */

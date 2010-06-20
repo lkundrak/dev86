@@ -4,6 +4,9 @@
 
 #include "syshead.h"
 #include "x86_aout.h"
+#ifndef VERY_SMALL_MEMORY
+#include "v7_aout.h"
+#endif
 #ifndef MSDOS
 #include "x86_cpm86.h"
 #endif
@@ -23,7 +26,11 @@
 #ifdef MSDOS
 #  define FILEHEADERLENGTH (headerless?0:A_MINHDR)
 #else
+# ifdef VERY_SMALL_MEMORY
 #  define FILEHEADERLENGTH (headerless?0:(cpm86?CPM86_HEADERLEN:A_MINHDR))
+# else
+#  define FILEHEADERLENGTH (headerless?0:(cpm86?CPM86_HEADERLEN:(v7?V7_HEADERLEN:A_MINHDR)))
+# endif
 #endif
 				/* part of header not counted in offsets */
 #define DPSEG 2
@@ -83,6 +90,9 @@ FORWARD void symres P((char *name));
 FORWARD void setseg P((fastin_pt newseg));
 FORWARD void skip P((unsigned countsize));
 FORWARD void writeheader P((void));
+#ifndef VERY_SMALL_MEMORY
+FORWARD void v7header P((void));
+#endif
 #ifndef MSDOS
 FORWARD void cpm86header P((void));
 #endif
@@ -334,6 +344,11 @@ bool_pt argxsym;
     openout(outfilename);
 #ifndef MSDOS
     if (cpm86) cpm86header();
+    else
+#endif
+#ifndef VERY_SMALL_MEMORY
+    if (v7)
+       v7header();
     else
 #endif
        writeheader();
@@ -668,6 +683,43 @@ PRIVATE void writeheader()
     if( FILEHEADERLENGTH )
        writeout((char *) &header, FILEHEADERLENGTH);
 }
+
+#ifndef VERY_SMALL_MEMORY
+PRIVATE void v7header()
+{
+    struct v7_exec header;
+
+    if( sizeof header != FILEHEADERLENGTH )
+       fatalerror("Executable miscompiled, computed wrong header size");
+
+    memset(&header, 0, sizeof header);
+
+    if( bits32 )
+       fatalerror("V7 a.out format is for 16-bit only");
+
+    offtocn((char *) &header.magic, sepid ? V7_MAGIC3 : V7_OMAGIC,
+            sizeof header.magic);
+
+    offtocn((char *) &header.textsize, etextpadoff - btextoffset,
+            sizeof header.textsize);
+    offtocn((char *) &header.datasize, edataoffset - bdataoffset,
+            sizeof header.datasize);
+    offtocn((char *) &header.bsssize, endoffset - edataoffset,
+            sizeof header.bsssize);
+
+    if( !stripflag )
+       fatalerror("Symbol table not implemented for V7 yet");
+
+    if( uzp )
+       fatalerror("No QMAGIC for V7");
+
+    offtocn((char *) &header.entry, entryfirst->elsymptr->value,
+            sizeof header.entry);
+
+    if( FILEHEADERLENGTH )
+       writeout((char *) &header, FILEHEADERLENGTH);
+}
+#endif
 
 PRIVATE void writenulls(count)
 bin_off_t count;
