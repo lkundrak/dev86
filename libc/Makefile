@@ -9,6 +9,7 @@ else
 TOP=$(TOPDIR)/libc
 endif
 
+LIBBCC=$(TOP)/libbcc.a
 CC=bcc
 CCFLAGS=-I -I$(TOP)/include
 DEFS=-D__LIBC__
@@ -30,13 +31,16 @@ MAKEPASS=	\
          DEFS='$(DEFS)' LIB_CPU='$(LIB_CPU)' LIB_OS='$(LIB_OS)' \
 
 
-all: $(OBJ) $(LIBC)
+all: $(OBJ) $(LIBC) $(LIBBCC)
 	@:
 
 $(LIBC): transfer .config.dir
 	@for i in `cat .config.dir` ; do \
 	   $(MAKE) $(MAKEPASS) -C $$i all || exit 1 ; \
 	done
+
+$(LIBBCC): .config.dir
+	   $(MAKE) $(MAKEPASS) LIBC=$(LIBBCC) -C bcc all
 
 crt3.o: crt0.c Makefile
 	$(CC) -c $(CFLAGS) -D__LIBC_VER__='"$(VERSION)"' -o $@ crt0.c

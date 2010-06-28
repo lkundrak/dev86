@@ -243,6 +243,7 @@ install-lib: lib/lib0-done lib/lib2-done lib/lib1-done
 	install $(INDAT) lib/libc_s.a	$(DISTLIB)/libc_s.a
 	install $(INDAT) lib/libbsd.a	$(DISTLIB)/libbsd.a
 	install $(INDAT) lib/libdos.a	$(DISTLIB)/libdos.a
+	install $(INDAT) lib/libbcc.a	$(DISTLIB)/libbcc.a
 #ifndef __AS386_16__
 	install -d $(DISTLIB)/i386
 	install $(INDAT) lib/i386/crt0.o 	$(DISTLIB)/i386/crt0.o
@@ -264,7 +265,7 @@ all-libs: library lib-bsd alt-libs
 library: bindir
 	test -f bin/ncc
 	$(MAKEC) libc $(LIBARGS) PLATFORM=i86-ELKS
-	cp -p libc/crt0.o libc/libc.a lib/.
+	cp -p libc/crt0.o libc/libc.a libc/libbcc.a lib/.
 	sh libcompat lib/libc.a
 	@touch lib/lib0-done
 
