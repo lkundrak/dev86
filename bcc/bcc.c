@@ -103,7 +103,11 @@ struct opt_list {
 } * options;
 
 int opt_v, opt_V, opt_e, opt_x, opt_I, opt_L, opt_W, opt_i,
-    opt_O, opt_M, opt_f;
+    opt_O, opt_M, opt_f
+#ifndef VERY_SMALL_MEMORY
+, opt_7
+#endif
+;
 
 #ifdef DEFARCH
 int opt_arch = (DEFARCH != 0);
@@ -392,6 +396,10 @@ struct file_list * file;
 
    if (opt_arch<5 && !do_as)
       command_opt("-t");
+#ifndef VERY_SMALL_MEMORY
+   if (opt_7)
+       command_opt("-7");
+#endif
 
    command_opts('c');
    command_opts('C');
@@ -956,6 +964,9 @@ char ** argv;
       case 'L': opt_L++; break;
       case 'i': opt_i++; break;
       case 'f': opt_f++; break;
+#ifndef VERY_SMALL_MEMORY
+      case '7': opt_7++; break;
+#endif
 
       case 'W': opt_W++; break;
 

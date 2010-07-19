@@ -197,6 +197,18 @@ don't include crt0.o in the link.
 don't pass
 .B -i
 to the linker so that it will create an impure executable.
+.TP
+.B -7
+Turn on ancient C mode (see CODE GENERATOR OPTIONS below).
+Among other things, this disables valuable
+error checks and even parses certain constructs incompatibly (e.g.
+.I =-
+is postdecrement instead of an assignment of a negative number)
+to later C standards, so this option should only be used with ancient
+code. To generate executables for a V7 variant you should tell
+linker to generate old a.out header with
+.B -X-7
+option.
 .P
 Other options are passed to the linker, in particular -lx, -M, -m, -s, -H.
 
@@ -249,6 +261,12 @@ print source code in assembly output
 .TP 
 .B -w
 print what cc1 thinks is the location counter in assembly output
+.TP
+.B -7
+Accept various obsolete construct for ancient C compilers, including
+Ritchie's Sixth Edition UNIX C compiler and Seventh Edition UNIX
+Portable C compiler. Enough of these compilers is emulated to compile
+all of Seventh Edition userspace and kernel.
 .P
 All the options except -D, -I and -o may be turned off by following the
 option letter by a '-'.  Options are processed left to right so the last

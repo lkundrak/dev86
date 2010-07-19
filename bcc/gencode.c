@@ -81,6 +81,9 @@ PUBLIC bool_t arg1inreg = TRUE;
 PUBLIC store_pt calleemask = INDREG1 | INDREG2;
 PUBLIC bool_t callersaves = TRUE;
 PUBLIC char *callstring = "JSR\t>";
+#ifndef VERY_SMALL_MEMORY
+PUBLIC bool_t ancient = FALSE;
+#endif
 PUBLIC store_pt doubleargregs = DREG | INDREG0 | INDREG1 | INDREG2;
 PUBLIC store_pt doubleregs = DREG | INDREG0 | INDREG1 | INDREG2;
 PUBLIC store_pt doublreturnregs = DREG | INDREG0 | INDREG1 | INDREG2;

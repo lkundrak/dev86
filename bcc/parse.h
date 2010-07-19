@@ -17,3 +17,6 @@ EXTERN struct nodestruct *etptr;     /* ptr to next entry in expression tree */
 EXTERN struct symstruct *gvarsymptr; /* gsymptr for last identifier declared */
 EXTERN scopelev_t level;	/* scope level */
 				/* depends on zero init */
+#ifndef VERY_SMALL_MEMORY
+EXTERN bool_t ancient;		/* undersand ancient K&R */
+#endif

@@ -12,6 +12,9 @@
 #include "sc.h"
 #include "scan.h"
 #include "table.h"
+#ifndef VERY_SMALL_MEMORY
+#include "parse.h"
+#endif
 
 #undef EXTERN
 #define EXTERN
@@ -539,6 +542,9 @@ char *argv[];
 #endif
 	    case 't':		/* print source code in asm output */
 	    case 'w':		/* watch location counter */
+#ifndef VERY_SMALL_MEMORY
+	    case '7':		/* accept ancient K&R code */
+#endif
 	    case 'O':		/* Optimisation. */
 		if (arg[2] == 0)
 		    flag[(int)arg[1]] = TRUE;
@@ -629,6 +635,13 @@ ts_s_includelist += sizeof *incnew;
     {
 	posindependent = TRUE;
 	definestring("__POS_INDEPENDENT__");
+    }
+#endif
+#ifndef VERY_SMALL_MEMORY
+    if (flag['7'])
+    {
+	ancient = TRUE;
+	definestring("__ANCIENT__");
     }
 #endif
     if (flag['O'])
