@@ -34,7 +34,8 @@ bool_pt argreloc_output;
 	return;
     }
 #endif
-    if ((symptr = findsym("_main")) != NUL_PTR)
+    if ((symptr = findsym("_start")) != NUL_PTR ||
+        (symptr = findsym("_main")) != NUL_PTR)
 	entrysym(symptr);
     do
     {
