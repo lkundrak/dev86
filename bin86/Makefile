@@ -6,7 +6,11 @@ DIRS=ld as
 PREFIX=/usr/local
 BINDIR=$(PREFIX)/bin
 LIBDIR=$(PREFIX)/lib
+ifeq ($(PREFIX),/usr)
+MANDIR=$(PREFIX)/share/man/man1
+else
 MANDIR=$(PREFIX)/man/man1
+endif
 SUF=86
 
 INSTALL_OPT=-m 755

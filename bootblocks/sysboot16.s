@@ -48,8 +48,7 @@ dos4_fattype:	.blkb 8		! FAT type
 
 !
 ! This is where the code will be overlaid, the default is a hang
-! The 0x5A offset clears the FAT32 header.
-.blkb sysboot_start+0x5A-*
+.blkb sysboot_start+0x3E-*
 public codestart
 codestart:
   j	codestart

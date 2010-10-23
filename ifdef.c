@@ -443,10 +443,6 @@ manifest_constant()
 #ifdef __i386__
    save_name("__elksemu_works__", 'D');
 #endif
-/* Is this true ? */
-#ifdef __x86_64__
-   save_name("__elksemu_works__", 'D');
-#endif
 #endif
 #ifdef __unix__
    save_name("__unix__", 'D');

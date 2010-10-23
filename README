@@ -10,6 +10,10 @@ Use 'make install' to install them.
 Some other bits can be built by 'make other' and installed with
 'make install-other'.
 
+Note the the make files for the libraries can only be run using
+GNU-make but version 3.82 has a bug (No. 30612) that prevents this
+working properly.
+
 If you want it to install under /usr/local instead you can specify
 the prefix on the first make ie: 'make PREFIX=/usr/local' this is
 remembered until 'make.fil' is rebuilt. 
@@ -90,9 +94,9 @@ The as86 and ld86 with this are _different_ from the minimum version
 needed for the linux-i386 kernel and can replace them, versions before
 0.12.0 will not work with this version of bcc.
 
-I _strongly_ suggest you install the kernel patch or load the module
-to allow transparent execution of elks executables.  If you're using
-a post 2.1.43 or 2.0.36 kernel the only module you need is the binfmt_misc
+I suggest you install the kernel patch or load the module to allow
+transparent execution of elks executables.  If you're using a post
+2.1.43 or 2.0.36 kernel the only module you need is the binfmt_misc
 driver configured like this:
 
 echo ':i86-elks:M::\x01\x03\x20\x00:\xff\xff\xff\x83:/usr/bin/elksemu:' \
@@ -101,8 +105,9 @@ echo ':i86-elks:M::\x01\x03\x20\x00:\xff\xff\xff\x83:/usr/bin/elksemu:' \
 The elksemu executable must be stored in /usr/bin/elksemu or the above
 line adjusted.
 
-Previous versions need a special module or patch described in elksemu/README
-(All the options need the elksemu executable installed correctly)
+Previous kernel versions need a special module or patch described in
+elksemu/README (All the options need the elksemu executable installed
+correctly)
 
 Copyrights
 ----------
@@ -126,4 +131,4 @@ See the COPYING file in this directory for the GPL and the COPYING file
 in the libc directory for the LGPL.
 
 --
-Rob.                           (Robert de Bath <rdebath@poboxes.com>)
+Rob.                           (Robert de Bath <robert$@debath.co.uk>)

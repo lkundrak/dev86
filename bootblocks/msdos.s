@@ -54,7 +54,7 @@ mend
 
 org ORGADDR
 start:
-include sysboot.s
+include sysboot16.s
 
 org dos_sysid
    .ascii "DOSFS"	! System ID

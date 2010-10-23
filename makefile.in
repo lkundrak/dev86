@@ -149,13 +149,7 @@ bindir: $(MAKEX)
 	@ln -s ../kinclude/arch    include/arch    2>/dev/null || true
 #endif
 
-bcc86: bindir
-	echo '#define VERSION "'"$(VERSION)"'"' > bcc/version.h
-	VER=$(VERSION) ; \
-	echo "#define VER_MAJ $${VER%%.*}" >> bcc/version.h ; \
-	VER="$${VER#*.}" ; \
-	echo "#define VER_MIN $${VER%.*}" >> bcc/version.h ; \
-	echo "#define VER_PAT $${VER#*.}" >> bcc/version.h 
+bcc86: bindir versions
 	$(MAKEC) bcc $(MAKEARG) BCCARCH='$(BCCARCH)' bcc ncc bcc-cc1
 	cp -p bcc/bcc$(EXE) bin/Bcc$(EXE)
 	cp -p bcc/ncc$(EXE) bin/ncc$(EXE)
@@ -177,8 +171,7 @@ copt:  bindir
 	cp -p copt/rules.386 lib/i386/.
 	cp -p copt/rules.end lib/i386/.
 
-as86: bindir
-	echo '#define VERSION "'"$(VERSION)"'"' > as/version.h
+as86: bindir versions
 	$(MAKEC) as $(MAKEARG) all
 	cp -p as/as86$(EXE) bin/as86$(EXE)
 	cp -p as/as86_encap bin/as86_encap
@@ -187,8 +180,7 @@ ar86: bindir
 	$(MAKEC) ar $(MAKEARG) all
 	cp -p ar/ar86$(EXE) bin/ar86$(EXE)
 
-ld86: bindir
-	echo '#define VERSION "'"$(VERSION)"'"' > ld/version.h
+ld86: bindir versions
 	$(MAKEC) ld $(MAKEARG) ld86
 	cp -p ld/ld86$(EXE) bin/ld86$(EXE)
 
@@ -206,7 +198,7 @@ elksemu: bindir
 	$(MAKEC) elksemu elksemu
 	cp -p elksemu/elksemu bin/elksemu
 #else
-elksemu: bindir
+try_elksemu: bindir
 	$(MAKEC) elksemu CC='ncc' elksemu
 	cp -p elksemu/elksemu bin/elksemu
 #endif
@@ -333,6 +325,20 @@ makec:
 	echo 'cd $$1 ; shift ; make "$$@"' > makec
 	chmod +x makec
 
+versions: bcc/version.h
+
+bcc/version.h: Makefile
+	echo '#define VERSION "'"$(VERSION)"'"' > bcc/version.h
+	echo '#define VERSION "'"$(VERSION)"'"' > as/version.h
+	echo '#define VERSION "'"$(VERSION)"'"' > bootblocks/version.h
+	echo '#define VERSION "'"$(VERSION)"'"' > ld/version.h
+
+	VER=$(VERSION) ; \
+	echo "#define VER_MAJ $${VER%%.*}" >> bcc/version.h ; \
+	VER="$${VER#*.}" ; \
+	echo "#define VER_MIN $${VER%.*}" >> bcc/version.h ; \
+	echo "#define VER_PAT $${VER#*.}" >> bcc/version.h 
+
 ##############################################################################
 
 install-other: other
@@ -340,8 +346,7 @@ install-other: other
 		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) install || exit 1 ; \
 	done
 
-other:
-	echo '#define VERSION "'"$(VERSION)"'"' > bootblocks/version.h
+other: versions
 	@for i in $(OTHERS) ; do \
 		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) || exit 1; \
 	done

@@ -34,8 +34,8 @@ Contents
    This MBR is a very simple one with no frills by default.
 
    The actual code is less that 254 bytes long so it can be used as
-   an MBR for a disk with old style 'Disk manager' partitions. All 16
-   partitions are bootable.
+   an MBR for a disk with old style 'Disk manager' partitions.
+   The code now only boots one of the last four partitions.
 
    Option 2 is a boot message that displayed as soon as the MBR loads.
 
@@ -51,11 +51,6 @@ Contents
    and is loaded at $07C00. Because of the load address this boot sector
    can be configured to load another boot sector, for example LILO can
    be succesfully used in this way.
-
-   In fact LILO can be succesfully used in this way on a 2M disk, but 
-   you must create the floppy with the real dos 2M package as superformat
-   does not create correct bootable 2M disks. Also beware that mounting
-   a 2M floppy can ... be interesting ...
 
    Note this boot sector loads the executable 1 sector at a time, as far
    as my testing has gone this is only significant on 8086 machines, all
@@ -81,7 +76,7 @@ Contents
    There is also support for a helper boot which mean this is the only
    boot sector able to load an ELKS image (almost) directly.
 
-1.4 ) Tar boot sector		-- Cool Man!!
+1.4 ) Tar boot sector
 
    This boot sector converts a tar file with a GNU Volume label into a
    bootable floppy image. The boot sector loads and executes the first
@@ -165,4 +160,4 @@ Contents
 
 -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-Robert de Bath <robert@mayday.cix.co.uk>
+Robert de Bath <robert$@debath.co.uk>

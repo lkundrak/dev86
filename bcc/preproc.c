@@ -947,7 +947,7 @@ PUBLIC void leavemac()
 	{
 	    mpptr->symptr->name.namea[0] &= 0x7F;/* UnSMUDGE macro definition */
 	    ch = *++lineptr;	/* gch1() would mess up next param == EOL-1 */
-	    if (ch != 0)
+	    if (ch != 0 && mpptr->paramlist)
 	    {
 		mpptr->paramspot = lineptr;
 		lineptr = mpptr->paramlist[ch - 1];

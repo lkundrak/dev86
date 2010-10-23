@@ -401,18 +401,23 @@ static int xlate_mode[] = {
 
    if( (cmode & 0222) == 0 ) creat_mode = 1;
 
-   /* BzzzT. Assume these flags both mean the merge of them */
-   /* BzzzT. Also ignore O_EXCL */
-   if( type & (O_TRUNC|O_CREAT) )
-      rv = __dos_creat(nname, creat_mode);
+   /* BzzzT. Ignore O_EXCL */
 
+   if( type & O_TRUNC ) /* Assume TRUNC always means CREAT too */
+      rv = __dos_creat(nname, creat_mode);
    else
    {
+      int sv = errno;
       /* If we would open in compatibility mode make it a little more unixy */
       if( type & O_DENYMODE )
          rv = __dos_open(nname, type&(O_ACCMODE|O_DENYMODE|O_SETFD));
       else
          rv = __dos_open(nname, xlate_mode[type&O_ACCMODE]);
+
+      if (rv == -1 && errno == ENOENT && (type & O_CREAT)) {
+	 errno = sv;
+	 rv = __dos_creat(nname, creat_mode);
+      }
    }
    return rv;
 }

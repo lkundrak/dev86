@@ -13,49 +13,42 @@
 ! The BIOS must have setup a stack because interrupts are enabled
 ! Little else can be assumed because DOS doesn`t assume anything either
 
+! Lowest available is $0500, MSDOS appears to use $0600 ... I wonder why?
+ORGADDR=$0500
+
+org ORGADDR
+
 sysboot_start:
-j codestart
-nop		! DOS appears to _require_ this to identify an MSDOS disk!!
+  cli                   ! Assume _nothing_!
+  cld
+  mov   bx,#$7C00       ! Pointer to start of BB.
+  xor   ax,ax           ! Segs all to zero
+  mov   ds,ax
+  mov   es,ax
+  mov   ss,ax
+  mov   sp,bx           ! SP Just below BB
+  mov   cx,#$100        ! Move 256 words
+  mov   si,bx           ! From default BB
+  mov   di,#ORGADDR     ! To the correct address.
+  rep
+   movsw
+  jmpi  cont,#0         ! Set CS:IP correct.
+cont:
+  sti                   ! Let the interrupts back in.
 
-.blkb sysboot_start+3-*
-public dosfs_stat
-dos_sysid:	.ascii "LINUX"	! System ID
-		.byte 0,0,0
-dosfs_stat:
-dos_sect:	.blkw 1		! Sector size
-dos_clust:	.blkb 1		! Cluster size
-dos_resv:	.blkw 1		! Res-sector
-dos_nfat:	.blkb 1		! FAT count
-dos_nroot:	.blkw 1		! Root dir entries
-dos_maxsect:	.blkw 1		! Sector count (=0 if large FS)
-dos_media:	.blkb 1		! Media code
-dos_fatlen:	.blkw 1		! FAT length
-dos_spt:	.blkw 1		! Sect/Track
-dos_heads:	.blkw 1		! Heads
-dos_hidden:	.blkw 2		! Hidden sectors
-
-! Here down is DOS 4+ and probably not needed for floppy boots.
-
-dos4_maxsect:	.blkw 2		! Large FS sector count
-dos4_phy_drive:	.blkb 1		! Phys drive
-.blkb 1		! Reserved
-.blkb 1		! DOS 4
-
-floppy_temp:
-dos4_serial:	.blkw 2		! Serial number
-dos4_label:	.blkb 11	! Disk Label (DOS 4+)
-dos4_fattype:	.blkb 8		! FAT type
-
-!
 ! This is where the code will be overlaid, the default is a hang
-! The 0x5A offset clears the FAT32 header.
-.blkb sysboot_start+0x5A-*
 public codestart
 codestart:
   j	codestart
 
 ! Partition table
 public bootblock_magic
+
+.blkb sysboot_start+0x1B6-*
+table_start:
+.blkb 2			! Dirty bits
+.blkb 4			! Volume Serial Number
+.blkb 2                 ! Possible Magic number
 
 .blkb sysboot_start+0x1BE-*
 partition_1:
@@ -80,4 +73,4 @@ partition_4:
 
 .blkb sysboot_start+0x1FE-*
 bootblock_magic:
-.word 0xAA55
+.blkb 2

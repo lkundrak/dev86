@@ -1,4 +1,4 @@
-ORGADDR=0x0600
+ORGADDR=0x0600	  ! $0500..0600 stack or move ORGADDR down.
 
 .org ORGADDR
 entry start

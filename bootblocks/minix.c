@@ -53,7 +53,7 @@ BOOTADDR = 0x7c00
 org ORGADDR	! The lowest available address.
 start:
 #ifndef MIN_SPACE
-  include sysboot.s
+  include sysboot16.s
 
 org start	! The lowest available address, again.
   j	skip_vars

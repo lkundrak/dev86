@@ -25,8 +25,10 @@
 
 #ifndef VERY_SMALL_MEMORY
 #define SELFTYPECHECK		/* check calculated type = runtime type */
-#define DBNODE			/* generate compiler node debugging code */
 #define OPTIMISE		/* include optimisation code */
+#ifndef MSDOS
+#define DBNODE			/* generate compiler node debugging code */
+#endif
 #endif
 
 #ifndef __BCC__

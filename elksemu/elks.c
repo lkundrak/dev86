@@ -162,6 +162,9 @@ void run_elks()
 		case VM86_STI:
 			fprintf(stderr, "VM86_STI returned\n");
 			break;	/* Shouldnt be seen */
+		default:
+			fprintf(stderr, "Unknown return value from vm86\n");
+			exit(1);
 	}
 }
 

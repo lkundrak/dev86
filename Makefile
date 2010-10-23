@@ -2,7 +2,7 @@
 # This file is part of the Linux-8086 Development environment and is
 # distributed under the GNU General Public License.
 
-VERSION=0.16.17
+VERSION=0.16.18
 
 TARGETS=install clean other \
     bcc86 unproto copt as86 ld86 elksemu \
@@ -19,6 +19,7 @@ INCLDIR= $(PREFIX)/lib/bcc
 ASLDDIR= $(BINDIR)
 MANDIR=	 $(PREFIX)/man
 CFLAGS=  -O
+IFDEFNAME= ifdef
 
 # Some makes take the last of a list as the default ...
 all: make.fil
@@ -34,10 +35,10 @@ as: as86
 
 realclean:
 	-[ ! -f make.fil ] || $(MAKE) -f make.fil VERSION=$(VERSION) TOPDIR=`pwd` $@
-	-rm -f make.fil ifdef ifdef.o
+	-rm -f make.fil ifdef ifdefg
 
-make.fil: ifdef makefile.in
-	./ifdef -MU makefile.in >tmp.mak
+make.fil: $(IFDEFNAME) makefile.in
+	./$(IFDEFNAME) -MU makefile.in >tmp.mak
 	echo > tmp.sed
 	[ "$(BINDIR)" != "//bin" ] || echo >> tmp.sed "s:%BINDIR%:/bin:"
 	[ "$(LIBDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%LIBDIR%:/lib:"
@@ -58,11 +59,8 @@ make.fil: ifdef makefile.in
 	mv -f make.tmp make.fil
 	@rm -f tmp.mak tmp.sed
 
-ifdef: ifdef.o
-	$(CC) $(IFDEFARCH) $(LDFLAGS) -o ifdef ifdef.o
-
-ifdef.o: ifdef.c
-	$(CC) $(IFDEFARCH) $(CFLAGS) $(IFDEFFLAGS) -c ifdef.c
+$(IFDEFNAME): ifdef.c
+	$(CC) $(IFDEFARCH) $(CFLAGS) $(IFDEFFLAGS) $(LDFLAGS) -o $(IFDEFNAME) ifdef.c
 
 uninstall:
 	@echo 'Sorry, no go; it was just wrong.'
