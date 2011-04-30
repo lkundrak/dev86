@@ -199,6 +199,7 @@ PUBLIC void assemble()
 PRIVATE void asline()
 {
     register struct sym_s *symptr;
+    opcode_t prevop;
 
     postb = popflags = pcrflag =
 #ifdef I80386
@@ -317,9 +318,18 @@ PRIVATE void asline()
 	    mcount = 1;
 	}
     }
+    prevop = opcode;
     opcode = symptr->value_reg_or_op.op.opcode;
 #ifdef I80386
     needcpu((page==0 && ((opcode&0xF0) == 0x60||(opcode&0xF6)==0xC0))?1:0);
+    /* We handle "rep[ne]" refix as separate instruction; check if it's valid */
+    if (prevop == 0xF2 && (opcode&0xF6) != 0xA6)        /* REPNE CMPS/SCAS */
+        error (REPNE_STRING);
+    if (prevop == 0xF3 && !((opcode&0xFC) == 0x6C ||    /* REP INS/OUTS */
+        (opcode&0xFC) == 0xA4 ||                        /* REP MOVS/CMPS */
+        (opcode&0xFC) == 0xAC ||                        /* REP SCAS/LODS */
+        (opcode&0xFE) == 0xAA))                         /* REP STOS */
+        error (REP_STRING);
 #endif
     routine = rout_table[symptr->value_reg_or_op.op.routine];
     getsym();

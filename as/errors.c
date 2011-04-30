@@ -103,6 +103,9 @@ PUBLIC char JUNK_AFTER_OPERANDS[] =  "junk after operands";
 PUBLIC char ALREADY[] =         "already defined";
 PUBLIC char UNSTABLE_LABEL[] =  "label moved in last pass add -O?";
 
+PUBLIC char REPNE_STRING[] =    "CMPS or SCAS expected";
+PUBLIC char REP_STRING[] =      "string instruction expected";
+
 /* Warnings. */
 PUBLIC char CPUCLASH[] =        "instruction illegal for current cpu";
 PUBLIC char SHORTB[] =          "short branch would do";

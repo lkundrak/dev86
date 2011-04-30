@@ -103,6 +103,9 @@ EXTERN char JUNK_AFTER_OPERANDS[]; /* "junk after operands" */
 EXTERN char ALREADY[];          /* "already defined" */
 EXTERN char UNSTABLE_LABEL[];   /* "label moved in last pass add -O?" */
 
+EXTERN char REPNE_STRING[];     /* "CMPS or SCAS expected" */
+EXTERN char REP_STRING[];       /* "string instruction expected" */
+
 /* Warnings. */
 EXTERN char CPUCLASH[];         /* "instruction illegal for current cpu" */
 EXTERN char SHORTB[];           /* "short branch would do" */
