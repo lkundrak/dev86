@@ -52,12 +52,12 @@ char buf[128];
       memset(&arbuf, ' ', sizeof(arbuf));
       strcpy(buf, ptr); strcat(buf, "/                 ");
       strncpy(arbuf.ar_name, buf, sizeof(arbuf.ar_name));
-      
-      sprintf(arbuf.ar_date, "%-12ld", (long)st.st_mtime);
-      sprintf(arbuf.ar_uid, "%-6d",    (int)(st.st_uid%1000000L));
-      sprintf(arbuf.ar_gid, "%-6d",    (int)(st.st_gid%1000000L));
-      sprintf(arbuf.ar_mode, "%-8lo",  (long)st.st_mode);
-      sprintf(arbuf.ar_size, "%-10ld", (long)st.st_size);
+     
+      snprintf(arbuf.ar_date, 12, "%-12ld", (long)st.st_mtime);
+      snprintf(arbuf.ar_uid, 6, "%-6d", (int)(st.st_uid%1000000L));
+      snprintf(arbuf.ar_gid, 6, "%-6d", (int)(st.st_gid%1000000L));
+      snprintf(arbuf.ar_mode, 8, "%-8lo", (long)st.st_mode);
+      snprintf(arbuf.ar_size, 10, "%-10ld", (long)st.st_size);
       memcpy(arbuf.ar_fmag, ARFMAG, sizeof(arbuf.ar_fmag));
 
       if( fwrite(&arbuf, 1, sizeof(arbuf), fd) != sizeof(arbuf) )
