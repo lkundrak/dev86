@@ -174,7 +174,7 @@ static char *readline(FILE *fp)
   /* Delete leading white spaces */
   for (cp = buf; *cp && isspace(*cp); cp++) ;
   if (cp != buf && *cp)
-	strcpy(buf, cp);
+	memmove(buf, cp, strlen(cp) + 1);
 
   return(buf);
 }
