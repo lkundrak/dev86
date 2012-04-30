@@ -166,6 +166,8 @@ diff -Nurd ${TMPSRC}.vold/bootblocks ${TMPSRC}/bootblocks >> ${ARCDIR}/patch-$VE
 gzip -f9 ${ARCDIR}/patch-$VERSION-$OLDVER
 }
 
+mkdir -p ${ARCDIR}
+
 echo Creating full source archive.
 ln -s ${TMPSRC} dev86-$VERSION
 tar cf ${ARCDIR}/Dev86src-$VERSION.tar dev86-$VERSION/*
