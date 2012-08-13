@@ -20,7 +20,7 @@ PRIVATE unsigned insizeof;	/* nest level for getsizeof */
 /* on p49 of K & R */
 
 FORWARD struct nodestruct *cast_exp P((void));
-FORWARD struct nodestruct *exp2 P((void));
+FORWARD struct nodestruct *expr2 P((void));
 FORWARD struct nodestruct *exp3to12 P((fastin_pt lprecedence));
 FORWARD struct nodestruct *listargs P((void));
 FORWARD struct nodestruct *postfix_exp P((bool_pt seenlp));
@@ -54,7 +54,7 @@ PUBLIC struct nodestruct *assignment_exp()
     struct nodestruct *lhs;
     op_pt op;
 
-    lhs = exp2();
+    lhs = expr2();
     if (sym >= ASSIGNOP && sym <= SUBABOP)	/* assign-op syms in order! */
     {
 	op = sym;
@@ -77,7 +77,7 @@ PUBLIC struct nodestruct *expression()
     return lhs;
 }
 
-PRIVATE struct nodestruct *exp2()
+PRIVATE struct nodestruct *expr2()
 {
     struct nodestruct *lhs;
     struct nodestruct *rhs;
@@ -88,7 +88,7 @@ PRIVATE struct nodestruct *exp2()
 	nextsym();
 	rhs = expression();
 	colon();
-	lhs = node(CONDOP, lhs, node(COLONOP, rhs, exp2()));
+	lhs = node(CONDOP, lhs, node(COLONOP, rhs, expr2()));
     }
     return lhs;
 }

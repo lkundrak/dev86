@@ -1087,12 +1087,12 @@ header_from_map (header, mapelt)
 #if defined(USG) || defined(HAVE_TRAILING_SLASH_IN_NAME)
   {
     /* System V tacks a trailing '/' onto the end of the name */
-    char *p = header->ar_name;
-    char *end = p + sizeof (header->ar_name);
+    char *np = header->ar_name;
+    char *end = np + sizeof (header->ar_name);
 
-    while (p < end && *p)
-      p++;
-    *p = '/';
+    while (np < end && *np)
+      np++;
+    *np = '/';
   }
 #endif
 
@@ -1106,10 +1106,10 @@ header_from_map (header, mapelt)
   /* Change all remaining nulls in the header into spaces.  */
   {
     char *end = (char *) &header[1];
-    register char *p;
-    for (p = (char *) header; p < end; ++p)
-      if (*p == '\0')
-	*p = ' ';
+    register char *np;
+    for (np = (char *) header; np < end; ++np)
+      if (*np == '\0')
+	*np = ' ';
   }
 }
 

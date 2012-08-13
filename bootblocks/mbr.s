@@ -574,21 +574,23 @@ export boot_part
    endif
   endif
 
-	org mbr_extras     ! Dirty bit, Serial number
-	.word 0
-serial_no:
-	.blkb 4
-
 !-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 ! Clear the sector to the bottom of the partition table.
   if markptab
-    if *<partition_start
-	org partition_start-1
+    if *<mbr_extras
+	org mbr_extras-1
 	.byte 0
     endif
   endif
 
+	org mbr_extras     ! Dirty bit, Serial number
+	.blkb 2
+serial_no:
+	.blkb 4
+
   if use512
+	org ORGADDR+0x1BC
+	.word 0xAA55
 	org ORGADDR+0x1FE
 	.word 0xAA55
   endif

@@ -21,6 +21,10 @@
  */
 
 #include <stdio.h>
+#ifdef __STDC__
+#include <unistd.h>
+#include <stdlib.h>
+#endif
 #include "x86_aout.h"
 
 #ifndef __OUT_OK
@@ -144,18 +148,19 @@ long file_off;
 int value;
 {
    char wbuf[4];
-   if( file_off <= 0 ) return;
+   if( file_off > 0 )
+   {
+      printf("Patch at offset 0x%05lx = %04x\n", file_off, value);
 
-   printf("Patch at offset 0x%05lx = %04x\n", file_off, value);
+      wbuf[0] = value;
+      wbuf[0] = (value>>8);
 
-   wbuf[0] = value;
-   wbuf[0] = (value>>8);
+      if( fseek(ofd, file_off, 0) < 0 )
+	 fatal("Cannot seek to patch binary");
 
-   if( fseek(ofd, file_off, 0) < 0 )
-      fatal("Cannot seek to patch binary");
-
-   if( fwrite(wbuf, 1, 2, ofd) != 2 )
-      fatal("Error patching output file");
+      if( fwrite(wbuf, 1, 2, ofd) != 2 )
+	 fatal("Error patching output file");
+   }
 }
 
 read_symtable()

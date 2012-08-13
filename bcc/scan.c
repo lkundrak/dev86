@@ -149,27 +149,27 @@ int asm_only;
 #endif
     while (!asm_only || asmmode)
     {
-        int sym = SYMOFCHAR(ch);
+        int cppsym = SYMOFCHAR(ch);
 
-	switch (sym)
+	switch (cppsym)
 	{
 	case CONTROL:
-	    if( !start_of_line ) sym=BADCHAR;
+	    if( !start_of_line ) cppsym=BADCHAR;
 	    break;
 	case WHITESPACE:
 	    break;
 	case SPECIALCHAR:
-	    if( ch == '\\' ) sym=BADCHAR;
+	    if( ch == '\\' ) cppsym=BADCHAR;
 	    start_of_line = 1;
 	    break;
 	case CHARCONST:
 	case STRINGCONST:
-	    if( asmmode ) sym=BADCHAR;
+	    if( asmmode ) cppsym=BADCHAR;
 	default:
 	    start_of_line = 0;
 	}
 
-	switch (sym)
+	switch (cppsym)
 	{
 	case CHARCONST:
 	case STRINGCONST:

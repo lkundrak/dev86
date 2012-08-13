@@ -171,3 +171,6 @@ void write_elks P((char *outfilename, bool_pt argsepid, bool_pt argbits32,
 
 /* linksym.c */
 void linksyms P((bool_pt argreloc_output));
+
+/* mkar.c */
+void ld86r P((int argc, char ** argv));

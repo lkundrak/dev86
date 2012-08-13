@@ -18,6 +18,7 @@
 #include "minix.v"
 #include "minixhd.v"
 #include "mbr.v"
+#include "mbr_dm.v"
 #include "mbr_chs.v"
 #include "mbr_lin.v"
 #include "mbr_lba.v"
@@ -114,7 +115,7 @@ struct bblist {
 #endif
 
 { "pbr",   "LBA-Only Partition boot record",
-	   pbr_data,pbr_size, 0, 0,                     FS_MBR},
+	   pbr_data,pbr_size, 0, 0,                     FS_ADOS},
 { "mbrchs","MBR using CHS addressing and BIOS",
 	   mbr_chs_data,mbr_chs_size, 0, 0,             FS_MBR},
 { "mbrlin","MBR using Linear addressing and CHS BIOS",
@@ -125,6 +126,10 @@ struct bblist {
 	   nombr_data,nombr_size,
 	   2, nombr_message-nombr_start,                FS_MBR},
 
+#ifdef mbr_dm_size
+{ "mbrdm", "DM Master boot record for HD",
+	   mbr_dm_data,mbr_dm_size, 0, 0,               FS_MBR},
+#endif
 
 { "minix","Minix floppy FS booter",           
            minix_data, minix_size, 
@@ -300,7 +305,7 @@ char ** argv;
       break;
 
    case FS_MBR:
-      copy_mbr(ptr->data);
+      copy_mbr(ptr->data, ptr->size);
       break;
 
    case FS_ZERO:
@@ -871,6 +876,11 @@ copy_tarblock()
 #define DOS7_INFO_SECT	22
 #define DOS7_BOOT2	23
 
+#define DOS7_PHY_DRIVE	24
+#define DOS7_SERIAL	25
+#define DOS7_LABEL	26
+#define DOS7_FATTYPE	27
+
 struct bootfields {
    char * label;
    int offset;
@@ -985,7 +995,10 @@ static char * fieldnames[] = {
 	  (i==DOS_FATLEN || i==DOS_MAXSECT || i==DOS4_MAXSECT || i==DOS_NROOT))
 	    continue;
 
-         printf("%-35s%ld\n", fieldnames[i], v);
+	 if ( i==DOS7_SERIAL )
+            printf("%-35s%08x\n", fieldnames[i], v);
+	 else
+            printf("%-35s%ld\n", fieldnames[i], v);
 
 	 if (i==DOS_SECT && v!=512 && v!=1024 && v!=2048)
 	    break;
@@ -1244,7 +1257,7 @@ int boot_name;
 
    if( strlen(boot_id) > i )
    {
-      fprintf(stderr, "Name '%s' is too long for bootblock\n");
+      fprintf(stderr, "Name '%s' is too long for bootblock\n", boot_name);
       exit(1);
    }
    else
@@ -1306,17 +1319,22 @@ check_mbr()
    }
 }
 
-copy_mbr(mbr_data)
-char * mbr_data;
+copy_mbr(boot_data, boot_size)
+char * boot_data;
+int boot_size;
 {
-   if( buffer[252] != 0xAA || buffer[253] != 0x55 ||
-       (unsigned char)mbr_data[252] != 0xAA || mbr_data[253] != 0x55 )
-      memcpy(buffer, mbr_data, 446);
-   else
-      memcpy(buffer, mbr_data, 254);
+   int boot_to_copy = 446;
 
+   if (boot_size < boot_to_copy) 
+     boot_to_copy = boot_size;
+
+   if ( boot_to_copy > 254 && 
+        buffer[252] == 0xAA && buffer[253] == 0x55 && 
+        (unsigned char)boot_data[252] == 0xAA && boot_data[253] == 0x55 )
+      boot_to_copy = 254;
+
+   memcpy(buffer, boot_data, boot_to_copy);
    buffer[510] = 0x55;
    buffer[511] = 0xAA;
    write_zero = 1;
 }
-

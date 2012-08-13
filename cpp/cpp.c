@@ -431,19 +431,19 @@ break_break:
    /* Possible composite tokens */
    if( ch > ' ' && ch <= '~' )
    {
-      struct token_trans *p;
+      struct token_trans *tt;
       *curword = cc = ch;
 
       for(state=1; ; state++)
       {
 	 curword[state] = ch = chget();
-	 if( !(p=is_ctok(curword, state+1)) )
+	 if( !(tt=is_ctok(curword, state+1)) )
 	 {
 	    unchget(ch);
 	    curword[state] = '\0';
 	    return cc;
 	 }
-	 cc=p->token;
+	 cc=tt->token;
       }
    }
    return ch;

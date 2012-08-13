@@ -3,10 +3,10 @@
 #
 
 all: phony
-	@$(MAKE) -f Makefile IFDEFFLAGS=-DGNUMAKE IFDEFNAME=ifdefg $@
+	@$(MAKE) $(MAKEARG) -f Makefile IFDEFFLAGS=-DGNUMAKE IFDEFNAME=ifdefg $@
 
 %: phony
-	@$(MAKE) -f Makefile IFDEFFLAGS=-DGNUMAKE IFDEFNAME=ifdefg $@
+	@$(MAKE) $(MAKEARG) -f Makefile IFDEFFLAGS=-DGNUMAKE IFDEFNAME=ifdefg $@
 
 phony: ;
 

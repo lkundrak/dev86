@@ -2,7 +2,7 @@
 # This file is part of the Linux-8086 Development environment and is
 # distributed under the GNU General Public License.
 
-VERSION=0.16.18
+VERSION=0.16.19
 
 TARGETS=install clean other \
     bcc86 unproto copt as86 ld86 elksemu \
@@ -38,7 +38,7 @@ realclean:
 	-rm -f make.fil ifdef ifdefg
 
 make.fil: $(IFDEFNAME) makefile.in
-	./$(IFDEFNAME) -MU makefile.in >tmp.mak
+	./$(IFDEFNAME) -MU $(IFDEFOPTS) makefile.in >tmp.mak
 	echo > tmp.sed
 	[ "$(BINDIR)" != "//bin" ] || echo >> tmp.sed "s:%BINDIR%:/bin:"
 	[ "$(LIBDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%LIBDIR%:/lib:"

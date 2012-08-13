@@ -2172,6 +2172,7 @@ PUBLIC void mpushpop()
 	    }
 	    else
 	    {
+		needcpu(1); /* On 8086 PUSH does not allow immediate */
 		opcode = 0x68;
 		if (oldopcode == POP_OPCODE)
 		    ++opcode;

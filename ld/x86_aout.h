@@ -13,7 +13,14 @@
 typedef long Long;
 #define __OUT_OK 1
 #else
+/* Beware: this will probably allow some BE hosts to generate broken files. */
+#ifdef INT32_MAX
+#include <stdint.h>
+typedef int32_t Long;
+#define __OUT_OK 1
+#else
 typedef char Long[4];
+#endif
 #endif
 
 struct	exec {			/* a.out header */

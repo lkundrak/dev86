@@ -17,6 +17,7 @@
  */
 #include <stdio.h>
 #ifdef __STDC__
+#include <limits.h>
 #include <stdlib.h>
 #ifndef MSDOS
 #include <unistd.h>
@@ -129,7 +130,7 @@ char * tmpdir = "/tmp/";
 #endif
 
 int main P((int argc, char **argv));
-void getargs P((int argc, char **argv));
+
 void add_prefix P((char * path));
 void build_prefix P((char * path1, char * path2, char * path3));
 void run_aspreproc P((struct file_list * file));
@@ -145,6 +146,7 @@ void command_arch P((void));
 void command_opts P((int opykey));
 void newfilename P((struct file_list * file, int last_stage, int new_extn, int use_o));
 void run_unlink P((void));
+void validate_link_opt P((char * option));
 void validate_link_opts P((void));
 void append_file P((char * filename, int ftype));
 void append_option P((char * option, int otype));
@@ -157,6 +159,7 @@ char * copystr P((char * str));
 char * catstr P((char * str, char * str2));
 void reset_prefix_path P((void));
 void run_command P((struct file_list * file));
+void getargs P((int argc, char ** argv));
 
 char * prefix_path = "";
 
@@ -528,7 +531,8 @@ run_link()
 }
 
 void
-validate_link_opt(char * option)
+validate_link_opt(option)
+char * option;
 {
    int err = 0;
    if (option[0] != '-') return;
@@ -1308,10 +1312,16 @@ void reset_prefix_path()
 
       for(d=s=ptr; d && *s; s=d)
       {
+#ifndef __BCC__
+#ifdef PATH_MAX
+         char buf[PATH_MAX];
+#else
 #ifdef MAXPATHLEN
          char buf[MAXPATHLEN];
 #else
          char buf[1024];
+#endif
+#endif
 #endif
 
 	 free(temp);

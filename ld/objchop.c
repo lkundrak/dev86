@@ -1,5 +1,9 @@
 
 #include <stdio.h>
+#ifdef __STDC__
+#include <unistd.h>
+#include <stdlib.h>
+#endif
 #include "x86_aout.h"
 
 #ifndef __OUT_OK

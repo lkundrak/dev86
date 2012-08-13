@@ -2,6 +2,7 @@
 
 /* Copyright (C) 1994 Bruce Evans */
 
+#include "syshead.h"
 #include "const.h"
 #include "obj.h"
 #include "type.h"

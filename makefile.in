@@ -34,15 +34,18 @@ AR=ar86
 
 #ifdef __GNUC__
 
-WALL  =-Wall -Wtraditional -Wshadow -Wid-clash-14 -Wpointer-arith \
+CC	=%CC%
+#ifdef GCCDB
+WALL  =-Wall -Wtraditional -Wshadow -Wpointer-arith \
        -Wcast-qual -Wcast-align -Wconversion -Waggregate-return \
        -Wstrict-prototypes -Wmissing-prototypes -Wredundant-decls \
        -Wnested-externs -Winline 
-
-WALL  =-Wall -Wstrict-prototypes
-
-CC	=%CC%
 CFLAGS	=$(GCCFLAG) $(WALL) -O2 -g
+#else
+WALL  =-Wall -Wstrict-prototypes
+CFLAGS	=$(GCCFLAG) -O2 -fno-strict-aliasing
+#endif
+
 #endif
 
 #ifndef GNUMAKE

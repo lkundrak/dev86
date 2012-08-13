@@ -1,3 +1,6 @@
+
+#ifndef _H_ERRORS
+#define _H_ERRORS
 /* Error codes. */
 
 /* Syntax errors. */
@@ -103,3 +106,5 @@ EXTERN char UNSTABLE_LABEL[];   /* "label moved in last pass add -O?" */
 /* Warnings. */
 EXTERN char CPUCLASH[];         /* "instruction illegal for current cpu" */
 EXTERN char SHORTB[];           /* "short branch would do" */
+
+#endif

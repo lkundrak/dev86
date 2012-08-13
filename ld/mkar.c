@@ -10,6 +10,7 @@
 #include <malloc.h>
 #endif
 
+#include "type.h"
 #include "ar.h"
 
 static struct ar_hdr arbuf;
