@@ -1,0 +1,60 @@
+#!/bin/sh
+
+echo Making compile.bat
+sh mkcompile
+
+grep '^VERSION=' Makefile | 
+sed -e 's/VERSION=/#define VERSION "/' -e 's/$/"/' > bcc/version.h
+
+ln -s tok_class.c unproto/tok_clas.c
+dos -r call\ compile -r exitemu
+rm unproto/tok_clas.c bcc/version.h
+
+none() {
+(
+echo  H:
+echo 'cd 8086'
+echo call compile
+echo exitemu
+
+) | tr -d '\015' | sed 's/$//' > $HOME/autoexec.bat
+
+dos
+rm $HOME/autoexec.bat
+}
+
+[ -f bin/bcc.exe -a -f bin/as86.exe -a -f bin/ld86.exe ] || exit 1
+[ -f lib/bcc-cc1.exe -a -f lib/bcc-cpp.exe -a -f lib/unproto.exe ] || exit 1
+
+mkdir -p txt
+(
+cd man
+   TERM=dumb
+   export TERM
+   export PAGER
+   unset PAGER
+
+   for i in bcc as86 ld86
+   do man ./$i.1 | ul | sed 's/$//g' > ../txt/$i.txt
+   done
+)
+rm -f Dev86dos.zip
+
+rm -f Bcc
+ln -s . Bcc
+ln -s ../kinclude/arch include/arch
+
+zip -9rp Dev86dos.zip \
+	Bcc/README.dos \
+	Bcc/txt/* \
+	Bcc/bin/bcc.exe \
+	Bcc/bin/as86.exe \
+	Bcc/bin/ld86.exe \
+	Bcc/lib/bcc-cc1.exe \
+	Bcc/lib/bcc-cpp.exe \
+	Bcc/lib/unproto.exe \
+	Bcc/include/* \
+	Bcc/lib/crt0.o Bcc/lib/libdos.a
+rm include/arch Bcc
+exit
+

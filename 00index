@@ -1,0 +1,21 @@
+This is a cross development C compiler, assembler and linker environment
+for the production of 8086 executables (Optionally MSDOS COM)
+
+All you need is in the 'Dev86src-X.Y.Z.tar.gz' file, the others provide only
+parts of this or just the binaries.
+
+Dev86src-X.Y.Z.tar.gz           The complete source
+as86-X.Y.Z.tar.gz               The assembler source only
+bin86-X.Y.Z.tar.gz              The source to the standard 'bin86' package.
+
+Dev86bin-X.Y.Z.tar.gz           Linux-386 ELF binaries (libc6)
+Dev86dos-X.Y.Z.zip              Msdos binaries for making COM files.
+Dev86clb-X.Y.Z.zip              Libc binaries all the libc archive files
+				pre-compiled. (For DOS, minix or any machine
+				without GNU make installed)
+
+patch-*.gz                      Patch files, two version numbers mean the
+                                patch is between those versions. One means
+				it's between X.Y.Z and X.Y.(Z-1).
+
+Robert.

@@ -1,0 +1,55 @@
+
+Build and DOS
+
+  ~/bin
+  ~/lib
+  ~/include
+  ~/man
+
+ELKS Native
+
+  /usr/bin
+  /usr/lib
+  /usr/include
+  /usr/man
+  /lib/liberror.txt
+
+Cross
+
+  /usr/bin
+  /usr/lib/bcc
+  /usr/lib/bcc/include
+  /usr/man
+
+Local Cross
+
+  /usr/local/bin
+  /usr/local/lib/bcc
+  /usr/local/lib/bcc/include
+  /usr/local/man
+
+--------------------------------
+1) i386 is always under lib
+
+*) BCC_DIR == /  -->  add to paths for Native
+
+*) BCC_DIR == /usr		--> Non-native
+*) BCC_DIR == /usr/local	--> Non-native
+
+*) BCC_DIR == ''		--> Like Native, not "/usr"
+*) BCC_DIR == . 		--> Like Native, uses pwd.
+
+   DOS or build dir.
+   Instead of /usr add the current path to bcc less the exe name and
+   the last piece IF it's /bin. The paths with and without /bin are
+   both added to the exe list (/bin first).
+
+   POSS: If exe is a symlink add both before and after, after first.
+
+*) BCC_DIR is an env var who's existance overrides built in.
+*)  --> No need for ncc, it's same as BCC_DIR="" bcc
+
+--------------------------------
+
+Remove default_libdir[03]
+Add default_libdir and default_libsuffix.

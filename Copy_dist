@@ -1,0 +1,88 @@
+set -x
+trap "exit 1" 1 2 3 15
+ 
+SRCDIRS='bcc unproto as ar ld copt man elksemu dis88 tests libbsd bin86'
+DISTFILES='Libc_version Makefile README COPYING MAGIC Changes Contributors
+           mkcompile mkcompile2 later.c GNUmakefile libcompat
+	   ifdef.c makefile.in'
+
+DIR=`pwd`
+rm -rf /tmp/linux-86 /tmp/linux-86.old /tmp/linux-86-dist
+mkdir /tmp/linux-86
+
+#-----------------------------------------------------------------------
+
+cd $DIR
+  make -C libc Libc_version
+  make -C bin86 ungrab
+  VER=`cat Libc_version`
+
+  cp -a $DISTFILES $SRCDIRS /tmp/linux-86
+
+#-----------------------------------------------------------------------
+
+cd $DIR
+
+LIBC_FILES='Makefile Make.defs crt0.c
+      	    README COPYING KERNEL
+      	    New_subdir Pre_main Config_sh Config.dflt'
+
+mkdir /tmp/linux-86/libc
+cd libc
+set +x
+LIBC_DIRS="`for i in */Makefile */Config; do dirname $i; done | sort -u`"
+set -x
+
+cp -a $LIBC_FILES include $LIBC_DIRS /tmp/linux-86/libc/.
+
+#-----------------------------------------------------------------------
+
+cd $DIR
+make -C bootblocks distribution
+make -C doselks distribution
+
+mkdir /tmp/linux-86/bootblocks
+cd /tmp/linux-86/bootblocks 
+  tar xzf /tmp/bootblocks.tar.gz
+
+mkdir /tmp/linux-86/doselks
+cd /tmp/linux-86/doselks 
+  tar xzf /tmp/doselks.tar.gz
+
+cd /tmp
+  [ "`id -un`" = "root" ] && 
+  {
+    chown -R root:root linux-86
+    chmod -R og=u-w linux-86
+  }
+
+rm -f /tmp/bootblocks.tar.gz /tmp/doselks.tar.gz /tmp/libc-8086-$VER.tar.gz
+
+cd /tmp/linux-86
+  make -s clean realclean
+  set +x
+  mv as/obj1 /tmp/linux-86-obj1
+  EXCL="`find .         -name '*.o'    -o -name '*.obj'	\
+                     -o -name '*.lib'  -o -name '*.bak'	\
+		     -o -name '*~'     -o -name '*.exe'	\
+		     -o -name '*.orig' -o -name '*.rej'	\
+		     `"
+  mv /tmp/linux-86-obj1 as/obj1
+  set -x
+  rm -f $EXCL
+  rm -f `find . -type l`
+
+mkdir /tmp/linux-86.tmp
+  cd /tmp/linux-86.tmp
+  tar xzf `ls -tr $DIR/arc/Dev86src*.tar.gz | tail -1`
+  mv linux-86 /tmp/linux-86.old
+cd /tmp
+  rmdir linux-86.tmp
+
+mkdir -p /tmp/Dist
+chmod 777 /tmp/Dist
+
+  diff -Nurd linux-86.old linux-86 > /tmp/Dist/Dev86src-$VER.patch
+  gzip -v9f /tmp/Dist/Dev86src-$VER.patch
+
+exit 0

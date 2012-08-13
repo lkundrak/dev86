@@ -1,0 +1,14 @@
+#!/bin/sh
+
+sh mkcompile 
+
+(
+echo  c:
+echo 'cd \tmp\linux-86'
+
+) | tr -d '\015' | sed 's/$//' > $HOME/autoexec.bat
+
+dos
+
+rm $HOME/autoexec.bat
+

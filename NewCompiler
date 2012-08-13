@@ -1,0 +1,121 @@
+
+1) Convert symbols -> typed name.
+2) Convert symbols -> name with offset.
+
+Use scan & sort methods.
+  1) Scan for labels & use of labels into a file
+  2) Sort file so that use of a label immediatly follows definition.
+  3) Foreach fixup seek & fix.
+
+Passes
+   CPP
+      does # scanning
+      does token scanning 
+      produces tokenised file as output. (designed for top speed read/write)
+	 file contains fixup slots for token numbers.
+	 ?file still holds whitespace, line numbers and comments as tokens.
+         ?cpp does infix -> rpn
+      create fixup list of variable names and offsets where referenced.
+
+      token file is records of form:
+	 byte: token type (zero is a no-op, has no string. (ptr++))
+	 byte: string length with nul. (next-> ptr=ptr+ptr.len+2 )
+	 ascii: string with null. (doesn't need to be copied on read.)
+
+      If the string is a keyword it may not be nul terminated.
+      If length == 0 then string is 256 bytes (inc nul)
+      Tokens 0xF0 to 0xFE are for data used in format conversion not
+      compiling. Token 0xFF is a file type confirmation (magic number)
+   CC1
+      sort and apply fixup list. Each token name is assigned a unique no.
+   CC2
+      generate code line by line, do NO fixups.
+      no hash should be needed as cc1 replaces variables by numbers and
+	 C defines variables before use.
+	 Use array of pointers so out of scope variable takes only 2 bytes.
+      create meta assembler file.
+   OPT
+      read & write meta assembler file.
+      peephole optimise.
+   AS
+      read & write meta assembler file.
+      converter for text assembler.
+	 converter has variable -> type converter.
+      output file contains only DB/DW/DD like items.
+      does all address size opts.
+   LD
+      read meta assembler
+      create binary with holes for linkages. 
+         single binary for all objects.
+      create binary fixup list. (sort it)
+
+      library operations (see ranlib)
+      ld -r ==> cat (except include filename at start of each) (cat ok tho)
+      ?does ranlib convert ld-r to *.a ?
+   SORT
+      merge fixup lists for all files.
+   FIXUP
+      fixup binary with sorted fixup list.
+
+sort & fixup program
+   Reads list of fixup files, sort and merge them
+   output a) sorted fixup
+          b) apply fixup to object
+	     Multiple fixup types..
+	     i) Binary bytes 1, 2, 4
+	     ii) Hex number 1..8
+	     Multiple values
+	     i) Literal in definition.
+	     ii) Bases(N) + Literal in definition.
+	     iii) fixup definition number (first fixup, second etc)
+	  c) ascii dump of fixups.
+
+   fixups may have library number to allow duplicates.
+   flags to note if (each file) input is already sorted.
+
+ranlib
+   read archive of objects
+   create sorted list of lable -> objects to import.
+      Perhaps a bitmap ? Compressed bitmap ?
+
+ld
+   foreach library.
+      ld scans it's fixup list for undefined refs scans import list at
+      same time.  Puts list of objects to import into sorted (uniq) list.
+      Adds objects to binary and merges fixups.
+
+   Weak fixups.
+      Definitions from a library have a library number added to them.
+      Fixup doesn't complain (much) about inter-library collisions.
+      Import list in ranlib means links to same library have preference.
+      Otherwise use lowest library number (object is library zero).
+	 Complain if definition is in earlier library.
+
+fixup list format
+   token + len + string format.
+   token are:
+     
+      0xFF 6 "Fixup0"
+      0x01 n "label name"
+      0x02 n "library id"
+
+      0x10 n "define literal"
+      0x11 0 -- value is next id number.
+
+      0x20 n "litteral offset from base 0"
+      0x21 n "litteral offset from base 1"
+      0x22 n "litteral offset from base 2"
+      0x23 n "litteral offset from base 3"
+
+      0x05 n "to fixup file id"
+      0x06 n "to fixup file offset"
+
+   Strings may be suffixed with nuls others prefixed to bring up to multiple 
+   of 2, 4 or 8 bytes.
+
+Dead code elimination
+   Which pass?
+   May run over entire function, "goto" instruction.
+
+   Early stage can trap "if (constant)" but labels are live and may revive 
+   initialisations.

@@ -1,0 +1,18 @@
+Dear dos user,
+
+You'll find a little documentation in the txt subdirectory, they are
+the converted manual pages. This is about all the documentation there
+is but you must be able to get the source the same place you got this.
+(These programs are distributed under GPL and it is a condition of the
+copyright)
+
+To use the compiler make sure the zip is uncompressed with the -d option
+and put the BCC/BIN subdirectory into the path. You should then be able
+to use BCC. NOTE: under dos the default executable form is a small mode
+(64k+64k) COM file, DOS fails if the COM file is more than 63k long.
+
+It's probably not a good idea to unpack this over an older version.
+
+Have fun!
+
+Rob.

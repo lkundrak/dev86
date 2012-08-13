@@ -1,0 +1,96 @@
+
+bcc-cc1:
+	Output markers when the contents of a register is discarded.
+
+bcc-cc1:
+	Still crashes on 8086.
+
+Add in 'smalllibc.c' as an example. (Do TCC support right? ie: dev86 libc?)
+
+Check for (text,data,bss,stack,heap) elks file format support.
+
+bcc-cc1:
+	Remove demotion of constant integers and '&' results to chars.
+
+----------------------------------------------------------------------------
+
+DOS Talk command: 
+   1) Port to bcc
+   2) Make emulation into 'linux'
+
+----------------------------------------------------------------------------
+
+BIOS Library changes:
+  Make lots of "bit's" libraries eg:
+
+    -Obios_vt52.o
+    -Obios_ansi.o
+    -Obios_fat.o
+    -Obios_rofat.o
+    -Obios_minix.o
+    -Obios_ramdisk.o
+       -- in extended memory, use block device for bzImage ?
+  
+  Each one has an 'entry' function that means it is linked into the pre-main
+  function processing.
+  (Add to -O option second search for path/<file>.o )
+
+----------------------------------------------------------------------------
+Changes file -> bin86 dist.
+
+----------------------------------------------------------------------------
+Make doselks the normal way to execute programs under DOS.
+Have the DOS version of the linker create an EXE file including the doselks
+com file as an 'interpreter'.
+
+Or only do this for the bcc program so it can call ELKS bcc-cc1, as86 etc.
+Special exec function, elks exe's included in a dos .EXE file?
+
+----------------------------------------------------------------------------
+/*
+There's a documented code generator feature in BCC.
+This fails because char is always unsigned
+*/
+
+char c;
+func()
+{
+   if( (c=fgetc()) != -1 ) return -1;
+   return c&0xFF;
+}
+----------------------------------------------------------------------------
+GCC-ELKS, sbrk(), brk()
+
+----------------------------------------------------------------------------
+Full cross compile without install.
+  Make the host tools
+  Make the libraries with host compiled tools
+  Make the i86 tools
+  (optional) Make the libraries with i86 tools.
+  Install as either i386 or i86.
+
+  1) Install ncc under "."
+  2) Do an 8086 tool compile.
+  3) Do a libcompile with ncc.
+  4) Install i386 from ncc tree.
+
+Initial make ?
+  make cross
+  make native
+
+----------------------------------------------------------------------------
+For 'as' ...
+
+Update 6809/const.h.
+
+Produce bsd symbol tables.
+
+Accept gas format.
+
+Decide how to choose between 8-bit and 32-bit branches. 16-bit branches in
+32-bit mode are unusable because top 16 bits of PC are messed up.
+
+Buffer for printing of listing.
+
+Need to make assembler remember the code it generated in the penultimate
+pass and regenerate code of exactly the same length in the last pass.

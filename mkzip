@@ -1,0 +1,22 @@
+
+FILES1="as ld bcc unproto libc elksemu ar pcc doselks"
+FILES2=" linuxmt mc6502 asxxxx bootblocks"
+FILES3="bin lib include mkcompile mkcompile2 compile.bat later.c ifdef.c"
+
+NOTFILES="mc6502/roms/* mc6502/history/* mc6502/old/* mc6502/arc/*"
+
+rm -f include lib/*.[ao] lib/i386/*.[ao]
+ln -s /usr/bcc/include include
+
+mkdir -p lib lib/i386
+p=/usr/bcc/lib/bcc
+cp -pf $p/i86/*.[ao] lib/.
+cp -pf $p/i386/*.[ao] lib/i386/.
+
+EXCL="`find $FILES1     -name '*.o'    -o -name '*.obj'	\
+                     -o -name '*.lib'  -o -name '*.bak'	\
+		     -o -name '*~'     -o -name '*.exe'	\
+		     -o -name '*.orig' -o -name '*.rej'	\
+		     `"
+#rm bigzip.zip
+zip -urp bigzip $FILES1 $FILES2 $FILES3  -x $NOTFILES $EXCL
