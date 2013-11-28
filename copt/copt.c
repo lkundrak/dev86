@@ -803,7 +803,7 @@ static void writeoutf(char *filename, char *headstr)
 	exit(1);
   }
   if (headstr != NULL) {
-	fprintf(fp, headstr);
+	fprintf(fp, "%s", headstr);
 	fprintf(fp, "\n");
   }
   for (lp = infile; lp != NULL; lp = lp->next)
