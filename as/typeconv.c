@@ -11,7 +11,24 @@
 #include "globvar.h"
 
 void xxerr P((char *));
-void xxerr(x) char * x; { write(2, x, strlen(x)); }
+void xxerr(x)
+char * x;
+{
+    int len;
+
+    len = strlen(x);
+    while (len) {
+        int nw;
+
+        nw = write(2, x, strlen(x));
+        if (nw > 0) {
+            len -= nw;
+            x += nw;
+        } else {
+            exit(1);
+        }
+    }
+}
 
 #ifdef __AS386_16__
 static int no_swap   = 1;

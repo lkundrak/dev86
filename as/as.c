@@ -65,9 +65,10 @@ char **argv;
 PUBLIC void as_abort(message)
 char *message;
 {
-    write(STDOUT, "as: ", 4);
-    write(STDOUT, message, strlen(message));
-    write(STDOUT, "\n", 1);
+    outfd = STDOUT;
+    writebuf("as: ", 4);
+    writebuf(message, strlen(message));
+    writebuf("\n", 1);
     exit(1);
 }
 

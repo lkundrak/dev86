@@ -194,7 +194,7 @@ fd_t fd;
 {
     outfd = fd;
     listcode();
-    write(outfd, linebuf, (unsigned) (lineptr - linebuf));
+    writebuf(linebuf, (unsigned) (lineptr - linebuf));
     writenl();
     if (errcount != 0)
 	listerrors();
@@ -424,12 +424,30 @@ unsigned nspaces;
 	writec(' ');		/* spaces out to error position */
 }
 
+/* write buffer with length */
+
+PUBLIC void writebuf(s, len)
+char *s;
+int len;
+{
+    while (len) {
+        int nw;
+        nw = write(outfd, s, len);
+        if (nw > 0) {
+            len -= nw;
+            s += nw;
+        } else {
+            as_abort("write error");
+        }
+    }
+}
+
 /* write 1 character */
 
 PUBLIC void writec(ch)
 char ch;
 {
-    write(outfd, &ch, 1);
+    writebuf(&ch, 1);
 }
 
 /* write newline */
@@ -451,7 +469,7 @@ offset_t offset;
 #else
     u2c2(buf, offset);
 #endif
-    write(outfd, buf, sizeof buf);
+    writebuf(buf, sizeof buf);
 }
 
 /* write string */
@@ -459,7 +477,7 @@ offset_t offset;
 PUBLIC void writes(s)
 char *s;
 {
-    write(outfd, s, strlen(s));
+    writebuf(s, strlen(s));
 }
 
 /* write string followed by newline */
@@ -479,5 +497,5 @@ unsigned word;
     char buf[2];
 
     u2c2(buf, (u16_T) word);
-    write(outfd, buf, sizeof buf);
+    writebuf(buf, sizeof buf);
 }

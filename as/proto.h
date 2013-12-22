@@ -34,6 +34,7 @@ char *build_number P((unsigned num, unsigned width, char *where));
 void warning P((char * errorstr));
 void error P((char * errorstr));
 void listline P((void));
+void writebuf P((char *s, int len));
 void writec P((int ch));
 void writenl P((void));
 void writeoff P((offset_t offset));

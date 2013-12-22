@@ -1,5 +1,5 @@
 
-CFLAGS=-O
+CFLAGS=-O -Wall
 LDFLAGS=-s
 LIBDIR=/usr/bin
 BINDIR=/usr/bin

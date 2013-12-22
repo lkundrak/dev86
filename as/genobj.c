@@ -72,16 +72,22 @@ PUBLIC void flushobj()
 {
     int ntowrite;
 
-    if ((ntowrite = objbufptr - objbuf) > 0)
+    ntowrite = objbufptr - objbuf;
+    while (ntowrite > 0)
     {
-	if (write(objfil, objbuf, (unsigned) ntowrite) != ntowrite)
+        int nwritten;
+
+	nwritten = write(objfil, objbufptr - ntowrite, (unsigned) ntowrite);
+        if (nwritten < 1)
 	{
 	    error(OBJOUT);
 	    listline();
 	    finishup();
-	}
-	objbufptr = objbuf;
+	} else {
+            ntowrite -= nwritten;
+        }
     }
+    objbufptr = objbuf;
 }
 
 /* flush RMB count if necessary */
