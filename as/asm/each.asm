@@ -106,28 +106,38 @@ ror	[esi*4],1
 rep
 ins
 rep
+lock
 outs
 rep
 movs
 rep
 cmps
 rep
+dseg
 stos
 rep
 scas
 repe
+seg ss
 ins
 repe
 outs
 repe
+lock
+seg ss
 movs
 repe
 cmps
 repe
 stos
 repe
+seg ss
+seg cs
+fseg
 scas
 repz
+lock
+lock
 ins
 repz
 outs
@@ -146,6 +156,23 @@ cmps
 repnz
 scas
 repnz
+cmps
+repnz
+lock
+cmps
+repnz
+seg ss
+cmps
+repnz
+cseg
+cmps
+repnz
+seg ss
+lock
+cmps
+repnz
+lock
+cseg
 cmps
 ret
 retf
