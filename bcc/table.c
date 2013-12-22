@@ -700,7 +700,6 @@ char *name;
     struct symstruct *symptr;
     int i;
     char anon[2 + NAMESIZE];
-    struct typelist *tl;
 
     /* Look for a struct member named as given */
     name[0] = type->structkey[0];

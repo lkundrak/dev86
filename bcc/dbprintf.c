@@ -1,6 +1,4 @@
-
-#include <sys/types.h>
-#include <fcntl.h>
+#include "bcc.h"
 
 #if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
 #include <stdarg.h>
@@ -10,23 +8,7 @@
 #define va_strt(p,i) va_start(p)
 #endif
 
-#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
-int dbprintf(const char * fmt, ...)
-#else
-int dbprintf(fmt, va_alist)
-__const char *fmt;
-va_dcl
-#endif
-{
-   va_list ptr;
-   int rv;
-   va_strt(ptr, fmt);
-   rv = vdbprintf(fmt,ptr);
-   va_end(ptr);
-   return rv;
-}
-
-static unsigned char * __numout (long i, int base);
+static char * __numout (long i, int base);
 static void putch(int ch) { static char buf[2]; *buf = ch; write(2,buf,1); }
 
 int
@@ -146,15 +128,31 @@ register va_list ap;
    return count;
 }
 
+#if defined(__STDC__) && !defined(__FIRST_ARG_IN_AX__)
+int dbprintf(const char * fmt, ...)
+#else
+int dbprintf(fmt, va_alist)
+__const char *fmt;
+va_dcl
+#endif
+{
+   va_list ptr;
+   int rv;
+   va_strt(ptr, fmt);
+   rv = vdbprintf(fmt,ptr);
+   va_end(ptr);
+   return rv;
+}
+
 static char nstring[]="0123456789ABCDEF";
 
 #ifndef __AS386_16__
 #define NUMLTH 11
 
-static unsigned char *
+static char *
 __numout(long i, int base)
 {
-   static unsigned char out[NUMLTH+1];
+   static char out[NUMLTH+1];
    int n;
    int flg = 0;
    unsigned long val;

@@ -2,6 +2,7 @@
 
 /* Copyright (C) 1992 Bruce Evans */
 
+#include <stdio.h>
 #include "bcc.h"
 #include "input.h"
 #include "os.h"
@@ -217,7 +218,7 @@ PUBLIC void flushout()
 	    clearlabels(outbufptr, outbufptr + nbytes);
 	if (write(output, outbufptr, nbytes) != nbytes)
 	{
-	    write(2, "output file error\n", 18);
+	    fprintf(stderr, "output file error\n");
 	    closein();
 	    close(output);
 	    exit(1);
