@@ -18,8 +18,8 @@
 
 trap "rm -f _$$.* ; exit 99" 1 2 3 15 
 
-LIBDIR='/usr/lib/bcc'	# Set by make install
-BINDIR='/usr/bin'	# Set by make install
+LIBDIR=/usr/lib/bcc
+BINDIR=/usr/bin
 
 # If the one set by install fails then try a couple of others.
 [ -x "$LIBDIR/as86" ] || LIBDIR="`dirname $0`"

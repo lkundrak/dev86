@@ -1,4 +1,3 @@
-
 HOSTCC=cc
 HOSTCCFLAGS=-O
 BCC=bcc
