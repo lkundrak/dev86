@@ -184,4 +184,4 @@ distribution:
 	$(AS86) -w- -0 -b $*.bin -s $*.sym $*.s $(LST)
 
 .s.v:
-	as86_encap $*.s $*.v $*_ $(ASFLAGS) $(LST)
+	./as86_encap $*.s $*.v $*_ $(ASFLAGS) $(LST)

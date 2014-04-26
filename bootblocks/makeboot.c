@@ -5,6 +5,9 @@
 #include <string.h>
 #ifndef __MSDOS__
 #include <stdlib.h>
+#include <stdint.h>
+#else
+#define int32_t long
 #endif
 
 #include "sysboot.v"
@@ -476,7 +479,7 @@ char * loadaddr;
       fprintf(stderr, "Cannot write sector %d\n", sectno);
       return -1;
    }
-   fseek(diskfd, (long)sectno*512, 0);
+   fseek(diskfd, (int32_t)sectno*512, 0);
    if( fwrite(loadaddr, 512, 1, diskfd) != 1 )
    {
       fprintf(stderr, "Cannot write sector %d\n", sectno);
@@ -533,7 +536,7 @@ char * loadaddr;
       fprintf(stderr, "Cannot read sector %d\n", sectno);
       return -1;
    }
-   fseek(diskfd, (long)sectno*512, 0);
+   fseek(diskfd, (int32_t)sectno*512, 0);
    if( (cc=fread(loadaddr, 1, 512, diskfd)) != 512 )
    {
       fprintf(stderr, "Cannot read sector %d, clearing\n", sectno);
@@ -606,9 +609,9 @@ bios_write_err:
 /* All this mess just to read one sector!! */
 
 struct disk_packet {
-   long	sector;
-   int	count;
-   long	addr;
+   int32_t sector;
+   int     count;
+   int32_t addr;
 } disk_packet;
 
 dos_sect_read(drv, sector, loadaddr)
@@ -759,7 +762,7 @@ check_tar()
    char vbuf[100];
    unsigned char *p;
    unsigned int csum = 0;
-   long osum = -1;
+   int32_t osum = -1;
 
    for(p=buffer; p<buffer+512; p++)
       if( *p ) goto not_zapped;
@@ -886,7 +889,7 @@ struct bootfields {
    int offset;
    int length;
    unsigned value;
-   long lvalue;
+   int32_t lvalue;
    char * new_value;
 }
    dosflds[] =
@@ -971,7 +974,7 @@ static char * fieldnames[] = {
    0
 };
    int i;
-   long numclust = 0xFFFF;
+   int32_t numclust = 0xFFFF;
    int fatbits = 0;
    int fat_len = -1;
 
@@ -982,7 +985,7 @@ static char * fieldnames[] = {
 
       if( dosflds[i].length <= 4 )
       {
-         long v = 0; int j;
+         int32_t v = 0; int j;
 	 for(j=dosflds[i].length-1; j>=0; j--)
 	 {
 	    v = v*256 + (0xFF&( bootsect[dosflds[i].offset+j] ));
@@ -1034,7 +1037,7 @@ char * bootsect;
 
       if( dosflds[i].length <= 4 )
       {
-         long v = 0; int j;
+         int32_t v = 0; int j;
 	 for(j=dosflds[i].length-1; j>=0; j--)
 	 {
 	    v = v*256 + (0xFF&( bootsect[dosflds[i].offset+j] ));
@@ -1101,7 +1104,7 @@ char * bootsect;
 
       if( dosflds[i].length <= 4 )
       {
-         long v = 0;
+         int32_t v = 0;
 	 v = strtol(dosflds[i].new_value, 0, 0);
 	 for(j=0; j<dosflds[i].length; j++)
 	 {
@@ -1151,7 +1154,7 @@ check_msdos()
 check_simpledos(bb_fatbits)
 int bb_fatbits;
 {
-   long numclust = 0xFFFF;
+   int32_t numclust = 0xFFFF;
    char * err = 0;
    int fatbits = 0;
 
