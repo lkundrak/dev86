@@ -185,8 +185,11 @@ static char *readline(FILE *fp)
  * Read a list of input lines. Terminate reading when the 'quit' character
  * has been found in the first column of the input line. All lines with the
  * 'comment' character in the first position will be skipped.
+ *
+ * If 'havequit' is non-null, then the boolean '*havequit' says whether we
+ * saw an input line with the 'quit' character.
  */
-static struct line_s *readlist(FILE *fp, int quit, int comment)
+static struct line_s *readlist(FILE *fp, int quit, int comment, int *havequit)
 {
   struct line_s *lp;
   struct line_s *first_line = NULL;
@@ -212,6 +215,8 @@ static struct line_s *readlist(FILE *fp, int quit, int comment)
 		last_line->next = lp;
 	last_line = lp;
   }
+  if (havequit)
+	*havequit = (cp != NULL);
   return(first_line);
 }
 
@@ -223,6 +228,7 @@ static struct line_s *readlist(FILE *fp, int quit, int comment)
 static void readpattern(char *rulesdir, char *filename)
 {
   static char path[MAXLINE];
+  int havequit;
   struct rule_s *rp;
   FILE *fp;
 
@@ -239,9 +245,9 @@ static void readpattern(char *rulesdir, char *filename)
   /* Read every line of the pattern file */
   while (!feof(fp)) {
 	rp = (struct rule_s *)mymalloc(sizeof(struct rule_s));
-	rp->old = readlist(fp, '=', '#');
-	rp->new = readlist(fp, '\0', '#');
-	if (rp->old == NULL || rp->new == NULL) {
+	rp->old = readlist(fp, '=', '#', &havequit);
+	rp->new = readlist(fp, '\0', '#', NULL);
+	if (rp->old == NULL || !havequit) {
 		free(rp);
 		break;
 	}
@@ -316,7 +322,7 @@ static void readinfile(char *filename, int comment)
 	fprintf(stderr, "%s: can't open input file %s\n", progname, filename);
 	exit(1);
   }
-  infile = readlist(fp, NOCHAR, comment);
+  infile = readlist(fp, NOCHAR, comment, NULL);
   if (fp != stdin)
 	  (void)fclose(fp);
 }
