@@ -1,0 +1,7 @@
+
+*.o
+
+pt1-stub
+pt1-target
+
+test-out.txt
