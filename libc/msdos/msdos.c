@@ -181,6 +181,8 @@ char ** __argv;
 {
    int length, i, argc=1, s=0;
    unsigned char *ptr, *p;
+   int es=__get_es();
+
    __set_es(__psp);			/* Pointer to the args */
    length = __peek_es(0x80); 		/* Length of cmd line */
    if( length > 0 )
@@ -212,6 +214,7 @@ char ** __argv;
       }
       __argv[argc] = 0;
    }
+   __set_es(es);
 }
 #endif
 
