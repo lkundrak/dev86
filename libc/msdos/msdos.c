@@ -175,6 +175,29 @@ auto_func:		! Label for bcc -M to work.
 #endasm
 #endif
 
+void set_program_name(__argv)
+char ** __argv;
+{
+    unsigned char *ptr;
+    int src,len;
+
+    __set_es(__envseg);
+    src=0;
+    while(__peek_es(src++)!=0)
+    {
+      while(__peek_es(src++)!=0);
+    }
+    src+=2; // step over 0x0001
+    len=0;
+    while (__peek_es(src+len++)!=0);
+    ptr=sbrk(len);
+    __argv[0]=ptr;
+    while(len--)
+    {
+      *ptr++=__peek_es(src++);
+    }
+}
+
 __mkargv(__argc, __argv)
 int __argc;
 char ** __argv;
@@ -182,6 +205,8 @@ char ** __argv;
    int length, i, argc=1, s=0;
    unsigned char *ptr, *p;
    int es=__get_es();
+
+   set_program_name(__argv);
 
    __set_es(__psp);			/* Pointer to the args */
    length = __peek_es(0x80); 		/* Length of cmd line */
