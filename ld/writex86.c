@@ -56,7 +56,9 @@
 
 #define ABS_TEXT_MAX 64
 
-#define offsetof(struc, mem) ((int) &((struc *) 0)->mem)
+#ifndef offsetof
+	#define offsetof(struc, mem) ((size_t) &((struc *) 0)->mem)
+#endif
 #define memsizeof(struc, mem) sizeof(((struc *) 0)->mem)
 
 PRIVATE bool_t bits32;		/* nonzero for 32-bit executable */
@@ -194,10 +196,9 @@ bool_pt argxsym;
 		    }
 		    else
 		    {
-			tempoffset = ld_roundup(symptr->value, 4, bin_off_t);
-			/* temp kludge quad alignment for 386 */
-			symptr->value = comsz[seg = symptr->flags & SEGM_MASK];
-			comsz[seg] += tempoffset;
+			tempoffset = symptr->value;
+			symptr->value = ld_roundup(comsz[seg = symptr->flags & SEGM_MASK],tempoffset,bin_off_t);
+			comsz[seg] = symptr->value+tempoffset;
 			if (!(symptr->flags & SA_MASK))
 			    symptr->flags |= C_MASK;
 		    }
