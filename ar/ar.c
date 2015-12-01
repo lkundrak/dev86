@@ -1052,8 +1052,11 @@ write_archive (map, appendflag)
   close (outdesc);
 
   if (!appendflag)
-    if (rename (tempname, archive))
-      pfatal_with_name (tempname);
+    {
+      unlink(archive);
+      if (rename (tempname, archive))
+        pfatal_with_name (tempname);
+    }
 
   close_archive ();
 }
