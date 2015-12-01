@@ -592,7 +592,8 @@ PUBLIC void outindframereg()
 
 typedef fastin_t seg_t;		/* range 0..3 */
 
-PRIVATE seg_t segment;		/* current seg, depends on init to CSEG = 0 */
+/* Initialize to -1 to force initial segment directive */
+PRIVATE seg_t segment = -1;        /* current segment */
 
 /* add carry resulting from char addition */
 
