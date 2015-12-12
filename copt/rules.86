@@ -350,7 +350,7 @@ mov	%3,%2
 
 mov	%1,%1
 =
-# poof
+!mov	%1,%1
 
 # Sometimes the compiler puts a jump right after a ret or another jump
 # (in if-else-if constructions). Eliminate the second unnecessary jump.
@@ -360,7 +360,7 @@ mov	%1,%1
 jmp	.%1
 jmp	.%2
 =
-jmp	.%1
+jmp	%1
 
 ret
 jmp	%2
@@ -473,7 +473,7 @@ pop	bx
 pop	cx
 pop	dx
 =
-# poof
+! push/pop float
 
 # Long right shift by 16 unsigned
 mov	ax,%1
