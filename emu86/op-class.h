@@ -49,9 +49,11 @@ word_t op_code_ip;
 
 union op_val_u
 	{
-	byte_t reg;    // register number
-	word_t abs;    // absolute value
-	short  rel;    // relative value
+	byte_t r;  // register number
+	byte_t b;  // absolute byte
+	word_t w;  // absolute word
+	char   c;  // relative byte
+	short  s;  // relative word
 	};
 
 typedef union op_val_u op_val_t;
@@ -78,26 +80,25 @@ typedef void (* op_hand_t) (op_desc_t * op_desc);
 
 struct op_desc_s
 	{
-	char * name;         // TODO: replace by handlers and lookup tables
+	word_t    op_id;    // operation identifier
 
-	byte_t var_count;   // operand count
+	byte_t   var_count; // operand count
 	op_var_t var_to;    // optional single or 'to' operand
 	op_var_t var_from;  // optional 'from' operand
 
-	op_hand_t op_hand;  // operation handle
-	word_t op_id;       // operation identifier
+	// opcode 1 byte fields
 
-	// opcode 1 bit fields
 	byte_t v1;;         // variable flag (for in and out)
-	byte_t w1;          // word flag 1
+	byte_t w1;          // w flag 1
 	byte_t seg1;        // segment number
 	byte_t reg1;        // register number
 	byte_t d;           // direction flag
 	byte_t s;           // sign extension flag
 	byte_t v2;          // variable flag (for rotate and shift)
-	byte_t w2;          // word flag 2
+	byte_t w2;          // w flag 2
 
-	//opcode 2 bit fields
+	// opcode 2 bytes fields
+
 	byte_t mod;         // mode number
 	byte_t reg2;        // register number
 	byte_t seg2;        // segment number
@@ -116,7 +117,7 @@ void op_print (op_desc_t * op_desc);
 #define CF_S 0x08  // sign extent bit
 #define CF_V 0x10  // variable bit
 #define CF_A 0x20  // implicit accumulator
-#define CF_W 0x40  // word bit
+#define CF_W 0x40  // w bit
 
 typedef int (* class_hand_t) (byte_t flags, op_desc_t * op_desc);
 
@@ -129,16 +130,12 @@ struct class_desc_s
 	byte_t mask;              // opcode mask
 	byte_t code;              // opcode value
 
+	byte_t len;               // opcode len
+
+	class_desc_t * sub;       // sub-table
+
 	class_hand_t class_hand;  // class handle
 	byte_t class_flags;       // class flags
-
-	char *    name;           // operation name - TODO: move to opcode list
-
-	union
-		{
-		op_hand_t op_hand;    // operation handle
-		class_desc_t * sub;  // subclass table
-		};
 
 	word_t op_id;             // operation identifier
 	};

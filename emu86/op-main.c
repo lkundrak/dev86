@@ -76,6 +76,9 @@ int main (int argc, char * argv [])
 
 		while (1)
 			{
+			regs_print ();
+			putchar ('\n');
+
 			op_code_cs = seg_get (SEG_CS);
 			op_code_ip = reg16_get (REG_IP);
 
@@ -103,9 +106,19 @@ int main (int argc, char * argv [])
 
 			reg16_set (REG_IP, op_code_ip);
 
-			op_hand_t hand = desc.op_hand;
-			assert (hand);
-			(* hand) (&desc);
+			// Get user command
+
+			putchar ('>');
+			getchar ();
+
+			// Execute operation
+
+			err = op_exec (&desc);
+			if (err)
+				{
+				puts ("fatal: execute operation");
+				break;
+				}
 			}
 
 		break;

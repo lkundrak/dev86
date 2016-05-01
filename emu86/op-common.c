@@ -9,8 +9,11 @@ void print_string (char *s)
 	byte_t d = 0;
 	char c;
 
-	while (c = s [d])
+	while (1)
 		{
+		c= s [d];
+		if (!c) break;
+
 		putchar (c);
 		d++;
 		}
@@ -21,8 +24,11 @@ void print_column (char * s, byte_t w)
 	byte_t d = 0;
 	char c;
 
-	while (c = s [d])
+	while (1)
 		{
+		c= s [d];
+		if (!c) break;
+
 		putchar (c);
 		d++;
 		}
