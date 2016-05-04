@@ -1,0 +1,53 @@
+*** WORK IN PROGRESS ***
+
+EMU86 is another 8086/8088/80186/80286 emulator.
+
+That 16-bits processor architecture is still used in some micro-controllers,
+SBC and SoC. This emulator targets the embedded software development.
+
+It is intended to help testing the code at a very low level before burning it
+into the embedded system EEPROM / Flash. The goal is NOT to redo what others
+projects like QEMU, DOSEMU, etc, do very well. The 80286 protected mode and
+32/64 bits modes are out of this project scope.
+
+The emulator has a modular design with:
+- an instruction decoder
+- an instruction printer
+- an instruction executor
+- a processor context
+- an memory + I/O interceptor for peripheral stubbing
+- an interrupt interceptor for software (BIOS) stubbing
+- a library of stubs
+- a debugger engine
+
+
+CURRENT STATUS:
+
+The emulator is now able to start executing the MON86 code and print the banner
+through the INT 10h.
+
+
+TODO:
+
+Core:
+- CS:IP breakpoints
+- memory change or value breakpoint
+- register change or value breakpoint
+- stack overflow detection
+- illegal address detection (out of range, read only)
+
+IBM-PC/XT:
+- more support of the 8086 instruction set
+- more support of BIOS interrupts
+
+The goal is to provide the minimum set of features needed to run ELKS.
+A good reference is the 8086tiny project.
+
+Embedded systems:
+- add 80186 instruction set
+- add 80186 peripherals (timer, serial)
+- add serial port emulation
+- add EEPROM / Flash emulation
+
+The goal is to provide the minimum set of features needed to run MON86,
+a monitor skeleton for 8086-based embedded systems.

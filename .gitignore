@@ -124,6 +124,7 @@ bootblocks/zimage.lst
 bootblocks/zimage.v
 copt/copt
 cpp/bcc-cpp
+emu86/emu86
 ifdefg
 include
 ld/ar.h
