@@ -53,13 +53,13 @@ clean:
 	rm -f *.o libc.a
 
 $(LIBC)(strtol.o): strtol.c
-	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
+	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) -o strtol.o $*.c
 	$(AR) $(ARFLAGS) $@ $*.o
 
 $(LIBC)(strtod.o): strtod.c
-	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
+	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) -o strtod.o $*.c
 	$(AR) $(ARFLAGS) $@ $*.o
 
 $(LIBC)(crypt.o): crypt.c
-	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) $*.c
+	$(CC) -c -ansi $(ARCH) $(CCFLAGS) $(DEFS) -o crypt.o $*.c
 	$(AR) $(ARFLAGS) $@ $*.o

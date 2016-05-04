@@ -2,7 +2,7 @@
 # This file is part of the Linux-8086 Development environment and is
 # distributed under the GNU General Public License.
 
-VERSION=0.16.20
+VERSION=0.16.21
 
 TARGETS=install clean other \
     bcc86 unproto copt as86 ld86 elksemu \
