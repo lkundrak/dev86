@@ -48,41 +48,48 @@ static proc_stat_t _proc_stat;
 
 // Register access
 
-byte_t reg8_get (byte_t reg)
+byte_t * reg8_addr (byte_t r8)
 	{
-	assert (reg < REG8_MAX);
-	assert (0);
-	return 0;
+	assert (r8 < REG8_MAX);
+	byte_t r16 = (r8 & 3);
+	byte_t * p = (byte_t *) &_proc_stat.regs [r16] +  (r8 >> 2);
+	return p;
 	}
 
-void reg8_set (byte_t reg, byte_t val)
+byte_t reg8_get (byte_t r8)
 	{
-	assert (reg < REG8_MAX);
-	assert (0);
+	return *(reg8_addr (r8));
 	}
 
-word_t reg16_get (byte_t reg)
+void reg8_set (byte_t r8, byte_t b)
 	{
-	assert (reg < REG16_MAX);
-	return _proc_stat.regs [reg];
+	*(reg8_addr (r8)) = b;
 	}
 
-void reg16_set (byte_t reg, word_t val)
+
+word_t reg16_get (byte_t r16)
 	{
-	assert (reg < REG16_MAX);
-	_proc_stat.regs [reg] = val;
+	assert (r16 < REG16_MAX);
+	return _proc_stat.regs [r16];
 	}
 
-word_t seg_get (byte_t seg)
+void reg16_set (byte_t r16, word_t w)
 	{
-	assert (seg < SEG_MAX);
-	return _proc_stat.segs [seg];
+	assert (r16 < REG16_MAX);
+	_proc_stat.regs [r16] = w;
 	}
 
-void seg_set (byte_t seg, word_t val)
+
+word_t seg_get (byte_t s)
 	{
-	assert (seg < SEG_MAX);
-	_proc_stat.segs [seg] = val;
+	assert (s < SEG_MAX);
+	return _proc_stat.segs [s];
+	}
+
+void seg_set (byte_t s, word_t w)
+	{
+	assert (s < SEG_MAX);
+	_proc_stat.segs [s] = w;
 	}
 
 
@@ -99,17 +106,16 @@ void regs_print ()
 	word_t di = reg16_get (REG_DI);
 	word_t bp = reg16_get (REG_BP);
 	word_t sp = reg16_get (REG_SP);
-	word_t ip = reg16_get (REG_IP);
+	//word_t ip = reg16_get (REG_IP);
 
-	word_t cs = seg_get (SEG_CS);
+	//word_t cs = seg_get (SEG_CS);
 	word_t ds = seg_get (SEG_DS);
 	word_t es = seg_get (SEG_ES);
 	word_t ss = seg_get (SEG_SS);
 
-	printf ("AX %.4X  DS %.4X  SI %.4X\n",          ax, ds, si);
-	printf ("BX %.4X  ES %.4X  DI %.4X\n",          bx, es, di);
-	printf ("CX %.4X  SS %.4X  SP %.4X  BP %.4X\n", cx, ss, sp, bp);
-	printf ("DX %.4X  CS %.4X  IP %.4X\n",          dx, cs, ip);
+	printf ("AX %.4X  BX %.4X  CX %.4X  DX %.4X\n", ax, bx, cx, dx);
+	printf ("SI %.4X  DI %.4X  SP %.4X  BP %.4X\n", si, di, sp, bp);
+	printf ("DS %.4X  ES %.4X  SS %.4X\n", ds, es, ss);
 	}
 
 
@@ -126,18 +132,18 @@ byte_t fetch_cs_ip ()
 
 // Push & pop
 
-void push_ss_sp (word_t val)
+void stack_push (word_t val)
 	{
 	word_t sp = reg16_get (REG_SP) - 2;
 	mem_write_word ((seg_get (SEG_SS) << 4) + sp, val);
 	reg16_set (REG_SP, sp);
 	}
 
-word_t pop_ss_sp ()
+word_t stack_pop ()
 	{
 	word_t sp = reg16_get (REG_SP);
 	word_t ss = seg_get (SEG_SS);
-	word_t w = mem_read_word (ss << 4 + sp);
+	word_t w = mem_read_word ((ss << 4) + sp);
 	reg16_set (REG_SP, sp + 2);
 	return w;
 	}

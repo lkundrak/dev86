@@ -7,8 +7,8 @@ PREFIX = /usr/local
 EMU86_PROG = emu86
 
 EMU86_HDRS = op-common.h op-id-name.h op-exec.h op-class.h
-EMU86_SRCS = op-common.c op-id-name.c op-exec.c op-class.c emu-mem-io.c emu-proc.c op-main.c
-EMU86_OBJS = op-common.o op-id-name.o op-exec.o op-class.o  emu-mem-io.o emu-proc.o op-main.o
+EMU86_SRCS = op-common.c op-id-name.c op-exec.c op-class.c emu-mem-io.c emu-proc.c emu-int.c op-main.c
+EMU86_OBJS = op-common.o op-id-name.o op-exec.o op-class.o  emu-mem-io.o emu-proc.o emu-int.c op-main.o
 
 $(EMU86_OBJS): $(EMU86_HDRS) 
 

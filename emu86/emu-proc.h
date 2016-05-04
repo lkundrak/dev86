@@ -23,10 +23,12 @@
 #define REG_CX  0x1
 #define REG_DX  0x2
 #define REG_BX  0x3
+
 #define REG_SP  0x4
 #define REG_BP  0x5
 #define REG_SI  0x6
 #define REG_DI  0x7
+
 #define REG_IP  0x8
 #define REG_FL  0x9
 
@@ -54,9 +56,7 @@ void regs_print ();
 
 // Processor operations
 
-byte_t fetch_cs_ip ();
-
-void push_ss_sp (word_t val);
-word_t pop_ss_sp ();
+void stack_push (word_t val);
+word_t stack_pop ();
 
 void proc_reset ();

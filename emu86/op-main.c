@@ -27,7 +27,7 @@ int main (int argc, char * argv [])
 		proc_reset ();
 		seg_set (SEG_CS, 0);  // TEST: start at 0:0h
 
-		// TEST: load test code
+		// TEST: load test binary
 
 		if (argc !=  2)
 			{
@@ -39,7 +39,7 @@ int main (int argc, char * argv [])
 		f = open (argv [1], O_RDONLY);
 		if (f < 0)
 			{
-			print_string ("cannot open file\n");
+			puts ("fatal: cannot open file");
 			exit_code = 1;
 			break;
 			}
@@ -47,15 +47,15 @@ int main (int argc, char * argv [])
 		off_t file_size = lseek (f, 0, SEEK_END);
 		if (file_size <= 0)
 			{
-			print_string ("empty file\n");
+			puts ("fatal: empty file");
 			exit_code = 1;
 			break;
 			}
 
-		printf ("file size=%lXh\n", file_size);
+		printf ("info: file size=%lXh\n", file_size);
 		if (file_size > MEM_MAX)
 			{
-			print_string ("file too big\n");
+			puts ("fatal: file too big");
 			exit_code = 1;
 			break;
 			}
@@ -66,52 +66,64 @@ int main (int argc, char * argv [])
 		off_t read_size = read (f, buf, file_size);
 		if (read_size != file_size)
 			{
-			print_string ("incomplete file read\n");
+			puts ("fatal: incomplete file read");
 			exit_code = 1;
 			break;
 			}
 
+		puts ("info: image loaded");
+
 		op_code_base = buf;
-		byte_t flag_u = 1;
+		int flag_prompt = 0;
 
 		while (1)
 			{
-			regs_print ();
-			putchar ('\n');
+			// Decode next instruction
 
-			op_code_cs = seg_get (SEG_CS);
-			op_code_ip = reg16_get (REG_IP);
-
-			if (flag_u)
-				{
-				printf ("%.4X:%.4X ", op_code_cs, op_code_ip);
-				}
+			op_code_seg = seg_get (SEG_CS);
+			op_code_off = reg16_get (REG_IP);
 
 			op_desc_t desc;
 			memset (&desc, 0, sizeof desc);
 			int err = op_decode (&desc);
-
-			if (flag_u)
-				{
-				print_column (op_code_str, 3 * OPCODE_MAX + 1);
-				op_print (&desc);
-				putchar ('\n');
-				}
-
 			if (err)
 				{
-				puts ("fatal: unknown opcode");
-				break;
+				puts ("error: unknown opcode");
+				flag_prompt = 1;
 				}
 
-			reg16_set (REG_IP, op_code_ip);
+			// Breakpoint test
 
-			// Get user command
+			if (reg16_get (REG_IP) == 0x0008)
+				{
+				puts ("info: breakpoint");
+				flag_prompt = 1;
+				}
 
-			putchar ('>');
-			getchar ();
+			// User prompt
+
+			if (flag_prompt)
+				{
+				// Print processor status
+
+				putchar ('\n');
+				regs_print ();
+				putchar ('\n');
+
+				printf ("%.4X:%.4X ", seg_get (SEG_CS), reg16_get (REG_IP));
+				print_column (op_code_str, 3 * OPCODE_MAX + 1);
+				op_print (&desc);
+				puts ("\n");
+
+				// Get user command
+
+				putchar ('>');
+				getchar ();
+				}
 
 			// Execute operation
+
+			reg16_set (REG_IP, op_code_off);
 
 			err = op_exec (&desc);
 			if (err)

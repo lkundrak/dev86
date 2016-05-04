@@ -16,17 +16,16 @@
 // Opcode helpers
 
 byte_t * op_code_base;
-word_t op_code_cs;
-word_t op_code_ip;
+word_t op_code_seg;
+word_t op_code_off;
 
 char op_code_str [3 * OPCODE_MAX];
 byte_t op_code_pos;
 
-// TODO: merge CS & IP code pointers
 
 static byte_t fetch_byte ()
 	{
-	byte_t b = *(op_code_base + (op_code_cs << 4) + op_code_ip++);
+	byte_t b = *(op_code_base + (op_code_seg << 4) + op_code_off++);
 	sprintf (op_code_str + op_code_pos, "%.2X ", b);
 	op_code_pos += 3;
 	return b;
@@ -197,7 +196,7 @@ static void print_var (op_var_t * var)
 			break;
 
 		case VT_NEAR:
-			printf ("%.4X", op_code_ip + var->val.s);
+			printf ("%.4X", op_code_off + var->val.s);
 			break;
 
 		case VT_FAR:

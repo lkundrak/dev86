@@ -11,7 +11,7 @@ static byte_t io_stat  [IO_MAX];
 
 // Memory access
 
-byte_t *mem_get_addr (addr_t a)
+byte_t * mem_get_addr (addr_t a)
 	{
 	return (mem_stat + a);
 	}
@@ -30,11 +30,18 @@ word_t mem_read_word (addr_t a)
 	return *p;
 	}
 
-void mem_write_word (addr_t a, word_t val)
+
+void mem_write_byte (addr_t a, byte_t b)
+	{
+	assert (a < MEM_MAX);
+	mem_stat [a] = b;
+	}
+
+void mem_write_word (addr_t a, word_t w)
 	{
 	assert (a < MEM_MAX - 1);
 	word_t * p = (word_t *) mem_get_addr (a);
-	*p = val;
+	*p = w;
 	}
 
 

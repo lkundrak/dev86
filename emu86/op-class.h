@@ -14,9 +14,9 @@
 extern char op_code_str [];
 extern byte_t op_code_pos;
 
-byte_t * op_code_base;
-word_t op_code_cs;
-word_t op_code_ip;
+extern byte_t * op_code_base;
+extern word_t op_code_seg;
+extern word_t op_code_off;
 
 
 // Register
