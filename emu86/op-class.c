@@ -174,12 +174,26 @@ static void print_addr (byte_t flags, short rel)
 static void print_var (op_var_t * var)
 	{
 	byte_t rt;
+	word_t w;
 
 	switch (var->type)
 		{
 		case VT_IMM:
-			if (var->size == VS_BYTE) printf ("%.2X",var->val.w);
-			if (var->size == VS_WORD) printf ("%.4X",var->val.w);
+			switch (var->size)
+				{
+				case VS_BYTE:
+					printf ("%.2X",var->val.b);
+					break;
+
+				case VS_WORD:
+					printf ("%.4X",var->val.w);
+					break;
+
+				default:
+					assert (0);
+
+				}
+
 			break;
 
 		case VT_REG:
@@ -196,7 +210,24 @@ static void print_var (op_var_t * var)
 			break;
 
 		case VT_NEAR:
-			printf ("%.4X", op_code_off + var->val.s);
+			switch (var->size)
+				{
+				case VS_BYTE:
+					printf ("%.4X", (word_t) ((short) op_code_off + (short) var->val.c));
+					//w = char_to_short (var->val.b);
+					break;
+
+				case VS_WORD:
+					printf ("%.4X", (word_t) ((short) op_code_off + var->val.s));
+					//w = var->val.w;
+					break;
+
+				default:
+					assert (0);
+
+				}
+
+			//printf ("%.4X", op_code_off + w);
 			break;
 
 		case VT_FAR:
@@ -269,11 +300,13 @@ static int class_dist (byte_t flags, op_desc_t * op)
 
 	if (flags & CF_1)
 		{
-		var_dist->val.s = (short) fetch_byte ();
+		var_dist->size = VS_BYTE;
+		var_dist->val.c = (char) fetch_byte ();
 		}
 
 	if (flags & CF_2)
 		{
+		var_dist->size = VS_WORD;
 		var_dist->val.s = (short) fetch_word ();
 		}
 
@@ -395,12 +428,14 @@ static int class_w_imm (byte_t flags, op_desc_t * op)
 	if (op->w2)
 		{
 		var_acc->size  = VS_WORD;
+		var_imm->size  = VS_WORD;
 		var_imm->val.w = fetch_word ();
 		}
 
 	else
 		{
 		var_acc->size  = VS_BYTE;
+		var_imm->size  = VS_BYTE;
 		var_imm->val.b = fetch_byte ();
 		}
 

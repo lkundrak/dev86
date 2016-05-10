@@ -26,6 +26,29 @@ void int_10h ()
 	}
 
 
+// BIOS keyboard services
+
+void int_16h ()
+	{
+	char c = 0;
+
+	byte_t ah = reg8_get (REG_AH);
+	switch (ah)
+		{
+		// Extended keyboard read
+
+		case 0x10:
+			c = getchar ();
+			reg8_set (REG_AL, (byte_t) c);  // ASCII code
+			reg8_set (REG_AH, 0);           // No scan code
+			break;
+
+		default:
+			assert (0);
+		}
+	}
+
+
 // Interrupt handle table
 
 typedef void (* int_hand_t) ();
@@ -40,6 +63,7 @@ typedef struct int_num_hand_s int_num_hand_t;
 
 int_num_hand_t _int_tab [] = {
 		{ 0x10, int_10h },
+		{ 0x16, int_16h },
 		{ 0,    NULL    }
 	};
 

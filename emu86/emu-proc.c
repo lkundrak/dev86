@@ -93,6 +93,27 @@ void seg_set (byte_t s, word_t w)
 	}
 
 
+// Flags access
+
+byte_t flag_get (byte_t flag)
+	{
+	assert (flag < FLAG_MAX);
+	word_t r = reg16_get (REG_FL);
+	return ((r >> flag) & 1);
+	}
+
+void flag_set (byte_t flag, byte_t val)
+	{
+	assert (flag < FLAG_MAX);
+	assert (val < 2);
+
+	word_t m = ~(1 << flag);
+	word_t r = reg16_get (REG_FL);
+	r = (r & m) | (val << flag);
+	reg16_set (REG_FL, r);
+	}
+
+
 // Print registers
 
 void regs_print ()
@@ -106,27 +127,23 @@ void regs_print ()
 	word_t di = reg16_get (REG_DI);
 	word_t bp = reg16_get (REG_BP);
 	word_t sp = reg16_get (REG_SP);
-	//word_t ip = reg16_get (REG_IP);
 
-	//word_t cs = seg_get (SEG_CS);
+	word_t ip = reg16_get (REG_IP);
+	word_t fl = reg16_get (REG_FL);
+
+	word_t cs = seg_get (SEG_CS);
 	word_t ds = seg_get (SEG_DS);
 	word_t es = seg_get (SEG_ES);
 	word_t ss = seg_get (SEG_SS);
 
-	printf ("AX %.4X  BX %.4X  CX %.4X  DX %.4X\n", ax, bx, cx, dx);
-	printf ("SI %.4X  DI %.4X  SP %.4X  BP %.4X\n", si, di, sp, bp);
-	printf ("DS %.4X  ES %.4X  SS %.4X\n", ds, es, ss);
-	}
+	printf ("AX %.4X  BX %.4X  CX %.4X  DX %.4X  FL %.4X\n", ax, bx, cx, dx, fl);
+	printf ("SI %.4X  DI %.4X  SP %.4X  BP %.4X  IP %.4X\n", si, di, sp, bp, ip);
+	printf ("DS %.4X  ES %.4X  SS %.4X  CS %.4XX\n", ds, es, ss, cs);
 
-
-// Fetch
-
-byte_t fetch_cs_ip ()
-	{
-	word_t ip = reg16_get (REG_IP);
-	byte_t b = mem_read_byte ((seg_get (SEG_CS) << 4) + ip);
-	reg16_set (REG_IP, ++ip);
-	return b;
+	print_string ("FLAGS");
+	print_string (flag_get (FLAG_ZF) ? " ZR" : " NZ");
+	print_string (flag_get (FLAG_CF) ? " CR" : " NC");
+	putchar ('\n');
 	}
 
 

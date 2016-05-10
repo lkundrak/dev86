@@ -18,4 +18,12 @@ word_t mem_read_word (addr_t a);
 void mem_write_byte (addr_t a, byte_t b);
 void mem_write_word (addr_t a, word_t w);
 
+
+byte_t io_read_byte (word_t p);
+word_t io_read_word (word_t p);
+
+void io_write_byte (word_t p, byte_t b);
+void io_write_word (word_t p, word_t w);
+
+
 void mem_io_reset ();

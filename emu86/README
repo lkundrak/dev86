@@ -1,22 +1,22 @@
 *** WORK IN PROGRESS ***
 
-EMU86 is another 8086/8088/80186/80286 emulator.
+EMU86 is another 8086/8088/80186/80188 emulator.
 
 That 16-bits processor architecture is still used in some micro-controllers,
-SBC and SoC. This emulator targets the embedded software development.
+SBC and SoC. This emulator thus targets the embedded software development.
 
 It is intended to help testing the code at a very low level before burning it
-into the embedded system EEPROM / Flash. The goal is NOT to redo what others
-projects like QEMU, DOSEMU, etc, do very well. The 80286 protected mode and
-32/64 bits modes are out of this project scope.
+into the embedded system EEPROM / Flash. The goal is NOT to reinvent the wheel
+for end-user emulation, as others projects like QEMU, DOSEMU, etc, already do
+that job very well.
+
+The 80286 protected mode and 32/64 bits modes are out of this project scope.
 
 The emulator has a modular design with:
-- an instruction decoder
-- an instruction printer
-- an instruction executor
-- a processor context
-- an memory + I/O interceptor for peripheral stubbing
-- an interrupt interceptor for software (BIOS) stubbing
+- an instruction decoder and printer (disassembler part)
+- a processor context and instruction executor (core emulator part)
+- a memory & I/O access interceptor for peripheral stubbing
+- an interrupt interceptor for firmware (BIOS) stubbing
 - a library of stubs
 - a debugger engine
 
@@ -24,17 +24,18 @@ The emulator has a modular design with:
 CURRENT STATUS:
 
 The emulator is now able to start executing the MON86 code and print the banner
-through the INT 10h.
+through the INT 10h stub.
 
 
 TODO:
 
 Core:
 - CS:IP breakpoints
-- memory change or value breakpoint
+- memory access, change or value breakpoint
 - register change or value breakpoint
 - stack overflow detection
 - illegal address detection (out of range, read only)
+- exception breakpoint
 
 IBM-PC/XT:
 - more support of the 8086 instruction set
@@ -50,4 +51,4 @@ Embedded systems:
 - add EEPROM / Flash emulation
 
 The goal is to provide the minimum set of features needed to run MON86,
-a monitor skeleton for 8086-based embedded systems.
+a monitor skeleton for embedded systems.

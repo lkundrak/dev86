@@ -93,10 +93,11 @@ int main (int argc, char * argv [])
 				}
 
 			// Breakpoint test
+			// TEST: latest good test
 
-			if (reg16_get (REG_IP) == 0x0008)
+			if (reg16_get (REG_IP) == 0x0030)
 				{
-				puts ("info: breakpoint");
+				puts ("info: breakpoint hit");
 				flag_prompt = 1;
 				}
 

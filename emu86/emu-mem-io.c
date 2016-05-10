@@ -45,6 +45,29 @@ void mem_write_word (addr_t a, word_t w)
 	}
 
 
+// I/O access
+
+byte_t io_read_byte (word_t p)
+	{
+	return 0xFF;
+	}
+
+word_t io_read_word (word_t p)
+	{
+	return 0xFFFF;
+	}
+
+void io_write_byte (word_t p, byte_t b)
+	{
+	}
+
+ void io_write_word (word_t p, word_t w)
+	{
+	}
+
+
+// Reset
+
 void mem_io_reset ()
 	{
 	memset (mem_stat, 0xFF, sizeof mem_stat);

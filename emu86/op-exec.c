@@ -47,6 +47,9 @@ static void val_get (op_var_t * var, op_val_t * val)
 
 	switch (var->type)
 		{
+		// TODO: merge near distance and immediate
+
+		case VT_NEAR:
 		case VT_IMM:
 			val->w = var->val.w;
 			break;
@@ -201,9 +204,57 @@ static void op_swap (op_desc_t * op_desc)
 
 static void op_port (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op < 0x2);
-	assert (0);
+	assert (op_desc->var_count == 2);
+
+	op_val_t val_from;
+	memset (&val_from, 0, sizeof (val_from));
+	val_get (&op_desc->var_from, &val_from);
+
+	op_val_t val_to;
+	memset (&val_to, 0, sizeof (val_to));
+
+	switch (op_desc->op_id)
+		{
+		case OP_IN:
+			switch (op_desc->var_to.size)
+				{
+				case VS_BYTE:
+					val_to.b = io_read_byte (val_from.w);
+					break;
+
+				case VS_WORD:
+					val_to.w = io_read_word (val_from.w);
+					break;
+
+				default:
+					assert (0);
+				}
+
+			val_set (&op_desc->var_to, &val_to);
+			break;
+
+		case OP_OUT:
+			val_get (&op_desc->var_to, &val_to);
+
+			switch (op_desc->var_from.size)
+				{
+				case VS_BYTE:
+					io_write_byte (val_to.w, val_from.b);
+					break;
+
+				case VS_WORD:
+					io_write_byte (val_to.w, val_from.w);
+					break;
+
+				default:
+					assert (0);
+				}
+			break;
+
+		default:
+			assert (0);
+
+		}
 	}
 
 
@@ -211,28 +262,15 @@ static void op_port (op_desc_t * op_desc)
 
 static void op_calc_1 (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op < 0x06);
-	assert (0);
-	}
+	assert (op_desc->var_count == 1);
 
-
-static void op_calc_2 (op_desc_t * op_desc)
-	{
-	op_val_t val_to;
-	op_val_t val_from;
-
-	val_get (&op_desc->var_to,   &val_to);
-	val_get (&op_desc->var_from, &val_from);
+	op_val_t val;
+	val_get (&op_desc->var_to, &val);
 
 	switch (op_desc->op_id)
 		{
-		case OP_ADD:
-			val_to.w += val_from.w;
-			break;
-
-		case OP_XOR:
-			val_to.w ^= val_from.w;
+		case OP_NOT:
+			val.w = !val.w;
 			break;
 
 		default:
@@ -242,7 +280,86 @@ static void op_calc_2 (op_desc_t * op_desc)
 
 	// TODO: set flags
 
-	val_set (&op_desc->var_to,   &val_to);
+	val_set (&op_desc->var_to, &val);
+	}
+
+
+static void op_calc_2 (op_desc_t * op_desc)
+	{
+	assert (op_desc->var_count == 2);
+
+	op_var_t * var_from;
+	op_var_t * var_to;
+
+	var_to   = &op_desc->var_to;
+	var_from = &op_desc->var_from;
+
+	assert (var_to->size == var_from->size);
+	byte_t s = var_to->size;
+
+	op_val_t val_to;
+	op_val_t val_from;
+
+	memset (&val_to,   0, sizeof (op_val_t));
+	memset (&val_from, 0, sizeof (op_val_t));
+
+	val_get (var_to,   &val_to);
+	val_get (var_from, &val_from);
+
+	word_t a = val_to.w;
+	word_t b = val_from.w;
+	word_t r = 0;
+
+	word_t co = 0;  // carry out
+	word_t ci = 0;  // carry in
+	word_t cf = 0;
+
+	word_t id = op_desc->op_id;
+	switch (id)
+		{
+		case OP_ADD:
+			r = a + b;
+			co = (a & b) | ((a ^ b) & ~r);
+			cf = co & (s == VS_WORD ? 0x8000: 0x0080);
+			ci = a ^ b ^ r;
+			break;
+
+		case OP_SUB:
+		case OP_CMP:
+			r = a - b;
+			co = (~a & b) | (~(a ^ b) & r);
+			cf = co & (s == VS_WORD ? 0x8000: 0x0080);
+			ci = a ^ b ^ r;
+			break;
+
+		case OP_OR:
+			r = a | b;
+			break;
+
+		case OP_AND:
+		case OP_TEST:
+			r = a & b;
+			break;
+
+		case OP_XOR:
+			r = a ^ b;
+			break;
+
+		default:
+			assert (0);
+
+		}
+
+	// TODO: complete flags support
+
+	flag_set (FLAG_ZF, r ? 0 : 1);
+	flag_set (FLAG_CF, cf ? 1 : 0);
+
+	if (id != OP_TEST && id != OP_CMP)
+		{
+		val_to.w  = r;
+		val_set (var_to, &val_to);
+		}
 	}
 
 
@@ -349,7 +466,24 @@ static void op_jump_call (op_desc_t * op_desc)
 	else
 		{
 		assert (v->type == VT_NEAR);
-		reg16_set (REG_IP, ip + v->val.s);
+
+		// TODO: group displacement operation
+
+		switch (v->size)
+			{
+			case VS_BYTE:
+				ip = (word_t) ((short) ip + (short) v->val.c);
+				break;
+
+			case VS_WORD:
+				ip = (word_t) ((short) ip + v->val.s);
+				break;
+
+			default:
+				assert (0);
+			}
+
+		reg16_set (REG_IP, ip);
 		}
 	}
 
@@ -412,9 +546,46 @@ static void op_return (op_desc_t * op_desc)
 
 static void op_jump_cond (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op < 0x10);
-	assert (0);
+	assert (op_desc->var_count == 1);
+	op_var_t * var = &op_desc->var_to;
+	assert (var->type == VT_NEAR);
+	assert (var->size == VS_BYTE);
+
+	op_val_t val;
+	val_get (var, &val);
+	short s = (short) val.c;
+
+	switch (op_desc->op_id)
+		{
+		case OP_JB:
+			s = flag_get (FLAG_CF) ? s : 0;
+			break;
+
+		case OP_JZ:
+			s = flag_get (FLAG_ZF) ? s : 0;
+			break;
+
+		case OP_JNZ:
+			s = flag_get (FLAG_ZF) ? 0 : s;
+			break;
+
+		case OP_JNA:
+			s = (flag_get (FLAG_CF) || flag_get (FLAG_ZF)) ? s : 0;
+			break;
+
+		case OP_JA:
+			s = (flag_get (FLAG_CF) || flag_get (FLAG_ZF)) ? 0 : s;
+			break;
+
+		default:
+			assert (0);
+		}
+
+	if (s)
+		{
+		word_t ip = (word_t) ((short) reg16_get (REG_IP) + s);
+		reg16_set (REG_IP, ip);
+		}
 	}
 
 
@@ -447,7 +618,7 @@ static op_id_hand_t _id_hand_tab [] = {
 
 	{ OP_XCHG, op_swap },
 
-	{ OP_IN, op_port },
+	{ OP_IN,  op_port },
 	{ OP_OUT, op_port },
 
 	{ OP_ADD,  op_calc_2 },
