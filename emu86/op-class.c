@@ -162,7 +162,7 @@ static void print_addr (byte_t flags, short rel)
 	if (flags & AF_DISP)
 		{
 		if (reg & (rel >= 0)) putchar ('+');
-		printf ("%i", rel);
+		printf ("%i", rel);  // TODO: print hexadecimal to avoid confusion
 		}
 
 	putchar (']');
@@ -407,6 +407,7 @@ static int class_seg (byte_t flags, op_desc_t * op)
 	op_var_t * var_seg = &(op->var_to);
 
 	var_seg->type  = VT_SEG;
+	var_seg->size  = VS_WORD;
 	var_seg->val.r = op->seg1;
 
 	return 0;

@@ -136,37 +136,44 @@ void regs_print ()
 	word_t es = seg_get (SEG_ES);
 	word_t ss = seg_get (SEG_SS);
 
-	printf ("AX %.4X  BX %.4X  CX %.4X  DX %.4X  FL %.4X\n", ax, bx, cx, dx, fl);
-	printf ("SI %.4X  DI %.4X  SP %.4X  BP %.4X  IP %.4X\n", si, di, sp, bp, ip);
-	printf ("DS %.4X  ES %.4X  SS %.4X  CS %.4XX\n", ds, es, ss, cs);
+	printf ("AX %.4X  BX %.4X  CX %.4X  DX %.4X\n", ax, bx, cx, dx);
+	printf ("SI %.4X  DI %.4X  SP %.4X  BP %.4X\n", si, di, sp, bp);
+	printf ("DS %.4X  ES %.4X  SS %.4X\n", ds, es, ss);
+	printf ("CS %.4X  IP %.4X  FL %.4X\n", cs, ip, fl);
 
-	print_string ("FLAGS");
-	print_string (flag_get (FLAG_ZF) ? " ZR" : " NZ");
-	print_string (flag_get (FLAG_CF) ? " CR" : " NC");
-	putchar ('\n');
+	printf ("\nCF %hhu  PF ?  AF ?  ZF %hhu  SF ?  TF ?  IF ?  DF ?  OF ?\n", flag_get (FLAG_CF), flag_get (FLAG_ZF));
 	}
 
 
-// Push & pop
+// Get address from segment:offset
+
+addr_t addr_seg_off (word_t seg, word_t off)
+	{
+	return (seg << 4) + off;
+	}
+
+
+// Stack operations
 
 void stack_push (word_t val)
 	{
+	word_t ss = seg_get (SEG_SS);
 	word_t sp = reg16_get (REG_SP) - 2;
-	mem_write_word ((seg_get (SEG_SS) << 4) + sp, val);
+	mem_write_word (addr_seg_off (ss, sp), val);
 	reg16_set (REG_SP, sp);
 	}
 
 word_t stack_pop ()
 	{
-	word_t sp = reg16_get (REG_SP);
 	word_t ss = seg_get (SEG_SS);
-	word_t w = mem_read_word ((ss << 4) + sp);
+	word_t sp = reg16_get (REG_SP);
+	word_t w = mem_read_word (addr_seg_off (ss, sp));
 	reg16_set (REG_SP, sp + 2);
 	return w;
 	}
 
 
-// Reset
+// Reset processor context
 
 void proc_reset ()
 	{

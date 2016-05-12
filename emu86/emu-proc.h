@@ -74,6 +74,8 @@ void regs_print ();
 
 // Processor operations
 
+addr_t addr_seg_off (word_t seg, word_t off);
+
 void stack_push (word_t val);
 word_t stack_pop ();
 

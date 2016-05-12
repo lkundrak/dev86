@@ -73,8 +73,15 @@ int main (int argc, char * argv [])
 
 		puts ("info: image loaded");
 
+		/*
+		putchar ('\n');
+		print_mem (0, file_size);
+		putchar ('\n');
+		*/
+
 		op_code_base = buf;
 		int flag_prompt = 0;
+		word_t breakpoint = 0xFFFF;
 
 		while (1)
 			{
@@ -83,21 +90,21 @@ int main (int argc, char * argv [])
 			op_code_seg = seg_get (SEG_CS);
 			op_code_off = reg16_get (REG_IP);
 
+			// Breakpoint test
+			// TEST: latest good test
+
+			if (op_code_off == breakpoint)
+				{
+				puts ("info: breakpoint hit");
+				flag_prompt = 1;
+				}
+
 			op_desc_t desc;
 			memset (&desc, 0, sizeof desc);
 			int err = op_decode (&desc);
 			if (err)
 				{
 				puts ("error: unknown opcode");
-				flag_prompt = 1;
-				}
-
-			// Breakpoint test
-			// TEST: latest good test
-
-			if (reg16_get (REG_IP) == 0x0030)
-				{
-				puts ("info: breakpoint hit");
 				flag_prompt = 1;
 				}
 
@@ -117,9 +124,26 @@ int main (int argc, char * argv [])
 				puts ("\n");
 
 				// Get user command
+				// Ugly but temporary
 
+				char com [8];
 				putchar ('>');
-				getchar ();
+				gets (com);
+
+				switch (com [0])
+					{
+					case 'p':
+						breakpoint = op_code_off;
+						flag_prompt = 0;
+						break;
+
+					case 'g':
+						//breakpoint = 0;
+						flag_prompt = 0;
+						break;
+
+					}
+
 				}
 
 			// Execute operation
