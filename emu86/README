@@ -26,7 +26,7 @@ The emulator has a modular design with:
 CURRENT STATUS:
 
 The emulator is now able to execute the MON86 code, targetting the Advantech
-SNMP-1000 SBC with INT 10h / 16h minimal stubs, except the X2 command (execute). 
+SNMP-1000 SBC with INT 10h / 16h minimal stubs, except the X2 command (execute).
 
 
 TODO:

@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include "emu-proc.h"
+#include "emu-serial.h"
 #include "emu-int.h"
 
 
@@ -17,7 +18,7 @@ void int_10h ()
 		// Write character at current cursor position
 
 		case 0x0A:
-			putchar (reg8_get (REG_AL));
+			serial_send (reg8_get (REG_AL));
 			break;
 
 		default:
@@ -30,7 +31,7 @@ void int_10h ()
 
 void int_16h ()
 	{
-	char c = 0;
+	byte_t c = 0;
 
 	byte_t ah = reg8_get (REG_AH);
 	switch (ah)
@@ -38,7 +39,7 @@ void int_16h ()
 		// Extended keyboard read
 
 		case 0x10:
-			c = getchar ();
+			c = serial_recv ();
 			reg8_set (REG_AL, (byte_t) c);  // ASCII code
 			reg8_set (REG_AH, 0);           // No scan code
 			break;

@@ -914,11 +914,7 @@ int op_decode (op_desc_t * op_desc)
 		op_desc->w2   =  code & 0x01;
 
 		class_desc_t * class_desc = class_find (_class_1, code);
-		if (!class_desc)
-			{
-			assert (0); // unknown opcode
-			break;
-			}
+		if (!class_desc) break;  // unknown opcode
 
 		if (class_desc->len > 1)
 			{
@@ -935,11 +931,7 @@ int op_decode (op_desc_t * op_desc)
 			if (sub)
 				{
 				class_desc = class_find (sub, code);
-				if (!class_desc)
-					{
-					assert (0); // unknown opcode
-					break;
-					}
+				if (!class_desc) break;  // unknown opcode
 				}
 			}
 

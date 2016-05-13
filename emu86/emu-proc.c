@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "emu-proc.h"
 #include "op-class.h"
+#include "emu-proc.h"
 
 
 struct proc_regs_s

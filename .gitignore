@@ -124,7 +124,12 @@ bootblocks/zimage.lst
 bootblocks/zimage.v
 copt/copt
 cpp/bcc-cpp
+
 emu86/emu86
+emu86/emu86.pts
+emu86/pcat
+emu86/test-out.txt
+
 ifdefg
 include
 ld/ar.h

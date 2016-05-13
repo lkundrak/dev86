@@ -1,4 +1,4 @@
-// DIS86 - 80x86 disassembler
+// LIB86 - 80x86 library
 // Operation classes
 
 #pragma once

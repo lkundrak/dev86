@@ -1,8 +1,4 @@
 
-#include "op-class.h"
-#include "emu-mem-io.h"
-#include "emu-proc.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,6 +8,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include "op-class.h"
+#include "emu-mem-io.h"
+#include "emu-proc.h"
+#include "op-exec.h"
+#include "emu-serial.h"
+
 
 // Program main
 
@@ -20,6 +22,7 @@ int main (int argc, char * argv [])
 	int exit_code = 0;
 
 	int f = -1;
+	int s = -1;
 
 	while (1)
 		{
@@ -27,7 +30,9 @@ int main (int argc, char * argv [])
 		proc_reset ();
 		seg_set (SEG_CS, 0);  // TEST: start at 0:0h
 
-		// TEST: load test binary
+		serial_init ();
+
+		// Load binary image file
 
 		if (argc !=  2)
 			{
@@ -76,8 +81,9 @@ int main (int argc, char * argv [])
 		op_code_base = buf;
 		int flag_prompt = 0;
 		word_t breakpoint = 0xFFFF;
+		int flag_exit = 0;
 
-		while (1)
+		while (!flag_exit)
 			{
 			// Decode next instruction
 
@@ -150,6 +156,12 @@ int main (int argc, char * argv [])
 						flag_prompt = 0;
 						break;
 
+					// Quit
+
+					case 'q':
+						flag_exec = 0;
+						flag_exit = 1;
+						break;
 					}
 				}
 
@@ -179,6 +191,8 @@ int main (int argc, char * argv [])
 		close (f);
 		f = -1;
 		}
+
+	serial_term ();
 
 	return exit_code;
 	}
