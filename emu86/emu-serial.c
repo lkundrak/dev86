@@ -64,7 +64,7 @@ void serial_init ()
 
 		struct termios tios;
 		tcgetattr (_ptm, &tios);
-	    cfmakeraw (&tios);
+		cfmakeraw (&tios);
 		tcsetattr (_ptm, TCSANOW, &tios);
 
 		char * path = ptsname (_ptm);

@@ -11,8 +11,8 @@
 #include "op-class.h"
 #include "emu-mem-io.h"
 #include "emu-proc.h"
-#include "op-exec.h"
 #include "emu-serial.h"
+#include "op-exec.h"
 
 
 // Program main
@@ -22,7 +22,6 @@ int main (int argc, char * argv [])
 	int exit_code = 0;
 
 	int f = -1;
-	int s = -1;
 
 	while (1)
 		{
