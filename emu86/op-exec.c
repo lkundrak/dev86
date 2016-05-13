@@ -47,6 +47,9 @@ static void val_get (op_var_t * var, op_val_t * val)
 
 	switch (var->type)
 		{
+		// TODO: merge near distance and immediate
+
+		case VT_NEAR:
 		case VT_IMM:
 			val->w = var->val.w;
 			break;
@@ -55,11 +58,11 @@ static void val_get (op_var_t * var, op_val_t * val)
 			switch (var->size)
 				{
 				case VS_BYTE:
-					val->b = reg8_get (var->val.r);
+					val->b = reg8_get (var->reg);
 					break;
 
 				case VS_WORD:
-					val->w = reg16_get (var->val.r);
+					val->w = reg16_get (var->reg);
 					break;
 
 				default:
@@ -70,7 +73,7 @@ static void val_get (op_var_t * var, op_val_t * val)
 			break;
 
 		case VT_SEG:
-			val->w = seg_get (var->val.r);
+			val->w = seg_get (var->reg);
 			break;
 
 		case VT_INDEX:
@@ -112,11 +115,11 @@ static void val_set (op_var_t * var, op_val_t * val)
 			switch (var->size)
 				{
 				case VS_BYTE:
-					reg8_set (var->val.r, val->b);
+					reg8_set (var->reg, val->b);
 					break;
 
 				case VS_WORD:
-					reg16_set (var->val.r, val->w);
+					reg16_set (var->reg, val->w);
 					break;
 
 				default:
@@ -127,7 +130,7 @@ static void val_set (op_var_t * var, op_val_t * val)
 			break;
 
 		case VT_SEG:
-			seg_set (var->val.r, val->w);
+			seg_set (var->reg, val->w);
 			break;
 
 		case VT_INDEX:
@@ -191,9 +194,28 @@ static void op_move_load (op_desc_t * op_desc)
 
 static void op_swap (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op == 0x0);
-	assert (0);
+	assert (op_desc->op_id == OP_XCHG);
+	assert (op_desc->var_count == 2);
+
+	op_var_t * var_from;
+	op_var_t * var_to;
+
+	var_to   = &op_desc->var_to;
+	var_from = &op_desc->var_from;
+
+	assert (var_to->size == var_from->size);
+
+	op_val_t val_to;
+	op_val_t val_from;
+
+	memset (&val_to,   0, sizeof (op_val_t));
+	memset (&val_from, 0, sizeof (op_val_t));
+
+	val_get (var_to,   &val_to);
+	val_get (var_from, &val_from);
+
+	val_set (var_to,   &val_from);
+	val_set (var_from, &val_to);
 	}
 
 
@@ -201,9 +223,57 @@ static void op_swap (op_desc_t * op_desc)
 
 static void op_port (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op < 0x2);
-	assert (0);
+	assert (op_desc->var_count == 2);
+
+	op_val_t val_from;
+	memset (&val_from, 0, sizeof (val_from));
+	val_get (&op_desc->var_from, &val_from);
+
+	op_val_t val_to;
+	memset (&val_to, 0, sizeof (val_to));
+
+	switch (op_desc->op_id)
+		{
+		case OP_IN:
+			switch (op_desc->var_to.size)
+				{
+				case VS_BYTE:
+					val_to.b = io_read_byte (val_from.w);
+					break;
+
+				case VS_WORD:
+					val_to.w = io_read_word (val_from.w);
+					break;
+
+				default:
+					assert (0);
+				}
+
+			val_set (&op_desc->var_to, &val_to);
+			break;
+
+		case OP_OUT:
+			val_get (&op_desc->var_to, &val_to);
+
+			switch (op_desc->var_from.size)
+				{
+				case VS_BYTE:
+					io_write_byte (val_to.w, val_from.b);
+					break;
+
+				case VS_WORD:
+					io_write_byte (val_to.w, val_from.w);
+					break;
+
+				default:
+					assert (0);
+				}
+			break;
+
+		default:
+			assert (0);
+
+		}
 	}
 
 
@@ -211,28 +281,15 @@ static void op_port (op_desc_t * op_desc)
 
 static void op_calc_1 (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op < 0x06);
-	assert (0);
-	}
+	assert (op_desc->var_count == 1);
 
-
-static void op_calc_2 (op_desc_t * op_desc)
-	{
-	op_val_t val_to;
-	op_val_t val_from;
-
-	val_get (&op_desc->var_to,   &val_to);
-	val_get (&op_desc->var_from, &val_from);
+	op_val_t val;
+	val_get (&op_desc->var_to, &val);
 
 	switch (op_desc->op_id)
 		{
-		case OP_ADD:
-			val_to.w += val_from.w;
-			break;
-
-		case OP_XOR:
-			val_to.w ^= val_from.w;
+		case OP_NOT:
+			val.w = !val.w;
 			break;
 
 		default:
@@ -242,7 +299,91 @@ static void op_calc_2 (op_desc_t * op_desc)
 
 	// TODO: set flags
 
-	val_set (&op_desc->var_to,   &val_to);
+	val_set (&op_desc->var_to, &val);
+	}
+
+
+static void op_calc_2 (op_desc_t * op_desc)
+	{
+	assert (op_desc->var_count == 2);
+
+	op_var_t * var_from;
+	op_var_t * var_to;
+
+	var_to   = &op_desc->var_to;
+	var_from = &op_desc->var_from;
+
+	assert (var_to->size == var_from->size);
+	byte_t s = var_to->size;
+
+	op_val_t val_to;
+	op_val_t val_from;
+
+	memset (&val_to,   0, sizeof (op_val_t));
+	memset (&val_from, 0, sizeof (op_val_t));
+
+	val_get (var_to,   &val_to);
+	val_get (var_from, &val_from);
+
+	word_t a = val_to.w;
+	word_t b = val_from.w;
+	word_t r = 0;
+
+	word_t co = 0;  // carry out
+	word_t ci = 0;  // carry in
+	word_t cf = 0;
+
+	word_t id = op_desc->op_id;
+	switch (id)
+		{
+		case OP_ADC:
+			a += (word_t) flag_get (FLAG_CF);
+			// TODO: check carries
+			// no break
+
+		case OP_ADD:
+			r = a + b;
+			co = (a & b) | ((a ^ b) & ~r);
+			cf = co & (s == VS_WORD ? 0x8000: 0x0080);
+			ci = a ^ b ^ r;
+			break;
+
+		case OP_SUB:
+		case OP_CMP:
+			r = a - b;
+			co = (~a & b) | (~(a ^ b) & r);
+			cf = co & (s == VS_WORD ? 0x8000: 0x0080);
+			ci = a ^ b ^ r;
+			break;
+
+		case OP_OR:
+			r = a | b;
+			break;
+
+		case OP_AND:
+		case OP_TEST:
+			r = a & b;
+			break;
+
+		case OP_XOR:
+			r = a ^ b;
+			break;
+
+		default:
+			assert (0);
+
+		}
+
+	// TODO: complete flags support
+
+	flag_set (FLAG_ZF, r ? 0 : 1);
+	flag_set (FLAG_CF, cf ? 1 : 0);
+
+	if (id != OP_TEST && id != OP_CMP)
+		{
+		val_to.w  = r;
+		val_set (var_to, &val_to);
+		}
 	}
 
 
@@ -278,9 +419,47 @@ static void op_inc_dec (op_desc_t * op_desc)
 
 static void op_shift_rot (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op < 0x8);
-	assert (0);
+	assert (op_desc->var_count == 2);
+
+	op_var_t * var_from;
+	op_var_t * var_to;
+
+	var_to   = &op_desc->var_to;
+	var_from = &op_desc->var_from;
+
+	assert (var_from->size == VS_BYTE);
+	byte_t s = var_to->size;
+
+	op_val_t val_to;
+	op_val_t val_from;
+
+	memset (&val_to,   0, sizeof (op_val_t));
+	memset (&val_from, 0, sizeof (op_val_t));
+
+	val_get (var_to,   &val_to);
+	val_get (var_from, &val_from);
+
+	word_t a = val_to.w;
+	word_t b = val_from.b;
+	word_t r = 0;
+
+	switch (op_desc->op_id)
+		{
+		case OP_SHL:
+			r  = a << b;
+			break;
+
+		case OP_SHR:
+			r  = a >> b;
+			break;
+
+		default:
+			assert (0);
+
+		}
+
+	val_to.w  = r;
+	val_set (var_to, &val_to);
 	}
 
 
@@ -349,7 +528,24 @@ static void op_jump_call (op_desc_t * op_desc)
 	else
 		{
 		assert (v->type == VT_NEAR);
-		reg16_set (REG_IP, ip + v->val.s);
+
+		// TODO: group displacement operation
+
+		switch (v->size)
+			{
+			case VS_BYTE:
+				ip = (word_t) ((short) ip + (short) v->val.c);
+				break;
+
+			case VS_WORD:
+				ip = (word_t) ((short) ip + v->val.s);
+				break;
+
+			default:
+				assert (0);
+			}
+
+		reg16_set (REG_IP, ip);
 		}
 	}
 
@@ -375,9 +571,9 @@ static void op_int (op_desc_t * op_desc)
 
 		}
 
-	// Interrupt intercept
+	// Interrupt handling
 
-	int err = int_intercept (i);
+	int err = int_hand (i);
 	if (err)
 		{
 		// Not intercepted -> emulate
@@ -412,9 +608,46 @@ static void op_return (op_desc_t * op_desc)
 
 static void op_jump_cond (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op < 0x10);
-	assert (0);
+	assert (op_desc->var_count == 1);
+	op_var_t * var = &op_desc->var_to;
+	assert (var->type == VT_NEAR);
+	assert (var->size == VS_BYTE);
+
+	op_val_t val;
+	val_get (var, &val);
+	short s = (short) val.c;
+
+	switch (op_desc->op_id)
+		{
+		case OP_JB:
+			s = flag_get (FLAG_CF) ? s : 0;
+			break;
+
+		case OP_JZ:
+			s = flag_get (FLAG_ZF) ? s : 0;
+			break;
+
+		case OP_JNZ:
+			s = flag_get (FLAG_ZF) ? 0 : s;
+			break;
+
+		case OP_JNA:
+			s = (flag_get (FLAG_CF) || flag_get (FLAG_ZF)) ? s : 0;
+			break;
+
+		case OP_JA:
+			s = (flag_get (FLAG_CF) || flag_get (FLAG_ZF)) ? 0 : s;
+			break;
+
+		default:
+			assert (0);
+		}
+
+	if (s)
+		{
+		word_t ip = (word_t) ((short) reg16_get (REG_IP) + s);
+		reg16_set (REG_IP, ip);
+		}
 	}
 
 
@@ -422,9 +655,33 @@ static void op_jump_cond (op_desc_t * op_desc)
 
 static void op_string (op_desc_t * op_desc)
 	{
-	byte_t op = (op_desc->op_id & 0xFF);
-	assert (op < 0xA);
-	assert (0);
+	byte_t b;
+
+	word_t ds,es;
+	word_t si,di;
+
+	switch (op_desc->op_id)
+		{
+		case OP_LODSB:
+			ds = seg_get (SEG_DS);
+			si = reg16_get (REG_SI);
+			b = mem_read_byte (addr_seg_off (ds,si++));
+			reg8_set (REG_AL, b);
+			reg16_set (REG_SI, si);
+			break;
+
+		case OP_STOSB:
+			es = seg_get (SEG_ES);
+			di = reg16_get (REG_DI);
+			b = reg8_get (REG_AL);
+			mem_write_byte (addr_seg_off (es,di++), b);
+			reg16_set (REG_DI, di);
+			break;
+
+		default:
+			assert (0);
+
+		}
 	}
 
 
@@ -447,7 +704,7 @@ static op_id_hand_t _id_hand_tab [] = {
 
 	{ OP_XCHG, op_swap },
 
-	{ OP_IN, op_port },
+	{ OP_IN,  op_port },
 	{ OP_OUT, op_port },
 
 	{ OP_ADD,  op_calc_2 },
@@ -467,17 +724,17 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_DIV,  op_calc_1 },
 	{ OP_IDIV, op_calc_1 },
 
-	{ OP_INC,  op_inc_dec },
-	{ OP_DEC,  op_inc_dec },
+	{ OP_INC, op_inc_dec },
+	{ OP_DEC, op_inc_dec },
 
-	{ OP_ROL,  op_shift_rot },
-	{ OP_ROR,  op_shift_rot },
-	{ OP_RCL,  op_shift_rot },
-	{ OP_RCR,  op_shift_rot },
-	{ OP_SHL,  op_shift_rot },
-	{ OP_SHR,  op_shift_rot },
-	{ OP_SAL,  op_shift_rot },
-	{ OP_SAR,  op_shift_rot },
+	{ OP_ROL, op_shift_rot },
+	{ OP_ROR, op_shift_rot },
+	{ OP_RCL, op_shift_rot },
+	{ OP_RCR, op_shift_rot },
+	{ OP_SHL, op_shift_rot },
+	{ OP_SHR, op_shift_rot },
+	{ OP_SAL, op_shift_rot },
+	{ OP_SAR, op_shift_rot },
 
 	{ OP_PUSH,  op_push },
 	{ OP_POP,   op_pop },
@@ -489,30 +746,30 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_CALL,  op_jump_call },
 	{ OP_CALLF, op_jump_call },
 
-	{ OP_INT,   op_int },
-	{ OP_INT3,  op_int },
-	{ OP_INTO,  op_int },
+	{ OP_INT,  op_int },
+	{ OP_INT3, op_int },
+	{ OP_INTO, op_int },
 
-	{ OP_RET,   op_return },
-	{ OP_RETF,  op_return },
-	{ OP_IRET,  op_return },
+	{ OP_RET,  op_return },
+	{ OP_RETF, op_return },
+	{ OP_IRET, op_return },
 
-	{ OP_JO,	op_jump_cond },
-	{ OP_JNO,	op_jump_cond },
-	{ OP_JB,	op_jump_cond },
-	{ OP_JNB,	op_jump_cond },
-	{ OP_JZ,	op_jump_cond },
-	{ OP_JNZ,	op_jump_cond },
-	{ OP_JNA,	op_jump_cond },
-	{ OP_JA,	op_jump_cond },
-	{ OP_JS,	op_jump_cond },
-	{ OP_JNS,	op_jump_cond },
-	{ OP_JP,	op_jump_cond },
-	{ OP_JNP,	op_jump_cond },
-	{ OP_JL,	op_jump_cond },
-	{ OP_JNL,	op_jump_cond },
-	{ OP_JNG,	op_jump_cond },
-	{ OP_JG,	op_jump_cond },
+	{ OP_JO,  op_jump_cond },
+	{ OP_JNO, op_jump_cond },
+	{ OP_JB,  op_jump_cond },
+	{ OP_JNB, op_jump_cond },
+	{ OP_JZ,  op_jump_cond },
+	{ OP_JNZ, op_jump_cond },
+	{ OP_JNA, op_jump_cond },
+	{ OP_JA,  op_jump_cond },
+	{ OP_JS,  op_jump_cond },
+	{ OP_JNS, op_jump_cond },
+	{ OP_JP,  op_jump_cond },
+	{ OP_JNP, op_jump_cond },
+	{ OP_JL,  op_jump_cond },
+	{ OP_JNL, op_jump_cond },
+	{ OP_JNG, op_jump_cond },
+	{ OP_JG,  op_jump_cond },
 
 	{ OP_MOVSB, op_string },
 	{ OP_MOVSW, op_string },

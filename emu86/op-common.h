@@ -1,5 +1,5 @@
-// DIS86 - 80x86 disassembler
-// Operation common
+// LIB86 - 80x86 library
+// Common types and helpers
 
 #pragma once
 

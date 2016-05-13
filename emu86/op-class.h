@@ -1,4 +1,4 @@
-// DIS86 - 80x86 disassembler
+// LIB86 - 80x86 library
 // Operation classes
 
 #pragma once
@@ -49,7 +49,6 @@ extern word_t op_code_off;
 
 union op_val_u
 	{
-	byte_t r;  // register number
 	byte_t b;  // absolute byte
 	word_t w;  // absolute word
 	char   c;  // relative byte
@@ -62,7 +61,8 @@ struct op_var_s
 	{
 	byte_t type;   // operand type (VT_xxx)
 	byte_t size;   // 8 or 16 bits
-	word_t flags;  // for relative address (AF_xxx)
+	byte_t flags;  // for relative address (AF_xxx)
+	byte_t reg;    // register number
 	op_val_t val;  // variable value
 	word_t seg;    // segment value
 	};

@@ -4,6 +4,7 @@
 #include <assert.h>
 
 #include "emu-proc.h"
+#include "emu-serial.h"
 #include "emu-int.h"
 
 
@@ -17,7 +18,30 @@ void int_10h ()
 		// Write character at current cursor position
 
 		case 0x0A:
-			putchar (reg8_get (REG_AL));
+			serial_send (reg8_get (REG_AL));
+			break;
+
+		default:
+			assert (0);
+		}
+	}
+
+
+// BIOS keyboard services
+
+void int_16h ()
+	{
+	byte_t c = 0;
+
+	byte_t ah = reg8_get (REG_AH);
+	switch (ah)
+		{
+		// Extended keyboard read
+
+		case 0x10:
+			c = serial_recv ();
+			reg8_set (REG_AL, (byte_t) c);  // ASCII code
+			reg8_set (REG_AH, 0);           // No scan code
 			break;
 
 		default:
@@ -40,11 +64,12 @@ typedef struct int_num_hand_s int_num_hand_t;
 
 int_num_hand_t _int_tab [] = {
 		{ 0x10, int_10h },
+		{ 0x16, int_16h },
 		{ 0,    NULL    }
 	};
 
 
-int int_intercept (byte_t i)
+int int_hand (byte_t i)
 	{
 	int err = -1;
 

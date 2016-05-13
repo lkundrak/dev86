@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "emu-proc.h"
 #include "op-class.h"
+#include "emu-proc.h"
 
 
 struct proc_regs_s
@@ -93,6 +93,27 @@ void seg_set (byte_t s, word_t w)
 	}
 
 
+// Flags access
+
+byte_t flag_get (byte_t flag)
+	{
+	assert (flag < FLAG_MAX);
+	word_t r = reg16_get (REG_FL);
+	return ((r >> flag) & 1);
+	}
+
+void flag_set (byte_t flag, byte_t val)
+	{
+	assert (flag < FLAG_MAX);
+	assert (val < 2);
+
+	word_t m = ~(1 << flag);
+	word_t r = reg16_get (REG_FL);
+	r = (r & m) | (val << flag);
+	reg16_set (REG_FL, r);
+	}
+
+
 // Print registers
 
 void regs_print ()
@@ -106,9 +127,11 @@ void regs_print ()
 	word_t di = reg16_get (REG_DI);
 	word_t bp = reg16_get (REG_BP);
 	word_t sp = reg16_get (REG_SP);
-	//word_t ip = reg16_get (REG_IP);
 
-	//word_t cs = seg_get (SEG_CS);
+	word_t ip = reg16_get (REG_IP);
+	word_t fl = reg16_get (REG_FL);
+
+	word_t cs = seg_get (SEG_CS);
 	word_t ds = seg_get (SEG_DS);
 	word_t es = seg_get (SEG_ES);
 	word_t ss = seg_get (SEG_SS);
@@ -116,40 +139,142 @@ void regs_print ()
 	printf ("AX %.4X  BX %.4X  CX %.4X  DX %.4X\n", ax, bx, cx, dx);
 	printf ("SI %.4X  DI %.4X  SP %.4X  BP %.4X\n", si, di, sp, bp);
 	printf ("DS %.4X  ES %.4X  SS %.4X\n", ds, es, ss);
+	printf ("CS %.4X  IP %.4X  FL %.4X\n", cs, ip, fl);
+
+	printf ("\nCF %hhu  PF ?  AF ?  ZF %hhu  SF ?  TF ?  IF ?  DF ?  OF ?\n", flag_get (FLAG_CF), flag_get (FLAG_ZF));
 	}
 
 
-// Fetch
+// Get address from segment:offset
 
-byte_t fetch_cs_ip ()
+addr_t addr_seg_off (word_t seg, word_t off)
 	{
-	word_t ip = reg16_get (REG_IP);
-	byte_t b = mem_read_byte ((seg_get (SEG_CS) << 4) + ip);
-	reg16_set (REG_IP, ++ip);
-	return b;
+	return (seg << 4) + off;
 	}
 
 
-// Push & pop
+// Print memory
+
+void mem_print (word_t seg, word_t begin, word_t end)
+	{
+	assert (begin <= end);
+
+	word_t b = begin & 0xFFFF0;  // align on 16 bytes
+	word_t o = 0;
+	word_t a = 0;
+
+	byte_t c;
+	char s [17];
+
+	printf ("%.4X:  0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F\n", seg);
+
+	while (1)
+		{
+		// Row header
+
+		if (o == 0x0)
+			{
+			printf (" %.4X ", b);
+			}
+
+		// Row body
+
+		if (o == 0x8) putchar (' ');
+
+		a = b + o;
+		if (a < begin || a > end)
+			{
+			print_string ("   ");
+			s [o] = ' ';
+			}
+		else
+			{
+			c = mem_read_byte (addr_seg_off (seg, a));
+			printf (" %.2X", c);
+
+			s [o] = (c >= 32 && c < 127) ? c : '.';  // 127 = not printable DEL
+			}
+
+		// Row trailer
+
+		o++;
+
+		if (o == 0x10)
+			{
+			o = 0;
+
+			print_string ("  ");
+			s [16] = 0;
+			print_string (s);
+			putchar ('\n');
+
+			if (a >= end) break;
+
+			b += 0x10;
+			}
+		}
+	}
+
+
+// Stack operations
 
 void stack_push (word_t val)
 	{
+	word_t ss = seg_get (SEG_SS);
 	word_t sp = reg16_get (REG_SP) - 2;
-	mem_write_word ((seg_get (SEG_SS) << 4) + sp, val);
+	mem_write_word (addr_seg_off (ss, sp), val);
 	reg16_set (REG_SP, sp);
 	}
 
 word_t stack_pop ()
 	{
-	word_t sp = reg16_get (REG_SP);
 	word_t ss = seg_get (SEG_SS);
-	word_t w = mem_read_word ((ss << 4) + sp);
+	word_t sp = reg16_get (REG_SP);
+	word_t w = mem_read_word (addr_seg_off (ss, sp));
 	reg16_set (REG_SP, sp + 2);
 	return w;
 	}
 
 
-// Reset
+void stack_print ()
+	{
+	word_t cs = seg_get (SEG_CS);
+	word_t ss = seg_get (SEG_SS);
+
+	word_t ip = reg16_get (REG_IP);
+	word_t sp = reg16_get (REG_SP);
+	word_t bp = reg16_get (REG_BP);
+
+	word_t d = 0;  // depth
+	addr_t a;
+
+	while (d < 10)
+		{
+		// Local frame
+
+		if (sp > bp) break;  // no frame
+
+		if (d > 0) putchar ('\n');
+		printf ("[%u] %.4X:%.4X\n", d, cs, ip);
+		mem_print (ss, sp, bp + 1);
+
+		// Next frame
+		// TODO: not only for NEAR call
+
+		sp = bp;
+
+		a = addr_seg_off (ss, bp);
+		bp = mem_read_word (a + 0);
+		ip = mem_read_word (a + 2);
+
+		if (sp > 0xFFFC) break;
+		sp = sp + 4;
+
+		d++;
+		}
+	}
+
+// Reset processor context
 
 void proc_reset ()
 	{

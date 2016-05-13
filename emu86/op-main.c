@@ -1,8 +1,4 @@
 
-#include "op-class.h"
-#include "emu-mem-io.h"
-#include "emu-proc.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,6 +7,12 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include "op-class.h"
+#include "emu-mem-io.h"
+#include "emu-proc.h"
+#include "emu-serial.h"
+#include "op-exec.h"
 
 
 // Program main
@@ -27,7 +29,9 @@ int main (int argc, char * argv [])
 		proc_reset ();
 		seg_set (SEG_CS, 0);  // TEST: start at 0:0h
 
-		// TEST: load test binary
+		serial_init ();
+
+		// Load binary image file
 
 		if (argc !=  2)
 			{
@@ -75,30 +79,36 @@ int main (int argc, char * argv [])
 
 		op_code_base = buf;
 		int flag_prompt = 0;
+		word_t breakpoint = 0xFFFF;
+		int flag_exit = 0;
 
-		while (1)
+		while (!flag_exit)
 			{
 			// Decode next instruction
 
 			op_code_seg = seg_get (SEG_CS);
 			op_code_off = reg16_get (REG_IP);
 
+			// Breakpoint test
+
+			if (op_code_off == breakpoint)
+				{
+				putchar ('\n');
+				puts ("info: breakpoint hit");
+				flag_prompt = 1;
+				}
+
 			op_desc_t desc;
 			memset (&desc, 0, sizeof desc);
 			int err = op_decode (&desc);
 			if (err)
 				{
+				putchar ('\n');
 				puts ("error: unknown opcode");
 				flag_prompt = 1;
 				}
 
-			// Breakpoint test
-
-			if (reg16_get (REG_IP) == 0x0008)
-				{
-				puts ("info: breakpoint");
-				flag_prompt = 1;
-				}
+			int flag_exec = 1;
 
 			// User prompt
 
@@ -116,20 +126,57 @@ int main (int argc, char * argv [])
 				puts ("\n");
 
 				// Get user command
+				// Ugly but temporary
 
+				char com [8];
 				putchar ('>');
-				getchar ();
+				gets (com);
+
+				switch (com [0])
+					{
+					// Dump stack
+
+					case 's':
+						putchar ('\n');
+						stack_print ();
+						flag_exec = 0;
+						break;
+
+					// Step over
+
+					case 'p':
+						breakpoint = op_code_off;
+						flag_prompt = 0;
+						break;
+
+					// Go (keep breakpoint)
+
+					case 'g':
+						flag_prompt = 0;
+						break;
+
+					// Quit
+
+					case 'q':
+						flag_exec = 0;
+						flag_exit = 1;
+						break;
+					}
 				}
 
 			// Execute operation
 
-			reg16_set (REG_IP, op_code_off);
-
-			err = op_exec (&desc);
-			if (err)
+			if (flag_exec)
 				{
-				puts ("fatal: execute operation");
-				break;
+				reg16_set (REG_IP, op_code_off);
+
+				err = op_exec (&desc);
+				if (err)
+					{
+					putchar ('\n');
+					puts ("fatal: execute operation");
+					break;
+					}
 				}
 			}
 
@@ -143,6 +190,8 @@ int main (int argc, char * argv [])
 		close (f);
 		f = -1;
 		}
+
+	serial_term ();
 
 	return exit_code;
 	}
