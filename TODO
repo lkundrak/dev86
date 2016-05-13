@@ -1,8 +1,9 @@
 Bug:
 
-  - BCC defines external function as U (undefined) symbol
+  - BCC defines external function as U (undefined) symbol : WIP
 
 Next:
 
-  - Rename project to 'mon86'
+  - Host tool with load and execute
+  - Second stage monitor after first stage validation
 

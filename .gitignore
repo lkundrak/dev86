@@ -1,7 +1,11 @@
 
+.project
+
 *.o
 
 pt1-stub
 pt1-target
+
+mon86-target
 
 test-out.txt

@@ -1,0 +1,126 @@
+MON86 - MONITOR FOR 80x86
+
+The monitor is a tool used on embedded systems to take control of the target
+just after booting and before loading / executing a more complex software like
+an operating system. It provides basic functions, such as read / write the
+registers, read /write the memory, and execute code. It optionally allows to
+execute code step by step, or to use breakpoints (except in critical sections
+like inside an hardware interrupt routine).
+
+The monitor is started on the target by the bootloader and communicates with the
+development system through the most simple and available interface (typically
+the asynchronous serial port), and with a simple protocol.
+
+Because that protocol only supports basic operations and is not user-friendly,
+the monitor is in turn controlled from the development system by the
+'mon86-host' tool, which implements more complex and intuitive commands.
+
+The MON86 code (mon86-target) is either loaded into the target RAM by the
+bootloader from any suitable device, or burned in the EEPROM / Flash.
+
+
+MASTER AND SLAVE
+
+The monitor acts as a master that controls a slave task. The slave has its own
+execution context (registers and stack), and can be controlled with the help
+of the trace / break 8086 interrupts (INT01h and INT03h).
+
+
+SLAVE CONTEXT
+
+The slave context registers are stored at the top of the slave stack, following
+an order that eases the task switch operations and the interrupt handling. They
+are followed by the master return address, to allow the slave to return control
+to the master through a simple RETF or IRET instruction.
+
+Index  Offset  Register
+0h     00h     AX
+1h     02h     BX
+2h     04h     CX
+3h     06h     DX
+4h     08h     SI
+5h     0Ah     DI
+6h     0Ch     BP
+7h     0Eh     DS
+8h     10h     ES
+9h     12h     parameter / immediate value
+Ah     14h     IP slave
+Bh     16h     CS slave
+Ch     18h     FL slave
+Dh     1Ah     IP master
+Eh     1Ch     CS master
+Fh     1Eh     FL master
+
+The parameter or immediate value is either an interrupt number or the immediate
+value for context operation (see below).
+
+The context stack registers (SP, SS) are saved as global variables in the system
+data segment 40h (just after the interrupt vector table).
+
+
+CONTEXT OPERATIONS
+
+The monitors reads ASCII characters from the interface and groups them by
+tokens. All characters are converted to uppercase. The tokens are separated by
+at least one space (any character below code 33 is translated into a space).
+
+Each token is either an hexadecimal number (4 digits max, without any prefix
+nor suffix), or a command with a concatenated prefix letter and an hexadecimal
+digit.
+
+An hexadecimal number alone is stored in the context as the immediate value.
+
+The commands are ('i' is the register or routine index):
+	Ri  Read the register (i) from the context and store as the immediate value
+	Wi  Write the immediate value into the context register (i)
+	Xi  Execute routine (i) with the current context
+
+The routines are:
+
+	X0  Read byte at [DS:SI], store as the immediate value and increment SI
+	X1  Write byte at [ES:DI] with the immediate value and increment DI
+	X2  Execute code in the slave context
+
+After each immediate value or command, the monitor writes a status with the same
+format as a command, with the 'S' prefix:
+
+	S0  success
+	S1  bad token length
+	S2  bad immediate value
+	S3  bad command index
+	S4  trace interrupt
+	S5  breakpoint interrupt
+
+Example 1: read 3 bytes from [1234:5678] that contains bytes AAh, BBh and CCh:
+'1234 W4 5678 W7 X0 X0 X0' returns 'S0 S0 S0 S0 AA S0 BB S0 CC S0'
+
+Example 2: write 3 bytes AAh, BBh and CCh to [1234:5678]
+'1234 W5 5678 W8 AA X1 BB X1 CC X1' returns 'S0 S0 S0 S0 S0 S0 S0 S0 S0 S0'
+
+Example 3: execute code at [1234:5678]
+'1234 WA 5678 WB X2' returns 'S0 S0 S0 S0' then 'Si' after code execution
+
+Step-by-step execution mode is set through the FL register of the context.
+A breakpoint is set and reset through the X0 (read) and X1 (write) operations.
+
+
+HOST TOOL
+
+The 'mon86-host' tool runs either in interactive or batch mode.
+
+Usage help (no argument):
+	mon86-host
+
+Interactive mode (one argument):
+	mon86-host [options] /dev/ttyXYZ
+	where /dev/XYZ is the device to communicate with the monitor
+	Example: /dev/ttyUSB0 for a serial TTL-USB converter
+
+Batch mode (two arguments):
+	mon86-host [options] /dev/XYZ filename
+	where 'filename' is the name of the input or output file
+
+
+Author: MFLD.fr (mfld.fr@gmail.com)
+Project: ELKS Linux-8086
+License: same as the project
