@@ -46,59 +46,6 @@ void mem_write_word (addr_t a, word_t w)
 	}
 
 
-// Memory dump
-
-void print_mem (addr_t begin, addr_t end)
-	{
-	assert (begin <= end);
-
-	addr_t b = begin & 0xFFFF0;  // align on 16 bytes
-	addr_t o = begin & 0x0000F;
-	addr_t a = 0;
-
-	byte_t c;
-	char s [17];
-
-	puts ("       0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F");
-
-	if (o)
-		{
-		printf ("%.5lX ", b);
-		for (a = 0; a < o; a++) print_string ("   ");
-		}
-
-	for (a = begin; a < end; a++)
-		{
-		o = a & 0x0000F;
-		if (!o)
-			{
-			b = a & 0xFFFF0;
-			printf ("%.5lX ", b);
-
-			memset (s, '.', 16);
-			s [16] = 0;
-			}
-
-		if (o == 8) putchar (' ');
-
-		c = mem_read_byte (a);
-		printf (" %.2X", c);
-		if (c >= 32 && c < 127) s [o] = (char) c;  // 127 = not printable DEL
-
-		if (o == 15)
-			{
-			print_string ("  ");
-			print_string (s);
-			putchar ('\n');
-			}
-		}
-
-	// TODO: complete line and print string
-
-	if (o) putchar ('\n');
-	}
-
-
 // I/O access
 
 byte_t io_read_byte (word_t p)

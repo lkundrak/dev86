@@ -72,11 +72,21 @@ void flag_set (byte_t flag, byte_t val);
 void regs_print ();
 
 
-// Processor operations
+// Memory operations
 
 addr_t addr_seg_off (word_t seg, word_t off);
 
+void mem_print (word_t seg, word_t begin, word_t end);
+
+
+// Stack operations
+
 void stack_push (word_t val);
 word_t stack_pop ();
+
+void stack_print ();
+
+
+// Processor operations
 
 void proc_reset ();

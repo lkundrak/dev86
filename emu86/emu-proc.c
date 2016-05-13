@@ -153,6 +153,69 @@ addr_t addr_seg_off (word_t seg, word_t off)
 	}
 
 
+// Print memory
+
+void mem_print (word_t seg, word_t begin, word_t end)
+	{
+	assert (begin <= end);
+
+	word_t b = begin & 0xFFFF0;  // align on 16 bytes
+	word_t o = 0;
+	word_t a = 0;
+
+	byte_t c;
+	char s [17];
+
+	printf ("%.4X:  0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F\n", seg);
+
+	while (1)
+		{
+		// Row header
+
+		if (o == 0x0)
+			{
+			printf (" %.4X ", b);
+			}
+
+		// Row body
+
+		if (o == 0x8) putchar (' ');
+
+		a = b + o;
+		if (a < begin || a > end)
+			{
+			print_string ("   ");
+			s [o] = ' ';
+			}
+		else
+			{
+			c = mem_read_byte (addr_seg_off (seg, a));
+			printf (" %.2X", c);
+
+			s [o] = (c >= 32 && c < 127) ? c : '.';  // 127 = not printable DEL
+			}
+
+		// Row trailer
+
+		o++;
+
+		if (o == 0x10)
+			{
+			o = 0;
+
+			print_string ("  ");
+			s [16] = 0;
+			print_string (s);
+			putchar ('\n');
+
+			if (a >= end) break;
+
+			b += 0x10;
+			}
+		}
+	}
+
+
 // Stack operations
 
 void stack_push (word_t val)
@@ -172,6 +235,44 @@ word_t stack_pop ()
 	return w;
 	}
 
+
+void stack_print ()
+	{
+	word_t cs = seg_get (SEG_CS);
+	word_t ss = seg_get (SEG_SS);
+
+	word_t ip = reg16_get (REG_IP);
+	word_t sp = reg16_get (REG_SP);
+	word_t bp = reg16_get (REG_BP);
+
+	word_t d = 0;  // depth
+	addr_t a;
+
+	while (d < 10)
+		{
+		// Local frame
+
+		if (sp > bp) break;  // no frame
+
+		if (d > 0) putchar ('\n');
+		printf ("[%u] %.4X:%.4X\n", d, cs, ip);
+		mem_print (ss, sp, bp + 1);
+
+		// Next frame
+		// TODO: not only for NEAR call
+
+		sp = bp;
+
+		a = addr_seg_off (ss, bp);
+		bp = mem_read_word (a + 0);
+		ip = mem_read_word (a + 2);
+
+		if (sp > 0xFFFC) break;
+		sp = sp + 4;
+
+		d++;
+		}
+	}
 
 // Reset processor context
 

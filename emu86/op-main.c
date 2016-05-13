@@ -73,12 +73,6 @@ int main (int argc, char * argv [])
 
 		puts ("info: image loaded");
 
-		/*
-		putchar ('\n');
-		print_mem (0, file_size);
-		putchar ('\n');
-		*/
-
 		op_code_base = buf;
 		int flag_prompt = 0;
 		word_t breakpoint = 0xFFFF;
@@ -94,6 +88,7 @@ int main (int argc, char * argv [])
 
 			if (op_code_off == breakpoint)
 				{
+				putchar ('\n');
 				puts ("info: breakpoint hit");
 				flag_prompt = 1;
 				}
@@ -103,9 +98,12 @@ int main (int argc, char * argv [])
 			int err = op_decode (&desc);
 			if (err)
 				{
+				putchar ('\n');
 				puts ("error: unknown opcode");
 				flag_prompt = 1;
 				}
+
+			int flag_exec = 1;
 
 			// User prompt
 
@@ -131,29 +129,43 @@ int main (int argc, char * argv [])
 
 				switch (com [0])
 					{
+					// Dump stack
+
+					case 's':
+						putchar ('\n');
+						stack_print ();
+						flag_exec = 0;
+						break;
+
+					// Step over
+
 					case 'p':
 						breakpoint = op_code_off;
 						flag_prompt = 0;
 						break;
 
+					// Go (keep breakpoint)
+
 					case 'g':
-						//breakpoint = 0;
 						flag_prompt = 0;
 						break;
 
 					}
-
 				}
 
 			// Execute operation
 
-			reg16_set (REG_IP, op_code_off);
-
-			err = op_exec (&desc);
-			if (err)
+			if (flag_exec)
 				{
-				puts ("fatal: execute operation");
-				break;
+				reg16_set (REG_IP, op_code_off);
+
+				err = op_exec (&desc);
+				if (err)
+					{
+					putchar ('\n');
+					puts ("fatal: execute operation");
+					break;
+					}
 				}
 			}
 
