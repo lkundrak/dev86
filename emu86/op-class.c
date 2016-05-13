@@ -86,7 +86,7 @@ static void scan_mod_rm (byte_t w, byte_t mod, byte_t rm, op_var_t * var)
 	if (mod == 3)
 		{
 		var->type = VT_REG;
-		var->val.r = rm;
+		var->reg  = rm;
 		}
 	else
 		{
@@ -198,11 +198,11 @@ static void print_var (op_var_t * var)
 
 		case VT_REG:
 			rt = (var->size == VS_BYTE) ? RT_REG8 : RT_REG16;
-			print_reg (rt, var->val.r);
+			print_reg (rt, var->reg);
 			break;
 
 		case VT_SEG:
-			print_reg (RT_SEG, var->val.r);
+			print_reg (RT_SEG, var->reg);
 			break;
 
 		case VT_INDEX:
@@ -347,15 +347,15 @@ static int class_in_out (byte_t flags, op_desc_t * op)
 		var_port = &(op->var_from);
 		}
 
-	var_acc->type  = VT_REG;
-	var_acc->size  = op->w2 ? VS_WORD : VS_BYTE;
-	var_acc->val.r = 0;  // AX or AL
+	var_acc->type = VT_REG;
+	var_acc->size = op->w2 ? VS_WORD : VS_BYTE;
+	var_acc->reg  = 0;  // AX or AL
 
 	if (op->v1)
 		{
-		var_port->type  = VT_REG;
+		var_port->type = VT_REG;
 		var_port->size = VS_WORD;
-		var_port->val.r = 2;  // DX
+		var_port->reg  = 2;  // DX
 		}
 
 	else
@@ -378,9 +378,10 @@ static int class_reg (byte_t flags, op_desc_t * op)
 		op->var_count = 2;
 
 		op_var_t * var_acc = &(op->var_to);
-		var_acc->type  = VT_REG;
-		var_acc->size  = VS_WORD;
-		var_acc->val.r = 0;  // AX
+
+		var_acc->type = VT_REG;
+		var_acc->size = VS_WORD;
+		var_acc->reg  = 0;  // AX
 
 		var_reg = &(op->var_from);
 		}
@@ -392,9 +393,9 @@ static int class_reg (byte_t flags, op_desc_t * op)
 		var_reg = &(op->var_to);
 		}
 
-	var_reg->type  = VT_REG;
-	var_reg->size  = VS_WORD;
-	var_reg->val.r = op->reg1;
+	var_reg->type = VT_REG;
+	var_reg->size = VS_WORD;
+	var_reg->reg  = op->reg1;
 
 	return 0;
 	}
@@ -406,9 +407,9 @@ static int class_seg (byte_t flags, op_desc_t * op)
 
 	op_var_t * var_seg = &(op->var_to);
 
-	var_seg->type  = VT_SEG;
-	var_seg->size  = VS_WORD;
-	var_seg->val.r = op->seg1;
+	var_seg->type = VT_SEG;
+	var_seg->size = VS_WORD;
+	var_seg->reg  = op->seg1;
 
 	return 0;
 	}
@@ -421,8 +422,8 @@ static int class_w_imm (byte_t flags, op_desc_t * op)
 	op_var_t * var_acc = &(op->var_to);
 	op_var_t * var_imm = &(op->var_from);
 
-	var_acc->type  = VT_REG;
-	var_acc->val.r = 0;  // AX or AL
+	var_acc->type = VT_REG;
+	var_acc->reg  = 0;  // AX or AL
 
 	var_imm->type  = VT_IMM;
 
@@ -465,9 +466,9 @@ static int class_w_addr (byte_t flags, op_desc_t * op)
 		var_acc  = &(op->var_from);
 		}
 
-	var_acc->type  = VT_REG;
-	var_acc->val.r = 0;  // AX or AL
-	var_acc->size  = op->w2 ? VS_WORD : VS_BYTE;
+	var_acc->type = VT_REG;
+	var_acc->reg  = 0;  // AX or AL
+	var_acc->size = op->w2 ? VS_WORD : VS_BYTE;
 
 	var_addr->type  = VT_NEAR;
 	var_addr->flags = 0;
@@ -484,10 +485,10 @@ static int class_w_reg_imm (byte_t flags, op_desc_t * op)
 	op_var_t * var_reg = &(op->var_to);
 	op_var_t * var_imm = &(op->var_from);
 
-	var_reg->type  = VT_REG;
-	var_reg->val.r = op->reg1;
+	var_reg->type = VT_REG;
+	var_reg->reg  = op->reg1;
 
-	var_imm->type   = VT_IMM;
+	var_imm->type  = VT_IMM;
 
 	if (op->w1)
 		{
@@ -523,22 +524,22 @@ static int class_w_mod_rm (byte_t flags, op_desc_t * op)
 	op_var_t * var_rm = &(op->var_to);
 	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
 
-	if (flags & CF_V)
+	if (flags & CF_V)  // variable count
 		{
 		op->var_count = 2;
 		op_var_t * var_num = &(op->var_from);
 
+		var_num->size = VS_BYTE;
+
 		if (op->v2)
 			{
 			var_num->type = VT_REG;
-			var_num->size = VS_BYTE;
-			var_num->val.r = 1; // CL
+			var_num->reg  = 1; // CL
 			}
 		else
 			{
-			var_num->type = VT_IMM;
-			var_num->size = VS_BYTE;
-			var_num->val.w = 1;
+			var_num->type  = VT_IMM;
+			var_num->val.b = 1;
 			}
 		}
 
@@ -579,6 +580,7 @@ static int class_w_mod_rm_imm (byte_t flags, op_desc_t * op)
 		}
 
 	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
+
 	return 0;
 	}
 
@@ -590,8 +592,7 @@ static int class_w_mod_reg_rm (byte_t flags, op_desc_t * op)
 	op_var_t * var_reg;
 	op_var_t * var_rm;
 
-	byte_t d = 1;  // default when no direction
-	if (flags & CF_D) d = op->d;
+	byte_t d = (flags & CF_D) ? op->d : 1;  // default when no direction
 
 	if (d)
 		{
@@ -606,9 +607,10 @@ static int class_w_mod_reg_rm (byte_t flags, op_desc_t * op)
 
 	var_reg->type = VT_REG;
 	var_reg->size = op->w2 ? VS_WORD : VS_BYTE;
-	var_reg->val.r = op->reg2;
+	var_reg->reg  = op->reg2;
 
 	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
+
 	return 0;
 	}
 
@@ -620,11 +622,12 @@ static int class_mod_reg_rm (byte_t flags, op_desc_t * op)
 	op_var_t * var_reg = &(op->var_to);
 	op_var_t * var_rm  = &(op->var_from);
 
-	var_reg->type  = VT_REG;
-	var_reg->size  = VS_WORD;
-	var_reg->val.r = op->reg2;
+	var_reg->type = VT_REG;
+	var_reg->size = VS_WORD;
+	var_reg->reg  = op->reg2;
 
 	scan_mod_rm (1, op->mod, op->rm, var_rm);
+
 	return 0;
 	}
 
@@ -636,8 +639,8 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 	op_var_t * var_seg;
 	op_var_t * var_rm;
 
-	byte_t d = 1;  // default when no direction
-	if (flags & CF_D) op->d;
+	byte_t d = (flags & CF_D) ? op->d : 1;  // default when no direction
+
 	if (d)
 		{
 		var_seg = &(op->var_to);
@@ -649,10 +652,11 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 		var_seg = &(op->var_from);
 		}
 
-	var_seg->type  = VT_SEG;
-	var_seg->val.r = op->seg2;
+	var_seg->type = VT_SEG;
+	var_seg->reg  = op->seg2;
 
 	scan_mod_rm (1, op->mod, op->rm, var_rm);
+
 	return 0;
 	}
 

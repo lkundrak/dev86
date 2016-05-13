@@ -58,11 +58,11 @@ static void val_get (op_var_t * var, op_val_t * val)
 			switch (var->size)
 				{
 				case VS_BYTE:
-					val->b = reg8_get (var->val.r);
+					val->b = reg8_get (var->reg);
 					break;
 
 				case VS_WORD:
-					val->w = reg16_get (var->val.r);
+					val->w = reg16_get (var->reg);
 					break;
 
 				default:
@@ -73,7 +73,7 @@ static void val_get (op_var_t * var, op_val_t * val)
 			break;
 
 		case VT_SEG:
-			val->w = seg_get (var->val.r);
+			val->w = seg_get (var->reg);
 			break;
 
 		case VT_INDEX:
@@ -115,11 +115,11 @@ static void val_set (op_var_t * var, op_val_t * val)
 			switch (var->size)
 				{
 				case VS_BYTE:
-					reg8_set (var->val.r, val->b);
+					reg8_set (var->reg, val->b);
 					break;
 
 				case VS_WORD:
-					reg16_set (var->val.r, val->w);
+					reg16_set (var->reg, val->w);
 					break;
 
 				default:
@@ -130,7 +130,7 @@ static void val_set (op_var_t * var, op_val_t * val)
 			break;
 
 		case VT_SEG:
-			seg_set (var->val.r, val->w);
+			seg_set (var->reg, val->w);
 			break;
 
 		case VT_INDEX:

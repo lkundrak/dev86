@@ -91,7 +91,6 @@ int main (int argc, char * argv [])
 			op_code_off = reg16_get (REG_IP);
 
 			// Breakpoint test
-			// TEST: latest good test
 
 			if (op_code_off == breakpoint)
 				{
