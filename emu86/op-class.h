@@ -45,11 +45,6 @@ extern word_t op_code_off;
 #define VT_LOC   3  // operand is a memory location
 #define VT_IND   4  // operand is a memory content
 
-// TODO: move size to word flag
-
-#define VS_BYTE 0  // operand is 8 bits
-#define VS_WORD 1  // operand is 16 bits
-
 union op_val_u
 	{
 	byte_t r;  // register number
@@ -61,13 +56,14 @@ union op_val_u
 
 typedef union op_val_u op_val_t;
 
+
 struct op_var_s
 	{
 	// TODO: move size to word flag
 
 	byte_t type;     // operand type (VT_xxx)
-	byte_t size;     // 8 or 16 bits
 	byte_t flags;    // for relative address (AF_xxx)
+	byte_t w : 1;    // word flag
 	byte_t far : 1;  // far flag
 	op_val_t val;    // variable value
 	word_t seg;      // segment value
