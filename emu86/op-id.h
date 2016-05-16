@@ -1,3 +1,4 @@
+// LIB86 - 80x86 library
 
 #pragma once
 
@@ -6,14 +7,15 @@
 
 // Operation flags
 
-#define OF_FAR   0x01
 #define OF_FLAG  0x04
 
 
 // Operation identifiers
 
-#define OP_MOV   0x0000
-#define OP_LEA   0x0001
+#define OP_NULL  0x0000
+
+#define OP_MOV   0x0001
+#define OP_LEA   0x0002
 
 #define OP_XCHG  0x0100
 
@@ -54,10 +56,10 @@
 #define OP_PUSHF (0x0F00)
 #define OP_POPF  (0x1000)
 
-#define OP_JMP   (0x0800)
-#define OP_JMPF  (OP_JMP | OF_FAR)
-#define OP_CALL  (0x0D00)
-#define OP_CALLF (OP_CALL | OF_FAR)
+#define OP_JMP   0x0800
+#define OP_JMPF  0x0801
+#define OP_CALL  0x0802
+#define OP_CALLF 0x0803
 
 #define OP_INT   0x0900
 #define OP_INT3  0x0903

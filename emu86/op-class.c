@@ -86,14 +86,13 @@ static void scan_mod_rm (byte_t w, byte_t mod, byte_t rm, op_var_t * var)
 	if (mod == 3)
 		{
 		var->type = VT_REG;
-		var->reg  = rm;
+		var->val.r = rm;
 		}
 	else
 		{
-		var->type = VT_INDEX;
+		var->type = VT_IND;
 
-		word_t w = 0;
-		short rel = 0;
+		short s = 0;
 		byte_t flags = _rm_flags [rm];
 
 		switch (mod)
@@ -101,28 +100,26 @@ static void scan_mod_rm (byte_t w, byte_t mod, byte_t rm, op_var_t * var)
 			case 0:  // no displacement
 				if (rm == 6)  // special case [BP] -> [disp16]
 					{
-					rel = (short) fetch_word ();
+					s = (short) fetch_word ();
 					flags = AF_DISP;
 					}
 
 				break;
 
 			case 1:  // signed byte displacement
-				w = (word_t) fetch_byte ();
-				if (w & 0x0080) w |= 0xFF00;
-				rel = (short) w;
+				s = (short) (char) fetch_byte ();
 				flags |= AF_DISP;
 				break;
 
 			case 2:  // signed word displacement
-				rel = (short) fetch_word ();
+				s = (short) fetch_word ();
 				flags |= AF_DISP;
 				break;
 
 			}
 
 		var->flags = flags;
-		var->val.s = rel;
+		var->val.s = s;
 		}
 	}
 
@@ -173,8 +170,9 @@ static void print_addr (byte_t flags, short rel)
 
 static void print_var (op_var_t * var)
 	{
+	// TODO: simplify print_reg()
+
 	byte_t rt;
-	word_t w;
 
 	switch (var->type)
 		{
@@ -198,42 +196,33 @@ static void print_var (op_var_t * var)
 
 		case VT_REG:
 			rt = (var->size == VS_BYTE) ? RT_REG8 : RT_REG16;
-			print_reg (rt, var->reg);
+			print_reg (rt, var->val.r);
 			break;
 
 		case VT_SEG:
-			print_reg (RT_SEG, var->reg);
+			print_reg (RT_SEG, var->val.r);
 			break;
 
-		case VT_INDEX:
+		case VT_IND:
 			print_addr (var->flags, var->val.s);
 			break;
 
-		case VT_NEAR:
-			switch (var->size)
+		case VT_LOC:
+			if (var->far)
 				{
-				case VS_BYTE:
-					printf ("%.4X", (word_t) ((short) op_code_off + (short) var->val.c));
-					//w = char_to_short (var->val.b);
-					break;
+				// Far address is absolute
 
-				case VS_WORD:
-					printf ("%.4X", (word_t) ((short) op_code_off + var->val.s));
-					//w = var->val.w;
-					break;
+				printf ("%.4X",var->seg);
+				putchar (':');
+				printf ("%.4X",var->val.w);
+				}
+			else
+				{
+				// Near address is relative
 
-				default:
-					assert (0);
-
+				printf ("%.4X", (word_t) ((short) op_code_off + var->val.s));
 				}
 
-			//printf ("%.4X", op_code_off + w);
-			break;
-
-		case VT_FAR:
-			printf ("%.4X",var->seg);
-			putchar (':');
-			printf ("%.4X",var->val.w);
 			break;
 
 		}
@@ -295,19 +284,17 @@ static int class_dist (byte_t flags, op_desc_t * op)
 	{
 	op->var_count = 1;
 
-	op_var_t * var_dist = &(op->var_to);
-	var_dist->type  = VT_NEAR;
+	op_var_t * var = &(op->var_to);
+	var->type = VT_LOC;
 
 	if (flags & CF_1)
 		{
-		var_dist->size = VS_BYTE;
-		var_dist->val.c = (char) fetch_byte ();
+		var->val.s = (short) (char) fetch_byte ();
 		}
 
 	if (flags & CF_2)
 		{
-		var_dist->size = VS_WORD;
-		var_dist->val.s = (short) fetch_word ();
+		var->val.s = (short) fetch_word ();
 		}
 
 	return 0;
@@ -318,11 +305,13 @@ static int class_off_seg (byte_t flags, op_desc_t * op)
 	{
 	op->var_count = 1;
 
-	op_var_t * var_far = &(op->var_to);
-	var_far->type  = VT_FAR;
+	op_var_t * var = &(op->var_to);
 
-	var_far->val.w = fetch_word ();
-	var_far->seg = fetch_word ();
+	var->type = VT_LOC;
+	var->far = 1;
+
+	var->val.w = fetch_word ();
+	var->seg = fetch_word ();
 
 	return 0;
 	}
@@ -349,13 +338,13 @@ static int class_in_out (byte_t flags, op_desc_t * op)
 
 	var_acc->type = VT_REG;
 	var_acc->size = op->w2 ? VS_WORD : VS_BYTE;
-	var_acc->reg  = 0;  // AX or AL
+	var_acc->val.r = 0;  // AX or AL
 
 	if (op->v1)
 		{
 		var_port->type = VT_REG;
 		var_port->size = VS_WORD;
-		var_port->reg  = 2;  // DX
+		var_port->val.r = 2;  // DX
 		}
 
 	else
@@ -381,7 +370,7 @@ static int class_reg (byte_t flags, op_desc_t * op)
 
 		var_acc->type = VT_REG;
 		var_acc->size = VS_WORD;
-		var_acc->reg  = 0;  // AX
+		var_acc->val.r = 0;  // AX
 
 		var_reg = &(op->var_from);
 		}
@@ -395,7 +384,7 @@ static int class_reg (byte_t flags, op_desc_t * op)
 
 	var_reg->type = VT_REG;
 	var_reg->size = VS_WORD;
-	var_reg->reg  = op->reg1;
+	var_reg->val.r = op->reg1;
 
 	return 0;
 	}
@@ -409,7 +398,7 @@ static int class_seg (byte_t flags, op_desc_t * op)
 
 	var_seg->type = VT_SEG;
 	var_seg->size = VS_WORD;
-	var_seg->reg  = op->seg1;
+	var_seg->val.r = op->seg1;
 
 	return 0;
 	}
@@ -423,7 +412,7 @@ static int class_w_imm (byte_t flags, op_desc_t * op)
 	op_var_t * var_imm = &(op->var_from);
 
 	var_acc->type = VT_REG;
-	var_acc->reg  = 0;  // AX or AL
+	var_acc->val.r = 0;  // AX or AL
 
 	var_imm->type  = VT_IMM;
 
@@ -445,17 +434,14 @@ static int class_w_imm (byte_t flags, op_desc_t * op)
 	}
 
 
-static int class_w_addr (byte_t flags, op_desc_t * op)
+static int class_d_w_addr (byte_t flags, op_desc_t * op)
 	{
-	byte_t d = 0;  // default when no direction
-	if (flags & CF_D) d = op->d;
-
 	op->var_count = 2;
 
 	op_var_t * var_acc;
 	op_var_t * var_addr;
 
-	if (d)
+	if (!op->d)  // special case for accumulator
 		{
 		var_acc  = &(op->var_to);
 		var_addr = &(op->var_from);
@@ -467,12 +453,12 @@ static int class_w_addr (byte_t flags, op_desc_t * op)
 		}
 
 	var_acc->type = VT_REG;
-	var_acc->reg  = 0;  // AX or AL
+	var_acc->val.r = 0;  // AX or AL
 	var_acc->size = op->w2 ? VS_WORD : VS_BYTE;
 
-	var_addr->type  = VT_NEAR;
-	var_addr->flags = 0;
-	var_addr->val.s = (short) fetch_word ();
+	var_addr->type  = VT_IND;
+	var_addr->size = op->w2 ? VS_WORD : VS_BYTE;
+	var_addr->val.w = fetch_word ();
 
 	return 0;
 	}
@@ -486,7 +472,7 @@ static int class_w_reg_imm (byte_t flags, op_desc_t * op)
 	op_var_t * var_imm = &(op->var_from);
 
 	var_reg->type = VT_REG;
-	var_reg->reg  = op->reg1;
+	var_reg->val.r = op->reg1;
 
 	var_imm->type  = VT_IMM;
 
@@ -512,8 +498,14 @@ static int class_w_reg_imm (byte_t flags, op_desc_t * op)
 static int class_mod_rm (byte_t flags, op_desc_t * op)
 	{
 	op->var_count = 1;
-	op_var_t * var_rm = &(op->var_to);
-	scan_mod_rm (1, op->mod, op->rm, var_rm);
+
+	op_var_t * var = &(op->var_to);
+	var->size = VS_WORD;
+
+	if (flags & CF_F) var->far = 1;
+
+	scan_mod_rm (1, op->mod, op->rm, var);
+
 	return 0;
 	}
 
@@ -534,7 +526,7 @@ static int class_w_mod_rm (byte_t flags, op_desc_t * op)
 		if (op->v2)
 			{
 			var_num->type = VT_REG;
-			var_num->reg  = 1; // CL
+			var_num->val.r = 1;  // CL
 			}
 		else
 			{
@@ -607,7 +599,7 @@ static int class_w_mod_reg_rm (byte_t flags, op_desc_t * op)
 
 	var_reg->type = VT_REG;
 	var_reg->size = op->w2 ? VS_WORD : VS_BYTE;
-	var_reg->reg  = op->reg2;
+	var_reg->val.r = op->reg2;
 
 	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
 
@@ -624,7 +616,7 @@ static int class_mod_reg_rm (byte_t flags, op_desc_t * op)
 
 	var_reg->type = VT_REG;
 	var_reg->size = VS_WORD;
-	var_reg->reg  = op->reg2;
+	var_reg->val.r = op->reg2;
 
 	scan_mod_rm (1, op->mod, op->rm, var_rm);
 
@@ -653,7 +645,8 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 		}
 
 	var_seg->type = VT_SEG;
-	var_seg->reg  = op->seg2;
+	var_seg->size = VS_WORD;
+	var_seg->val.r = op->seg2;
 
 	scan_mod_rm (1, op->mod, op->rm, var_rm);
 
@@ -706,9 +699,9 @@ static class_desc_t class_2_FEh [] = {
 
 static class_desc_t class_2_FFh [] = {
 	{ 0x38, 0x10, 1, NULL, class_mod_rm,       0,     OP_CALL  },  // TODO: class_w_mod_rm & w=1 ?
-	{ 0x38, 0x18, 1, NULL, class_mod_rm,       0,     OP_CALLF },  // TODO: class_w_mod_rm & w=1 ?
+	{ 0x38, 0x18, 1, NULL, class_mod_rm,       CF_F,  OP_CALLF },  // TODO: class_w_mod_rm & w=1 ?
 	{ 0x38, 0x20, 1, NULL, class_mod_rm,       0,     OP_JMP   },  // TODO: class_w_mod_rm & w=1 ?
-	{ 0x38, 0x28, 1, NULL, class_mod_rm,       0,     OP_JMPF  },  // TODO: class_w_mod_rm & w=1 ?
+	{ 0x38, 0x28, 1, NULL, class_mod_rm,       CF_F,  OP_JMPF  },  // TODO: class_w_mod_rm & w=1 ?
 	{ 0x38, 0x30, 1, NULL, class_mod_rm,       0,     OP_PUSH  },  // TODO: class_w_mod_rm & w=1 ?
 	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
 	};
@@ -777,14 +770,12 @@ static class_desc_t _class_1 [] = {
 
 	{ 0xFD, 0x8C, 2, NULL,        class_mod_seg_rm,   CF_D,  OP_MOV    },
 	{ 0xFF, 0x8D, 2, NULL,        class_mod_reg_rm,   0,     OP_LEA    },
-//	{ 0xFD, 0x8E, 2, NULL,        class_mod_seg_rm,   CF_D,  OP_MOV    },
 	{ 0xFF, 0x8F, 2, NULL,        class_mod_rm,       0,     OP_POP    },  // TODO: class_w_mod_rm & w=1 ?
 
 	{ 0xF8, 0x90, 1, NULL,        class_reg,          CF_A,  OP_XCHG   },
 
 	{ 0xFF, 0x98, 1, NULL,        class_void,         0,     OP_CBW    },
 	{ 0xFF, 0x99, 1, NULL,        class_void,         0,     OP_CWD    },
-//	{ 0xFF, 0x9A, 1, NULL,        NULL,               0,     0         },
 	{ 0xFF, 0x9B, 1, NULL,        class_void,         0,     OP_WAIT   },
 
 	{ 0xFF, 0x9C, 1, NULL,        class_void,         0,     OP_PUSHF  },
@@ -796,7 +787,7 @@ static class_desc_t _class_1 [] = {
 	{ 0xFF, 0x9A, 1, NULL,        class_off_seg,      0,     OP_CALLF  },
 	{ 0xFF, 0xEA, 1, NULL,        class_off_seg,      0,     OP_JMPF   },
 
-	{ 0xFC, 0xA0, 1, NULL,        class_w_addr,       CF_D,  OP_MOV    },
+	{ 0xFC, 0xA0, 1, NULL,        class_d_w_addr,     0,     OP_MOV    },
 
 	{ 0xFE, 0xA8, 1, NULL,        class_w_imm,        0,     OP_TEST   },
 
@@ -847,8 +838,6 @@ static class_desc_t _class_1 [] = {
 	{ 0xFF, 0xE8, 1, NULL,        class_dist,         CF_2,  OP_CALL   },
 	{ 0xFF, 0xE9, 1, NULL,        class_dist,         CF_2,  OP_JMP    },
 	{ 0xFF, 0xEB, 1, NULL,        class_dist,         CF_1,  OP_JMP    },
-//	{ 0xF6, 0xEC, 1, NULL,        class_in_out,       0,     OP_IN     },
-//	{ 0xF6, 0xEE, 1, NULL,        class_in_out,       0,     OP_OUT    },
 
 	{ 0xFF, 0xF0, 1, NULL,        class_void,         0,     OP_LOCK   },
 	{ 0xFF, 0xF2, 1, NULL,        class_void,         0,     OP_REPNZ  },  // TODO: zero flag ?

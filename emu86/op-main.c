@@ -78,8 +78,10 @@ int main (int argc, char * argv [])
 		puts ("info: image loaded");
 
 		op_code_base = buf;
-		int flag_prompt = 0;
 		word_t breakpoint = 0xFFFF;
+
+		int flag_dump = 0;
+		int flag_prompt = 0;
 		int flag_exit = 0;
 
 		while (!flag_exit)
@@ -95,8 +97,11 @@ int main (int argc, char * argv [])
 				{
 				putchar ('\n');
 				puts ("info: breakpoint hit");
+				flag_dump = 1;
 				flag_prompt = 1;
 				}
+
+			int flag_exec = 1;
 
 			op_desc_t desc;
 			memset (&desc, 0, sizeof desc);
@@ -105,14 +110,12 @@ int main (int argc, char * argv [])
 				{
 				putchar ('\n');
 				puts ("error: unknown opcode");
+				flag_dump = 1;
 				flag_prompt = 1;
+				flag_exec = 0;
 				}
 
-			int flag_exec = 1;
-
-			// User prompt
-
-			if (flag_prompt)
+			if (flag_dump)
 				{
 				// Print processor status
 
@@ -124,7 +127,12 @@ int main (int argc, char * argv [])
 				print_column (op_code_str, 3 * OPCODE_MAX + 1);
 				op_print (&desc);
 				puts ("\n");
+				}
 
+			// User prompt
+
+			if (flag_prompt)
+				{
 				// Get user command
 				// Ugly but temporary
 

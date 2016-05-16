@@ -15,6 +15,7 @@ struct op_id_name_s
 typedef struct op_id_name_s op_id_name_t;
 
 static op_id_name_t id_name_tab [] = {
+	{ OP_NULL,  "???"   },
 	{ OP_MOV,   "MOV"   },
 	{ OP_LEA,   "LEA"   },
 	{ OP_XCHG,  "XCHG"  },
@@ -87,6 +88,7 @@ static op_id_name_t id_name_tab [] = {
 	{ OP_SCASW, "SCASW" },
 	{ 0,        NULL    }
 	};
+
 
 char *op_id_to_name (word_t op_id)
 	{

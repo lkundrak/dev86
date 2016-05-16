@@ -1,4 +1,4 @@
-// DIS86 - 80x86 disassembler
+// EMU86 - 80x86 emulator
 // Operation handles
 
 #include <stdlib.h>
@@ -8,61 +8,63 @@
 
 #include "op-id.h"
 #include "op-id-name.h"
-
 #include "op-class.h"
-#include "op-exec.h"
 
 #include "emu-proc.h"
 #include "emu-mem-io.h"
 #include "emu-int.h"
+#include "op-exec.h"
 
 
 // Offset & address
 
-// TODO: case of absolute offset ?
-
-static word_t off_get (op_var_t * var)
+static word_t off_get (const op_var_t * var)
 	{
-	assert (var->type == VT_INDEX);
+	assert (var->type == VT_IND);
 
 	byte_t f = var->flags;
 	short s = 0;
 
-	if (f & AF_BX) s += reg16_get (REG_BX);
-	if (f & AF_BP) s += reg16_get (REG_BP);
-	if (f & AF_SI) s += reg16_get (REG_SI);
-	if (f & AF_DI) s += reg16_get (REG_DI);
+	if (f & AF_BX) s += (short) reg16_get (REG_BX);
+	if (f & AF_BP) s += (short) reg16_get (REG_BP);
+	if (f & AF_SI) s += (short) reg16_get (REG_SI);
+	if (f & AF_DI) s += (short) reg16_get (REG_DI);
 
-	if (f & AF_DISP) s += var->val.w;
+	if (f & AF_DISP) s += var->val.s;
 
 	return (word_t) s;
 	}
 
 
-// Variable access
+// Get actual value of variable
 
-static void val_get (op_var_t * var, op_val_t * val)
+static void val_get (const op_var_t * var1, op_var_t * var2)
 	{
 	word_t o = 0;
 
-	switch (var->type)
-		{
-		// TODO: merge near distance and immediate
+	const op_val_t * val1 = &var1->val;
+	op_val_t * val2 = &var2->val;
 
-		case VT_NEAR:
+	var2->size = var1->size;
+
+	switch (var1->type)
+		{
 		case VT_IMM:
-			val->w = var->val.w;
+			var2->type = VT_IMM;
+			val2->w = val1->w;
 			break;
 
 		case VT_REG:
-			switch (var->size)
+			var2->type = VT_IMM;
+
+			switch (var1->size)
 				{
 				case VS_BYTE:
-					val->b = reg8_get (var->reg);
+					val2->b = reg8_get (val1->r);
 					break;
 
 				case VS_WORD:
-					val->w = reg16_get (var->reg);
+					val2->w = reg16_get (val1->r);
 					break;
 
 				default:
@@ -73,27 +75,46 @@ static void val_get (op_var_t * var, op_val_t * val)
 			break;
 
 		case VT_SEG:
-			val->w = seg_get (var->reg);
+			var2->type = VT_IMM;
+			val2->w = seg_get (val1->r);
 			break;
 
-		case VT_INDEX:
-			o = off_get (var);
+		case VT_LOC:
+			var2->type = VT_LOC;
+			var2->far = var1->far;
+			val2->w = val1->w;
+			var2->seg = var1->seg;
+			break;
+
+		case VT_IND:
+			o = off_get (var1);
 
 			// TODO: add segment base
 
-			switch (var->size)
+			var2->type = VT_IMM;
+			var2->far = var1->far;
+
+			if (var1->far)
 				{
-				case VS_BYTE:
-					val->b = mem_read_byte (o);
-					break;
+				val2->w = mem_read_word (o);
+				var2->seg = mem_read_word (o + 2);
+				}
+			else
+				{
+				switch (var1->size)
+					{
+					case VS_BYTE:
+						val2->b = mem_read_byte (o);
+						break;
 
-				case VS_WORD:
-					val->w = mem_read_word (o);
-					break;
+					case VS_WORD:
+						val2->w = mem_read_word (o);
+						break;
 
-				default:
-					assert (0);
+					default:
+						assert (0);
 
+					}
 				}
 
 			break;
@@ -105,21 +126,29 @@ static void val_get (op_var_t * var, op_val_t * val)
 	}
 
 
-static void val_set (op_var_t * var, op_val_t * val)
+// Set actual value of variable
+
+static void val_set (op_var_t * var1, const op_var_t * var2)
 	{
 	word_t o = 0;
 
-	switch (var->type)
+	assert (var2->type == VT_IMM);
+	assert (var1->size == var2->size);
+
+	op_val_t * val1 = &var1->val;
+	const op_val_t * val2 = &var2->val;
+
+	switch (var1->type)
 		{
 		case VT_REG:
-			switch (var->size)
+			switch (var1->size)
 				{
 				case VS_BYTE:
-					reg8_set (var->reg, val->b);
+					reg8_set (val1->r, val2->b);
 					break;
 
 				case VS_WORD:
-					reg16_set (var->reg, val->w);
+					reg16_set (val1->r, val2->w);
 					break;
 
 				default:
@@ -130,22 +159,24 @@ static void val_set (op_var_t * var, op_val_t * val)
 			break;
 
 		case VT_SEG:
-			seg_set (var->reg, val->w);
+			seg_set (val1->r, val2->w);
 			break;
 
-		case VT_INDEX:
-			o = off_get (var);
+		case VT_IND:
+			o = off_get (var1);
+
+			assert (!var1->far);
 
 			// TODO: add segment base
 
-			switch (var->size)
+			switch (var1->size)
 				{
 				case VS_BYTE:
-					mem_write_byte (o, val->b);
+					mem_write_byte (o, val2->b);
 					break;
 
 				case VS_WORD:
-					mem_write_word (o, val->w);
+					mem_write_word (o, val2->w);
 					break;
 
 				default:
@@ -167,20 +198,28 @@ static void val_set (op_var_t * var, op_val_t * val)
 static void op_move_load (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 2);
+	op_var_t * to   = &op_desc->var_to;
+	op_var_t * from = &op_desc->var_from;
+	assert (to->size == from->size);
 
-	op_val_t val;
-	memset (&val, 0, sizeof (op_val_t));
+	op_var_t temp;
+	memset (&temp, 0, sizeof (op_var_t));
 
 	switch (op_desc->op_id)
 		{
 		case OP_MOV:
-			val_get (&op_desc->var_from, &val);
-			val_set (&op_desc->var_to, &val);
+			val_get (from, &temp);
+			assert (temp.type == VT_IMM);
+			assert (to->size == temp.size);
+			val_set (to, &temp);
 			break;
 
 		case OP_LEA:
-			val.w = off_get (&op_desc->var_from);
-			val_set (&op_desc->var_to, &val);
+			temp.type = VT_IMM;
+			temp.size = VS_WORD;
+			temp.val.w = off_get (from);
+			assert (to->size == temp.size);
+			val_set (to, &temp);
 			break;
 
 		default:
@@ -195,27 +234,24 @@ static void op_move_load (op_desc_t * op_desc)
 static void op_swap (op_desc_t * op_desc)
 	{
 	assert (op_desc->op_id == OP_XCHG);
+
 	assert (op_desc->var_count == 2);
+	op_var_t * to   = &op_desc->var_to;
+	op_var_t * from = &op_desc->var_from;
+	assert (to->size == from->size);
 
-	op_var_t * var_from;
-	op_var_t * var_to;
+	op_var_t temp1;
+	op_var_t temp2;
+	memset (&temp1, 0, sizeof (op_var_t));
+	memset (&temp2, 0, sizeof (op_var_t));
 
-	var_to   = &op_desc->var_to;
-	var_from = &op_desc->var_from;
-
-	assert (var_to->size == var_from->size);
-
-	op_val_t val_to;
-	op_val_t val_from;
-
-	memset (&val_to,   0, sizeof (op_val_t));
-	memset (&val_from, 0, sizeof (op_val_t));
-
-	val_get (var_to,   &val_to);
-	val_get (var_from, &val_from);
-
-	val_set (var_to,   &val_from);
-	val_set (var_from, &val_to);
+	val_get (to,   &temp1);
+	val_get (from, &temp2);
+	assert (temp1.size == temp2.size);
+	assert (to->size == temp2.size);
+	val_set (to,   &temp2);
+	assert (from->size == temp1.size);
+	val_set (from, &temp1);
 	}
 
 
@@ -224,45 +260,55 @@ static void op_swap (op_desc_t * op_desc)
 static void op_port (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 2);
+	op_var_t * to   = &op_desc->var_to;
+	op_var_t * from = &op_desc->var_from;
 
-	op_val_t val_from;
-	memset (&val_from, 0, sizeof (val_from));
-	val_get (&op_desc->var_from, &val_from);
-
-	op_val_t val_to;
-	memset (&val_to, 0, sizeof (val_to));
+	op_var_t port;
+	op_var_t data;
+	memset (&port, 0, sizeof (op_var_t));
+	memset (&data, 0, sizeof (op_var_t));
 
 	switch (op_desc->op_id)
 		{
 		case OP_IN:
-			switch (op_desc->var_to.size)
+			val_get (from, &port);
+			assert (port.type == VT_IMM);
+			assert (port.size == VS_WORD);
+
+			data.type = VT_IMM;
+			data.size = to->size;
+
+			switch (data.size)
 				{
 				case VS_BYTE:
-					val_to.b = io_read_byte (val_from.w);
+					data.val.b = io_read_byte (port.val.w);
 					break;
 
 				case VS_WORD:
-					val_to.w = io_read_word (val_from.w);
+					data.val.w = io_read_word (port.val.w);
 					break;
 
 				default:
 					assert (0);
 				}
 
-			val_set (&op_desc->var_to, &val_to);
+			val_set (to, &data);
 			break;
 
 		case OP_OUT:
-			val_get (&op_desc->var_to, &val_to);
+			val_get (to, &port);
+			assert (port.type == VT_IMM);
+			assert (port.size == VS_WORD);
+			val_get (from, &data);
 
-			switch (op_desc->var_from.size)
+			switch (data.size)
 				{
 				case VS_BYTE:
-					io_write_byte (val_to.w, val_from.b);
+					io_write_byte (port.val.w, data.val.b);
 					break;
 
 				case VS_WORD:
-					io_write_byte (val_to.w, val_from.w);
+					io_write_byte (port.val.w, data.val.w);
 					break;
 
 				default:
@@ -282,14 +328,18 @@ static void op_port (op_desc_t * op_desc)
 static void op_calc_1 (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
+	op_var_t * var = &op_desc->var_to;
 
-	op_val_t val;
-	val_get (&op_desc->var_to, &val);
+	op_var_t temp;
+	memset (&temp, 0, sizeof (op_var_t));
+
+	val_get (var, &temp);
+	assert (temp.type == VT_IMM);
 
 	switch (op_desc->op_id)
 		{
 		case OP_NOT:
-			val.w = !val.w;
+			temp.val.w = ~temp.val.w;
 			break;
 
 		default:
@@ -299,34 +349,32 @@ static void op_calc_1 (op_desc_t * op_desc)
 
 	// TODO: set flags
 
-	val_set (&op_desc->var_to, &val);
+	val_set (var, &temp);
 	}
 
 
 static void op_calc_2 (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 2);
+	op_var_t * to   = &op_desc->var_to;
+	op_var_t * from = &op_desc->var_from;
+	assert (to->size == from->size);
 
-	op_var_t * var_from;
-	op_var_t * var_to;
+	op_var_t temp1;
+	op_var_t temp2;
+	memset (&temp1, 0, sizeof (op_var_t));
+	memset (&temp2, 0, sizeof (op_var_t));
 
-	var_to   = &op_desc->var_to;
-	var_from = &op_desc->var_from;
+	val_get (to,   &temp1);
+	val_get (from, &temp2);
+	assert (temp1.type == VT_IMM);
+	assert (temp2.type == VT_IMM);
 
-	assert (var_to->size == var_from->size);
-	byte_t s = var_to->size;
+	assert (temp1.size == temp2.size);
+	byte_t s = to->size;
 
-	op_val_t val_to;
-	op_val_t val_from;
-
-	memset (&val_to,   0, sizeof (op_val_t));
-	memset (&val_from, 0, sizeof (op_val_t));
-
-	val_get (var_to,   &val_to);
-	val_get (var_from, &val_from);
-
-	word_t a = val_to.w;
-	word_t b = val_from.w;
+	word_t a = temp1.val.w;
+	word_t b = temp2.val.w;
 	word_t r = 0;
 
 	word_t co = 0;  // carry out
@@ -381,8 +429,8 @@ static void op_calc_2 (op_desc_t * op_desc)
 
 	if (id != OP_TEST && id != OP_CMP)
 		{
-		val_to.w  = r;
-		val_set (var_to, &val_to);
+		temp1.val.w  = r;
+		val_set (to, &temp1);
 		}
 	}
 
@@ -392,26 +440,30 @@ static void op_calc_2 (op_desc_t * op_desc)
 static void op_inc_dec (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
+	op_var_t * var = &op_desc->var_to;
 
-	op_val_t val;
-	memset (&val, 0, sizeof (op_val_t));
-	val_get (&op_desc->var_to, &val);
+	op_var_t temp;
+	memset (&temp, 0, sizeof (op_var_t));
+
+	val_get (var, &temp);
 
 	switch (op_desc->op_id)
 		{
 		case OP_INC:
-			val.w++;
+			temp.val.w++;
 			break;
 
 		case OP_DEC:
-			val.w--;
+			temp.val.w--;
 			break;
 
 		default:
 			assert (0);
 		}
 
-	val_set (&op_desc->var_to, &val);
+	// TODO: update flags
+
+	val_set (var, &temp);
 	}
 
 
@@ -420,27 +472,22 @@ static void op_inc_dec (op_desc_t * op_desc)
 static void op_shift_rot (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 2);
+	op_var_t * to   = &op_desc->var_to;
+	op_var_t * from = &op_desc->var_from;
 
-	op_var_t * var_from;
-	op_var_t * var_to;
+	op_var_t temp1;
+	op_var_t temp2;
+	memset (&temp1, 0, sizeof (op_var_t));
+	memset (&temp2, 0, sizeof (op_var_t));
 
-	var_to   = &op_desc->var_to;
-	var_from = &op_desc->var_from;
+	val_get (to,   &temp1);
+	val_get (from, &temp2);
 
-	assert (var_from->size == VS_BYTE);
-	byte_t s = var_to->size;
+	assert (temp2.size == VS_BYTE);
+	byte_t s = temp1.size;
 
-	op_val_t val_to;
-	op_val_t val_from;
-
-	memset (&val_to,   0, sizeof (op_val_t));
-	memset (&val_from, 0, sizeof (op_val_t));
-
-	val_get (var_to,   &val_to);
-	val_get (var_from, &val_from);
-
-	word_t a = val_to.w;
-	word_t b = val_from.b;
+	word_t a = temp1.val.w;
+	word_t b = temp2.val.b;
 	word_t r = 0;
 
 	switch (op_desc->op_id)
@@ -458,8 +505,8 @@ static void op_shift_rot (op_desc_t * op_desc)
 
 		}
 
-	val_to.w  = r;
-	val_set (var_to, &val_to);
+	temp1.val.w  = r;
+	val_set (to, &temp1);
 	}
 
 
@@ -471,9 +518,12 @@ static void op_push (op_desc_t * op_desc)
 	op_var_t * var = &op_desc->var_to;
 	assert (var->size == VS_WORD);
 
-	op_val_t val;
-	val_get (var, &val);
-	stack_push (val.w);
+	op_var_t temp;
+	memset (&temp, 0, sizeof (op_var_t));
+
+	val_get (var, &temp);
+	assert (temp.size == VS_WORD);
+	stack_push (temp.val.w);
 	}
 
 static void op_pop (op_desc_t * op_desc)
@@ -482,10 +532,15 @@ static void op_pop (op_desc_t * op_desc)
 	op_var_t * var = &op_desc->var_to;
 	assert (var->size == VS_WORD);
 
-	op_val_t val;
-	val.w = stack_pop ();
-	val_set (var, &val);
+	op_var_t temp;
+	memset (&temp, 0, sizeof (op_var_t));
+	temp.type = VT_IMM;
+	temp.size = VS_WORD;
+	temp.val.w = stack_pop ();
+
+	val_set (var, &temp);
 	}
+
 
 static void op_pushf (op_desc_t * op_desc)
 	{
@@ -504,49 +559,46 @@ void op_popf (op_desc_t * op_desc)
 
 static void op_jump_call (op_desc_t * op_desc)
 	{
-	word_t h = (op_desc->op_id & 0xFF00);
-	byte_t l = (op_desc->op_id & 0x00FF);
-	assert (h == OP_JMP || h == OP_CALL);
+	word_t op = op_desc->op_id;
+	assert (op == OP_JMP || op == OP_CALL || op == OP_JMPF || op == OP_CALLF);
+
+	assert (op_desc->var_count == 1);
+	op_var_t * var = &(op_desc->var_to);
+
+	byte_t t = var->type;
+	assert (t == VT_LOC || t == VT_IND);
+
+	op_var_t temp;
+	memset (&temp, 0, sizeof (op_var_t));
+	val_get (var, &temp);
 
 	word_t ip = reg16_get (REG_IP);
 
-	if (h == OP_CALL)
+	if (op == OP_CALL || op == OP_CALLF)
 		{
-		if (l & OF_FAR) stack_push (seg_get (SEG_CS));
+		if (op == OP_CALLF) stack_push (seg_get (SEG_CS));
 		stack_push (ip);
 		}
 
-	assert (op_desc->var_count == 1);
-	op_var_t * v = &(op_desc->var_to);
-
-	if (l & OF_FAR)
+	if (temp.far)
 		{
-		assert (v->type == VT_FAR);
-		reg16_set (REG_IP, v->val.w);
-		seg_set (SEG_CS, v->seg);
+		assert (op == OP_JMPF || op == OP_CALLF);
+
+		// Far address is absolute
+
+		ip = temp.val.w;
+		seg_set (SEG_CS, temp.seg);
 		}
 	else
 		{
-		assert (v->type == VT_NEAR);
+		assert (op == OP_JMP || op == OP_CALL);
 
-		// TODO: group displacement operation
+		// Near address are relative
 
-		switch (v->size)
-			{
-			case VS_BYTE:
-				ip = (word_t) ((short) ip + (short) v->val.c);
-				break;
-
-			case VS_WORD:
-				ip = (word_t) ((short) ip + v->val.s);
-				break;
-
-			default:
-				assert (0);
-			}
-
-		reg16_set (REG_IP, ip);
+		ip = (word_t) ((short) ip + temp.val.s);
 		}
+
+	reg16_set (REG_IP, ip);
 	}
 
 
@@ -587,19 +639,18 @@ static void op_int (op_desc_t * op_desc)
 
 static void op_return (op_desc_t * op_desc)
 	{
-	word_t ip = 0;
+	word_t op = op_desc->op_id;
+	assert (op == OP_RET || op == OP_RETF);
+
+	// TODO: implement stack unwind
 
 	assert (!op_desc->var_count);
 
-	switch (op_desc->op_id)
-		{
-		case OP_RET:
-			ip = stack_pop ();
-			reg16_set (REG_IP, ip);
-			break;
+	reg16_set (REG_IP, stack_pop ());
 
-		default:
-			assert (0);
+	if (op == OP_RETF)
+		{
+		seg_set (SEG_CS, stack_pop ());
 		}
 	}
 
@@ -610,12 +661,10 @@ static void op_jump_cond (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
 	op_var_t * var = &op_desc->var_to;
-	assert (var->type == VT_NEAR);
-	assert (var->size == VS_BYTE);
+	assert (var->type == VT_LOC);
+	assert (!var->far);
 
-	op_val_t val;
-	val_get (var, &val);
-	short s = (short) val.c;
+	short s = var->val.s;
 
 	switch (op_desc->op_id)
 		{
