@@ -14,6 +14,7 @@ static byte_t io_stat  [IO_MAX];
 
 byte_t * mem_get_addr (addr_t a)
 	{
+	assert (a < MEM_MAX);
 	return (mem_stat + a);
 	}
 

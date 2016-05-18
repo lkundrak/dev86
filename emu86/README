@@ -29,8 +29,8 @@ CURRENT STATUS:
 The emulator is now able to execute the MON86 code, targetting the Advantech
 SNMP-1000 SBC with INT 10h / 16h minimal stubs, except the X2 command (execute).
 
-Debugger features: initial breakpoint, prompt, registers dump, trace in,
-trace over, stack dump.
+Debugger features: initial breakpoint, trace mode, interactive mode, registers
+dump, trace in, trace over, stack dump.
 
 Serial port is emulated through a pseudo terminal (/dev/pts), with a related
 bidirectional cat utility (pcat) to be able to redirect serial I/O from / to
@@ -41,9 +41,6 @@ TODO:
 
 * Core:
 - more support of the 8086 instruction set
-- option to override initial CS:IP
-- option for base address where to load the binary file
-- option to put initial breakpoint
 
 * Embedded systems:
 - add 80186 instruction set

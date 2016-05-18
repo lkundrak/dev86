@@ -158,8 +158,20 @@ static void print_addr (byte_t flags, short rel)
 
 	if (flags & AF_DISP)
 		{
-		if (reg & (rel >= 0)) putchar ('+');
-		printf ("%i", rel);  // TODO: print hexadecimal to avoid confusion
+		if (reg)
+			{
+			if (rel >= 0)
+				{
+				putchar ('+');
+				}
+			else
+				{
+				putchar ('-');
+				rel = -rel;
+				}
+			}
+
+		printf ("%hXh", (word_t) rel);
 		}
 
 	putchar (']');

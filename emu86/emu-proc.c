@@ -136,10 +136,10 @@ void regs_print ()
 	word_t es = seg_get (SEG_ES);
 	word_t ss = seg_get (SEG_SS);
 
-	printf ("AX %.4X  BX %.4X  CX %.4X  DX %.4X\n", ax, bx, cx, dx);
-	printf ("SI %.4X  DI %.4X  SP %.4X  BP %.4X\n", si, di, sp, bp);
-	printf ("DS %.4X  ES %.4X  SS %.4X\n", ds, es, ss);
-	printf ("CS %.4X  IP %.4X  FL %.4X\n", cs, ip, fl);
+	printf ("AX %.4hXh  BX %.4hXh  CX %.4hXh  DX %.4hXh\n", ax, bx, cx, dx);
+	printf ("SI %.4hXh  DI %.4hXh  SP %.4hXh  BP %.4hXh\n", si, di, sp, bp);
+	printf ("DS %.4hXh  ES %.4hXh  SS %.4hXh\n", ds, es, ss);
+	printf ("CS %.4hXh  IP %.4hXh  FL %.4hXh\n", cs, ip, fl);
 
 	printf ("\nCF %hhu  PF ?  AF ?  ZF %hhu  SF ?  TF ?  IF ?  DF ?  OF ?\n", flag_get (FLAG_CF), flag_get (FLAG_ZF));
 	}
