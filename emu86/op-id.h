@@ -51,10 +51,10 @@
 #define OP_SAL   0x0606
 #define OP_SAR   0x0607
 
-#define OP_PUSH  (0x0700)
-#define OP_POP   (0x0E00)
-#define OP_PUSHF (0x0F00)
-#define OP_POPF  (0x1000)
+#define OP_PUSH  0x0700
+#define OP_POP   0x0701
+#define OP_PUSHF 0x0702
+#define OP_POPF  0x0703
 
 #define OP_JMP   0x0800
 #define OP_JMPF  0x0801
@@ -113,6 +113,13 @@
 #define OP_STD   0x0F05
 #define OP_STI   0x0F06
 
+#define OP_SAHF  0x1000
+#define OP_LAHF  0x1001
+
+#define OP_HLT   0x1100
+
+#define OP_LOOP  0x1200
+
 // TODO: allocate op id
 
 #define OP_WAIT   0xFFFF
@@ -120,14 +127,10 @@
 #define OP_ESC    0xFFFF
 #define OP_DAA    0xFFFF
 #define OP_DAS    0xFFFF
-#define OP_HLT    0xFFFF
 #define OP_JCXZ   0xFFFF
-#define OP_LAHF   0xFFFF
-#define OP_SAHF   0xFFFF
 #define OP_LDS    0xFFFF
 #define OP_LES    0xFFFF
 #define OP_LOCK   0xFFFF
-#define OP_LOOP   0xFFFF
 #define OP_LOOPNZ 0xFFFF
 #define OP_LOOPZ  0xFFFF
 #define OP_REPNZ  0xFFFF

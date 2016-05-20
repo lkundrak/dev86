@@ -19,7 +19,7 @@ byte_t * op_code_base;
 word_t op_code_seg;
 word_t op_code_off;
 
-char op_code_str [3 * OPCODE_MAX];
+char op_code_str [3 * OPCODE_MAX + 2];
 byte_t op_code_pos;
 
 
@@ -187,11 +187,11 @@ static void print_var (op_var_t * var)
 		case VT_IMM:
 			if (var->w)
 				{
-				printf ("%.4X", var->val.w);
+				printf ("%.4Xh", var->val.w);
 				}
 			else
 				{
-				printf ("%.2X", var->val.b);
+				printf ("%.2Xh", var->val.b);
 				}
 
 			break;
@@ -213,15 +213,15 @@ static void print_var (op_var_t * var)
 				{
 				// Far address is absolute
 
-				printf ("%.4X",var->seg);
+				printf ("%.4Xh",var->seg);
 				putchar (':');
-				printf ("%.4X",var->val.w);
+				printf ("%.4Xh",var->val.w);
 				}
 			else
 				{
 				// Near address is relative
 
-				printf ("%.4X", (word_t) ((short) op_code_off + var->val.s));
+				printf ("%.4Xh", (word_t) ((short) op_code_off + var->val.s));
 				}
 
 			break;
@@ -542,6 +542,10 @@ static int class_w_mod_rm_imm (byte_t flags, op_desc_t * op)
 	op_var_t * var_rm = &(op->var_to);
 	op_var_t * var_imm = &(op->var_from);
 
+	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
+
+	// Immediate value follows the MOD-RM displacement
+
 	var_imm->type  = VT_IMM;
 	var_imm->w = op->w2;
 
@@ -561,7 +565,6 @@ static int class_w_mod_rm_imm (byte_t flags, op_desc_t * op)
 		var_imm->val.b = fetch_byte ();
 		}
 
-	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
 
 	return 0;
 	}
@@ -648,12 +651,12 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 
 static class_desc_t class_2_80h [] = {
 	{ 0x38, 0x00, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_ADD   },
-	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_imm, 0,     OP_OR    },
+	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_OR    },  // S not compliant with Intel doc
 	{ 0x38, 0x10, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_ADC   },
 	{ 0x38, 0x18, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_SBB   },
-	{ 0x38, 0x20, 1, NULL, class_w_mod_rm_imm, 0,     OP_AND   },
+	{ 0x38, 0x20, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_AND   },  // S not compliant with Intel doc
 	{ 0x38, 0x28, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_SUB   },
-	{ 0x38, 0x30, 1, NULL, class_w_mod_rm_imm, 0,     OP_XOR   },
+	{ 0x38, 0x30, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_XOR   },  // S not compliant with Intel doc
 	{ 0x38, 0x38, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_CMP   },
 	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
 	};

@@ -40,7 +40,7 @@ static int file_load (addr_t start, char * path)
 			}
 
 		printf ("info: file size=%lXh\n", size);
-		if (start + size >= MEM_MAX)
+		if (start + size > MEM_MAX)
 			{
 			puts ("fatal: file too big");
 			break;
@@ -95,8 +95,8 @@ int main (int argc, char * argv [])
 
 		addr_t breakpoint = -1;
 
-		int flag_trace = 1;
-		int flag_prompt = 1;
+		int flag_trace = 0;
+		int flag_prompt = 0;
 
 		char opt;
 
@@ -137,7 +137,7 @@ int main (int argc, char * argv [])
 					break;
 
 				case 'b':  // breakpoint address
-					if (sscanf (optarg, "%lu", &breakpoint) != 1)
+					if (sscanf (optarg, "%lx", &breakpoint) != 1)
 						{
 						puts ("error: bad breakpoint address");
 						}
@@ -163,10 +163,11 @@ int main (int argc, char * argv [])
 				{
 				if (!file_load (file_address, file_path))
 					{
-					file_path = NULL;
-					file_address = -1;
 					file_loaded = 1;
 					}
+
+				file_path = NULL;
+				file_address = -1;
 				}
 			}
 
@@ -192,7 +193,14 @@ int main (int argc, char * argv [])
 		seg_set (SEG_CS, op_code_seg);
 		reg16_set (REG_IP, op_code_off);
 
+		op_desc_t desc;
+
+		word_t last_seg = 0xFFFF;
+		word_t last_off_0 = 0xFFFF;
+		word_t last_off_1;
+
 		int flag_exit = 0;
+
 		while (!flag_exit)
 			{
 			// Decode next instruction
@@ -210,18 +218,33 @@ int main (int argc, char * argv [])
 				flag_prompt = 1;
 				}
 
+			int err;
 			int flag_exec = 1;
 
-			op_desc_t desc;
-			memset (&desc, 0, sizeof desc);
-			int err = op_decode (&desc);
-			if (err)
+			// Optimize: no twice decoding of the same instruction
+			// Example: LOOP on itself
+
+			if (op_code_seg != last_seg || op_code_off != last_off_0)
 				{
-				putchar ('\n');
-				puts ("error: unknown opcode");
-				flag_trace = 1;
-				flag_prompt = 1;
-				flag_exec = 0;
+				last_seg = op_code_seg;
+				last_off_0 = op_code_off;
+
+				memset (&desc, 0, sizeof desc);
+
+				err = op_decode (&desc);
+				if (err)
+					{
+					puts ("\nerror: unknown opcode");
+					flag_trace = 1;
+					flag_prompt = 1;
+					flag_exec = 0;
+					}
+
+				last_off_1 = op_code_off;
+				}
+			else
+				{
+				op_code_off = last_off_1;
 				}
 
 			if (flag_trace)
@@ -232,7 +255,7 @@ int main (int argc, char * argv [])
 				regs_print ();
 				putchar ('\n');
 
-				printf ("%.4hXh:%.4hXh ", seg_get (SEG_CS), reg16_get (REG_IP));
+				printf ("%.4hX:%.4hX  ", seg_get (SEG_CS), reg16_get (REG_IP));
 				print_column (op_code_str, 3 * OPCODE_MAX + 1);
 				op_print (&desc);
 				puts ("\n");
@@ -262,7 +285,7 @@ int main (int argc, char * argv [])
 					// Step over
 
 					case 'p':
-						breakpoint = op_code_off;
+						breakpoint = addr_seg_off (op_code_seg, op_code_off);
 						flag_trace = 0;
 						flag_prompt = 0;
 						break;

@@ -834,7 +834,15 @@ PRIVATE void idecllist()
 		gvarsymptr->flags = DIRECTPAGE;
 #endif
 	    if (gvarsc == EXTERNDECL)
-		gvarsymptr->flags |= EXTERNAL;
+	    {
+	    	gvarsymptr->flags |= EXTERNAL;
+	    	if (gvartype->constructor == FUNCTION)
+	    	{
+	    		/* Output an assembler import directive in code segment */
+	    		cseg ();
+	    		import (gvarname);
+	    	}
+	    }
 	}
 	else
 	{

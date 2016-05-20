@@ -27,14 +27,14 @@ The emulator has a modular design with:
 CURRENT STATUS:
 
 The emulator is now able to execute the MON86 code, targetting the Advantech
-SNMP-1000 SBC with INT 10h / 16h minimal stubs, except the X2 command (execute).
+SNMP-1000 SBC with its specific INT 10h / 16h minimally stubbed.
 
 Debugger features: initial breakpoint, trace mode, interactive mode, registers
 dump, trace in, trace over, stack dump.
 
-Serial port is emulated through a pseudo terminal (/dev/pts), with a related
+Serial port is emulated through a pseudo-terminal (/dev/pts), with a
 bidirectional cat utility (pcat) to be able to redirect serial I/O from / to
-file and ease the test automation (see test-mon86 script).
+file and thus easing test automation (see test-mon86 script as an example).
 
 
 TODO:

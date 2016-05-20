@@ -16,6 +16,12 @@ typedef struct op_id_name_s op_id_name_t;
 
 static op_id_name_t id_name_tab [] = {
 	{ OP_NULL,  "???"   },
+	{ OP_CLC,   "CLC"   },
+	{ OP_CLD,   "CLD"   },
+	{ OP_CLI,   "CLI"   },
+	{ OP_HLT,   "HLT"   },
+	{ OP_LAHF,  "LAHF"  },
+	{ OP_LOOP,  "LOOP"  },
 	{ OP_MOV,   "MOV"   },
 	{ OP_LEA,   "LEA"   },
 	{ OP_XCHG,  "XCHG"  },
@@ -84,8 +90,12 @@ static op_id_name_t id_name_tab [] = {
 	{ OP_STOSW, "STOSW" },
 	{ OP_LODSB, "LODSB" },
 	{ OP_LODSW, "LODSW" },
+	{ OP_SAHF,  "SAHF"  },
 	{ OP_SCASB, "SCASB" },
 	{ OP_SCASW, "SCASW" },
+	{ OP_STC,   "STC"   },
+	{ OP_STD,   "STD"   },
+	{ OP_STI,   "STI"   },
 	{ 0,        NULL    }
 	};
 

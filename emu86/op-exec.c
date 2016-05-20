@@ -40,12 +40,14 @@ static word_t off_get (const op_var_t * var)
 
 static void val_get (const op_var_t * var1, op_var_t * var2)
 	{
-	word_t o = 0;
-
 	const op_val_t * val1 = &var1->val;
 	op_val_t * val2 = &var2->val;
 
 	var2->w = var1->w;
+
+	word_t o;
+	word_t s;
+	word_t a;
 
 	switch (var1->type)
 		{
@@ -80,27 +82,30 @@ static void val_get (const op_var_t * var1, op_var_t * var2)
 			break;
 
 		case VT_IND:
-			o = off_get (var1);
 
-			// TODO: add segment base
+			// TODO: segment override
+
+			s = (var1->flags & AF_BP) ? seg_get (SEG_SS) : seg_get (SEG_DS);
+			o = off_get (var1);
+			a = addr_seg_off (s, o);
 
 			var2->type = VT_IMM;
 			var2->far = var1->far;
 
 			if (var1->far)
 				{
-				val2->w = mem_read_word (o);
-				var2->seg = mem_read_word (o + 2);
+				val2->w = mem_read_word (a);
+				var2->seg = mem_read_word (a + 2);
 				}
 			else
 				{
 				if (var1->w)
 					{
-					val2->w = mem_read_word (o);
+					val2->w = mem_read_word (a);
 					}
 				else
 					{
-					val2->b = mem_read_byte (o);
+					val2->b = mem_read_byte (a);
 					}
 				}
 
@@ -117,13 +122,15 @@ static void val_get (const op_var_t * var1, op_var_t * var2)
 
 static void val_set (op_var_t * var1, const op_var_t * var2)
 	{
-	word_t o = 0;
+	op_val_t * val1 = &var1->val;
+	const op_val_t * val2 = &var2->val;
 
 	assert (var2->type == VT_IMM);
 	assert (var1->w == var2->w);
 
-	op_val_t * val1 = &var1->val;
-	const op_val_t * val2 = &var2->val;
+	word_t o;
+	word_t s;
+	addr_t a;
 
 	switch (var1->type)
 		{
@@ -144,19 +151,21 @@ static void val_set (op_var_t * var1, const op_var_t * var2)
 			break;
 
 		case VT_IND:
-			o = off_get (var1);
-
 			assert (!var1->far);
 
 			// TODO: add segment base
 
+			s = (var1->flags & AF_BP) ? seg_get (SEG_SS) : seg_get (SEG_DS);
+			o = off_get (var1);
+			a = addr_seg_off (s, o);
+
 			if (var1->w)
 				{
-				mem_write_word (o, val2->w);
+				mem_write_word (a, val2->w);
 				}
 			else
 				{
-				mem_write_byte (o, val2->b);
+				mem_write_byte (a, val2->b);
 				}
 
 			break;
@@ -336,7 +345,6 @@ static void op_calc_2 (op_desc_t * op_desc)
 	val_get (from, &temp2);
 	assert (temp1.type == VT_IMM);
 	assert (temp2.type == VT_IMM);
-
 	assert (temp1.w == temp2.w);
 
 	word_t a = temp1.val.w;
@@ -351,20 +359,23 @@ static void op_calc_2 (op_desc_t * op_desc)
 	switch (id)
 		{
 		case OP_ADC:
-			a += (word_t) flag_get (FLAG_CF);
-			// TODO: check carries
+			r += (word_t) flag_get (FLAG_CF);
 			// no break
 
 		case OP_ADD:
-			r = a + b;
+			r += a + b;
 			co = (a & b) | ((a ^ b) & ~r);
 			cf = co & (to->w ? 0x8000: 0x0080);
 			ci = a ^ b ^ r;
 			break;
 
+		case OP_SBB:
+			r -= (word_t) flag_get (FLAG_CF);
+			// no break
+
 		case OP_SUB:
 		case OP_CMP:
-			r = a - b;
+			r += a - b;
 			co = (~a & b) | (~(a ^ b) & r);
 			cf = co & (to->w ? 0x8000: 0x0080);
 			ci = a ^ b ^ r;
@@ -395,7 +406,7 @@ static void op_calc_2 (op_desc_t * op_desc)
 
 	if (id != OP_TEST && id != OP_CMP)
 		{
-		temp1.val.w  = r;
+		temp1.val.w = r;
 		val_set (to, &temp1);
 		}
 	}
@@ -412,15 +423,17 @@ static void op_inc_dec (op_desc_t * op_desc)
 	memset (&temp, 0, sizeof (op_var_t));
 
 	val_get (var, &temp);
+	assert (temp.type == VT_IMM);
+	word_t r = temp.val.w;
 
 	switch (op_desc->op_id)
 		{
 		case OP_INC:
-			temp.val.w++;
+			r++;
 			break;
 
 		case OP_DEC:
-			temp.val.w--;
+			r--;
 			break;
 
 		default:
@@ -429,6 +442,9 @@ static void op_inc_dec (op_desc_t * op_desc)
 
 	// TODO: update flags
 
+	flag_set (FLAG_ZF, r ? 0 : 1);
+
+	temp.val.w = r;
 	val_set (var, &temp);
 	}
 
@@ -448,20 +464,69 @@ static void op_shift_rot (op_desc_t * op_desc)
 
 	val_get (to,   &temp1);
 	val_get (from, &temp2);
+	assert (temp1.type == VT_IMM);
+	assert (temp2.type == VT_IMM);
+
+	byte_t w = temp1.w;
 	assert (!temp2.w);
 
 	word_t a = temp1.val.w;
 	word_t b = temp2.val.b;
-	word_t r = 0;
+	word_t t = b;
 
-	switch (op_desc->op_id)
+	word_t c;  // carry
+	word_t q;
+
+	word_t id = op_desc->op_id;
+	switch (id)
 		{
+		case OP_ROL:
 		case OP_SHL:
-			r  = a << b;
+			while (t--)
+				{
+				c = a & (w ? 0x8000 : 0x0080);
+				c = c ? 1 : 0;
+
+				a  <<= 1;
+				if (id == OP_ROL) a |= c;
+				}
+
+			flag_set (FLAG_CF, c);
+
+			if (b == 1)
+				{
+				t = a & (w ? 0x8000 : 0x0080);
+				t = t ? 1 : 0;
+
+				flag_set (FLAG_OF, c ^ t);
+				}
+
 			break;
 
+		case OP_ROR:
 		case OP_SHR:
-			r  = a >> b;
+			while (t--)
+				{
+				c = a & 0x0001;
+				c = c ? 1 : 0;
+
+				a  >>= 1;
+				if (id == OP_ROR) a |= c ? (w ? 0x8000 : 0x0080) : 0;
+				}
+
+			flag_set (FLAG_CF, c);
+
+			if (b == 1)
+				{
+				t = a & (w ? 0x8000 : 0x0080);
+				t = t ? 1 : 0;
+
+				q = a & (w ? 0x4000 : 0x0040);
+				q = q ? 1 : 0;
+
+				flag_set (FLAG_OF, t ^ q);
+				}
+
 			break;
 
 		default:
@@ -469,7 +534,7 @@ static void op_shift_rot (op_desc_t * op_desc)
 
 		}
 
-	temp1.val.w  = r;
+	temp1.val.w = a;
 	val_set (to, &temp1);
 	}
 
@@ -621,6 +686,8 @@ static void op_return (op_desc_t * op_desc)
 
 // Jump conditional
 
+// TODO: Optimize with LUT on mask & value
+
 static void op_jump_cond (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
@@ -628,40 +695,75 @@ static void op_jump_cond (op_desc_t * op_desc)
 	assert (var->type == VT_LOC);
 	assert (!var->far);
 
-	short s = var->val.s;
+	byte_t f;
 
 	switch (op_desc->op_id)
 		{
+		case OP_JO:
+			f = flag_get (FLAG_OF);
+			break;
+
+		case OP_JNO:
+			f = !flag_get (FLAG_OF);
+			break;
+
 		case OP_JB:
-			s = flag_get (FLAG_CF) ? s : 0;
+			f = flag_get (FLAG_CF);
+			break;
+
+		case OP_JNB:
+			f = !flag_get (FLAG_CF);
 			break;
 
 		case OP_JZ:
-			s = flag_get (FLAG_ZF) ? s : 0;
+			f = flag_get (FLAG_ZF);
 			break;
 
 		case OP_JNZ:
-			s = flag_get (FLAG_ZF) ? 0 : s;
+			f = !flag_get (FLAG_ZF);
 			break;
 
 		case OP_JNA:
-			s = (flag_get (FLAG_CF) || flag_get (FLAG_ZF)) ? s : 0;
+			f = flag_get (FLAG_CF) || flag_get (FLAG_ZF);
 			break;
 
 		case OP_JA:
-			s = (flag_get (FLAG_CF) || flag_get (FLAG_ZF)) ? 0 : s;
+			f = !(flag_get (FLAG_CF) || flag_get (FLAG_ZF));
+			break;
+
+		case OP_JS:
+			f = flag_get (FLAG_SF);
+			break;
+
+		case OP_JNS:
+			f = !flag_get (FLAG_SF);
+			break;
+
+		case OP_JP:
+			f = flag_get (FLAG_PF);
+			break;
+
+		case OP_JNP:
+			f = !flag_get (FLAG_PF);
 			break;
 
 		default:
 			assert (0);
 		}
 
-	if (s)
+	if (f)
 		{
-		word_t ip = (word_t) ((short) reg16_get (REG_IP) + s);
+		word_t ip = (word_t) ((short) reg16_get (REG_IP) + var->val.s);
 		reg16_set (REG_IP, ip);
 		}
 	}
+
+/*
+{ OP_JL,  op_jump_cond },
+{ OP_JNL, op_jump_cond },
+{ OP_JNG, op_jump_cond },
+{ OP_JG,  op_jump_cond },
+*/
 
 
 // String
@@ -676,6 +778,9 @@ static void op_string (op_desc_t * op_desc)
 	switch (op_desc->op_id)
 		{
 		case OP_LODSB:
+
+			// TODO: segment override
+
 			ds = seg_get (SEG_DS);
 			si = reg16_get (REG_SI);
 			b = mem_read_byte (addr_seg_off (ds,si++));
@@ -694,6 +799,105 @@ static void op_string (op_desc_t * op_desc)
 		default:
 			assert (0);
 
+		}
+	}
+
+
+// Flags
+
+static void op_flag (op_desc_t * op_desc)
+	{
+	switch (op_desc->op_id)
+		{
+		case OP_CLC:
+			flag_set (FLAG_CF, 0);
+			break;
+
+		case OP_CLD:
+			flag_set (FLAG_DF, 0);
+			break;
+
+		case OP_CLI:
+			flag_set (FLAG_IF, 0);
+			break;
+
+		case OP_CMC:
+			flag_set (FLAG_CF, ~flag_get (FLAG_CF));
+			break;
+
+		case OP_STC:
+			flag_set (FLAG_CF, 1);
+			break;
+
+		case OP_STD:
+			flag_set (FLAG_DF, 1);
+			break;
+
+		case OP_STI:
+			flag_set (FLAG_IF, 1);
+			break;
+
+		default:
+			assert (0);
+
+		}
+	}
+
+
+// Flags and accumulator
+
+static void op_flag_acc (op_desc_t * op_desc)
+	{
+	word_t fl;
+	byte_t ah;
+
+	switch (op_desc->op_id)
+		{
+		case OP_LAHF:
+			ah = (byte_t) (reg16_get (REG_FL) & 0x00FF);
+			reg8_set (REG_AH, ah);
+			break;
+
+		case OP_SAHF:
+			fl = reg16_get (REG_FL) & 0xFF00;
+			ah = reg8_get (REG_AH);
+			reg16_set (REG_FL, fl  | (word_t) ah);
+			break;
+
+		default:
+			assert (0);
+
+		}
+	}
+
+
+// Halt
+
+static void op_halt (op_desc_t * op_desc)
+	{
+	assert (op_desc->op_id == OP_HLT);
+	assert (0);
+	}
+
+
+// Loop
+
+static void op_loop (op_desc_t * op_desc)
+	{
+	assert (op_desc->op_id == OP_LOOP);
+	assert (op_desc->var_count == 1);
+
+	op_var_t * var = &op_desc->var_to;
+	assert (var->type == VT_LOC);
+	assert (!var->far);
+
+	word_t cx = reg16_get (REG_CX);
+	reg16_set (REG_CX, --cx);
+
+	if (cx)
+		{
+		word_t ip = (word_t) ((short) reg16_get (REG_IP) + var->val.s);
+		reg16_set (REG_IP, ip);
 		}
 	}
 
@@ -803,30 +1007,35 @@ static op_id_hand_t _id_hand_tab [] = {
 
 #define OP_CBW   0x0E00
 #define OP_CWD   0x0E01
+*/
 
-#define OP_CLC   0x0F00
-#define OP_CLD   0x0F01
-#define OP_CLI   0x0F02
-#define OP_CMC   0x0F03
-#define OP_STC   0x0F04
-#define OP_STD   0x0F05
-#define OP_STI   0x0F06
+	{ OP_CLC, op_flag },
+	{ OP_CLD, op_flag },
+	{ OP_CLI, op_flag },
+	{ OP_CMC, op_flag },
+	{ OP_STC, op_flag },
+	{ OP_STD, op_flag },
+	{ OP_STI, op_flag },
+
+	{ OP_SAHF, op_flag_acc },
+	{ OP_LAHF, op_flag_acc },
+
+	{ OP_HLT, op_halt },
+
+	{ OP_LOOP, op_loop },
 
 // TODO: allocate op id
 
+	/*
 #define OP_WAIT   0xFFFF
 #define OP_XLAT   0xFFFF
 #define OP_ESC    0xFFFF
 #define OP_DAA    0xFFFF
 #define OP_DAS    0xFFFF
-#define OP_HLT    0xFFFF
 #define OP_JCXZ   0xFFFF
-#define OP_LAHF   0xFFFF
-#define OP_SAHF   0xFFFF
 #define OP_LDS    0xFFFF
 #define OP_LES    0xFFFF
 #define OP_LOCK   0xFFFF
-#define OP_LOOP   0xFFFF
 #define OP_LOOPNZ 0xFFFF
 #define OP_LOOPZ  0xFFFF
 #define OP_REPNZ  0xFFFF
@@ -840,31 +1049,54 @@ static op_id_hand_t _id_hand_tab [] = {
 
 // Execute operation
 
+static word_t _last_id = 0;
+static op_hand_t _last_hand = NULL;
+
 int op_exec (op_desc_t * op_desc)
 	{
 	int err = -1;
 
+	word_t id1 = op_desc->op_id;
 	op_id_hand_t * desc = _id_hand_tab;
 
 	while (1)
 		{
-		word_t id = desc->id;
-		op_hand_t hand = desc->hand;
-		if (!id && !hand)
-			{
-			assert (0);
-			err = -1;
-			break;
-			}
+		// Optimization for repeated instruction
 
-		if (desc->id == op_desc->op_id)
+		if (id1 == _last_id && _last_hand)
 			{
-			(*hand) (op_desc);
+			(*_last_hand) (op_desc);
 			err = 0;
 			break;
 			}
 
-		desc++;
+		// Table lookup
+
+		while (1)
+			{
+			word_t id2 = desc->id;
+			op_hand_t hand = desc->hand;
+			if (!id2 && !hand)
+				{
+				assert (0);
+				err = -1;
+				break;
+				}
+
+			if (id2 == id1)
+				{
+				_last_id = id2;
+				_last_hand = hand;
+
+				(*hand) (op_desc);
+				err = 0;
+				break;
+				}
+
+			desc++;
+			}
+
+		break;
 		}
 
 	return err;
