@@ -456,6 +456,7 @@ static int class_d_w_addr (byte_t flags, op_desc_t * op)
 
 	var_addr->type  = VT_IND;
 	var_addr->w = op->w2;
+	var_addr->flags |= AF_DISP;
 	var_addr->val.w = fetch_word ();
 
 	return 0;
@@ -570,6 +571,25 @@ static int class_w_mod_rm_imm (byte_t flags, op_desc_t * op)
 	}
 
 
+static int class_w_mod_rm_count (byte_t flags, op_desc_t * op)
+	{
+	op->var_count = 2;
+
+	op_var_t * var_rm = &(op->var_to);
+	op_var_t * var_imm = &(op->var_from);
+
+	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
+
+	// Immediate value follows the MOD-RM displacement
+
+	var_imm->type  = VT_IMM;
+	var_imm->w = 0;
+	var_imm->val.b = fetch_byte ();
+
+	return 0;
+	}
+
+
 static int class_w_mod_reg_rm (byte_t flags, op_desc_t * op)
 	{
 	op->var_count = 2;
@@ -649,6 +669,8 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 
 // Second byte code table
 
+// TODO: reduce code with MOD-RM as new table field
+
 static class_desc_t class_2_80h [] = {
 	{ 0x38, 0x00, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_ADD   },
 	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_OR    },  // S not compliant with Intel doc
@@ -661,6 +683,18 @@ static class_desc_t class_2_80h [] = {
 	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
 	};
 
+static class_desc_t class_2_C0h [] = {
+	{ 0x38, 0x00, 1, NULL, class_w_mod_rm_count,     0,  OP_ROL   },
+	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_count,     0,  OP_ROR   },
+	{ 0x38, 0x10, 1, NULL, class_w_mod_rm_count,     0,  OP_RCL   },
+	{ 0x38, 0x18, 1, NULL, class_w_mod_rm_count,     0,  OP_RCR   },
+	{ 0x38, 0x20, 1, NULL, class_w_mod_rm_count,     0,  OP_SHL   },
+	{ 0x38, 0x28, 1, NULL, class_w_mod_rm_count,     0,  OP_SHR   },
+	{ 0x38, 0x30, 1, NULL, class_w_mod_rm_count,     0,  OP_SAL   },  // TODO: SHL = SAL
+	{ 0x38, 0x38, 1, NULL, class_w_mod_rm_count,     0,  OP_SAR   },
+	{ 0x00, 0x00, 0, NULL, NULL,                     0,  0        }
+	};
+
 static class_desc_t class_2_D0h [] = {
 	{ 0x38, 0x00, 1, NULL, class_w_mod_rm,     CF_V,  OP_ROL   },
 	{ 0x38, 0x08, 1, NULL, class_w_mod_rm,     CF_V,  OP_ROR   },
@@ -668,7 +702,7 @@ static class_desc_t class_2_D0h [] = {
 	{ 0x38, 0x18, 1, NULL, class_w_mod_rm,     CF_V,  OP_RCR   },
 	{ 0x38, 0x20, 1, NULL, class_w_mod_rm,     CF_V,  OP_SHL   },
 	{ 0x38, 0x28, 1, NULL, class_w_mod_rm,     CF_V,  OP_SHR   },
-	{ 0x38, 0x30, 1, NULL, class_w_mod_rm,     CF_V,  OP_SAL   },
+	{ 0x38, 0x30, 1, NULL, class_w_mod_rm,     CF_V,  OP_SAL   },  // TODO: SHL = SAL
 	{ 0x38, 0x38, 1, NULL, class_w_mod_rm,     CF_V,  OP_SAR   },
 	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
 	};
@@ -784,18 +818,20 @@ static class_desc_t _class_1 [] = {
 
 	{ 0xFE, 0xA8, 1, NULL,        class_w_imm,        0,     OP_TEST   },
 
-	{ 0xFE, 0xA4, 1, NULL,        class_void,         0,     OP_MOVSB  },
-	{ 0xFE, 0xA5, 1, NULL,        class_void,         0,     OP_MOVSW  },
-	{ 0xFE, 0xA6, 1, NULL,        class_void,         0,     OP_CMPSB  },
-	{ 0xFE, 0xA7, 1, NULL,        class_void,         0,     OP_CMPSW  },
-	{ 0xFE, 0xAA, 1, NULL,        class_void,         0,     OP_STOSB  },
-	{ 0xFE, 0xAB, 1, NULL,        class_void,         0,     OP_STOSW  },
-	{ 0xFE, 0xAC, 1, NULL,        class_void,         0,     OP_LODSB  },
-	{ 0xFE, 0xAD, 1, NULL,        class_void,         0,     OP_LODSW  },
-	{ 0xFE, 0xAE, 1, NULL,        class_void,         0,     OP_SCASB  },
-	{ 0xFE, 0xAF, 1, NULL,        class_void,         0,     OP_SCASW  },
+	{ 0xFF, 0xA4, 1, NULL,        class_void,         0,     OP_MOVSB  },  // TODO: flag W at operation level
+	{ 0xFF, 0xA5, 1, NULL,        class_void,         0,     OP_MOVSW  },
+	{ 0xFF, 0xA6, 1, NULL,        class_void,         0,     OP_CMPSB  },
+	{ 0xFF, 0xA7, 1, NULL,        class_void,         0,     OP_CMPSW  },
+	{ 0xFF, 0xAA, 1, NULL,        class_void,         0,     OP_STOSB  },
+	{ 0xFF, 0xAB, 1, NULL,        class_void,         0,     OP_STOSW  },
+	{ 0xFF, 0xAC, 1, NULL,        class_void,         0,     OP_LODSB  },
+	{ 0xFF, 0xAD, 1, NULL,        class_void,         0,     OP_LODSW  },
+	{ 0xFF, 0xAE, 1, NULL,        class_void,         0,     OP_SCASB  },
+	{ 0xFF, 0xAF, 1, NULL,        class_void,         0,     OP_SCASW  },
 
 	{ 0xF0, 0xB0, 1, NULL,        class_w_reg_imm,    0,     OP_MOV    },
+
+	{ 0xFE, 0xC0, 2, class_2_C0h, NULL,               0,     0         },
 
 	{ 0xFF, 0xC2, 1, NULL,        class_imm,          CF_2,  OP_RET    },
 	{ 0xFF, 0xC3, 1, NULL,        class_void,         0,     OP_RET    },

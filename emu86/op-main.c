@@ -222,7 +222,7 @@ int main (int argc, char * argv [])
 			int flag_exec = 1;
 
 			// Optimize: no twice decoding of the same instruction
-			// Example: LOOP on itself
+			// Example: REPeated or LOOP on itself
 
 			if (op_code_seg != last_seg || op_code_off != last_off_0)
 				{
@@ -318,6 +318,11 @@ int main (int argc, char * argv [])
 					putchar ('\n');
 					puts ("fatal: execute operation");
 					break;
+					}
+
+				if (rep_stat ())
+					{
+					reg16_set (REG_IP, last_off_0);
 					}
 				}
 			}

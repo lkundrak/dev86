@@ -16,6 +16,17 @@
 #include "op-exec.h"
 
 
+// Prefixes
+
+static word_t _rep_op = OP_NULL;
+static byte_t _rep_stat = 0;
+
+int rep_stat ()
+	{
+	return (_rep_stat == 3);
+	}
+
+
 // Offset & address
 
 static word_t off_get (const op_var_t * var)
@@ -766,39 +777,106 @@ static void op_jump_cond (op_desc_t * op_desc)
 */
 
 
-// String
+// Strings
+
+static void op_repeat (op_desc_t * op_desc)
+	{
+	assert (_rep_op == OP_NULL);
+	assert (_rep_stat == 0);
+	word_t id = op_desc->op_id;
+	assert (id == OP_REPZ || id == OP_REPNZ);
+	_rep_op = id;
+	_rep_stat = 1;
+	}
+
 
 static void op_string (op_desc_t * op_desc)
 	{
-	byte_t b;
+	// TODO: simplify with W flag at operation level
 
-	word_t ds,es;
-	word_t si,di;
-
-	switch (op_desc->op_id)
+	while (1)
 		{
-		case OP_LODSB:
+		// Repeat prefix
 
-			// TODO: segment override
+		word_t cx;
 
-			ds = seg_get (SEG_DS);
-			si = reg16_get (REG_SI);
-			b = mem_read_byte (addr_seg_off (ds,si++));
-			reg8_set (REG_AL, b);
-			reg16_set (REG_SI, si);
-			break;
+		if (_rep_stat == 2)
+			{
+			_rep_stat = 3;
+			}
 
-		case OP_STOSB:
-			es = seg_get (SEG_ES);
-			di = reg16_get (REG_DI);
-			b = reg8_get (REG_AL);
-			mem_write_byte (addr_seg_off (es,di++), b);
-			reg16_set (REG_DI, di);
-			break;
+		if (_rep_stat == 3)
+			{
+			word_t cx = reg16_get (REG_CX);
+			if (!cx)
+				{
+				_rep_stat = 0;
+				_rep_op = OP_NULL;
+				break;
+				}
 
-		default:
-			assert (0);
+			reg16_set (REG_CX, --cx);
+			}
 
+		word_t id = op_desc->op_id;
+		byte_t w = (id == OP_LODSW || id == OP_STOSW) ? 1 : 0;
+
+		word_t d = flag_get (FLAG_DF) ? -1 : 1;
+		d <<= w;
+
+		word_t ds,es;
+		word_t si,di;
+
+		switch (op_desc->op_id)
+			{
+			case OP_LODSB:
+			case OP_LODSW:
+
+				// TODO: segment override
+
+				ds = seg_get (SEG_DS);
+				si = reg16_get (REG_SI);
+
+				if (w)
+					{
+					word_t v = mem_read_word (addr_seg_off (ds, si));
+					reg16_set (REG_AX, v);
+					}
+				else
+					{
+					byte_t v = mem_read_byte (addr_seg_off (ds, si));
+					reg8_set (REG_AL, v);
+					}
+
+				reg16_set (REG_SI, si + d);
+				break;
+
+			case OP_STOSB:
+			case OP_STOSW:
+
+				es = seg_get (SEG_ES);
+				di = reg16_get (REG_DI);
+
+				if (w)
+					{
+					word_t v = reg16_get (REG_AX);
+					mem_write_word (addr_seg_off (es, di), v);
+					}
+				else
+					{
+					byte_t v = reg8_get (REG_AL);
+					mem_write_byte (addr_seg_off (es, di), v);
+					}
+
+				reg16_set (REG_DI, di + d);
+				break;
+
+			default:
+				assert (0);
+
+			}
+
+		break;
 		}
 	}
 
@@ -988,6 +1066,9 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_JNG, op_jump_cond },
 	{ OP_JG,  op_jump_cond },
 
+	{ OP_REPNZ, op_repeat },
+	{ OP_REPZ,  op_repeat },
+
 	{ OP_MOVSB, op_string },
 	{ OP_MOVSW, op_string },
 	{ OP_CMPSB, op_string },
@@ -1038,8 +1119,6 @@ static op_id_hand_t _id_hand_tab [] = {
 #define OP_LOCK   0xFFFF
 #define OP_LOOPNZ 0xFFFF
 #define OP_LOOPZ  0xFFFF
-#define OP_REPNZ  0xFFFF
-#define OP_REPZ   0xFFFF
 #define OP_SEG    0xFFFF
 */
 
@@ -1057,43 +1136,64 @@ int op_exec (op_desc_t * op_desc)
 	int err = -1;
 
 	word_t id1 = op_desc->op_id;
-	op_id_hand_t * desc = _id_hand_tab;
 
 	while (1)
 		{
+		op_hand_t hand1 = NULL;
+
 		// Optimization for repeated instruction
 
 		if (id1 == _last_id && _last_hand)
 			{
-			(*_last_hand) (op_desc);
-			err = 0;
-			break;
+			hand1 = _last_hand;
+			}
+		else
+			{
+			// Table lookup
+
+			op_id_hand_t * desc = _id_hand_tab;
+
+			while (1)
+				{
+				word_t id2 = desc->id;
+				op_hand_t hand2 = desc->hand;
+				if (!id2 && !hand2)
+					{
+					assert (0);
+					break;
+					}
+
+				if (id2 == id1)
+					{
+					_last_id = id2;
+					_last_hand = hand2;
+
+					hand1 = hand2;
+					break;
+					}
+
+				desc++;
+				}
 			}
 
-		// Table lookup
-
-		while (1)
+		if (hand1)
 			{
-			word_t id2 = desc->id;
-			op_hand_t hand = desc->hand;
-			if (!id2 && !hand)
+			(*hand1) (op_desc);
+
+			switch (_rep_stat)
 				{
-				assert (0);
-				err = -1;
-				break;
+				case 1:
+					_rep_stat = 2;
+					break;
+
+				case 2:
+					assert (0);  // orphan REPxx
+					_rep_stat = 0;
+					break;
+
 				}
 
-			if (id2 == id1)
-				{
-				_last_id = id2;
-				_last_hand = hand;
-
-				(*hand) (op_desc);
-				err = 0;
-				break;
-				}
-
-			desc++;
+			err = 0;
 			}
 
 		break;

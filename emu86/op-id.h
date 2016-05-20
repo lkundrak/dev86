@@ -86,6 +86,9 @@
 #define OP_JNG   0x0B0E
 #define OP_JG    0x0B0F
 
+#define OP_REPNZ 0x0C10
+#define OP_REPZ  0x0C11
+
 #define OP_MOVSB 0x0C00
 #define OP_MOVSW 0x0C01
 #define OP_CMPSB 0x0C02
@@ -133,6 +136,4 @@
 #define OP_LOCK   0xFFFF
 #define OP_LOOPNZ 0xFFFF
 #define OP_LOOPZ  0xFFFF
-#define OP_REPNZ  0xFFFF
-#define OP_REPZ   0xFFFF
 #define OP_SEG    0xFFFF

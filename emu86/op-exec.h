@@ -8,4 +8,6 @@
 
 // Operation handling
 
+int rep_stat ();
+
 int op_exec (op_desc_t * op_desc);
