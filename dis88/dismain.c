@@ -550,6 +550,7 @@ main(argc,argv)
    register int fd;
    long taboff, tabnum;
    long reloff, relnum;
+   int count;
 
    PRG = invoker(*argv);
 
@@ -596,7 +597,7 @@ main(argc,argv)
    if ( ! cpuid )
       fprintf(stderr,"%s: warning: host/cpu clash\n",PRG);
 
-   read(fd, (char *) &HDR,sizeof(struct exec));
+   count = read(fd, (char *) &HDR,sizeof(struct exec));
 
    if (BADMAG(HDR))
       {

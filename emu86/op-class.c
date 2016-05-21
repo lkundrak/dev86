@@ -19,7 +19,7 @@ byte_t * op_code_base;
 word_t op_code_seg;
 word_t op_code_off;
 
-char op_code_str [3 * OPCODE_MAX];
+char op_code_str [3 * OPCODE_MAX + 2];
 byte_t op_code_pos;
 
 
@@ -81,19 +81,18 @@ static rm_flags_t _rm_flags [] = {
 
 static void scan_mod_rm (byte_t w, byte_t mod, byte_t rm, op_var_t * var)
 	{
-	var->size = w ? VS_WORD : VS_BYTE;
+	var->w = w;
 
 	if (mod == 3)
 		{
 		var->type = VT_REG;
-		var->reg  = rm;
+		var->val.r = rm;
 		}
 	else
 		{
-		var->type = VT_INDEX;
+		var->type = VT_IND;
 
-		word_t w = 0;
-		short rel = 0;
+		short s = 0;
 		byte_t flags = _rm_flags [rm];
 
 		switch (mod)
@@ -101,28 +100,26 @@ static void scan_mod_rm (byte_t w, byte_t mod, byte_t rm, op_var_t * var)
 			case 0:  // no displacement
 				if (rm == 6)  // special case [BP] -> [disp16]
 					{
-					rel = (short) fetch_word ();
+					s = (short) fetch_word ();
 					flags = AF_DISP;
 					}
 
 				break;
 
 			case 1:  // signed byte displacement
-				w = (word_t) fetch_byte ();
-				if (w & 0x0080) w |= 0xFF00;
-				rel = (short) w;
+				s = (short) (char) fetch_byte ();
 				flags |= AF_DISP;
 				break;
 
 			case 2:  // signed word displacement
-				rel = (short) fetch_word ();
+				s = (short) fetch_word ();
 				flags |= AF_DISP;
 				break;
 
 			}
 
 		var->flags = flags;
-		var->val.s = rel;
+		var->val.s = s;
 		}
 	}
 
@@ -161,8 +158,20 @@ static void print_addr (byte_t flags, short rel)
 
 	if (flags & AF_DISP)
 		{
-		if (reg & (rel >= 0)) putchar ('+');
-		printf ("%i", rel);  // TODO: print hexadecimal to avoid confusion
+		if (reg)
+			{
+			if (rel >= 0)
+				{
+				putchar ('+');
+				}
+			else
+				{
+				putchar ('-');
+				rel = -rel;
+				}
+			}
+
+		printf ("%hXh", (word_t) rel);
 		}
 
 	putchar (']');
@@ -173,67 +182,48 @@ static void print_addr (byte_t flags, short rel)
 
 static void print_var (op_var_t * var)
 	{
-	byte_t rt;
-	word_t w;
-
 	switch (var->type)
 		{
 		case VT_IMM:
-			switch (var->size)
+			if (var->w)
 				{
-				case VS_BYTE:
-					printf ("%.2X",var->val.b);
-					break;
-
-				case VS_WORD:
-					printf ("%.4X",var->val.w);
-					break;
-
-				default:
-					assert (0);
-
+				printf ("%.4Xh", var->val.w);
+				}
+			else
+				{
+				printf ("%.2Xh", var->val.b);
 				}
 
 			break;
 
 		case VT_REG:
-			rt = (var->size == VS_BYTE) ? RT_REG8 : RT_REG16;
-			print_reg (rt, var->reg);
+			print_reg (var->w ? RT_REG16 : RT_REG8, var->val.r);
 			break;
 
 		case VT_SEG:
-			print_reg (RT_SEG, var->reg);
+			print_reg (RT_SEG, var->val.r);
 			break;
 
-		case VT_INDEX:
+		case VT_IND:
 			print_addr (var->flags, var->val.s);
 			break;
 
-		case VT_NEAR:
-			switch (var->size)
+		case VT_LOC:
+			if (var->far)
 				{
-				case VS_BYTE:
-					printf ("%.4X", (word_t) ((short) op_code_off + (short) var->val.c));
-					//w = char_to_short (var->val.b);
-					break;
+				// Far address is absolute
 
-				case VS_WORD:
-					printf ("%.4X", (word_t) ((short) op_code_off + var->val.s));
-					//w = var->val.w;
-					break;
+				printf ("%.4Xh",var->seg);
+				putchar (':');
+				printf ("%.4Xh",var->val.w);
+				}
+			else
+				{
+				// Near address is relative
 
-				default:
-					assert (0);
-
+				printf ("%.4Xh", (word_t) ((short) op_code_off + var->val.s));
 				}
 
-			//printf ("%.4X", op_code_off + w);
-			break;
-
-		case VT_FAR:
-			printf ("%.4X",var->seg);
-			putchar (':');
-			printf ("%.4X",var->val.w);
 			break;
 
 		}
@@ -277,13 +267,13 @@ static int class_imm (byte_t flags, op_desc_t * op)
 
 	if (flags & CF_1)
 		{
-		var_imm->size = VS_BYTE;
+		var_imm->w = 0;
 		var_imm->val.b = fetch_byte ();
 		}
 
 	if (flags & CF_2)
 		{
-		var_imm->size = VS_WORD;
+		var_imm->w = 1;
 		var_imm->val.w = fetch_word ();
 		}
 
@@ -295,19 +285,17 @@ static int class_dist (byte_t flags, op_desc_t * op)
 	{
 	op->var_count = 1;
 
-	op_var_t * var_dist = &(op->var_to);
-	var_dist->type  = VT_NEAR;
+	op_var_t * var = &(op->var_to);
+	var->type = VT_LOC;
 
 	if (flags & CF_1)
 		{
-		var_dist->size = VS_BYTE;
-		var_dist->val.c = (char) fetch_byte ();
+		var->val.s = (short) (char) fetch_byte ();
 		}
 
 	if (flags & CF_2)
 		{
-		var_dist->size = VS_WORD;
-		var_dist->val.s = (short) fetch_word ();
+		var->val.s = (short) fetch_word ();
 		}
 
 	return 0;
@@ -318,11 +306,13 @@ static int class_off_seg (byte_t flags, op_desc_t * op)
 	{
 	op->var_count = 1;
 
-	op_var_t * var_far = &(op->var_to);
-	var_far->type  = VT_FAR;
+	op_var_t * var = &(op->var_to);
 
-	var_far->val.w = fetch_word ();
-	var_far->seg = fetch_word ();
+	var->type = VT_LOC;
+	var->far = 1;
+
+	var->val.w = fetch_word ();
+	var->seg = fetch_word ();
 
 	return 0;
 	}
@@ -348,20 +338,20 @@ static int class_in_out (byte_t flags, op_desc_t * op)
 		}
 
 	var_acc->type = VT_REG;
-	var_acc->size = op->w2 ? VS_WORD : VS_BYTE;
-	var_acc->reg  = 0;  // AX or AL
+	var_acc->w = op->w2;
+	var_acc->val.r = 0;  // AX or AL
 
 	if (op->v1)
 		{
 		var_port->type = VT_REG;
-		var_port->size = VS_WORD;
-		var_port->reg  = 2;  // DX
+		var_port->w = 1;
+		var_port->val.r = 2;  // DX
 		}
 
 	else
 		{
 		var_port->type = VT_IMM;
-		var_port->size = VS_BYTE;
+		var_port->w = 1;
 		var_port->val.w = (word_t) fetch_byte ();
 		}
 
@@ -380,8 +370,8 @@ static int class_reg (byte_t flags, op_desc_t * op)
 		op_var_t * var_acc = &(op->var_to);
 
 		var_acc->type = VT_REG;
-		var_acc->size = VS_WORD;
-		var_acc->reg  = 0;  // AX
+		var_acc->w = 1;
+		var_acc->val.r = 0;  // AX
 
 		var_reg = &(op->var_from);
 		}
@@ -394,8 +384,8 @@ static int class_reg (byte_t flags, op_desc_t * op)
 		}
 
 	var_reg->type = VT_REG;
-	var_reg->size = VS_WORD;
-	var_reg->reg  = op->reg1;
+	var_reg->w = 1;
+	var_reg->val.r = op->reg1;
 
 	return 0;
 	}
@@ -408,8 +398,8 @@ static int class_seg (byte_t flags, op_desc_t * op)
 	op_var_t * var_seg = &(op->var_to);
 
 	var_seg->type = VT_SEG;
-	var_seg->size = VS_WORD;
-	var_seg->reg  = op->seg1;
+	var_seg->w = 1;
+	var_seg->val.r = op->seg1;
 
 	return 0;
 	}
@@ -423,21 +413,18 @@ static int class_w_imm (byte_t flags, op_desc_t * op)
 	op_var_t * var_imm = &(op->var_from);
 
 	var_acc->type = VT_REG;
-	var_acc->reg  = 0;  // AX or AL
+	var_acc->w = op->w2;
+	var_acc->val.r = 0;  // AX or AL
 
 	var_imm->type  = VT_IMM;
+	var_imm->w = op->w2;
 
 	if (op->w2)
 		{
-		var_acc->size  = VS_WORD;
-		var_imm->size  = VS_WORD;
 		var_imm->val.w = fetch_word ();
 		}
-
 	else
 		{
-		var_acc->size  = VS_BYTE;
-		var_imm->size  = VS_BYTE;
 		var_imm->val.b = fetch_byte ();
 		}
 
@@ -445,17 +432,14 @@ static int class_w_imm (byte_t flags, op_desc_t * op)
 	}
 
 
-static int class_w_addr (byte_t flags, op_desc_t * op)
+static int class_d_w_addr (byte_t flags, op_desc_t * op)
 	{
-	byte_t d = 0;  // default when no direction
-	if (flags & CF_D) d = op->d;
-
 	op->var_count = 2;
 
 	op_var_t * var_acc;
 	op_var_t * var_addr;
 
-	if (d)
+	if (!op->d)  // special case for accumulator
 		{
 		var_acc  = &(op->var_to);
 		var_addr = &(op->var_from);
@@ -467,12 +451,13 @@ static int class_w_addr (byte_t flags, op_desc_t * op)
 		}
 
 	var_acc->type = VT_REG;
-	var_acc->reg  = 0;  // AX or AL
-	var_acc->size = op->w2 ? VS_WORD : VS_BYTE;
+	var_acc->val.r = 0;  // AX or AL
+	var_acc->w = op->w2;
 
-	var_addr->type  = VT_NEAR;
-	var_addr->flags = 0;
-	var_addr->val.s = (short) fetch_word ();
+	var_addr->type  = VT_IND;
+	var_addr->w = op->w2;
+	var_addr->flags |= AF_DISP;
+	var_addr->val.w = fetch_word ();
 
 	return 0;
 	}
@@ -486,20 +471,18 @@ static int class_w_reg_imm (byte_t flags, op_desc_t * op)
 	op_var_t * var_imm = &(op->var_from);
 
 	var_reg->type = VT_REG;
-	var_reg->reg  = op->reg1;
+	var_reg->val.r = op->reg1;
+	var_reg->w = op->w1;
 
-	var_imm->type  = VT_IMM;
+	var_imm->type = VT_IMM;
+	var_imm->w = op->w1;
 
 	if (op->w1)
 		{
-		var_reg->size  = VS_WORD;
-		var_imm->size  = VS_WORD;
 		var_imm->val.w = fetch_word ();
 		}
 	else
 		{
-		var_reg->size  = VS_BYTE;
-		var_imm->size  = VS_BYTE;
 		var_imm->val.b = fetch_byte ();
 		}
 
@@ -512,8 +495,14 @@ static int class_w_reg_imm (byte_t flags, op_desc_t * op)
 static int class_mod_rm (byte_t flags, op_desc_t * op)
 	{
 	op->var_count = 1;
-	op_var_t * var_rm = &(op->var_to);
-	scan_mod_rm (1, op->mod, op->rm, var_rm);
+
+	op_var_t * var = &(op->var_to);
+	var->w = 1;
+
+	if (flags & CF_F) var->far = 1;
+
+	scan_mod_rm (1, op->mod, op->rm, var);
+
 	return 0;
 	}
 
@@ -529,12 +518,12 @@ static int class_w_mod_rm (byte_t flags, op_desc_t * op)
 		op->var_count = 2;
 		op_var_t * var_num = &(op->var_from);
 
-		var_num->size = VS_BYTE;
+		var_num->w = 0;
 
 		if (op->v2)
 			{
 			var_num->type = VT_REG;
-			var_num->reg  = 1; // CL
+			var_num->val.r = 1;  // CL
 			}
 		else
 			{
@@ -554,32 +543,48 @@ static int class_w_mod_rm_imm (byte_t flags, op_desc_t * op)
 	op_var_t * var_rm = &(op->var_to);
 	op_var_t * var_imm = &(op->var_from);
 
+	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
+
+	// Immediate value follows the MOD-RM displacement
+
 	var_imm->type  = VT_IMM;
+	var_imm->w = op->w2;
 
 	if (op->w2)
 		{
-		var_imm->size  = VS_WORD;
-
 		if ((flags & CF_S) && op->s)
 			{
-			word_t w = (word_t) fetch_byte ();
-			if (w & 0x0080) w |= 0xFF00;
-			var_imm->val.w = w;
+			var_imm->val.s = (short) (char) fetch_byte ();
 			}
-
 		else
 			{
 			var_imm->val.w = fetch_word ();
 			}
 		}
-
 	else
 		{
-		var_imm->size  = VS_BYTE;
-		var_imm->val.b = fetch_byte (1);
+		var_imm->val.b = fetch_byte ();
 		}
 
+
+	return 0;
+	}
+
+
+static int class_w_mod_rm_count (byte_t flags, op_desc_t * op)
+	{
+	op->var_count = 2;
+
+	op_var_t * var_rm = &(op->var_to);
+	op_var_t * var_imm = &(op->var_from);
+
 	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
+
+	// Immediate value follows the MOD-RM displacement
+
+	var_imm->type  = VT_IMM;
+	var_imm->w = 0;
+	var_imm->val.b = fetch_byte ();
 
 	return 0;
 	}
@@ -606,8 +611,8 @@ static int class_w_mod_reg_rm (byte_t flags, op_desc_t * op)
 		}
 
 	var_reg->type = VT_REG;
-	var_reg->size = op->w2 ? VS_WORD : VS_BYTE;
-	var_reg->reg  = op->reg2;
+	var_reg->w = op->w2;
+	var_reg->val.r = op->reg2;
 
 	scan_mod_rm (op->w2, op->mod, op->rm, var_rm);
 
@@ -623,8 +628,8 @@ static int class_mod_reg_rm (byte_t flags, op_desc_t * op)
 	op_var_t * var_rm  = &(op->var_from);
 
 	var_reg->type = VT_REG;
-	var_reg->size = VS_WORD;
-	var_reg->reg  = op->reg2;
+	var_reg->w = 1;
+	var_reg->val.r = op->reg2;
 
 	scan_mod_rm (1, op->mod, op->rm, var_rm);
 
@@ -653,7 +658,8 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 		}
 
 	var_seg->type = VT_SEG;
-	var_seg->reg  = op->seg2;
+	var_seg->w = 1;
+	var_seg->val.r = op->seg2;
 
 	scan_mod_rm (1, op->mod, op->rm, var_rm);
 
@@ -663,16 +669,31 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 
 // Second byte code table
 
+// TODO: reduce table size with operation bit field (0x38 mask)
+// TODO: reduce code with MOD-RM as new table field
+
 static class_desc_t class_2_80h [] = {
 	{ 0x38, 0x00, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_ADD   },
-	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_imm, 0,     OP_OR    },
+	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_OR    },  // S not compliant with Intel doc
 	{ 0x38, 0x10, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_ADC   },
 	{ 0x38, 0x18, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_SBB   },
-	{ 0x38, 0x20, 1, NULL, class_w_mod_rm_imm, 0,     OP_AND   },
+	{ 0x38, 0x20, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_AND   },  // S not compliant with Intel doc
 	{ 0x38, 0x28, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_SUB   },
-	{ 0x38, 0x30, 1, NULL, class_w_mod_rm_imm, 0,     OP_XOR   },
+	{ 0x38, 0x30, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_XOR   },  // S not compliant with Intel doc
 	{ 0x38, 0x38, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_CMP   },
 	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
+	};
+
+static class_desc_t class_2_C0h [] = {
+	{ 0x38, 0x00, 1, NULL, class_w_mod_rm_count,     0,  OP_ROL   },
+	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_count,     0,  OP_ROR   },
+	{ 0x38, 0x10, 1, NULL, class_w_mod_rm_count,     0,  OP_RCL   },
+	{ 0x38, 0x18, 1, NULL, class_w_mod_rm_count,     0,  OP_RCR   },
+	{ 0x38, 0x20, 1, NULL, class_w_mod_rm_count,     0,  OP_SHL   },
+	{ 0x38, 0x28, 1, NULL, class_w_mod_rm_count,     0,  OP_SHR   },
+	{ 0x38, 0x30, 1, NULL, class_w_mod_rm_count,     0,  OP_SAL   },  // TODO: SHL = SAL
+	{ 0x38, 0x38, 1, NULL, class_w_mod_rm_count,     0,  OP_SAR   },
+	{ 0x00, 0x00, 0, NULL, NULL,                     0,  0        }
 	};
 
 static class_desc_t class_2_D0h [] = {
@@ -682,7 +703,7 @@ static class_desc_t class_2_D0h [] = {
 	{ 0x38, 0x18, 1, NULL, class_w_mod_rm,     CF_V,  OP_RCR   },
 	{ 0x38, 0x20, 1, NULL, class_w_mod_rm,     CF_V,  OP_SHL   },
 	{ 0x38, 0x28, 1, NULL, class_w_mod_rm,     CF_V,  OP_SHR   },
-	{ 0x38, 0x30, 1, NULL, class_w_mod_rm,     CF_V,  OP_SAL   },
+	{ 0x38, 0x30, 1, NULL, class_w_mod_rm,     CF_V,  OP_SAL   },  // TODO: SHL = SAL
 	{ 0x38, 0x38, 1, NULL, class_w_mod_rm,     CF_V,  OP_SAR   },
 	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
 	};
@@ -706,9 +727,9 @@ static class_desc_t class_2_FEh [] = {
 
 static class_desc_t class_2_FFh [] = {
 	{ 0x38, 0x10, 1, NULL, class_mod_rm,       0,     OP_CALL  },  // TODO: class_w_mod_rm & w=1 ?
-	{ 0x38, 0x18, 1, NULL, class_mod_rm,       0,     OP_CALLF },  // TODO: class_w_mod_rm & w=1 ?
+	{ 0x38, 0x18, 1, NULL, class_mod_rm,       CF_F,  OP_CALLF },  // TODO: class_w_mod_rm & w=1 ?
 	{ 0x38, 0x20, 1, NULL, class_mod_rm,       0,     OP_JMP   },  // TODO: class_w_mod_rm & w=1 ?
-	{ 0x38, 0x28, 1, NULL, class_mod_rm,       0,     OP_JMPF  },  // TODO: class_w_mod_rm & w=1 ?
+	{ 0x38, 0x28, 1, NULL, class_mod_rm,       CF_F,  OP_JMPF  },  // TODO: class_w_mod_rm & w=1 ?
 	{ 0x38, 0x30, 1, NULL, class_mod_rm,       0,     OP_PUSH  },  // TODO: class_w_mod_rm & w=1 ?
 	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
 	};
@@ -751,6 +772,9 @@ static class_desc_t _class_1 [] = {
 	{ 0xF8, 0x50, 1, NULL,        class_reg,          0,     OP_PUSH   },
 	{ 0xF8, 0x58, 1, NULL,        class_reg,          0,     OP_POP    },
 
+	{ 0xFF, 0x60, 1, NULL,        class_void,         0,     OP_PUSHA  },
+	{ 0xFF, 0x61, 1, NULL,        class_void,         0,     OP_POPA   },
+
 	{ 0xFF, 0x70, 1, NULL,        class_dist,         CF_1,  OP_JO     },
 	{ 0xFF, 0x71, 1, NULL,        class_dist,         CF_1,  OP_JNO    },
 	{ 0xFF, 0x72, 1, NULL,        class_dist,         CF_1,  OP_JB     },
@@ -777,14 +801,12 @@ static class_desc_t _class_1 [] = {
 
 	{ 0xFD, 0x8C, 2, NULL,        class_mod_seg_rm,   CF_D,  OP_MOV    },
 	{ 0xFF, 0x8D, 2, NULL,        class_mod_reg_rm,   0,     OP_LEA    },
-//	{ 0xFD, 0x8E, 2, NULL,        class_mod_seg_rm,   CF_D,  OP_MOV    },
 	{ 0xFF, 0x8F, 2, NULL,        class_mod_rm,       0,     OP_POP    },  // TODO: class_w_mod_rm & w=1 ?
 
 	{ 0xF8, 0x90, 1, NULL,        class_reg,          CF_A,  OP_XCHG   },
 
 	{ 0xFF, 0x98, 1, NULL,        class_void,         0,     OP_CBW    },
 	{ 0xFF, 0x99, 1, NULL,        class_void,         0,     OP_CWD    },
-//	{ 0xFF, 0x9A, 1, NULL,        NULL,               0,     0         },
 	{ 0xFF, 0x9B, 1, NULL,        class_void,         0,     OP_WAIT   },
 
 	{ 0xFF, 0x9C, 1, NULL,        class_void,         0,     OP_PUSHF  },
@@ -796,22 +818,24 @@ static class_desc_t _class_1 [] = {
 	{ 0xFF, 0x9A, 1, NULL,        class_off_seg,      0,     OP_CALLF  },
 	{ 0xFF, 0xEA, 1, NULL,        class_off_seg,      0,     OP_JMPF   },
 
-	{ 0xFC, 0xA0, 1, NULL,        class_w_addr,       CF_D,  OP_MOV    },
+	{ 0xFC, 0xA0, 1, NULL,        class_d_w_addr,     0,     OP_MOV    },
 
 	{ 0xFE, 0xA8, 1, NULL,        class_w_imm,        0,     OP_TEST   },
 
-	{ 0xFE, 0xA4, 1, NULL,        class_void,         0,     OP_MOVSB  },
-	{ 0xFE, 0xA5, 1, NULL,        class_void,         0,     OP_MOVSW  },
-	{ 0xFE, 0xA6, 1, NULL,        class_void,         0,     OP_CMPSB  },
-	{ 0xFE, 0xA7, 1, NULL,        class_void,         0,     OP_CMPSW  },
-	{ 0xFE, 0xAA, 1, NULL,        class_void,         0,     OP_STOSB  },
-	{ 0xFE, 0xAB, 1, NULL,        class_void,         0,     OP_STOSW  },
-	{ 0xFE, 0xAC, 1, NULL,        class_void,         0,     OP_LODSB  },
-	{ 0xFE, 0xAD, 1, NULL,        class_void,         0,     OP_LODSW  },
-	{ 0xFE, 0xAE, 1, NULL,        class_void,         0,     OP_SCASB  },
-	{ 0xFE, 0xAF, 1, NULL,        class_void,         0,     OP_SCASW  },
+	{ 0xFF, 0xA4, 1, NULL,        class_void,         0,     OP_MOVSB  },  // TODO: flag W at operation level
+	{ 0xFF, 0xA5, 1, NULL,        class_void,         0,     OP_MOVSW  },
+	{ 0xFF, 0xA6, 1, NULL,        class_void,         0,     OP_CMPSB  },
+	{ 0xFF, 0xA7, 1, NULL,        class_void,         0,     OP_CMPSW  },
+	{ 0xFF, 0xAA, 1, NULL,        class_void,         0,     OP_STOSB  },
+	{ 0xFF, 0xAB, 1, NULL,        class_void,         0,     OP_STOSW  },
+	{ 0xFF, 0xAC, 1, NULL,        class_void,         0,     OP_LODSB  },
+	{ 0xFF, 0xAD, 1, NULL,        class_void,         0,     OP_LODSW  },
+	{ 0xFF, 0xAE, 1, NULL,        class_void,         0,     OP_SCASB  },
+	{ 0xFF, 0xAF, 1, NULL,        class_void,         0,     OP_SCASW  },
 
 	{ 0xF0, 0xB0, 1, NULL,        class_w_reg_imm,    0,     OP_MOV    },
+
+	{ 0xFE, 0xC0, 2, class_2_C0h, NULL,               0,     0         },
 
 	{ 0xFF, 0xC2, 1, NULL,        class_imm,          CF_2,  OP_RET    },
 	{ 0xFF, 0xC3, 1, NULL,        class_void,         0,     OP_RET    },
@@ -847,8 +871,6 @@ static class_desc_t _class_1 [] = {
 	{ 0xFF, 0xE8, 1, NULL,        class_dist,         CF_2,  OP_CALL   },
 	{ 0xFF, 0xE9, 1, NULL,        class_dist,         CF_2,  OP_JMP    },
 	{ 0xFF, 0xEB, 1, NULL,        class_dist,         CF_1,  OP_JMP    },
-//	{ 0xF6, 0xEC, 1, NULL,        class_in_out,       0,     OP_IN     },
-//	{ 0xF6, 0xEE, 1, NULL,        class_in_out,       0,     OP_OUT    },
 
 	{ 0xFF, 0xF0, 1, NULL,        class_void,         0,     OP_LOCK   },
 	{ 0xFF, 0xF2, 1, NULL,        class_void,         0,     OP_REPNZ  },  // TODO: zero flag ?

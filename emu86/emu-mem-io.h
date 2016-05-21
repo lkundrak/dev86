@@ -7,6 +7,8 @@
 #define MEM_MAX 0x100000  // 1 MB
 #define IO_MAX  0x10000   // 64 KB
 
+#define ROM_BASE 0x80000
+
 
 // Memory & IO operations
 

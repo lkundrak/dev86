@@ -9,7 +9,7 @@
 // Opcode helpers
 
 #define OPCODE_MAX 6
-#define OPNAME_MAX 8
+#define OPNAME_MAX 6
 
 extern char op_code_str [];
 extern byte_t op_code_pos;
@@ -37,18 +37,17 @@ extern word_t op_code_off;
 
 // Operand
 
+// TODO: change VT_IND to VT_???
+
 #define VT_REG   0  // operand is an ALU register
 #define VT_SEG   1  // operand is a MMU register
 #define VT_IMM   2  // operand is an immediate value
-#define VT_INDEX 3  // operand is an indexed address (with index flags)
-#define VT_NEAR  4  // operand is a relative near address
-#define VT_FAR   5  // operand is an absolute far address
-
-#define VS_BYTE 0  // operand is 8 bits
-#define VS_WORD 1  // operand is 16 bits
+#define VT_LOC   3  // operand is a memory location
+#define VT_IND   4  // operand is a memory content
 
 union op_val_u
 	{
+	byte_t r;  // register number
 	byte_t b;  // absolute byte
 	word_t w;  // absolute word
 	char   c;  // relative byte
@@ -57,14 +56,17 @@ union op_val_u
 
 typedef union op_val_u op_val_t;
 
+
 struct op_var_s
 	{
-	byte_t type;   // operand type (VT_xxx)
-	byte_t size;   // 8 or 16 bits
-	byte_t flags;  // for relative address (AF_xxx)
-	byte_t reg;    // register number
-	op_val_t val;  // variable value
-	word_t seg;    // segment value
+	// TODO: move size to word flag
+
+	byte_t type;     // operand type (VT_xxx)
+	byte_t flags;    // for relative address (AF_xxx)
+	byte_t w : 1;    // word flag
+	byte_t far : 1;  // far flag
+	op_val_t val;    // variable value
+	word_t seg;      // segment value
 	};
 
 typedef struct op_var_s op_var_t;
@@ -117,7 +119,8 @@ void op_print (op_desc_t * op_desc);
 #define CF_S 0x08  // sign extent bit
 #define CF_V 0x10  // variable bit
 #define CF_A 0x20  // implicit accumulator
-#define CF_W 0x40  // w bit
+#define CF_W 0x40  // word bit
+#define CF_F 0x80  // far bit
 
 typedef int (* class_hand_t) (byte_t flags, op_desc_t * op_desc);
 

@@ -27,6 +27,7 @@ $(PCAT_OBJS): $(PCAT_HDRS)
 
 $(PCAT_PROG): $(PCAT_OBJS)
 	$(CC) -o $(PCAT_PROG) $(PCAT_OBJS)
+	
 all: $(EMU86_PROG) $(PCAT_PROG)
 
 install: $(EMU86_PROG) $(PCAT_PROG)

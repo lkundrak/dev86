@@ -1,25 +1,25 @@
+// LIB86 - 80x86 library
 
 #pragma once
 
 #include "op-common.h"
 
 
-// Operation flags
-
-#define OF_FAR   0x01
-#define OF_FLAG  0x04
-
-
 // Operation identifiers
 
-#define OP_MOV   0x0000
-#define OP_LEA   0x0001
+// TODO: continuous ID to enable LUT
+
+#define OP_NULL  0xFFFF
+
+#define OP_MOV   0x0001
+#define OP_LEA   0x0002
 
 #define OP_XCHG  0x0100
 
 #define OP_IN    0x0200
 #define OP_OUT   0x0201
 
+#define OP_CALC2 0x0300  // base for 2 variables calculation
 #define OP_ADD   0x0300
 #define OP_OR    0x0301
 #define OP_ADC   0x0302
@@ -49,15 +49,17 @@
 #define OP_SAL   0x0606
 #define OP_SAR   0x0607
 
-#define OP_PUSH  (0x0700)
-#define OP_POP   (0x0E00)
-#define OP_PUSHF (0x0F00)
-#define OP_POPF  (0x1000)
+#define OP_PUSH  0x0700
+#define OP_POP   0x0701
+#define OP_PUSHF 0x0702
+#define OP_POPF  0x0703
+#define OP_PUSHA 0x0704
+#define OP_POPA  0x0705
 
-#define OP_JMP   (0x0800)
-#define OP_JMPF  (OP_JMP | OF_FAR)
-#define OP_CALL  (0x0D00)
-#define OP_CALLF (OP_CALL | OF_FAR)
+#define OP_JMP   0x0800
+#define OP_JMPF  0x0801
+#define OP_CALL  0x0802
+#define OP_CALLF 0x0803
 
 #define OP_INT   0x0900
 #define OP_INT3  0x0903
@@ -83,6 +85,9 @@
 #define OP_JNL   0x0B0D
 #define OP_JNG   0x0B0E
 #define OP_JG    0x0B0F
+
+#define OP_REPNZ 0x0C10
+#define OP_REPZ  0x0C11
 
 #define OP_MOVSB 0x0C00
 #define OP_MOVSW 0x0C01
@@ -111,6 +116,15 @@
 #define OP_STD   0x0F05
 #define OP_STI   0x0F06
 
+#define OP_SAHF  0x1000
+#define OP_LAHF  0x1001
+
+#define OP_HLT   0x1100
+
+#define OP_LOOP  0x1200
+
+#define OP_SEG   0x1300
+
 // TODO: allocate op id
 
 #define OP_WAIT   0xFFFF
@@ -118,16 +132,9 @@
 #define OP_ESC    0xFFFF
 #define OP_DAA    0xFFFF
 #define OP_DAS    0xFFFF
-#define OP_HLT    0xFFFF
 #define OP_JCXZ   0xFFFF
-#define OP_LAHF   0xFFFF
-#define OP_SAHF   0xFFFF
 #define OP_LDS    0xFFFF
 #define OP_LES    0xFFFF
 #define OP_LOCK   0xFFFF
-#define OP_LOOP   0xFFFF
 #define OP_LOOPNZ 0xFFFF
 #define OP_LOOPZ  0xFFFF
-#define OP_REPNZ  0xFFFF
-#define OP_REPZ   0xFFFF
-#define OP_SEG    0xFFFF

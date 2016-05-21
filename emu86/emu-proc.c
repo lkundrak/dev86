@@ -136,12 +136,13 @@ void regs_print ()
 	word_t es = seg_get (SEG_ES);
 	word_t ss = seg_get (SEG_SS);
 
-	printf ("AX %.4X  BX %.4X  CX %.4X  DX %.4X\n", ax, bx, cx, dx);
-	printf ("SI %.4X  DI %.4X  SP %.4X  BP %.4X\n", si, di, sp, bp);
-	printf ("DS %.4X  ES %.4X  SS %.4X\n", ds, es, ss);
-	printf ("CS %.4X  IP %.4X  FL %.4X\n", cs, ip, fl);
+	printf ("AX %.4hX  BX %.4hX  CX %.4hX  DX %.4hX  FL %.4hX\n", ax, bx, cx, dx, fl);
+	printf ("SI %.4hX  DI %.4hX  SP %.4hX  BP %.4hX\n", si, di, sp, bp);
+	printf ("DS %.4hX  ES %.4hX  SS %.4hX  CS %.4hX  IP %.4hX\n", ds, es, ss, cs, ip);
 
-	printf ("\nCF %hhu  PF ?  AF ?  ZF %hhu  SF ?  TF ?  IF ?  DF ?  OF ?\n", flag_get (FLAG_CF), flag_get (FLAG_ZF));
+	printf ("\nCF %hhu  PF %hhu  AF ?  ZF %hhu  SF %hhu  TF ?  IF %hhu  DF ?  OF %hhu\n",
+		flag_get (FLAG_CF), flag_get (FLAG_PF), flag_get (FLAG_ZF),
+		flag_get (FLAG_SF), flag_get (FLAG_IF), flag_get (FLAG_OF));
 	}
 
 
@@ -149,7 +150,9 @@ void regs_print ()
 
 addr_t addr_seg_off (word_t seg, word_t off)
 	{
-	return (seg << 4) + off;
+	addr_t a = ((addr_t) seg) << 4;
+	a += (addr_t) off;
+	return a;
 	}
 
 

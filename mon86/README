@@ -1,0 +1,136 @@
+*** WORK IN PROGRESS ***
+
+
+MON86 is yet another monitor for a 8086/8088/80186/80188 based system.
+
+That old 16-bits processor architecture is still used in some devices
+(micro-controllers, SBC, SoC, etc) that reuse the huge hardware and code
+base from the legacy PC/XT/AT platform.
+
+The monitor is a tool used on such embedded systems to take control of the
+target just after booting, and before loading / executing a more complex
+software like a native application or an operating system.
+
+It provides basic functions, such as read / write the registers, read / write
+the memory, and execute code. It optionally allows to execute code step by
+step, or to use breakpoints.
+
+The monitor is started on the target by the bootloader and communicates with
+the development system through the simplest and available interface
+(typically the asynchronous serial port), and with the simplest protocol.
+
+Since that protocol only supports basic operations, the monitor could be in
+turn drived from the development system by the some utilities, to implement
+more complex and user-friendly commands, like loading and run a binary image.
+
+The MON86 code is either loaded into the target RAM by the bootloader from any
+suitable device, or burned into the EEPROM / Flash for direct execution.
+
+
+SERIAL COMMUNICATION PROTOCOL
+
+The monitor receives ASCII characters from the serial interface and groups them
+by tokens. All characters are converted to uppercase. The tokens are separated
+by at least one space (any character code <= 32 is translated into a space).
+
+Each token is either an immediate value as an hexadecimal number (4 digits max,
+without any prefix nor suffix), or a command with a concatenated prefix letter
+and an hexadecimal digit.
+
+The commands are ('i' is the register or routine index):
+	Ri  Read the register (i) as the immediate value
+	Wi  Write the immediate value into the register (i)
+	Xi  Execute the routine (i)
+
+  Index  Register
+  0      AX
+  1      CX
+  2      DX
+  3      BX
+  4      SP
+  5      BP
+  6      SI
+  7      DI
+  8      ES
+  9      CS
+  A      SS
+  B      DS
+  C      IP
+  D      FL
+  E      (reserved)
+  F      IMM (immediate value)
+
+The last received or sent immediate value is saved in the IMM pseudo-register,
+to avoid repeating it for the next command.
+
+The routines are:
+
+	X0  Read the immediate value from [DS:SI] and post-increment SI
+	X1  Write the immediate value to [ES:DI] and post-increment DI
+	X2  Execute code at [CS:IP] (through a CALL FAR)
+
+After each immediate value or command, the monitor writes a status with the same
+format as a command, with the 'S' prefix:
+
+	S0  success
+	S1  bad token length
+	S2  bad immediate value
+	S3  bad command index
+
+Example 1: read 3 bytes from [1234:5678] that contains bytes AAh, BBh and CCh:
+'1234 WB 5678 W6 X0 X0 X0 ' returns 'S0 S0 S0 S0 AA S0 BB S0 CC S0'
+
+Example 2: write 3 bytes AAh, BBh and CCh to [1234:5678]
+'1234 W8 5678 W7 AA X1 BB X1 CC X1 ' returns 'S0 S0 S0 S0 S0 S0 S0 S0 S0 S0'
+
+Example 3: copy 3 bytes from [1234:5678] to [9ABC:DEF0]
+'1234 WB 5678 W6 9ABC W8 DEF0 W7 X0 X1 X0 X1 X0 X1 '
+
+Example 4: execute code at [1234:5678]
+'1234 W9 5678 WC X2 ' returns 'S0 S0 S0 S0' then 'Si' after code execution
+
+
+*** FUTURE VERSION ***
+
+
+MASTER AND SLAVE TASKS
+
+In order to minimize as much as possible the side-effect of the monitor on the
+the tested code, it acts as a master that controls a slave task, each of them
+having their own execution context. Context switching is performed with the
+help of the trace / break 8086 interrupts (INT01h and INT03h).
+
+
+CONTEXT SWITCHING
+
+Context registers are saved on the top of the task stack, following an order
+that eases the context switching and the interrupt handling. For the slave,
+they are followed by the master return address, to allow it to terminate and
+to give control back to the master through a simple RETF.
+
+Stack before SS:SP switch (follow PUSHA and INT rules):
+
+  Offset  Register or value
+  00      DI
+  02      SI
+  04      BP
+  06      SP (dummy)
+  08      BX
+  0A      DX
+  0C      CX
+  0E      AX
+  10      DS
+  12      ES
+  14      INT (interrupt number before pushing)
+  16      IP slave
+  18      CS slave
+  1A      FL slave
+  1C      IP master
+  1E      CS master
+
+Remaining of the context data is stored in a static structure:
+
+  Offset  Register or value
+  00      SP
+  01      SS
+  02      TFL (task flags)
