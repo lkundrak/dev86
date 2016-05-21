@@ -15,7 +15,6 @@ struct op_id_name_s
 typedef struct op_id_name_s op_id_name_t;
 
 static op_id_name_t id_name_tab [] = {
-	{ OP_NULL,  "???"   },
 	{ OP_ADC,   "ADC"   },
 	{ OP_ADD,   "ADD"   },
 	{ OP_AND,   "AND"   },
@@ -87,6 +86,7 @@ static op_id_name_t id_name_tab [] = {
 	{ OP_SBB,   "SBB"   },
 	{ OP_SCASB, "SCASB" },
 	{ OP_SCASW, "SCASW" },
+	{ OP_SEG,   "SEG"   },
 	{ OP_SHL,   "SHL"   },
 	{ OP_SHR,   "SHR"   },
 	{ OP_STC,   "STC"   },
@@ -98,7 +98,7 @@ static op_id_name_t id_name_tab [] = {
 	{ OP_TEST,  "TEST"  },
 	{ OP_XCHG,  "XCHG"  },
 	{ OP_XOR,   "XOR"   },
-	{ 0,        NULL    }
+	{ OP_NULL,  NULL    }
 	};
 
 
@@ -108,7 +108,7 @@ char *op_id_to_name (word_t op_id)
 	op_id_name_t *op = id_name_tab;
 	word_t id;
 
-	while ((id = op->id) != 0xFFFF)
+	while ((id = op->id) != OP_NULL)
 		{
 		if (id == op_id)
 			{

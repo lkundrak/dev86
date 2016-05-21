@@ -150,7 +150,9 @@ void regs_print ()
 
 addr_t addr_seg_off (word_t seg, word_t off)
 	{
-	return (seg << 4) + off;
+	addr_t a = ((addr_t) seg) << 4;
+	a += (addr_t) off;
+	return a;
 	}
 
 

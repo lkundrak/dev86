@@ -5,14 +5,11 @@
 #include "op-common.h"
 
 
-// Operation flags
-
-#define OF_FLAG  0x04
-
-
 // Operation identifiers
 
-#define OP_NULL  0x0000
+// TODO: continuous ID to enable LUT
+
+#define OP_NULL  0xFFFF
 
 #define OP_MOV   0x0001
 #define OP_LEA   0x0002
@@ -22,6 +19,7 @@
 #define OP_IN    0x0200
 #define OP_OUT   0x0201
 
+#define OP_CALC2 0x0300  // base for 2 variables calculation
 #define OP_ADD   0x0300
 #define OP_OR    0x0301
 #define OP_ADC   0x0302
@@ -123,6 +121,8 @@
 
 #define OP_LOOP  0x1200
 
+#define OP_SEG   0x1300
+
 // TODO: allocate op id
 
 #define OP_WAIT   0xFFFF
@@ -136,4 +136,3 @@
 #define OP_LOCK   0xFFFF
 #define OP_LOOPNZ 0xFFFF
 #define OP_LOOPZ  0xFFFF
-#define OP_SEG    0xFFFF

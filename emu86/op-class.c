@@ -669,6 +669,7 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 
 // Second byte code table
 
+// TODO: reduce table size with operation bit field (0x38 mask)
 // TODO: reduce code with MOD-RM as new table field
 
 static class_desc_t class_2_80h [] = {

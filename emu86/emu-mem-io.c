@@ -36,14 +36,34 @@ word_t mem_read_word (addr_t a)
 void mem_write_byte (addr_t a, byte_t b)
 	{
 	assert (a < MEM_MAX);
-	mem_stat [a] = b;
+
+	// Protect ROM
+
+	if (a < ROM_BASE)
+		{
+		mem_stat [a] = b;
+		}
+	else
+		{
+		puts ("warning: writing byte into ROM");
+		}
 	}
 
 void mem_write_word (addr_t a, word_t w)
 	{
 	assert (a < MEM_MAX - 1);
-	word_t * p = (word_t *) mem_get_addr (a);
-	*p = w;
+
+	// Protect ROM
+
+	if (a < ROM_BASE - 1)
+		{
+		word_t * p = (word_t *) mem_get_addr (a);
+		*p = w;
+		}
+	else
+		{
+		puts ("warning: writing word into ROM");
+		}
 	}
 
 
@@ -51,17 +71,32 @@ void mem_write_word (addr_t a, word_t w)
 
 byte_t io_read_byte (word_t p)
 	{
-	return 0xFF;
+	byte_t b = 0xFF;
+
+	// ADVTECH stubbing
+
+	switch (p)
+		{
+		case 0x0065:
+			b = 0x00;   // needed to exit loop @ F000:11B7h
+			break;
+
+		}
+
+	return b;
 	}
+
 
 word_t io_read_word (word_t p)
 	{
 	return 0xFFFF;
 	}
 
+
 void io_write_byte (word_t p, byte_t b)
 	{
 	}
+
 
  void io_write_word (word_t p, word_t w)
 	{

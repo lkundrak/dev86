@@ -3,7 +3,7 @@
 
 EMU86 is yet another 8086/8088/80186/80188 emulator.
 
-That old 16-bits processor architecture is still used in some devices
+That old 16-bits processor architecture is still used today in some devices
 (micro-controllers, SBC, SoC, etc) that reuse the huge hardware and code
 base from the legacy PC/XT/AT platform.
 
@@ -29,6 +29,9 @@ CURRENT STATUS:
 The emulator is now able to execute the MON86 code, targetting the Advantech
 SNMP-1000 SBC with its specific INT 10h / 16h minimally stubbed.
 
+It also begins to execute the real ROM code of the same SBC (bootstrap, POST,
+BIOS, diagnostics).
+
 Debugger features: initial breakpoint, trace mode, interactive mode, registers
 dump, trace in, trace over, stack dump.
 
@@ -40,10 +43,10 @@ file and thus easing test automation (see test-mon86 script as an example).
 TODO:
 
 * Core:
-- more support of the 8086 instruction set
+- full 8086 instruction set : WIP
 
 * Embedded systems:
-- add 80186 instruction set
+- add 80186 instruction set : WIP
 - add 80186 integrated peripherals (timer, serial)
 - add EEPROM / Flash emulation
 
@@ -53,5 +56,8 @@ version of MON86 targetting any 80186/80188 based system.
 * Legacy platform:
 - more support of BIOS interrupts
 
-The goal is to provide the minimum set of features needed to run ELKS.
+The goal is to provide the minimum set of features needed to run ELKS in a
+ROM-loaded configuration, headless and diskless, but with a RAM-disk and a
+serial console.
+
 A good reference is the "8086tiny" project.

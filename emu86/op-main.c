@@ -212,7 +212,6 @@ int main (int argc, char * argv [])
 
 			if (addr_seg_off (op_code_seg, op_code_off) == breakpoint)
 				{
-				putchar ('\n');
 				puts ("info: breakpoint hit");
 				flag_trace = 1;
 				flag_prompt = 1;

@@ -18,6 +18,9 @@
 
 // Prefixes
 
+static byte_t _seg_reg = 0xFF;
+static byte_t _seg_stat = 0;
+
 static word_t _rep_op = OP_NULL;
 static byte_t _rep_stat = 0;
 
@@ -47,6 +50,42 @@ static word_t off_get (const op_var_t * var)
 	}
 
 
+static word_t seg_over_get (const op_var_t * var)
+	{
+	word_t s;
+
+	if (_seg_stat == 2)
+		{
+		assert (_seg_reg < SEG_MAX);
+		s = seg_get (_seg_reg);
+
+		_seg_stat = 0;
+		_seg_reg = 0xFF;
+		}
+	else
+		{
+		if (var)
+			{
+			s = (var->flags & AF_BP) ? seg_get (SEG_SS) : seg_get (SEG_DS);
+			}
+		else
+			{
+			s = seg_get (SEG_DS);
+			}
+		}
+
+	return s;
+	}
+
+
+static addr_t addr_get (const op_var_t * var)
+	{
+	word_t s = seg_over_get (var);
+	word_t o = off_get (var);
+	return addr_seg_off (s, o);
+	}
+
+
 // Get actual value of variable
 
 static void val_get (const op_var_t * var1, op_var_t * var2)
@@ -56,9 +95,7 @@ static void val_get (const op_var_t * var1, op_var_t * var2)
 
 	var2->w = var1->w;
 
-	word_t o;
-	word_t s;
-	word_t a;
+	addr_t a;
 
 	switch (var1->type)
 		{
@@ -94,11 +131,7 @@ static void val_get (const op_var_t * var1, op_var_t * var2)
 
 		case VT_IND:
 
-			// TODO: segment override
-
-			s = (var1->flags & AF_BP) ? seg_get (SEG_SS) : seg_get (SEG_DS);
-			o = off_get (var1);
-			a = addr_seg_off (s, o);
+			a = addr_get (var1);
 
 			var2->type = VT_IMM;
 			var2->far = var1->far;
@@ -139,8 +172,6 @@ static void val_set (op_var_t * var1, const op_var_t * var2)
 	assert (var2->type == VT_IMM);
 	assert (var1->w == var2->w);
 
-	word_t o;
-	word_t s;
 	addr_t a;
 
 	switch (var1->type)
@@ -164,11 +195,7 @@ static void val_set (op_var_t * var1, const op_var_t * var2)
 		case VT_IND:
 			assert (!var1->far);
 
-			// TODO: add segment base
-
-			s = (var1->flags & AF_BP) ? seg_get (SEG_SS) : seg_get (SEG_DS);
-			o = off_get (var1);
-			a = addr_seg_off (s, o);
+			a = addr_get (var1);
 
 			if (var1->w)
 				{
@@ -777,6 +804,23 @@ static void op_jump_cond (op_desc_t * op_desc)
 */
 
 
+// Segment override with SEG prefix
+
+static void op_seg (op_desc_t * op_desc)
+	{
+	assert (op_desc->op_id == OP_SEG);
+	assert (_seg_reg == 0xFF);
+	assert (_seg_stat == 0);
+
+	assert (op_desc->var_count == 1);
+	op_var_t * var = &op_desc->var_to;
+	assert (var->type == VT_SEG);
+	assert (var->val.r < SEG_MAX);
+	_seg_reg = var->val.r;
+	_seg_stat = 1;
+	}
+
+
 // Strings
 
 static void op_repeat (op_desc_t * op_desc)
@@ -824,7 +868,7 @@ static void op_string (op_desc_t * op_desc)
 		word_t d = flag_get (FLAG_DF) ? -1 : 1;
 		d <<= w;
 
-		word_t ds,es;
+		word_t seg;
 		word_t si,di;
 
 		switch (op_desc->op_id)
@@ -834,17 +878,17 @@ static void op_string (op_desc_t * op_desc)
 
 				// TODO: segment override
 
-				ds = seg_get (SEG_DS);
+				seg = seg_over_get (NULL);
 				si = reg16_get (REG_SI);
 
 				if (w)
 					{
-					word_t v = mem_read_word (addr_seg_off (ds, si));
+					word_t v = mem_read_word (addr_seg_off (seg, si));
 					reg16_set (REG_AX, v);
 					}
 				else
 					{
-					byte_t v = mem_read_byte (addr_seg_off (ds, si));
+					byte_t v = mem_read_byte (addr_seg_off (seg, si));
 					reg8_set (REG_AL, v);
 					}
 
@@ -854,18 +898,18 @@ static void op_string (op_desc_t * op_desc)
 			case OP_STOSB:
 			case OP_STOSW:
 
-				es = seg_get (SEG_ES);
+				seg = seg_get (SEG_ES);
 				di = reg16_get (REG_DI);
 
 				if (w)
 					{
 					word_t v = reg16_get (REG_AX);
-					mem_write_word (addr_seg_off (es, di), v);
+					mem_write_word (addr_seg_off (seg, di), v);
 					}
 				else
 					{
 					byte_t v = reg8_get (REG_AL);
-					mem_write_byte (addr_seg_off (es, di), v);
+					mem_write_byte (addr_seg_off (seg, di), v);
 					}
 
 				reg16_set (REG_DI, di + d);
@@ -1105,6 +1149,8 @@ static op_id_hand_t _id_hand_tab [] = {
 
 	{ OP_LOOP, op_loop },
 
+	{ OP_SEG, op_seg },
+
 // TODO: allocate op id
 
 	/*
@@ -1119,7 +1165,6 @@ static op_id_hand_t _id_hand_tab [] = {
 #define OP_LOCK   0xFFFF
 #define OP_LOOPNZ 0xFFFF
 #define OP_LOOPZ  0xFFFF
-#define OP_SEG    0xFFFF
 */
 
 	{ 0, NULL }
@@ -1187,11 +1232,25 @@ int op_exec (op_desc_t * op_desc)
 					break;
 
 				case 2:
-					assert (0);  // orphan REPxx
+					assert (0);  // orphan REPxx prefix
 					_rep_stat = 0;
 					break;
 
 				}
+
+			switch (_seg_stat)
+				{
+				case 1:
+					_seg_stat = 2;
+					break;
+
+				case 2:
+					assert (0);  // orphan SEG prefix
+					_seg_stat = 0;
+					break;
+
+				}
+
 
 			err = 0;
 			}
