@@ -323,6 +323,10 @@ int main (int argc, char * argv [])
 					{
 					reg16_set (REG_IP, last_off_0);
 					}
+				else
+					{
+					seg_reset ();
+					}
 				}
 			}
 

@@ -46,6 +46,7 @@ int main (int argc, char * argv [])
 					}
 				else
 					{
+					if (ci == 0x0A) ci = 0x0D;
 					n = write (f, &ci, 1);
 					if (n != 1) break;
 					}

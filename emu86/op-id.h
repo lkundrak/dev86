@@ -53,6 +53,8 @@
 #define OP_POP   0x0701
 #define OP_PUSHF 0x0702
 #define OP_POPF  0x0703
+#define OP_PUSHA 0x0704
+#define OP_POPA  0x0705
 
 #define OP_JMP   0x0800
 #define OP_JMPF  0x0801

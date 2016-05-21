@@ -18,15 +18,31 @@
 
 // Prefixes
 
-static byte_t _seg_reg = 0xFF;
 static byte_t _seg_stat = 0;
+static byte_t _seg_reg = 0xFF;
 
-static word_t _rep_op = OP_NULL;
+void seg_reset ()
+	{
+	if (_seg_stat == 3)
+		{
+		_seg_stat = 0;
+		_seg_reg = 0xFF;
+		}
+	}
+
+
 static byte_t _rep_stat = 0;
+static word_t _rep_op = OP_NULL;
 
 int rep_stat ()
 	{
 	return (_rep_stat == 3);
+	}
+
+void rep_reset ()
+	{
+	_rep_stat = 0;
+	_rep_op = OP_NULL;
 	}
 
 
@@ -56,11 +72,13 @@ static word_t seg_over_get (const op_var_t * var)
 
 	if (_seg_stat == 2)
 		{
+		_seg_stat = 3;
+		}
+
+	if (_seg_stat == 3)
+		{
 		assert (_seg_reg < SEG_MAX);
 		s = seg_get (_seg_reg);
-
-		_seg_stat = 0;
-		_seg_reg = 0xFF;
 		}
 	else
 		{
@@ -349,11 +367,55 @@ static void op_calc_1 (op_desc_t * op_desc)
 
 	val_get (var, &temp);
 	assert (temp.type == VT_IMM);
+	word_t v = temp.val.w;
 
-	switch (op_desc->op_id)
+	word_t id = op_desc->op_id;
+	switch (id)
 		{
 		case OP_NOT:
-			temp.val.w = ~temp.val.w;
+			v = ~v;
+			break;
+
+		case OP_MUL:
+			assert (v > 0);
+
+			if (temp.w)
+				{
+				assert (0);  // not implemented
+				/*
+				word_t ax = reg16_get (REG_AX);
+				word_t dx = reg16_get (REG_DX);
+				addr_t t = ((addr_t) dx) * 0x10000 + (addr_t) ax;
+				reg16_set (REG_AX, (word_t) (t / (addr_t) v));
+				reg16_set (REG_DX, (word_t) (t % (addr_t) v));
+				*/
+				}
+			else
+				{
+				byte_t al = reg8_get (REG_AL);
+				reg16_set (REG_AX, ((word_t) al) * v);
+				}
+
+			break;
+
+		case OP_DIV:
+			assert (v > 0);
+
+			if (temp.w)
+				{
+				word_t ax = reg16_get (REG_AX);
+				word_t dx = reg16_get (REG_DX);
+				addr_t t = ((addr_t) dx) * 0x10000 + (addr_t) ax;
+				reg16_set (REG_AX, (word_t) (t / (addr_t) v));
+				reg16_set (REG_DX, (word_t) (t % (addr_t) v));
+				}
+			else
+				{
+				word_t ax = reg16_get (REG_AX);
+				reg8_set (REG_AL, (byte_t) (ax / v));
+				reg8_set (REG_AH, (byte_t) (ax % v));
+				}
+
 			break;
 
 		default:
@@ -363,38 +425,29 @@ static void op_calc_1 (op_desc_t * op_desc)
 
 	// TODO: set flags
 
-	val_set (var, &temp);
+	if (id == OP_NOT)
+		{
+		temp.val.w = v;
+		val_set (var, &temp);
+		}
 	}
 
 
-static void op_calc_2 (op_desc_t * op_desc)
+// TODO: to be moved to emu-proc ?
+
+static word_t alu_calc_2 (word_t op, byte_t w, word_t a, word_t b)
 	{
-	assert (op_desc->var_count == 2);
-	op_var_t * to   = &op_desc->var_to;
-	op_var_t * from = &op_desc->var_from;
-	assert (to->w == from->w);
-
-	op_var_t temp1;
-	op_var_t temp2;
-	memset (&temp1, 0, sizeof (op_var_t));
-	memset (&temp2, 0, sizeof (op_var_t));
-
-	val_get (to,   &temp1);
-	val_get (from, &temp2);
-	assert (temp1.type == VT_IMM);
-	assert (temp2.type == VT_IMM);
-	assert (temp1.w == temp2.w);
-
-	word_t a = temp1.val.w;
-	word_t b = temp2.val.w;
 	word_t r = 0;
 
-	word_t co = 0;  // carry out
-	word_t ci = 0;  // carry in
 	word_t cf = 0;
+	word_t of = 0;
 
-	word_t id = op_desc->op_id;
-	switch (id)
+	word_t co;  // carry out
+	word_t ci;  // carry in
+
+	word_t m = w ? 0x8000: 0x0080;
+
+	switch (op)
 		{
 		case OP_ADC:
 			r += (word_t) flag_get (FLAG_CF);
@@ -402,9 +455,12 @@ static void op_calc_2 (op_desc_t * op_desc)
 
 		case OP_ADD:
 			r += a + b;
+
 			co = (a & b) | ((a ^ b) & ~r);
-			cf = co & (to->w ? 0x8000: 0x0080);
 			ci = a ^ b ^ r;
+
+			cf = co & m;
+			of = ci & m;
 			break;
 
 		case OP_SBB:
@@ -414,9 +470,12 @@ static void op_calc_2 (op_desc_t * op_desc)
 		case OP_SUB:
 		case OP_CMP:
 			r += a - b;
+
 			co = (~a & b) | (~(a ^ b) & r);
-			cf = co & (to->w ? 0x8000: 0x0080);
 			ci = a ^ b ^ r;
+
+			cf = co & m;
+			of = ci & m;
 			break;
 
 		case OP_OR:
@@ -439,10 +498,44 @@ static void op_calc_2 (op_desc_t * op_desc)
 
 	// TODO: complete flags support
 
-	flag_set (FLAG_ZF, r ? 0 : 1);
-	flag_set (FLAG_CF, cf ? 1 : 0);
+	cf = cf ? 1 : 0;
+	of = cf ^ (of ? 1 : 0);
 
-	if (id != OP_TEST && id != OP_CMP)
+	flag_set (FLAG_CF, cf);
+	flag_set (FLAG_OF, of);
+
+	flag_set (FLAG_ZF, r ? 0 : 1);
+	flag_set (FLAG_SF, (r & m) ? 1 : 0);
+
+	return r;
+	}
+
+
+static void op_calc_2 (op_desc_t * op_desc)
+	{
+	assert (op_desc->var_count == 2);
+	op_var_t * to   = &op_desc->var_to;
+	op_var_t * from = &op_desc->var_from;
+	assert (to->w == from->w);
+
+	op_var_t temp1;
+	op_var_t temp2;
+	memset (&temp1, 0, sizeof (op_var_t));
+	memset (&temp2, 0, sizeof (op_var_t));
+
+	val_get (to,   &temp1);
+	val_get (from, &temp2);
+	assert (temp1.type == VT_IMM);
+	assert (temp2.type == VT_IMM);
+	assert (temp1.w == temp2.w);
+
+	word_t op = op_desc->op_id;
+
+	word_t a = temp1.val.w;
+	word_t b = temp2.val.w;
+	word_t r = alu_calc_2 (op, temp1.w, a, b);
+
+	if (op != OP_TEST && op != OP_CMP)
 		{
 		temp1.val.w = r;
 		val_set (to, &temp1);
@@ -512,20 +605,24 @@ static void op_shift_rot (op_desc_t * op_desc)
 	word_t b = temp2.val.b;
 	word_t t = b;
 
-	word_t c;  // carry
+	word_t d;  // previous carry
+	word_t c = flag_get (FLAG_CF);  // carry
 	word_t q;
 
 	word_t id = op_desc->op_id;
 	switch (id)
 		{
+		case OP_RCL:
 		case OP_ROL:
 		case OP_SHL:
 			while (t--)
 				{
+				d = c;
 				c = a & (w ? 0x8000 : 0x0080);
 				c = c ? 1 : 0;
 
 				a  <<= 1;
+				if (id == OP_RCL) a |= d;
 				if (id == OP_ROL) a |= c;
 				}
 
@@ -541,14 +638,17 @@ static void op_shift_rot (op_desc_t * op_desc)
 
 			break;
 
+		case OP_RCR:
 		case OP_ROR:
 		case OP_SHR:
 			while (t--)
 				{
+				d = c;
 				c = a & 0x0001;
 				c = c ? 1 : 0;
 
 				a  >>= 1;
+				if (id == OP_RCR) a |= d ? (w ? 0x8000 : 0x0080) : 0;
 				if (id == OP_ROR) a |= c ? (w ? 0x8000 : 0x0080) : 0;
 				}
 
@@ -619,6 +719,37 @@ void op_popf (op_desc_t * op_desc)
 	{
 	assert (!op_desc->var_count);
 	reg16_set (REG_FL, stack_pop ());
+	}
+
+
+// 80186 / 80188 PUSHA / POPA
+
+static void op_pusha (op_desc_t * op_desc)
+	{
+	assert (!op_desc->var_count);
+	byte_t r;
+
+	for (r = 0; r != 8; r++)
+		stack_push (reg16_get (r));
+
+	}
+
+void op_popa (op_desc_t * op_desc)
+	{
+	assert (!op_desc->var_count);
+	byte_t r;
+
+	for (r = 7; r != 0xFF; r--)
+		{
+		if (r == REG_SP)
+			{
+			stack_pop ();  // ignore pushed SP
+			}
+		else
+			{
+			reg16_set (r, stack_pop ());
+			}
+		}
 	}
 
 
@@ -785,6 +916,22 @@ static void op_jump_cond (op_desc_t * op_desc)
 			f = !flag_get (FLAG_PF);
 			break;
 
+		case OP_JNL:
+			f = flag_get (FLAG_SF) == flag_get (FLAG_OF);
+			break;
+
+		case OP_JL:
+			f = flag_get (FLAG_SF) != flag_get (FLAG_OF);
+			break;
+
+		case OP_JNG:
+			f = (flag_get (FLAG_SF) != flag_get (FLAG_OF)) || flag_get (FLAG_ZF);
+			break;
+
+		case OP_JG:
+			f = (flag_get (FLAG_SF) == flag_get (FLAG_OF)) && !flag_get (FLAG_ZF);
+			break;
+
 		default:
 			assert (0);
 		}
@@ -795,13 +942,6 @@ static void op_jump_cond (op_desc_t * op_desc)
 		reg16_set (REG_IP, ip);
 		}
 	}
-
-/*
-{ OP_JL,  op_jump_cond },
-{ OP_JNL, op_jump_cond },
-{ OP_JNG, op_jump_cond },
-{ OP_JG,  op_jump_cond },
-*/
 
 
 // Segment override with SEG prefix
@@ -854,8 +994,7 @@ static void op_string (op_desc_t * op_desc)
 			word_t cx = reg16_get (REG_CX);
 			if (!cx)
 				{
-				_rep_stat = 0;
-				_rep_op = OP_NULL;
+				rep_reset ();
 				break;
 				}
 
@@ -863,61 +1002,86 @@ static void op_string (op_desc_t * op_desc)
 			}
 
 		word_t id = op_desc->op_id;
-		byte_t w = (id == OP_LODSW || id == OP_STOSW) ? 1 : 0;
+		byte_t w = (id == OP_LODSW || id == OP_STOSW || id == OP_MOVSW || id == OP_CMPSW) ? 1 : 0;
 
 		word_t d = flag_get (FLAG_DF) ? -1 : 1;
 		d <<= w;
 
 		word_t seg;
 		word_t si,di;
+		word_t a;
+		word_t b;
 
-		switch (op_desc->op_id)
+		if (id == OP_LODSB || id == OP_LODSW || id == OP_MOVSB || id == OP_MOVSW
+			|| id == OP_CMPSB || id == OP_CMPSW)
 			{
-			case OP_LODSB:
-			case OP_LODSW:
+			seg = seg_over_get (NULL);
+			si = reg16_get (REG_SI);
 
-				// TODO: segment override
+			if (w)
+				{
+				a = mem_read_word (addr_seg_off (seg, si));
+				if (id == OP_LODSB || id == OP_LODSW) reg16_set (REG_AX, a);
+				}
+			else
+				{
+				a = (word_t) mem_read_byte (addr_seg_off (seg, si));
+				if (id == OP_LODSB || id == OP_LODSW) reg8_set (REG_AL, (byte_t) a);
+				}
 
-				seg = seg_over_get (NULL);
-				si = reg16_get (REG_SI);
+			reg16_set (REG_SI, si + d);
+			}
 
+		if (id == OP_STOSB || id == OP_STOSW || id == OP_MOVSB || id == OP_MOVSW
+			|| id == OP_CMPSB || id == OP_CMPSW)
+			{
+			seg = seg_get (SEG_ES);
+			di = reg16_get (REG_DI);
+
+			if (id == OP_STOSB || id == OP_STOSW || id == OP_MOVSB || id == OP_MOVSW)
+				{
 				if (w)
 					{
-					word_t v = mem_read_word (addr_seg_off (seg, si));
-					reg16_set (REG_AX, v);
+					if (id == OP_STOSB || id == OP_STOSW) a = reg16_get (REG_AX);
+					mem_write_word (addr_seg_off (seg, di), a);
 					}
 				else
 					{
-					byte_t v = mem_read_byte (addr_seg_off (seg, si));
-					reg8_set (REG_AL, v);
+					if (id == OP_STOSB || id == OP_STOSW) a = (word_t) reg8_get (REG_AL);
+					mem_write_byte (addr_seg_off (seg, di), (byte_t) a);
 					}
+				}
 
-				reg16_set (REG_SI, si + d);
-				break;
-
-			case OP_STOSB:
-			case OP_STOSW:
-
-				seg = seg_get (SEG_ES);
-				di = reg16_get (REG_DI);
-
+			if (id == OP_CMPSB || id == OP_CMPSW)
+				{
 				if (w)
 					{
-					word_t v = reg16_get (REG_AX);
-					mem_write_word (addr_seg_off (seg, di), v);
+					b = mem_read_word (addr_seg_off (seg, di));
 					}
 				else
 					{
-					byte_t v = reg8_get (REG_AL);
-					mem_write_byte (addr_seg_off (seg, di), v);
+					b = (word_t) mem_read_byte (addr_seg_off (seg, di));
 					}
+				}
 
-				reg16_set (REG_DI, di + d);
-				break;
+			reg16_set (REG_DI, di + d);
+			}
 
-			default:
-				assert (0);
+		if (id == OP_CMPSB || id == OP_CMPSW)
+			{
+			alu_calc_2 (OP_CMP, w, a, b);  // forget result - just for flags
 
+			if (_rep_stat == 3)
+				{
+				byte_t z = flag_get (FLAG_ZF);
+
+				// TODO: looks like an XOR would be nice here
+
+				if ((_rep_op == OP_REPZ && !z) || (_rep_op == OP_REPNZ && z))
+					{
+					rep_reset ();;
+					}
+				}
 			}
 
 		break;
@@ -1075,10 +1239,12 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_SAL, op_shift_rot },
 	{ OP_SAR, op_shift_rot },
 
-	{ OP_PUSH,  op_push },
-	{ OP_POP,   op_pop },
+	{ OP_PUSH,  op_push  },
+	{ OP_POP,   op_pop   },
 	{ OP_PUSHF, op_pushf },
-	{ OP_POPF,  op_popf },
+	{ OP_POPF,  op_popf  },
+	{ OP_PUSHA, op_pusha },
+	{ OP_POPA,  op_popa  },
 
 	{ OP_JMP,   op_jump_call },
 	{ OP_JMPF,  op_jump_call },
@@ -1233,7 +1399,7 @@ int op_exec (op_desc_t * op_desc)
 
 				case 2:
 					assert (0);  // orphan REPxx prefix
-					_rep_stat = 0;
+					rep_reset ();
 					break;
 
 				}
@@ -1246,7 +1412,7 @@ int op_exec (op_desc_t * op_desc)
 
 				case 2:
 					assert (0);  // orphan SEG prefix
-					_seg_stat = 0;
+					seg_reset ();
 					break;
 
 				}

@@ -29,8 +29,8 @@ CURRENT STATUS:
 The emulator is now able to execute the MON86 code, targetting the Advantech
 SNMP-1000 SBC with its specific INT 10h / 16h minimally stubbed.
 
-It also begins to execute the real ROM code of the same SBC (bootstrap, POST,
-BIOS, diagnostics).
+It also executes partially the real ROM code of the same SBC (bootstrap, POST,
+BIOS & diagnostics).
 
 Debugger features: initial breakpoint, trace mode, interactive mode, registers
 dump, trace in, trace over, stack dump.

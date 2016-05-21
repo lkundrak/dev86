@@ -772,6 +772,9 @@ static class_desc_t _class_1 [] = {
 	{ 0xF8, 0x50, 1, NULL,        class_reg,          0,     OP_PUSH   },
 	{ 0xF8, 0x58, 1, NULL,        class_reg,          0,     OP_POP    },
 
+	{ 0xFF, 0x60, 1, NULL,        class_void,         0,     OP_PUSHA  },
+	{ 0xFF, 0x61, 1, NULL,        class_void,         0,     OP_POPA   },
+
 	{ 0xFF, 0x70, 1, NULL,        class_dist,         CF_1,  OP_JO     },
 	{ 0xFF, 0x71, 1, NULL,        class_dist,         CF_1,  OP_JNO    },
 	{ 0xFF, 0x72, 1, NULL,        class_dist,         CF_1,  OP_JB     },
