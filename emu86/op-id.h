@@ -13,6 +13,7 @@
 
 #define OP_MOV   0x0001
 #define OP_LEA   0x0002
+#define OP_LDS   0x0003
 
 #define OP_XCHG  0x0100
 
@@ -121,20 +122,19 @@
 
 #define OP_HLT   0x1100
 
-#define OP_LOOP  0x1200
+#define OP_LOOP   0x1200
+#define OP_LOOPNZ 0x1201
+#define OP_LOOPZ  0x1202
 
 #define OP_SEG   0x1300
 
-// TODO: allocate op id
+// TODO: finalize op id
 
-#define OP_WAIT   0xFFFF
-#define OP_XLAT   0xFFFF
-#define OP_ESC    0xFFFF
-#define OP_DAA    0xFFFF
-#define OP_DAS    0xFFFF
-#define OP_JCXZ   0xFFFF
-#define OP_LDS    0xFFFF
-#define OP_LES    0xFFFF
-#define OP_LOCK   0xFFFF
-#define OP_LOOPNZ 0xFFFF
-#define OP_LOOPZ  0xFFFF
+#define OP_WAIT   0xFF00
+#define OP_XLAT   0xFF01
+#define OP_ESC    0xFF02
+#define OP_DAA    0xFF03
+#define OP_DAS    0xFF04
+#define OP_JCXZ   0xFF05
+#define OP_LES    0xFF07
+#define OP_LOCK   0xFF08

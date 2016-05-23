@@ -8,8 +8,20 @@
 #include "emu-int.h"
 
 
+// ADVTECH SNMP-1000 board
+
+#define ADVTECH 1
+
+
+// Dummy INT3 as we already run under emulator
+
+void int_03h ()
+	{
+	puts ("warning: INT3");
+	}
+
+
 // BIOS video services
-// WARNING: specific to ADVTECH SBC - not standard IBM BIOS
 
 static byte_t num_hex (byte_t n)
 	{
@@ -33,10 +45,48 @@ void int_10h ()
 
 	switch (ah)
 		{
+		// Set cursor position
+
+		case 0x02:
+			break;
+
+		// Get cursor position
+
+		case 0x03:
+			reg16_set (REG_CX, 0);  // null cursor
+			reg16_set (REG_DX, 0);  // upper-left corner (0,0)
+			break;
+
+		// Select active page
+
+		case 0x05:
+			break;
+
+		// Scroll up
+
+		case 0x06:
+			break;
+
 		// Write character at current cursor position
 
+		case 0x09:
 		case 0x0A:
-			serial_send (reg8_get (REG_AL));
+			serial_send (reg8_get (REG_AL));  // ADVTECH: redirect to serial port
+			break;
+
+		// Write as teletype to current page
+		// Page ignored in video mode 7
+
+		case 0x0E:
+			serial_send (reg8_get (REG_AL));  // ADVTECH: redirect to serial port
+			break;
+
+		// Get video mode
+
+		case 0x0F:
+			reg8_set (REG_AL, 7);   // text monochrome 80x25
+			reg8_set (REG_AH, 80);  // 80 columns
+			reg8_set (REG_BH, 0);   // page 0 active
 			break;
 
 		// Write string
@@ -49,7 +99,7 @@ void int_10h ()
 
 			while (cx--)
 				{
-				serial_send (mem_read_byte (a++));
+				serial_send (mem_read_byte (a++));  // ADVTECH: redirect to serial port
 				}
 
 			break;
@@ -59,14 +109,26 @@ void int_10h ()
 		case 0x1D:
 			al = reg8_get (REG_AL);
 			c = num_hex (al >> 4);
-			serial_send (c);
+			serial_send (c);  // ADVTECH: redirect to serial port
 			c = num_hex (al & 0x0F);
-			serial_send (c);
+			serial_send (c);  // ADVTECH: redirect to serial port
 			break;
 
 		default:
+			printf ("fatal: INT 10h: AH=%hxh not implemented\n", ah);
 			assert (0);
 		}
+	}
+
+
+// BIOS memory services
+
+void int_12h ()
+	{
+	// 512 KiB of low memory
+	// no extended memory
+
+	reg16_set (REG_AX, 512);
 	}
 
 
@@ -238,7 +300,9 @@ struct int_num_hand_s
 typedef struct int_num_hand_s int_num_hand_t;
 
 int_num_hand_t _int_tab [] = {
+		{ 0x03, int_03h },
 		{ 0x10, int_10h },
+		{ 0x12, int_12h },
 		{ 0x16, int_16h },
 		{ 0x17, int_17h },
 		{ 0x1A, int_1Ah },

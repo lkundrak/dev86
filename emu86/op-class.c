@@ -631,6 +631,8 @@ static int class_mod_reg_rm (byte_t flags, op_desc_t * op)
 	var_reg->w = 1;
 	var_reg->val.r = op->reg2;
 
+	if (flags & CF_F) var_rm->far = 1;
+
 	scan_mod_rm (1, op->mod, op->rm, var_rm);
 
 	return 0;
@@ -722,10 +724,6 @@ static class_desc_t class_2_F6h [] = {
 static class_desc_t class_2_FEh [] = {
 	{ 0x38, 0x00, 1, NULL, class_w_mod_rm,     0,     OP_INC   },
 	{ 0x38, 0x08, 1, NULL, class_w_mod_rm,     0,     OP_DEC   },
-	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
-	};
-
-static class_desc_t class_2_FFh [] = {
 	{ 0x38, 0x10, 1, NULL, class_mod_rm,       0,     OP_CALL  },  // TODO: class_w_mod_rm & w=1 ?
 	{ 0x38, 0x18, 1, NULL, class_mod_rm,       CF_F,  OP_CALLF },  // TODO: class_w_mod_rm & w=1 ?
 	{ 0x38, 0x20, 1, NULL, class_mod_rm,       0,     OP_JMP   },  // TODO: class_w_mod_rm & w=1 ?
@@ -840,8 +838,8 @@ static class_desc_t _class_1 [] = {
 	{ 0xFF, 0xC2, 1, NULL,        class_imm,          CF_2,  OP_RET    },
 	{ 0xFF, 0xC3, 1, NULL,        class_void,         0,     OP_RET    },
 
-	{ 0xFF, 0xC4, 2, NULL,        class_mod_reg_rm,   0,     OP_LES    },
-	{ 0xFF, 0xC5, 2, NULL,        class_mod_reg_rm,   0,     OP_LDS    },
+	{ 0xFF, 0xC4, 2, NULL,        class_mod_reg_rm,   CF_F,  OP_LES    },
+	{ 0xFF, 0xC5, 2, NULL,        class_mod_reg_rm,   CF_F,  OP_LDS    },
 	{ 0xFE, 0xC6, 2, NULL,        class_w_mod_rm_imm, 0,     OP_MOV    },
 
 	{ 0xFF, 0xCA, 1, NULL,        class_imm,          CF_2,  OP_RETF   },
@@ -886,8 +884,7 @@ static class_desc_t _class_1 [] = {
 	{ 0xFF, 0xFC, 1, NULL,        class_void,         0,     OP_CLD    },
 	{ 0xFF, 0xFD, 1, NULL,        class_void,         0,     OP_STD    },
 
-	{ 0xFF, 0xFE, 2, class_2_FEh, NULL,               0,     0         },
-	{ 0xFF, 0xFF, 2, class_2_FFh, NULL,               0,     0         },
+	{ 0xFE, 0xFE, 2, class_2_FEh, NULL,               0,     0         },
 
 	{ 0x00, 0x00, 0, NULL,        NULL,               0,     0         }
 	};

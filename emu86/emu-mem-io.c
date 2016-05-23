@@ -45,7 +45,7 @@ void mem_write_byte (addr_t a, byte_t b)
 		}
 	else
 		{
-		puts ("warning: writing byte into ROM");
+		printf ("warning: writing byte into ROM @ %lxh\n", a);
 		}
 	}
 
@@ -62,7 +62,7 @@ void mem_write_word (addr_t a, word_t w)
 		}
 	else
 		{
-		puts ("warning: writing word into ROM");
+		printf ("warning: writing word into ROM @ %lxh\n", a);
 		}
 	}
 
