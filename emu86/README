@@ -23,21 +23,25 @@ The emulator has a modular design with:
 - an interrupt handler for firmware (BIOS) stubbing
 - some debugger features
 
-
-CURRENT STATUS:
-
-The emulator is now able to execute the MON86 code, targetting the Advantech
-SNMP-1000 SBC with its specific INT 10h / 16h minimally stubbed.
-
-It also executes partially the real ROM code of the same SBC (bootstrap, POST,
-BIOS & diagnostics).
-
 Debugger features: initial breakpoint, trace mode, interactive mode, registers
 dump, trace in, trace over, stack dump.
 
 Serial port is emulated through a pseudo-terminal (/dev/pts), with a
 bidirectional cat utility (pcat) to be able to redirect serial I/O from / to
 file and thus easing test automation (see test-mon86 script as an example).
+
+
+CURRENT STATUS:
+
+The emulator is now able to execute the MON86 code, targetting the Advantech
+SNMP-1000 SBC with its specific INT 10h / 16h minimally stubbed.
+
+It also executes partially the original ROM code of the same SBC, enough to
+reach the user prompt and to run some basic commands of the embedded
+diagnostics program.
+
+Current work is focusing on running ELKS in a minimal configuration:
+see below for the goal description about legacy platform.
 
 
 TODO:
@@ -57,7 +61,7 @@ version of MON86 targetting any 80186/80188 based system.
 - more support of BIOS interrupts
 
 The goal is to provide the minimum set of features needed to run ELKS in a
-ROM-loaded configuration, headless and diskless, but with a RAM-disk and a
+ROM-loaded configuration, headless and diskless, but with a ROM-disk and a
 serial console.
 
 A good reference is the "8086tiny" project.

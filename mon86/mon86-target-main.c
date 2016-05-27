@@ -10,6 +10,10 @@
 
 #asm
 
+	push ss  ; BCC assumes DS=ES=SS
+	push ss  ; and no data segment used here
+	pop  ds  ; so stay on the stack segment
+	pop  es
 	br _main
 
 #endasm
@@ -90,38 +94,50 @@ static void print_char (char_t c)
 #asm
 
 _toggle_0:
+	push bp
+	mov  bp,sp
 	push dx
 	push ax
-	mov dx, #0xFF74
-	in ax, dx
-	mov dx, ax
-	not ax
-	and ax, #1
-	and dx, #0xFFFE
-	or ax, dx
-	mov dx, #0xFF74
-	out dx, ax
-	pop ax
-	pop dx
+	mov  dx,#0xFF74
+	in   ax,dx
+	mov  dx,ax
+	not  ax
+	and  ax,#1
+	and  dx,#0xFFFE
+	or   ax,dx
+	mov  dx,#0xFF74
+	out  dx,ax
+	pop  ax
+	pop  dx
+	pop  bp
 	ret
 
 _print_char:
 	push bp
-	mov bp, sp
+	mov  bp,sp
 	push ax
-	mov ax, [bp+4]  ; BCC pushes char as word
-	mov ah, #0x0A   ; write character
-	int 0x10        ; BIOS video service
-	pop ax
-	pop bp
+	mov  ax,[bp+4]  ; BCC pushes char as word
+	mov  ah,#0x0A   ; write character
+	int  0x10       ; BIOS video service
+	pop  ax
+	pop  bp
 	ret
 
 _scan_char:
+	push bp
+	mov  bp,sp
+_scan_loop:
 	call _toggle_0  ; quiet the watching thing
-	mov ah, #0x10   ; get extended key
-	int 0x16        ; BIOS keyboard service
-	or ah, ah
-	jnz _scan_char  ; retry when no key
+	mov  ah,#0x10   ; get extended key
+	int  0x16       ; BIOS keyboard service
+	or   ah,ah
+	jz   _scan_exit ; got a key
+
+	hlt             ; idle until next interrupt
+	br   _scan_loop
+
+	_scan_exit:
+	pop  bp
 	ret
 
 #endasm
@@ -403,7 +419,7 @@ static void sub_call (context_t * context)
 	reg_t ip, cs;
 	ip = context->ip;
 	cs = context->cs;
-	printf ("CALL %x:%x\n", cs, ip);
+	printf ("CALL %x:%x\r\n", cs, ip);
 	}
 
 #else // HOST_STUB
@@ -412,76 +428,67 @@ static void sub_call (context_t * context)
 
 _sub_read:
 	push bp
-	mov bp,sp
+	mov  bp,sp
 	push ax
 	push bx
 	push si
+	mov  bx,[bp+4]      ; arg1 = * context
+	mov  si,[bx+2*0x4]
 	push ds
-	mov bx,[bp+4]      ; arg1 = * context
-	mov si,[bx+2*0x4]
-	mov ds,[bx+2*0x7]
+	mov  ds,[bx+2*0x7]
 	lodsb
-	mov ah,#0
-	mov [bx+2*0x9],ax  ; store read value
-	mov [bx+2*0x4],si  ; store incremented pointer
-	pop ds
-	pop si
-	pop bx
-	pop ax
-	pop bp
+	pop  ds
+	mov  ah,#0
+	mov  [bx+2*0x9],ax  ; store read value
+	mov  [bx+2*0x4],si  ; store incremented pointer
+	pop  si
+	pop  bx
+	pop  ax
+	pop  bp
 	ret
 
 _sub_write:
 	push bp
-	mov bp,sp
+	mov  bp,sp
 	push ax
 	push bx
 	push di
+	mov  bx,[bp+4]      ; arg1 = * context
+	mov  di,[bx+2*0x5]
+   	mov  ax,[bx+2*0x9]  ; get value to write
 	push es
-	mov bx,[bp+4]      ; arg1 = * context
-	mov di,[bx+2*0x5]
-	mov es,[bx+2*0x8]
-	mov ax,[bx+2*0x9]  ; get value to write
+	mov  es,[bx+2*0x8]
 	stosb
-	mov [bx+2*0x5],di  ; store incremented pointer
-	pop es
-	pop di
-	pop bx
-	pop ax
-	pop bp
+	pop  es
+	mov  [bx+2*0x5],di  ; store incremented pointer
+	pop  di
+	pop  bx
+	pop  ax
+	pop  bp
 	ret
 
 _sub_call:
 	push bp
-	mov bp,sp
-	sub sp,#4          ; call local pointer
+	mov  bp,sp
+	sub  sp,#4          ; call local pointer
 	push ax
 	push bx
-	mov bx,[bp+4]      ; arg1 = * context
-	mov ax,[bx+2*0xA]    ; IP
-	mov [bp-4],ax
-	mov ax,[bx+2*0xB]    ; CS
-	mov [bp-2],ax
-	lea bx,[bp-4]
+	mov  bx,[bp+4]      ; arg1 = * context
+	mov  ax,[bx+2*0xA]  ; IP
+	mov  [bp-4],ax
+	mov  ax,[bx+2*0xB]  ; CS
+	mov  [bp-2],ax
+	lea  bx,[bp-4]
 	call far [bx]
-	pop bx
-	pop ax
-	add sp,#4
-	pop bp
+	pop  bx
+	pop  ax
+	add  sp,#4
+	pop  bp
 	ret
 
 #endasm
 
 #endif // HOST_STUB
-
-
-extern void slave_exec ();
-
-static sub_slave_exec (context_t * context)
-	{
-	// TODO: plenty of stuff :-)
-	slave_exec ();
-	}
 
 
 static err_t sub_exec (reg_t * regs, char_t suffix)

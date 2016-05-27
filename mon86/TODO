@@ -1,9 +1,8 @@
 Bug:
 
-  - BCC defines external function as U (undefined) symbol : WIP
+  - None detected at this time :-)
 
 Next:
 
-  - Host tool with load and execute
-  - Second stage monitor after first stage validation
+  - Second stage monitor : WIP
 

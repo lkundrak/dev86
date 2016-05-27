@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Write to the device memory
+
+# arg1: segment:offset in hexadecimal
+# arg2: file to write to memory
+
+sudo ./pt1-write /dev/ttyUSB0 $1 < $2

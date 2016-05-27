@@ -140,9 +140,10 @@ void regs_print ()
 	printf ("SI %.4hX  DI %.4hX  SP %.4hX  BP %.4hX\n", si, di, sp, bp);
 	printf ("DS %.4hX  ES %.4hX  SS %.4hX  CS %.4hX  IP %.4hX\n", ds, es, ss, cs, ip);
 
-	printf ("\nCF %hhu  PF %hhu  AF ?  ZF %hhu  SF %hhu  TF ?  IF %hhu  DF ?  OF %hhu\n",
+	printf ("\nCF %hhu  PF %hhu  AF ?  ZF %hhu  SF %hhu  TF ?  IF %hhu  DF %hhu  OF %hhu\n",
 		flag_get (FLAG_CF), flag_get (FLAG_PF), flag_get (FLAG_ZF),
-		flag_get (FLAG_SF), flag_get (FLAG_IF), flag_get (FLAG_OF));
+		flag_get (FLAG_SF), flag_get (FLAG_IF), flag_get (FLAG_DF),
+		flag_get (FLAG_OF));
 	}
 
 
