@@ -25,8 +25,7 @@
 # be necessary to alter the formats of the tables.
 
 #CC=bcc
-#CFLAGS=-O
-CFLAGS=-g
+CFLAGS=-O
 LDFLAGS=
 PREFIX=/usr
 

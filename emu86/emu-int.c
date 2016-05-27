@@ -48,6 +48,12 @@ void int_10h ()
 		// Set cursor position
 
 		case 0x02:
+			if (reg8_get (REG_DL) == 0)
+				{
+				serial_send (13);  // CR
+				serial_send (10);  // LF
+				}
+
 			break;
 
 		// Get cursor position
@@ -130,6 +136,24 @@ void int_12h ()
 
 	reg16_set (REG_AX, 512);
 	}
+
+
+// BIOS misc services
+
+void int_15h ()
+  {
+	byte_t ah = reg8_get (REG_AH);
+	switch (ah)
+    {
+
+    // Return CF=1 for all non implemented functions
+    // as recommended by Alan Cox on the ELKS mailing list
+
+    default:
+      flag_set (FLAG_CF, 1);
+
+    }
+  }
 
 
 // BIOS keyboard services
@@ -303,6 +327,7 @@ int_num_hand_t _int_tab [] = {
 		{ 0x03, int_03h },
 		{ 0x10, int_10h },
 		{ 0x12, int_12h },
+		{ 0x15, int_15h },
 		{ 0x16, int_16h },
 		{ 0x17, int_17h },
 		{ 0x1A, int_1Ah },
