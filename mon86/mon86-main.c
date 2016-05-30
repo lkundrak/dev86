@@ -11,29 +11,28 @@
 
 
 // Registers
+// Synchronize with mon86-low
 
-#define REG_MAX 0x10
+#define REG_MAX 0x0E
 
 typedef word_t reg_t;
 
 struct regs_s
 	{
-	reg_t ax;  // 0h
-	reg_t cx;  // 1h
-	reg_t dx;  // 2h
-	reg_t bx;  // 3h
-	reg_t sp;  // 4h
-	reg_t bp;  // 5h
-	reg_t si;  // 6h
-	reg_t di;  // 7h
-	reg_t es;  // 8h
-	reg_t cs;  // 9h
-	reg_t ss;  // Ah
-	reg_t ds;  // Bh
-	reg_t ip;  // Ch
-	reg_t fl;  // Dh
-	reg_t i1;  // Eh
-	reg_t i2;  // Fh
+	reg_t ax;   // 0h
+	reg_t cx;   // 1h
+	reg_t dx;   // 2h
+	reg_t bx;   // 3h
+	reg_t sp;   // 4h
+	reg_t bp;   // 5h
+	reg_t si;   // 6h
+	reg_t di;   // 7h
+	reg_t es;   // 8h
+	reg_t cs;   // 9h
+	reg_t ss;   // Ah
+	reg_t ds;   // Bh
+	reg_t ip;   // Ch
+	reg_t fl;   // Dh
 	};
 
 typedef struct regs_s regs_t;
@@ -44,33 +43,19 @@ typedef struct regs_s regs_t;
 
 struct globals_s
 	{
-	reg_t master_sp;   // 00h
-	reg_t master_ss;   // 02h
+	word_t glob_magic;  // +0h
 
-	reg_t slave_sp;    // 04h
-	reg_t slave_ss;    // 06h
+	reg_t master_sp;    // +2h
+	reg_t master_ss;    // +4h
 
-	byte_t slave_run;  // 08h
-	byte_t int_num;    // 09h
+	reg_t slave_sp;     // +6h
+	reg_t slave_ss;     // +8h
+
+	byte_t slave_run;   // +Ah
+	byte_t slave_ret;   // +Bh
 	};
 
 typedef struct globals_s globals_t;
-
-
-// Context
-
-struct context_s
-	{
-	word_t off;
-	word_t seg;
-	word_t len;
-	word_t val;
-
-	globals_t globals;
-	regs_t regs;
-	};
-
-typedef struct context_s context_t;
 
 
 // Host stubbing
@@ -124,63 +109,68 @@ static void mem_write (context_t * context)
 	}
 
 
-static void sub_call (context_t * context)
+static void proc_call (context_t * context, regs_t * regs)
 	{
-	write_string ("CALL ", 5);
+	write_string ("PROC ", 5);
 	write_word (context->seg);
 	write_char (':');
 	write_word (context->off);
-	write_char (13);
-	write_char (10);
+	write_char (13);  // carriage return
+	write_char (10);  // line feed
 	}
 
-static word_t slave_exec (globals_t * globals, regs_t * regs)
+
+static word_t task_exec (globals_t * globals, regs_t * regs, word_t start)
 	{
-	write_string ("TASK", 4);
-	write_char (13);
-	write_char (10);
-	return 3;
+	write_string ("TASK ", 4);
+	write_word (start);
+	write_char (13);  // carriage return
+	write_char (10);  // line feed
+	return 255;
 	}
+
 
 static void int_setup (globals_t * globals)
+	{
+	}
+
+
+static void reg_setup (regs_t * regs)
 	{
 	}
 
 #else // HOST_STUB
 
 extern void mem_write (context_t * context);
-extern void mem_read (context_t * context);
+extern void mem_read  (context_t * context);
 
-extern void sub_call (context_t * context);
+extern void proc_call (context_t * context, regs_t * regs);
 
-extern word_t slave_exec (globals_t * globals, regs_t * regs);
+extern word_t task_exec (globals_t * globals, regs_t * regs, byte_t start);
 
 extern void int_setup (globals_t * globals);
+extern void reg_setup (regs_t * regs);
 
 #endif // HOST_STUB
 
 
 // Register operations
 
-static err_t reg_read (context_t * context, char_t suffix)
+static err_t reg_read (context_t * context, regs_t * regs)
 	{
 	err_t err;
 	digit_t index;
 
-	reg_t * reg;
-
 	while (1)
 		{
-		index = hex_to_digit (suffix);
-		if (index > REG_MAX)
+		index = hex_to_digit (context->sub2);
+		if (index >= REG_MAX)
 			{
 			err = E_INDEX;
 			break;
 			}
 
-		reg = (reg_t *) (&context->regs) + index;
-		context->val = *reg;
-
+		context->val = *((reg_t *) regs + index);
 		err = E_OK;
 		break;
 		}
@@ -189,25 +179,21 @@ static err_t reg_read (context_t * context, char_t suffix)
 	}
 
 
-static err_t reg_write (context_t * context, char_t suffix)
+static err_t reg_write (context_t * context, regs_t * regs)
 	{
 	err_t err;
 	digit_t index;
 
-	reg_t * reg;
-
 	while (1)
 		{
-		index = hex_to_digit (suffix);
-		if (index > REG_MAX)
+		index = hex_to_digit (context->sub2);
+		if (index >= REG_MAX)
 			{
 			err = E_INDEX;
 			break;
 			}
 
-		reg = (reg_t *) (&context->regs) + index;
-		*reg = context->val;
-
+		*((reg_t *) regs + index) = context->val;
 		err = E_OK;
 		break;
 		}
@@ -216,43 +202,47 @@ static err_t reg_write (context_t * context, char_t suffix)
 	}
 
 
-// Routine execution
+// Slave operations
 
-static err_t sub_exec (context_t * context, char_t suffix)
+static err_t task_sub (globals_t * globals, regs_t * regs)
 	{
 	err_t err;
-	digit_t index;
-	word_t int_num;
 
-	globals_t * globals = &(context->globals);
-	regs_t * regs = &(context->regs);
+	word_t ret;
 
-	while (1)
+	// Add return frame if never executed
+	// or previously returned (restart)
+
+	if (globals->slave_ret)
 		{
-		index = hex_to_digit (suffix);
-		switch (index)
-			{
-			case 0:
-			sub_call (context);
-			err = E_OK;
+		globals->slave_ret = 0;
+
+		ret = 1;
+		}
+	else
+		{
+		ret = 0;
+		}
+
+	ret = task_exec (globals, regs, ret);
+
+	switch (ret)
+		{
+		case 1:
+			err = E_TRACE;
 			break;
 
-			case 1:
-			int_num = slave_exec (globals, regs);
-			switch (int_num)
-				{
-				case 1 : err = E_TRACE; break;
-				case 3 : err = E_BREAK; break;
-				default : err = E_OK;
-				}
-
+		case 3:
+			err = E_BREAK;
 			break;
 
-			default:
+		case 255:
+			globals->slave_ret = 1;
+			err = E_EXIT;
+			break;
+
+		default:
 			err = E_INDEX;
-			}
-
-		break;
 		}
 
 	return err;
@@ -266,14 +256,26 @@ void main ()
 	err_t err;
 
 	context_t context;
-	globals_t globals;
 	regs_t regs;
+	globals_t globals;
 
-	char_t token [TOKEN_LEN_MAX];
-	byte_t len;
+	// Default safe values
 
-	context.globals.slave_run = 0;
-	int_setup (&context.globals);
+	context.off = 0;
+	context.seg = 0xF000;
+	context.val = 0;
+	context.len = 1;
+
+	reg_setup (&regs);
+
+	// The magic number is NOP-IRET
+	// to return immediately upon INT FFh
+
+	globals.glob_magic = 0xCF90;
+	globals.slave_ret = 1;
+	globals.slave_run = 0;
+
+	int_setup (&globals);
 
 	// Startup banner
 
@@ -285,112 +287,86 @@ void main ()
 	write_char ('.');
 	write_char ('0');
 	write_char (13);  // carriage return
-	write_char (10);  // new line
+	write_char (10);  // line feed
 
 	while (1)
 		{
-		err = read_token (token, &len);
-		if (err == E_OK)
+		err = read_context (&context);
+		if (err == E_OK && context.sub1)
 			{
-			if (!len) break;
-
-			switch (token [0])
+			switch (context.sub1)
 				{
-				// Set offset
-
-				case 'O':
-					err = hex_to_word (token + 1, len - 1, &context.off);
-					break;
-
-				// Set segment
-
-				case 'S':
-					err = hex_to_word (token + 1, len - 1, &context.seg);
-					break;
-
-				// Set length
-
-				case 'L':
-					err = hex_to_word (token + 1, len - 1, &context.len);
-					break;
-
 				// Read from memory
 
-				case 'R':
-				if (len != 1)
-					{
-					err = E_LEN;
-					break;
-					}
-
-				mem_read (&context);
-
-				write_word (context.val);
-				write_char (13);  // carriage return
-				write_char (10);  // new line
-				break;
-
-				// Write to memory
-
-				case 'W':
-				if (len != 1)
-					{
-					err = E_LEN;
-					break;
-					}
-
-				mem_write (&context);
-				break;
-
-				// Read register
-
-				case 'J':
-				if (len != 2)
-					{
-					err = E_LEN;
-					break;
-					}
-
-				err = reg_read (&context, token [1]);
-				if (err) break;
-
-				write_word (context.val);
-				write_char (13);  // carriage return
-				write_char (10);  // new line
-				break;
-
-				// Write register
-
-				case 'K':
-				if (len != 2)
-					{
-					err = E_LEN;
-					break;
-					}
-
-				err = reg_write (&context, token [1]);
-				break;
-
-				// Execute routine
-
-				case 'X':
-				if (len != 2)
-					{
-					err = E_LEN;
-					break;
-					}
-
-				err = sub_exec (&context, token [1]);
-				break;
-
-				default:
-					if (len > 4)
+				case C_MEM_READ:
+					if (context.sub2)
 						{
-						err = E_LEN;
+						err = E_LENGTH;
 						break;
 						}
 
-					err = hex_to_word (token, len, &context.val);
+					mem_read (&context);
+					write_word (context.val);
+					write_char (13);  // carriage return
+					write_char (10);  // line feed
+					break;
+
+				// Write to memory
+
+				case C_MEM_WRITE:
+					if (context.sub2)
+						{
+						err = E_LENGTH;
+						break;
+						}
+
+					mem_write (&context);
+					break;
+
+				// Read register
+
+				case C_REG_READ:
+					err = reg_read (&context, &regs);
+					if (err) break;
+
+					write_word (context.val);
+					write_char (13);  // carriage return
+					write_char (10);  // line feed
+					break;
+
+				// Write register
+
+				case C_REG_WRITE:
+					err = reg_write (&context, &regs);
+					break;
+
+
+				// Call procedure
+
+				case C_PROC:
+					if (context.sub2)
+						{
+						err = E_LENGTH;
+						break;
+						}
+
+					proc_call (&context, &regs);
+					break;
+
+				// Execute task
+
+				case C_TASK:
+					if (context.sub2)
+						{
+						err = E_LENGTH;
+						break;
+						}
+
+					err = task_sub (&globals, &regs);
+					break;
+
+				default:
+					err = E_VALUE;
 
 				}
 			}

@@ -10,10 +10,10 @@ gcc -g -D HOST_STUB -o mon86-stub mon86-common.c mon86-main.c
 bcc -ansi -0 -c pt1-target-main.c
 ld86 -0 -d -M -o pt1-target pt1-target-main.o > pt1-target.map
 
-bcc -ansi -0 -c -o mon86-target-common.o mon86-common.c
-bcc -ansi -0 -c -o mon86-target-main.o mon86-main.c
+bcc -ansi -0 -c -o mon86-common.o mon86-common.c
+bcc -ansi -0 -c -o mon86-main.o mon86-main.c
 as86 -0 -o mon86-low.o mon86-low.s
-ld86 -0 -d -M -o mon86-target mon86-low.o mon86-target-common.o mon86-target-main.o > mon86-target.map
+ld86 -0 -d -M -o mon86.bin mon86-low.o mon86-common.o mon86-main.o > mon86.map
 
 # Build tools for host
 

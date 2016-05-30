@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./emu86 -w 0xf800:0x100 -f ../mon86/mon86-target -x 0xf800:0x100 -i
+./emu86 -w 0xf0000 -f ../mon86/mon86.bin -x 0xf000:0x0 -i
 
 ./pcat `cat emu86.pts` <../mon86/test-mon86-in.txt >test-mon86-out.txt
 

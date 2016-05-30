@@ -115,35 +115,41 @@ void flag_set (byte_t flag, byte_t val)
 
 
 // Print registers
+// TODO: move to DBG86 part
 
 void regs_print ()
 	{
+	// Get registers in CPU order
+
 	word_t ax = reg16_get (REG_AX);
-	word_t bx = reg16_get (REG_BX);
 	word_t cx = reg16_get (REG_CX);
 	word_t dx = reg16_get (REG_DX);
+	word_t bx = reg16_get (REG_BX);
 
+	word_t sp = reg16_get (REG_SP);
+	word_t bp = reg16_get (REG_BP);
 	word_t si = reg16_get (REG_SI);
 	word_t di = reg16_get (REG_DI);
-	word_t bp = reg16_get (REG_BP);
-	word_t sp = reg16_get (REG_SP);
+
+	word_t es = seg_get (SEG_ES);
+	word_t cs = seg_get (SEG_CS);
+	word_t ss = seg_get (SEG_SS);
+	word_t ds = seg_get (SEG_DS);
 
 	word_t ip = reg16_get (REG_IP);
 	word_t fl = reg16_get (REG_FL);
 
-	word_t cs = seg_get (SEG_CS);
-	word_t ds = seg_get (SEG_DS);
-	word_t es = seg_get (SEG_ES);
-	word_t ss = seg_get (SEG_SS);
-
 	printf ("AX %.4hX  BX %.4hX  CX %.4hX  DX %.4hX  FL %.4hX\n", ax, bx, cx, dx, fl);
-	printf ("SI %.4hX  DI %.4hX  SP %.4hX  BP %.4hX\n", si, di, sp, bp);
-	printf ("DS %.4hX  ES %.4hX  SS %.4hX  CS %.4hX  IP %.4hX\n", ds, es, ss, cs, ip);
+	printf ("SI %.4hX  DI %.4hX  IP %.4hX  SP %.4hX  BP %.4hX\n", si, di, ip, sp, bp);
+	printf ("DS %.4hX  ES %.4hX  CS %.4hX  SS %.4hX\n", ds, es, cs, ss);
 
-	printf ("\nCF %hhu  PF %hhu  AF ?  ZF %hhu  SF %hhu  TF ?  IF %hhu  DF %hhu  OF %hhu\n",
-		flag_get (FLAG_CF), flag_get (FLAG_PF), flag_get (FLAG_ZF),
-		flag_get (FLAG_SF), flag_get (FLAG_IF), flag_get (FLAG_DF),
-		flag_get (FLAG_OF));
+	// TODO: invert flag order
+
+	printf ("\nCF %hhu  PF %hhu  AF %hhu  ZF %hhu  SF %hhu  TF %hhu  IF %hhu  DF %hhu  OF %hhu\n",
+		flag_get (FLAG_CF), flag_get (FLAG_PF), flag_get (FLAG_AF),
+		flag_get (FLAG_ZF), flag_get (FLAG_SF), flag_get (FLAG_TF),
+		flag_get (FLAG_IF), flag_get (FLAG_DF), flag_get (FLAG_OF));
+
 	}
 
 

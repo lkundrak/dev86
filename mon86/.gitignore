@@ -7,9 +7,9 @@ pt1-exec
 pt1-target.map
 
 mon86-stub
-mon86-target
 
-mon86-target.map
+mon86.bin
+mon86.map
 
 test-pt1-out.txt
 test-mon86-out.txt

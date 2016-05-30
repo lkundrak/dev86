@@ -2,6 +2,10 @@
 #include "mon86-common.h"
 
 
+//-----------------------------------------------------------------------------
+// Conversion functions
+//-----------------------------------------------------------------------------
+
 char_t upcase (char_t c)
 	{
 	return (c >= 'a' && c <= 'z') ? c + 'A' - 'a' : c;
@@ -55,9 +59,9 @@ err_t hex_to_word (char_t * str, byte_t len, word_t * val)
 
 	while (1)
 		{
-		if (!len)
+		if (!len || len > 4)
 			{
-			err = E_LEN;
+			err = E_LENGTH;
 			break;
 			}
 
@@ -117,6 +121,10 @@ void word_to_hex (word_t val, char_t * str, byte_t * len)
 	}
 
 
+//-----------------------------------------------------------------------------
+// Read functions
+//-----------------------------------------------------------------------------
+
 err_t read_token (char_t * str, byte_t * len)
 	{
 	err_t err;
@@ -170,7 +178,7 @@ err_t read_error ()
 
 		if (len != 2)
 			{
-			err = E_LEN;
+			err = E_LENGTH;
 			break;
 			}
 
@@ -210,6 +218,93 @@ err_t read_word (word_t * val)
 	}
 
 
+err_t read_context (context_t * context)
+	{
+	err_t err;
+
+	char_t token [TOKEN_LEN_MAX];
+	byte_t len;
+
+	char_t c;
+
+	while (1)
+		{
+		err = read_token (token, &len);
+		if (err == E_OK)
+			{
+			context->sub1 = 0;
+			if (!len) break;
+
+			c = token [0];
+			if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
+				{
+				err = hex_to_word (token, len, &context->val);
+				break;
+				}
+
+			switch (c)
+				{
+				// Set offset
+
+				case C_OFFSET:
+					if (len > 1)
+						{
+						err = E_LENGTH;
+						break;
+						}
+
+					context->off = context->val;
+					break;
+
+				// Set segment
+
+				case C_SEGMENT:
+					if (len > 1)
+						{
+						err = E_LENGTH;
+						break;
+						}
+
+					context->seg = context->val;
+					break;
+
+				// Set length
+
+				case C_LENGTH:
+					if (len > 1)
+						{
+						err = E_LENGTH;
+						break;
+						}
+
+					context->len = context->val;
+					break;
+
+				default:
+					if (len > 2)
+						{
+						err = E_LENGTH;
+						break;
+						}
+
+					context->sub1 = c;
+					context->sub2 = (len > 1) ? token [1] : 0;
+					break;
+
+				}
+			}
+
+		break;
+		}
+
+	return err;
+	}
+
+
+//-----------------------------------------------------------------------------
+// Write functions
+//-----------------------------------------------------------------------------
+
 err_t write_word (word_t val)
 	{
 	byte_t str [4];
@@ -244,3 +339,5 @@ err_t write_command (byte_t c1, byte_t c2)
 
 	return write_string (str, 3);
 	}
+
+//-----------------------------------------------------------------------------
