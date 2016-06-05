@@ -1,0 +1,6 @@
+#/bin/sh
+
+#  Test MON86 stub on host
+
+./mon86-stub <test-mon86-in.txt >test-mon86-out.txt
+diff test-mon86-ref.txt test-mon86-out.txt

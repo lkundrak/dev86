@@ -57,6 +57,8 @@ static op_id_name_t id_name_tab [] = {
     { OP_JZ,    "JZ"    },
 	{ OP_LAHF,  "LAHF"  },
 	{ OP_LEA,   "LEA"   },
+	{ OP_LDS,   "LDS"   },
+	{ OP_LES,   "LES"   },
 	{ OP_LODSB, "LODSB" },
 	{ OP_LODSW, "LODSW" },
 	{ OP_LOOP,   "LOOP"   },

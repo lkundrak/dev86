@@ -125,14 +125,6 @@ bootblocks/zimage.v
 copt/copt
 cpp/bcc-cpp
 
-#
-# EMU86 subproject
-#
-emu86/emu86
-emu86/emu86.pts
-emu86/pcat
-emu86/test-out.txt
-
 ifdefg
 include
 ld/ar.h

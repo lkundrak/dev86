@@ -874,7 +874,17 @@ static void op_int (op_desc_t * op_desc)
 		{
 		// Not intercepted -> emulate
 
-		assert (0);
+		stack_push (reg16_get (REG_FL));
+		stack_push (seg_get (SEG_CS));
+		stack_push (reg16_get (REG_IP));
+
+		addr_t vect = (addr_t) i << 2;
+
+		reg16_set (REG_IP, mem_read_word (vect));
+		seg_set (SEG_CS, mem_read_word (vect + 2));
+
+		flag_set (FLAG_TF, 0);
+		flag_set (FLAG_IF, 0);
 		}
 	}
 
@@ -884,7 +894,7 @@ static void op_int (op_desc_t * op_desc)
 static void op_return (op_desc_t * op_desc)
 	{
 	word_t op = op_desc->op_id;
-	assert (op == OP_RET || op == OP_RETF);
+	assert (op == OP_RET || op == OP_RETF || op == OP_IRET);
 
 	// TODO: implement stack unwind
 
@@ -892,9 +902,14 @@ static void op_return (op_desc_t * op_desc)
 
 	reg16_set (REG_IP, stack_pop ());
 
-	if (op == OP_RETF)
+	if (op == OP_RETF || op == OP_IRET)
 		{
 		seg_set (SEG_CS, stack_pop ());
+		}
+
+	if (op == OP_IRET)
+		{
+		reg16_set (REG_FL, stack_pop ());
 		}
 	}
 

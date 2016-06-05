@@ -42,7 +42,7 @@ typedef unsigned long addr_t;
 enum err_e
 	{
 	E_OK,
-	E_LEN,
+	E_LENGTH,
 	E_VALUE,
 	E_INDEX
 	};
@@ -197,7 +197,7 @@ static err_t scan_token (char_t * token, byte_t * len)
 
 		if (++(*len) > TOKEN_LEN_MAX)
 			{
-			err = E_LEN;
+			err = E_LENGTH;
 			}
 		else
 			{
@@ -561,7 +561,7 @@ void main ()
 				case 'R':
 				if (len != 2)
 					{
-					err = E_LEN;
+					err = E_LENGTH;
 					break;
 					}
 
@@ -572,7 +572,7 @@ void main ()
 				case 'W':
 				if (len != 2)
 					{
-					err = E_LEN;
+					err = E_LENGTH;
 					break;
 					}
 
@@ -582,7 +582,7 @@ void main ()
 				case 'X':
 				if (len != 2)
 					{
-					err = E_LEN;
+					err = E_LENGTH;
 					break;
 					}
 
@@ -592,7 +592,7 @@ void main ()
 				default:
 				if (len > 4)
 					{
-					err = E_LEN;
+					err = E_LENGTH;
 					break;
 					}
 
