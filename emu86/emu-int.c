@@ -21,7 +21,6 @@ void int_03h ()
 	}
 */
 
-
 // BIOS video services
 
 static byte_t num_hex (byte_t n)
@@ -325,7 +324,7 @@ struct int_num_hand_s
 typedef struct int_num_hand_s int_num_hand_t;
 
 int_num_hand_t _int_tab [] = {
-//		{ 0x03, int_03h },
+		//{ 0x03, int_03h },
 		{ 0x10, int_10h },
 		{ 0x12, int_12h },
 		{ 0x15, int_15h },

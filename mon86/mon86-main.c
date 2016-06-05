@@ -111,21 +111,11 @@ static void mem_write (context_t * context)
 
 static void proc_call (context_t * context, regs_t * regs)
 	{
-	write_string ("PROC ", 5);
-	write_word (context->seg);
-	write_char (':');
-	write_word (context->off);
-	write_char (13);  // carriage return
-	write_char (10);  // line feed
 	}
 
 
 static word_t task_exec (globals_t * globals, regs_t * regs, word_t start)
 	{
-	write_string ("TASK ", 4);
-	write_word (start);
-	write_char (13);  // carriage return
-	write_char (10);  // line feed
 	return 255;
 	}
 

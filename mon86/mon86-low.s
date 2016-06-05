@@ -259,7 +259,7 @@ _reg_setup:
 	mov    ax,ds
 	mov    [bx+reg_ds],ax
 
-	mov    ax,#proc_stub
+	mov    ax,#task_stub
 	mov    [bx+reg_ip],ax
 
 	pushf
@@ -273,12 +273,6 @@ _reg_setup:
 
 
 ;------------------------------------------------------------------------------
-
-; Procedure stub
-
-proc_stub:
-	RETF
-
 
 ; Call far procedure
 

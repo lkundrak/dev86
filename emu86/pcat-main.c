@@ -71,6 +71,8 @@ int main (int argc, char * argv [])
 			// Both EOF
 
 			if (ei && eo) break;
+
+			sleep (1);
 			}
 
 		close (f);
