@@ -1,0 +1,6 @@
+#/bin/sh
+
+#  Test PT1 stub on host
+
+./pt1-stub <test-pt1-in.txt >test-pt1-out.txt
+diff test-pt1-ref.txt test-pt1-out.txt

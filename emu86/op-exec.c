@@ -250,7 +250,7 @@ static void op_move_load (op_desc_t * op_desc)
 		case OP_MOV:
 			val_get (from, &temp);
 			assert (temp.type == VT_IMM);
-			assert (to->w == temp.w);
+			assert (from->w == temp.w);
 			val_set (to, &temp);
 			break;
 
@@ -258,8 +258,20 @@ static void op_move_load (op_desc_t * op_desc)
 			temp.type = VT_IMM;
 			temp.w = 1;
 			temp.val.w = off_get (from);
-			assert (to->w == temp.w);
 			val_set (to, &temp);
+			break;
+
+		case OP_LDS:
+			assert (from->far);
+			val_get (from, &temp);
+			assert (temp.type == VT_IMM);
+			assert (temp.far);
+
+			temp.far = 0;
+			temp.w = 1;
+			val_set (to, &temp);
+
+			seg_set (SEG_DS, temp.seg);
 			break;
 
 		default:
@@ -377,8 +389,6 @@ static void op_calc_1 (op_desc_t * op_desc)
 			break;
 
 		case OP_MUL:
-			assert (v > 0);
-
 			if (temp.w)
 				{
 				assert (0);  // not implemented
@@ -398,6 +408,25 @@ static void op_calc_1 (op_desc_t * op_desc)
 
 			break;
 
+		case OP_IMUL:
+			if (temp.w)
+				{
+				word_t ax = reg16_get (REG_AX);
+				word_t dx = reg16_get (REG_DX);
+				long t = ((long) (short) dx) * (long) 0x10000 + (long) (short) ax;
+				reg16_set (REG_AX, (word_t) (t / (long) (short) v));
+				reg16_set (REG_DX, (word_t) (t % (long) (short) v));
+				}
+			else
+				{
+				byte_t al = reg8_get (REG_AL);
+				short s = ((short) (char) al) * (short) v;
+				reg16_set (REG_AX, (word_t) s);
+				}
+
+			break;
+
+
 		case OP_DIV:
 			assert (v > 0);
 
@@ -405,9 +434,9 @@ static void op_calc_1 (op_desc_t * op_desc)
 				{
 				word_t ax = reg16_get (REG_AX);
 				word_t dx = reg16_get (REG_DX);
-				addr_t t = ((addr_t) dx) * 0x10000 + (addr_t) ax;
-				reg16_set (REG_AX, (word_t) (t / (addr_t) v));
-				reg16_set (REG_DX, (word_t) (t % (addr_t) v));
+				dword_t t = ((dword_t) dx) * 0x10000 + (dword_t) ax;
+				reg16_set (REG_AX, (word_t) (t / (dword_t) v));
+				reg16_set (REG_DX, (word_t) (t % (dword_t) v));
 				}
 			else
 				{
@@ -419,6 +448,7 @@ static void op_calc_1 (op_desc_t * op_desc)
 			break;
 
 		default:
+			printf ("fatal: unknown op %x\n", id);
 			assert (0);
 
 		}
@@ -640,6 +670,7 @@ static void op_shift_rot (op_desc_t * op_desc)
 
 		case OP_RCR:
 		case OP_ROR:
+		case OP_SAR:
 		case OP_SHR:
 			while (t--)
 				{
@@ -764,7 +795,7 @@ static void op_jump_call (op_desc_t * op_desc)
 	op_var_t * var = &(op_desc->var_to);
 
 	byte_t t = var->type;
-	assert (t == VT_LOC || t == VT_IND);
+	assert (t == VT_REG || t == VT_LOC || t == VT_IND);
 
 	op_var_t temp;
 	memset (&temp, 0, sizeof (op_var_t));
@@ -780,6 +811,7 @@ static void op_jump_call (op_desc_t * op_desc)
 
 	if (temp.far)
 		{
+		assert (t != VT_REG);
 		assert (op == OP_JMPF || op == OP_CALLF);
 
 		// Far address is absolute
@@ -791,9 +823,18 @@ static void op_jump_call (op_desc_t * op_desc)
 		{
 		assert (op == OP_JMP || op == OP_CALL);
 
-		// Near address are relative
+		if (t == VT_REG || t == VT_IND)
+			{
+			// Register or indirect are absolute
 
-		ip = (word_t) ((short) ip + temp.val.s);
+			ip = temp.val.w;
+			}
+		else
+			{
+			// VT_LOC is relative
+
+			ip = (word_t) ((short) ip + temp.val.s);
+			}
 		}
 
 	reg16_set (REG_IP, ip);
@@ -816,6 +857,11 @@ static void op_int (op_desc_t * op_desc)
 			i = var->val.b;
 			break;
 
+		case OP_INT3:
+			assert (op_desc->var_count == 0);
+			i = 0x03;
+			break;
+
 		default:
 			assert (0);
 
@@ -828,7 +874,17 @@ static void op_int (op_desc_t * op_desc)
 		{
 		// Not intercepted -> emulate
 
-		assert (0);
+		stack_push (reg16_get (REG_FL));
+		stack_push (seg_get (SEG_CS));
+		stack_push (reg16_get (REG_IP));
+
+		addr_t vect = (addr_t) i << 2;
+
+		reg16_set (REG_IP, mem_read_word (vect));
+		seg_set (SEG_CS, mem_read_word (vect + 2));
+
+		flag_set (FLAG_TF, 0);
+		flag_set (FLAG_IF, 0);
 		}
 	}
 
@@ -838,7 +894,7 @@ static void op_int (op_desc_t * op_desc)
 static void op_return (op_desc_t * op_desc)
 	{
 	word_t op = op_desc->op_id;
-	assert (op == OP_RET || op == OP_RETF);
+	assert (op == OP_RET || op == OP_RETF || op == OP_IRET);
 
 	// TODO: implement stack unwind
 
@@ -846,9 +902,14 @@ static void op_return (op_desc_t * op_desc)
 
 	reg16_set (REG_IP, stack_pop ());
 
-	if (op == OP_RETF)
+	if (op == OP_RETF || op == OP_IRET)
 		{
 		seg_set (SEG_CS, stack_pop ());
+		}
+
+	if (op == OP_IRET)
+		{
+		reg16_set (REG_FL, stack_pop ());
 		}
 	}
 
@@ -1089,6 +1150,31 @@ static void op_string (op_desc_t * op_desc)
 	}
 
 
+// Conversion
+
+static void op_convert (op_desc_t * op_desc)
+	{
+	byte_t ah;
+	word_t dx;
+
+	switch (op_desc->op_id)
+		{
+		case OP_CBW:
+			ah = (reg8_get (REG_AL) & 0x80) ? 0xFF : 0;
+			reg8_set (REG_AH, ah);
+			break;
+
+		case OP_CWD:
+			dx = (reg16_get (REG_AX) & 0x8000) ? 0xFFFF: 0;
+			reg16_set (REG_DX, dx);
+			break;
+
+		default:
+			assert (0);
+
+		}
+	}
+
 // Flags
 
 static void op_flag (op_desc_t * op_desc)
@@ -1170,7 +1256,6 @@ static void op_halt (op_desc_t * op_desc)
 
 static void op_loop (op_desc_t * op_desc)
 	{
-	assert (op_desc->op_id == OP_LOOP);
 	assert (op_desc->var_count == 1);
 
 	op_var_t * var = &op_desc->var_to;
@@ -1180,7 +1265,28 @@ static void op_loop (op_desc_t * op_desc)
 	word_t cx = reg16_get (REG_CX);
 	reg16_set (REG_CX, --cx);
 
-	if (cx)
+	byte_t j = 0;  // jump flag
+
+	word_t id = op_desc->op_id;
+	switch (id)
+		{
+		case OP_LOOP:
+			j = (cx != 0);
+			break;
+
+		case OP_LOOPNZ:
+			j = (cx != 0) && !flag_get (FLAG_ZF);
+			break;
+
+		case OP_LOOPZ:
+			j = (cx != 0) && flag_get (FLAG_ZF);
+			break;
+
+		default:
+			assert (0);
+		}
+
+	if (j)
 		{
 		word_t ip = (word_t) ((short) reg16_get (REG_IP) + var->val.s);
 		reg16_set (REG_IP, ip);
@@ -1204,6 +1310,7 @@ typedef struct op_id_hand_s op_id_hand_t;
 static op_id_hand_t _id_hand_tab [] = {
 	{ OP_MOV, op_move_load },
 	{ OP_LEA, op_move_load },
+	{ OP_LDS, op_move_load },
 
 	{ OP_XCHG, op_swap },
 
@@ -1295,10 +1402,9 @@ static op_id_hand_t _id_hand_tab [] = {
 #define OP_AAD   0x0D01
 #define OP_AAM   0x0D02
 #define OP_AAS   0x0D03
-
-#define OP_CBW   0x0E00
-#define OP_CWD   0x0E01
 */
+	{ OP_CBW, op_convert },
+	{ OP_CWD, op_convert },
 
 	{ OP_CLC, op_flag },
 	{ OP_CLD, op_flag },
@@ -1313,13 +1419,15 @@ static op_id_hand_t _id_hand_tab [] = {
 
 	{ OP_HLT, op_halt },
 
-	{ OP_LOOP, op_loop },
+	{ OP_LOOP,   op_loop },
+	{ OP_LOOPNZ, op_loop },
+	{ OP_LOOPZ,  op_loop },
 
 	{ OP_SEG, op_seg },
 
 // TODO: allocate op id
 
-	/*
+/*
 #define OP_WAIT   0xFFFF
 #define OP_XLAT   0xFFFF
 #define OP_ESC    0xFFFF
@@ -1329,8 +1437,6 @@ static op_id_hand_t _id_hand_tab [] = {
 #define OP_LDS    0xFFFF
 #define OP_LES    0xFFFF
 #define OP_LOCK   0xFFFF
-#define OP_LOOPNZ 0xFFFF
-#define OP_LOOPZ  0xFFFF
 */
 
 	{ 0, NULL }
@@ -1370,6 +1476,7 @@ int op_exec (op_desc_t * op_desc)
 				op_hand_t hand2 = desc->hand;
 				if (!id2 && !hand2)
 					{
+					printf ("fatal: no handler for op %hxh\n", id1);
 					assert (0);
 					break;
 					}
@@ -1391,32 +1498,22 @@ int op_exec (op_desc_t * op_desc)
 			{
 			(*hand1) (op_desc);
 
-			switch (_rep_stat)
+			// REP and SEG prefix states
+
+			if (_rep_stat == 2 && _seg_stat != 1)
 				{
-				case 1:
-					_rep_stat = 2;
-					break;
-
-				case 2:
-					assert (0);  // orphan REPxx prefix
-					rep_reset ();
-					break;
-
+				assert (0);  // orphan REP prefix
+				rep_reset ();
 				}
 
-			switch (_seg_stat)
+			if (_seg_stat == 2 && _rep_stat != 1)
 				{
-				case 1:
-					_seg_stat = 2;
-					break;
-
-				case 2:
-					assert (0);  // orphan SEG prefix
-					seg_reset ();
-					break;
-
+				assert (0);  // orphan SEG prefix
+				rep_reset ();
 				}
 
+			if (_rep_stat == 1) _rep_stat = 2;
+			if (_seg_stat == 1) _seg_stat = 2;
 
 			err = 0;
 			}

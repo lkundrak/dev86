@@ -125,14 +125,6 @@ bootblocks/zimage.v
 copt/copt
 cpp/bcc-cpp
 
-#
-# EMU86 subproject
-#
-emu86/emu86
-emu86/emu86.pts
-emu86/pcat
-emu86/test-out.txt
-
 ifdefg
 include
 ld/ar.h
@@ -156,14 +148,6 @@ libc/syscall/syscall.c
 libc/syscall/syscall.dat
 libc/syscall/syscall.mak
 make.fil
-
-#
-# MON86 subproject
-#
-mon86/pt1-stub
-mon86/pt1-target
-mon86/mon86-target
-mon86/test-out.txt
 
 unproto/unproto
 
