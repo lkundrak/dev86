@@ -126,7 +126,6 @@ copt/copt
 cpp/bcc-cpp
 
 ifdefg
-include
 ld/ar.h
 ld/ld86
 ld/objdump86
