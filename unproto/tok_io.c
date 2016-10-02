@@ -189,7 +189,7 @@ static char *ignore_directives[] = {
 
 /* do_control - parse control line */
 
-static int do_control()
+static void do_control()
 {
     struct token *t;
     int     line;
