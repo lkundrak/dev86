@@ -81,7 +81,7 @@ FILES	= $(SOURCES) unproto.1
 OBJECTS	= tok_io.o tok_class.o tok_pool.o unproto.o vstring.o symbol.o error.o \
 	hash.o strsave.o
 
-CFLAGS	= -O
+CFLAGS	= -O2 -pipe -Wall -Wextra -pedantic
 LDFLAGS =
 CCFLAGS = $(CFLAGS) -w $(PIPE) $(SKIP) $(BELL) $(MAP) $(ALIAS) -DREOPEN
 
