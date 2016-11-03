@@ -20,7 +20,7 @@ char *_qbuf = 0;		/* pointer to storage for qsort() */
 #define	PIVOT			((i+j)>>1)
 #define moveitem(dst,src,size)	if(dst != src) memcpy(dst, src, size)
 
-static 
+static void
 _wqsort(base, lo, hi, cmp)
 register int *base;
 register int lo;
@@ -62,7 +62,7 @@ register int (*cmp) ();
    }
 }
 
-static 
+static void
 _lqsort(base, lo, hi, cmp)
 register long *base;
 register int lo;
@@ -104,7 +104,7 @@ register int (*cmp) ();
    }
 }
 
-static 
+static void
 _nqsort(base, lo, hi, size, cmp)
 register char *base;
 register int lo;
@@ -147,6 +147,7 @@ register int (*cmp) ();
    }
 }
 
+void
 qsort(base, num, size, cmp)
 char *base;
 int   num;
