@@ -20,6 +20,7 @@ ASLDDIR= $(BINDIR)
 MANDIR=	 $(PREFIX)/man
 CFLAGS=  -O
 IFDEFNAME= ifdef
+WD=$(shell pwd)
 
 # Some makes take the last of a list as the default ...
 all: make.fil
@@ -33,9 +34,13 @@ $(TARGETS):
 ld: ld86
 as: as86
 
+distclean: realclean
+
 realclean:
 	-[ ! -f make.fil ] || $(MAKE) -f make.fil VERSION=$(VERSION) TOPDIR=`pwd` $@
 	-rm -f make.fil ifdef ifdefg
+	-find -name '*~' -delete
+	-for X in */; do cd $$X && make clean; cd $(WD); done
 
 make.fil: $(IFDEFNAME) makefile.in
 	./$(IFDEFNAME) -MU $(IFDEFOPTS) makefile.in >tmp.mak
