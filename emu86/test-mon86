@@ -6,4 +6,4 @@ sleep 1
 
 ./pcat `cat emu86.pts` <../mon86/test-mon86-in.txt >test-mon86-out.txt
 
-diff test-mon86-out.txt ../mon86/test-mon86-ref.txt
+diff ../mon86/test-mon86-ref.txt test-mon86-out.txt
