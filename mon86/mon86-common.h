@@ -36,7 +36,7 @@ enum err_e
 typedef enum err_e err_t;
 
 
-// Overridables
+// Target specifics
 
 err_t read_char  (char_t * c);
 err_t write_char (char_t c);
@@ -83,12 +83,15 @@ err_t write_command (byte_t c1, byte_t c2);
 
 struct context_s
 	{
-	word_t off;   // +0h
-	word_t seg;   // +2h
-	word_t len;   // +4h
-	word_t val;   // +6h
-	char_t sub1;  // +8h
-	char_t sub2;  // +9h
+	word_t offset;   // +0h
+	word_t segment;  // +2h
+	word_t count;    // +4h
+	word_t value;    // +6h
+
+	byte_t length;
+	char_t token [TOKEN_LEN_MAX];
+
+	byte_t done;
 	};
 
 typedef struct context_s context_t;

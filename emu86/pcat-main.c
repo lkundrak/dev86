@@ -72,6 +72,8 @@ int main (int argc, char * argv [])
 
 			if (ei && eo) break;
 
+			// Slow down when sending from a test file
+
 			sleep (1);
 			}
 

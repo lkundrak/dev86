@@ -222,23 +222,20 @@ err_t read_context (context_t * context)
 	{
 	err_t err;
 
-	char_t token [TOKEN_LEN_MAX];
-	byte_t len;
-
 	char_t c;
 
 	while (1)
 		{
-		err = read_token (token, &len);
-		if (err == E_OK)
-			{
-			context->sub1 = 0;
-			if (!len) break;
+		context->done = 0;
 
-			c = token [0];
+		err = read_token (context->token, &context->length);
+		if (err == E_OK && context->length)
+			{
+			c = context->token [0];
 			if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
 				{
-				err = hex_to_word (token, len, &context->val);
+				err = hex_to_word (context->token, context->length, &context->value);
+				context->done = 1;
 				break;
 				}
 
@@ -247,48 +244,40 @@ err_t read_context (context_t * context)
 				// Set offset
 
 				case C_OFFSET:
-					if (len > 1)
+					if (context->length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
-					context->off = context->val;
+					context->offset = context->value;
+					context->done = 1;
 					break;
 
 				// Set segment
 
 				case C_SEGMENT:
-					if (len > 1)
+					if (context->length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
-					context->seg = context->val;
+					context->segment = context->value;
+					context->done = 1;
 					break;
 
 				// Set length
 
 				case C_LENGTH:
-					if (len > 1)
+					if (context->length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
-					context->len = context->val;
-					break;
-
-				default:
-					if (len > 2)
-						{
-						err = E_LENGTH;
-						break;
-						}
-
-					context->sub1 = c;
-					context->sub2 = (len > 1) ? token [1] : 0;
+					context->count = context->value;
+					context->done = 1;
 					break;
 
 				}
