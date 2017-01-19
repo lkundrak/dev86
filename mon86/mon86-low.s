@@ -121,7 +121,7 @@ _toggle_0:
 ; Read one character from serial
 ; Using Advantech tweaked BIOS
 
-_read_char:
+_recv_char:
 	push   bp
 	mov    bp,sp
 	push   bx
@@ -148,7 +148,7 @@ _read_exit:
 ; Write one character to serial
 ; Using Advantech tweaked BIOS
 
-_write_char:
+_send_char:
 	push   bp
 	mov    bp,sp
 	mov    ax,[bp+4]                   ; BCC pushes char_t as word
@@ -162,7 +162,7 @@ _write_char:
 ; Write string to serial
 ; Using Advantech tweaked BIOS
 
-_write_string:
+_send_string:
 	push   bp
 	mov    bp,sp
 	push   cx
@@ -749,9 +749,10 @@ _int_setup:
 
 ; Exported labels
 
-	EXPORT _read_char
-	EXPORT _write_char
-	EXPORT _write_string
+	EXPORT _recv_char
+	EXPORT _send_char
+
+	EXPORT _send_string
 
 	EXPORT _mem_read
 	EXPORT _mem_write

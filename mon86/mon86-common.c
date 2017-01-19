@@ -125,7 +125,7 @@ void word_to_hex (word_t val, char_t * str, byte_t * len)
 // Read functions
 //-----------------------------------------------------------------------------
 
-err_t read_token (char_t * str, byte_t * len)
+err_t recv_token (char_t * str, byte_t * len)
 	{
 	err_t err;
 
@@ -137,7 +137,7 @@ err_t read_token (char_t * str, byte_t * len)
 
 	while (1)
 		{
-		err = read_char (&c);
+		err = recv_char (&c);
 		if (err) break;
 
 		// Ignore heading spaces
@@ -164,7 +164,7 @@ err_t read_token (char_t * str, byte_t * len)
 	}
 
 
-err_t read_error ()
+err_t recv_error ()
 	{
 	err_t err;
 
@@ -173,7 +173,7 @@ err_t read_error ()
 		byte_t len = 0;
 		byte_t token [TOKEN_LEN_MAX];
 
-		err = read_token (token, &len);
+		err = recv_token (token, &len);
 		if (err) break;
 
 		if (len != 2)
@@ -196,7 +196,7 @@ err_t read_error ()
 	}
 
 
-err_t read_word (word_t * val)
+err_t recv_word (word_t * val)
 	{
 	err_t err;
 
@@ -207,7 +207,7 @@ err_t read_word (word_t * val)
 
 	while (1)
 		{
-		err = read_token (token, &len);
+		err = recv_token (token, &len);
 		if (err) break;
 
 		err = hex_to_word (token, len, val);
@@ -218,7 +218,7 @@ err_t read_word (word_t * val)
 	}
 
 
-err_t read_context (context_t * context)
+err_t recv_context (context_t * context)
 	{
 	err_t err;
 
@@ -228,7 +228,7 @@ err_t read_context (context_t * context)
 		{
 		context->done = 0;
 
-		err = read_token (context->token, &context->length);
+		err = recv_token (context->token, &context->length);
 		if (err == E_OK && context->length)
 			{
 			c = context->token [0];
@@ -294,18 +294,18 @@ err_t read_context (context_t * context)
 // Write functions
 //-----------------------------------------------------------------------------
 
-err_t write_word (word_t val)
+err_t send_word (word_t val)
 	{
 	byte_t str [4];
 	byte_t len;
 
 	word_to_hex (val, str, &len);
 
-	return write_string (str, len);
+	return send_string (str, len);
 	}
 
 
-err_t write_error (err_t err)
+err_t send_error (err_t err)
 	{
 	char_t str [4];
 
@@ -314,19 +314,43 @@ err_t write_error (err_t err)
 	str [2] = 13;  // carriage return
 	str [3] = 10;  // line feed
 
-	return write_string (str, 4);
+	return send_string (str, 4);
 	}
 
 
-err_t write_command (byte_t c1, byte_t c2)
+err_t send_command (byte_t c1, byte_t c2)
 	{
+	int err = E_OK;
+
 	char_t str [3];
 
 	str [0] = c1;
-	str [1] = c2;
-	str [2] = 10;  // LF as separator
 
-	return write_string (str, 3);
+	if (c2)
+		{
+		str [1] = c2;
+		str [2] = 10;  // LF as separator
+
+		err = send_string (str, 3);
+		}
+	else
+		{
+		str [1] = 10;  // LF as separator
+
+		err = send_string (str, 3);
+		}
+
+	return err;
 	}
+
+
+err_t send_context (context_t * context)
+	{
+	err_t err;
+
+	err = -1;
+	return err;
+	}
+
 
 //-----------------------------------------------------------------------------

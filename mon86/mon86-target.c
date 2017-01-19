@@ -62,19 +62,19 @@ typedef struct globals_s globals_t;
 
 #ifdef HOST_STUB
 
-err_t read_char (char_t * c)
+err_t recv_char (char_t * c)
 	{
 	ssize_t n = read (0, c, 1);
 	return (n == 1) ? E_OK : E_END;
 	}
 
-err_t write_char (char_t c)
+err_t send_char (char_t c)
 	{
 	ssize_t n = write (1, &c, 1);
 	return (n == 1) ? E_OK : E_END;
 	}
 
-err_t write_string (char_t * str, word_t count)
+err_t send_string (char_t * str, word_t count)
 	{
 	ssize_t n = write (1, str, count);
 	return (n == count) ? E_OK : E_END;
@@ -270,19 +270,19 @@ void main ()
 
 	// Startup banner
 
-	write_char ('M');
-	write_char ('O');
-	write_char ('N');
-	write_char ('8');
-	write_char ('6');
-	write_char ('.');
-	write_char ('0');
-	write_char (13);  // carriage return
-	write_char (10);  // line feed
+	send_char ('M');
+	send_char ('O');
+	send_char ('N');
+	send_char ('8');
+	send_char ('6');
+	send_char ('.');
+	send_char ('0');
+	send_char (13);  // carriage return
+	send_char (10);  // line feed
 
 	while (1)
 		{
-		err = read_context (&context);
+		err = recv_context (&context);
 		if (err == E_OK && context.length && ! context.done)
 			{
 			switch (context.token [0])
@@ -297,9 +297,9 @@ void main ()
 						}
 
 					mem_read (&context);
-					write_word (context.value);
-					write_char (13);  // carriage return
-					write_char (10);  // line feed
+					send_word (context.value);
+					send_char (13);  // carriage return
+					send_char (10);  // line feed
 
 					context.done = 1;
 					break;
@@ -329,9 +329,9 @@ void main ()
 					err = reg_read (&context, &regs);
 					if (err) break;
 
-					write_word (context.value);
-					write_char (13);  // carriage return
-					write_char (10);  // line feed
+					send_word (context.value);
+					send_char (13);  // carriage return
+					send_char (10);  // line feed
 
 					context.done = 1;
 					break;
@@ -380,7 +380,7 @@ void main ()
 
 		if (err == E_OK && ! context.done) err = E_VALUE;
 
-		write_error (err);
+		send_error (err);
 
 		if (err == E_END) break;
 		}

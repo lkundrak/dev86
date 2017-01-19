@@ -38,11 +38,10 @@ typedef enum err_e err_t;
 
 // Target specifics
 
-err_t read_char  (char_t * c);
-err_t write_char (char_t c);
+err_t recv_char (char_t * c);
+err_t send_char (char_t c);
 
-err_t read_string  (char_t * s, word_t * len);
-err_t write_string (char_t * s, word_t len);
+err_t send_string (char_t * s, word_t len);
 
 
 // Library
@@ -56,13 +55,16 @@ char_t digit_to_hex (digit_t d);
 err_t hex_to_word (char_t * str, byte_t len, word_t * val);
 void word_to_hex (word_t val, char_t * str, byte_t * len);
 
-err_t read_token (char_t * str, byte_t * len);
-err_t read_error ();
-err_t read_word (word_t * val);
 
-err_t write_word (word_t val);
-err_t write_error (err_t err);
-err_t write_command (byte_t c1, byte_t c2);
+// Tokens
+
+err_t recv_token (char_t * str, byte_t * len);
+err_t recv_error ();
+err_t recv_word (word_t * val);
+
+err_t send_word (word_t val);
+err_t send_error (err_t err);
+err_t send_command (byte_t c1, byte_t c2);
 
 
 // Context
@@ -96,7 +98,9 @@ struct context_s
 
 typedef struct context_s context_t;
 
-err_t read_context (context_t * context);
+
+err_t recv_context (context_t * context);
+err_t send_context (context_t * context);
 
 
 #endif // _MON86_COMMON

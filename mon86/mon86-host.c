@@ -13,38 +13,34 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-//#include "../emu86/op-class.h"
-//#include "../emu86/emu-proc.h"
-
 #include "mon86-common.h"
 
 
 //-----------------------------------------------------------------------------
-// Target specifics
+// Generic operations
 //-----------------------------------------------------------------------------
 
-err_t read_char  (char_t * c)
+static int _context_fd = -1;
+static context_t _context;
+
+
+err_t recv_char (char_t * c)
 	{
-	assert (0);
-	return E_OK;
+	ssize_t n = read (_context_fd, c, 1);
+	return (n == 1) ? E_OK : E_END;
 	}
 
-err_t write_char (char_t c)
+err_t send_char (char_t c)
 	{
-	assert (0);
-	return E_OK;
+	ssize_t n = write (_context_fd, &c, 1);
+	return (n == 1) ? E_OK : E_END;
 	}
 
-err_t read_string  (char_t * s, word_t * len)
-	{
-	assert (0);
-	return E_OK;
-	}
 
-err_t write_string (char_t * s, word_t len)
+err_t send_string (char_t * s, word_t len)
 	{
-	assert (0);
-	return E_OK;
+	ssize_t n = write (_context_fd, s, len);
+	return (n == len) ? E_OK : E_END;
 	}
 
 
@@ -52,7 +48,7 @@ err_t write_string (char_t * s, word_t len)
 // Serial port operations
 //-----------------------------------------------------------------------------
 
-static int fd_serial = -1;
+static int _serial_fd = -1;
 
 
 // Open serial port (as TTY)
@@ -63,10 +59,10 @@ static int serial_open (char * path)
 
 	while (1)
 		{
-		if (fd_serial >= 0) close (fd_serial);
+		if (_serial_fd >= 0) close (_serial_fd);
 
-		fd_serial = open (path, O_RDWR | O_NOCTTY);
-		if (fd_serial < 0)
+		_serial_fd = open (path, O_RDWR | O_NOCTTY);
+		if (_serial_fd < 0)
 			{
 			perror ("open tty");
 			err = -1;
@@ -76,94 +72,9 @@ static int serial_open (char * path)
 		// TTY setup
 
 		struct termios tios;
-		tcgetattr (fd_serial, &tios);
+		tcgetattr (_serial_fd, &tios);
 		cfsetspeed (&tios, B9600);
-		tcsetattr (fd_serial, TCSANOW, &tios);
-
-		err = 0;
-		break;
-		}
-
-	return err;
-	}
-
-
-//-----------------------------------------------------------------------------
-// Context operations
-//-----------------------------------------------------------------------------
-
-static context_t context_serial;
-static context_t context_local;
-
-
-// Synchronize contexts
-
-static int context_synch ()
-	{
-	int err;
-
-	while (1)
-		{
-		if (fd_serial < 0)
-			{
-			err = -1;
-			break;
-			}
-
-		if (context_local.segment != context_serial.segment)
-			{
-			err = send_word (fd_serial, context_local.segment);
-			if (err) break;
-			err = send_segment (fd_serial);
-			if (err) break;
-
-			context_serial.segment = context_local.segment;
-			}
-
-		if (context_local.offset != context_serial.offset)
-			{
-			err = send_word (fd_serial, context_local.offset);
-			if (err) break;
-			err = send_offset (fd_serial);
-			if (err) break;
-
-			context_serial.offset = context_local.offset;
-			}
-
-		err = 0;
-		break;
-		}
-
-	return err;
-	}
-
-
-// Initialize contexts
-
-static int context_init ()
-	{
-	int err;
-
-	while (1)
-		{
-		if (fd_serial < 0)
-			{
-			err = -1;
-			break;
-			}
-
-		memset (&context_serial, 0, sizeof (context_t));
-		memset (&context_local , 0, sizeof (context_t));
-
-		err = send_word (fd_serial, context_serial.segment);
-		if (err) break;
-		err = send_segment (fd_serial);
-		if (err) break;
-
-		err = send_word (fd_serial, context_serial.offset);
-		if (err) break;
-		err = send_offset (fd_serial);
-		if (err) break;
+		tcsetattr (_serial_fd, TCSANOW, &tios);
 
 		err = 0;
 		break;
@@ -177,23 +88,23 @@ static int context_init ()
 // Local file operations
 //-----------------------------------------------------------------------------
 
-static int fd_local = -1;
+static int _file_fd = -1;
 
 
 // Open local file
 
-static int local_open (char * path)
+static int file_open (char * path)
 	{
 	int err;
 
 	while (1)
 		{
-		if (fd_local >= 0) close (fd_local);
+		if (_file_fd >= 0) close (_file_fd);
 
-		fd_local = open (path, O_RDWR);
-		if (fd_local < 0)
+		_file_fd = open (path, O_RDWR);
+		if (_file_fd < 0)
 			{
-			perror ("open local file");
+			perror ("open file");
 			err = -1;
 			break;
 			}
@@ -210,44 +121,40 @@ static int read_to_file ()
 	{
 	int err;
 
-	int fd;
-
 	while (1)
 		{
-		if (fd_serial < 0)
-			{
-			err = -1;
-			break;
-			}
-
-		fd = fd_local;
+		int fd = _file_fd;
 		if (fd < 0) fd = 1;  // default stdout
 
-		err = context_synch ();
+		_context_fd = _serial_fd;
+
+		err = send_context (&_context);
 		if (err) break;
 
-		while (context_local.count-- > 0)
+		while (_context.count-- > 0)
 			{
-			err = send_command (fd_serial, 'R', 0);  // read memory
+			err = send_command ('R', 0);  // read memory
 			if (err) break;
 
 			word_t val;
-			err = recv_value (fd_serial, &val);
+			err = recv_word (&val);
 			if (err) break;
 
-			context_serial.offset++;
+			err = recv_error ();
+			if (err) break;
+
+			_context.offset++;
 
 			// Write raw to local file
 
 			int n = write (fd, &val, 1);
 			if (n != 1)
 				{
-				err = -1;
+				err = E_END;
 				break;
 				}
 			}
 
-		err = 0;
 		break;
 		}
 
@@ -259,7 +166,7 @@ static int write_from_file ()
 	{
 	int err;
 
-	err = -1;
+	err = E_END;
 	return err;
 	}
 
@@ -293,56 +200,54 @@ int main (int argc, char * argv [])
 
 				case 't':
 					err = serial_open (optarg);
-					if (err) break;
-					context_init ();
 					break;
 
 				// Segment
 
 				case 's':
-					if (sscanf (optarg, "%hx", &context_local.segment) != 1)
+					if (sscanf (optarg, "%hx", &_context.segment) != 1)
 						{
 						puts ("error: bad segment");
 						err = -1;
 						break;
 						}
 
-					printf ("info: segment %.4Xh\n", context_local.segment);
+					printf ("info: segment %.4Xh\n", _context.segment);
 					err = 0;
 					break;
 
 				// Offset
 
 				case 'o':
-					if (sscanf (optarg, "%hx", &context_local.offset) != 1)
+					if (sscanf (optarg, "%hx", &_context.offset) != 1)
 						{
 						puts ("error: bad offset");
 						err = -1;
 						break;
 						}
 
-					printf ("info: offset %.4Xh\n", context_local.offset);
+					printf ("info: offset %.4Xh\n", _context.offset);
 					err = 0;
 					break;
 
 				// Count
 
 				case 'l':
-					if (sscanf (optarg, "%hx", &context_local.count) != 1)
+					if (sscanf (optarg, "%hx", &_context.count) != 1)
 						{
 						puts ("error: bad count");
 						err = -1;
 						break;
 						}
 
-					printf ("info: count %.4Xh\n", context_local.count);
+					printf ("info: count %.4Xh\n", _context.count);
 					err = 0;
 					break;
 
 				// File path
 
 				case 'f':
-					err = local_open (optarg);
+					err = file_open (optarg);
 					if (err) break;
 					printf ("info: file path %s\n", optarg);
 					break;
@@ -362,7 +267,7 @@ int main (int argc, char * argv [])
 				// Call procedure
 
 				case 'x':
-					err = call_proc ();
+					//err = call_proc ();
 					break;
 
 				// Interactive mode
@@ -392,6 +297,7 @@ int main (int argc, char * argv [])
 			puts ("  -r            read memory to file");
 			puts ("  -w            write memory from file");
 			puts ("  -p            call procedure");
+
 			exit_code = 1;
 			break;
 			}
@@ -399,9 +305,6 @@ int main (int argc, char * argv [])
 		// Main loop
 
 		if (!interactive) break;
-
-		context_t context_op;
-		//op_desc_t op_desc;
 
 		while (1)
 			{
@@ -424,11 +327,14 @@ int main (int argc, char * argv [])
 
 			// Get user command
 
-			print_char ('>');
-			err = scan_context (&context_local);
-			if (err == E_OK && context_local.length)
+			putchar ('>');
+
+			_context_fd = 0; // stdin
+
+			err = recv_context (&_context);
+			if (err == E_OK && _context.length && ! _context.done)
 				{
-				switch (context_local.token [0])
+				switch (_context.token [0])
 					{
 					// Quit
 
@@ -436,25 +342,14 @@ int main (int argc, char * argv [])
 						err = E_END;
 						break;
 
-					// Dump memory
-
-					case 'M':
-						if (context_local.length != 1)
-							{
-							err = E_LENGTH;
-							break;
-							}
-
-						//print_mem (&context_local);
-						break;
-
-					default:
-						err = E_VALUE;
-
 					}
 				}
 
-			print_error (err);
+			if (err == E_OK && ! _context.done) err = E_VALUE;
+
+			_context_fd = 2;  // stderr
+
+			send_error (err);
 
 			if (err == E_END) break;
 			}
@@ -464,8 +359,8 @@ int main (int argc, char * argv [])
 
 	// Cleanup
 
-	if (fd_serial >= 0) close (fd_serial);
-	if (fd_local  >= 0) close (fd_local);
+	if (_serial_fd >= 0) close (_serial_fd);
+	if (_file_fd  >= 0)  close (_file_fd);
 
 	return exit_code;
 	}
