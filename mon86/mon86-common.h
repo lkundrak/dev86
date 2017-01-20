@@ -36,13 +36,12 @@ enum err_e
 typedef enum err_e err_t;
 
 
-// Overridables
+// Target specifics
 
-err_t read_char  (char_t * c);
-err_t write_char (char_t c);
+err_t recv_char (char_t * c);
+err_t send_char (char_t c);
 
-err_t read_string  (char_t * s, word_t * len);
-err_t write_string (char_t * s, word_t len);
+err_t send_string (char_t * s, word_t len);
 
 
 // Library
@@ -56,13 +55,15 @@ char_t digit_to_hex (digit_t d);
 err_t hex_to_word (char_t * str, byte_t len, word_t * val);
 void word_to_hex (word_t val, char_t * str, byte_t * len);
 
-err_t read_token (char_t * str, byte_t * len);
-err_t read_error ();
-err_t read_word (word_t * val);
 
-err_t write_word (word_t val);
-err_t write_error (err_t err);
-err_t write_command (byte_t c1, byte_t c2);
+// Tokens
+
+err_t recv_token (char_t * str, byte_t * len);
+err_t recv_word (word_t * val);
+err_t recv_status ();
+
+err_t send_word (word_t val);
+err_t send_status (err_t err);
 
 
 // Context
@@ -83,17 +84,22 @@ err_t write_command (byte_t c1, byte_t c2);
 
 struct context_s
 	{
-	word_t off;   // +0h
-	word_t seg;   // +2h
-	word_t len;   // +4h
-	word_t val;   // +6h
-	char_t sub1;  // +8h
-	char_t sub2;  // +9h
+	word_t offset;   // +0h
+	word_t segment;  // +2h
+	word_t count;    // +4h
+	word_t value;    // +6h
+
+	byte_t length;
+	char_t token [TOKEN_LEN_MAX];
+
+	byte_t done;
 	};
 
 typedef struct context_s context_t;
 
-err_t read_context (context_t * context);
+
+err_t recv_context (context_t * context);
+err_t send_context (context_t * context);
 
 
 #endif // _MON86_COMMON

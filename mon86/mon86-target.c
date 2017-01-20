@@ -62,50 +62,50 @@ typedef struct globals_s globals_t;
 
 #ifdef HOST_STUB
 
-err_t read_char (char_t * c)
+err_t recv_char (char_t * c)
 	{
 	ssize_t n = read (0, c, 1);
 	return (n == 1) ? E_OK : E_END;
 	}
 
-err_t write_char (char_t c)
+err_t send_char (char_t c)
 	{
 	ssize_t n = write (1, &c, 1);
 	return (n == 1) ? E_OK : E_END;
 	}
 
-err_t write_string (char_t * str, word_t len)
+err_t send_string (char_t * str, word_t count)
 	{
-	ssize_t n = write (1, str, len);
-	return (n == len) ? E_OK : E_END;
+	ssize_t n = write (1, str, count);
+	return (n == count) ? E_OK : E_END;
 	}
 
 
 static byte_t _mem [0x100000];
 
 
-static addr_t addr_seg_off (word_t seg, word_t off)
+static addr_t addr_seg_off (word_t segment, word_t offset)
 	{
-	return ((addr_t) seg << 4) + (addr_t) off;
+	return ((addr_t) segment << 4) + (addr_t) offset;
 	}
 
 
 static void mem_read (context_t * context)
 	{
-	word_t off;
+	word_t offset;
 
-	off = context->off;
-	context->val = (word_t) _mem [addr_seg_off (context->seg, off)];
-	context->off = ++off;
+	offset = context->offset;
+	context->value = (word_t) _mem [addr_seg_off (context->segment, offset)];
+	context->offset = ++offset;
 	}
 
 static void mem_write (context_t * context)
 	{
-	word_t off;
+	word_t offset;
 
-	off = context->off;
-	_mem [addr_seg_off (context->seg, off)] = (byte_t) context->val ;
-	context->off = ++off;
+	offset = context->offset;
+	_mem [addr_seg_off (context->segment, offset)] = (byte_t) context->value ;
+	context->offset = ++offset;
 	}
 
 
@@ -153,14 +153,14 @@ static err_t reg_read (context_t * context, regs_t * regs)
 
 	while (1)
 		{
-		index = hex_to_digit (context->sub2);
+		index = hex_to_digit (context->token [1]);
 		if (index >= REG_MAX)
 			{
 			err = E_INDEX;
 			break;
 			}
 
-		context->val = *((reg_t *) regs + index);
+		context->value = *((reg_t *) regs + index);
 		err = E_OK;
 		break;
 		}
@@ -176,14 +176,14 @@ static err_t reg_write (context_t * context, regs_t * regs)
 
 	while (1)
 		{
-		index = hex_to_digit (context->sub2);
+		index = hex_to_digit (context->token [1]);
 		if (index >= REG_MAX)
 			{
 			err = E_INDEX;
 			break;
 			}
 
-		*((reg_t *) regs + index) = context->val;
+		*((reg_t *) regs + index) = context->value;
 		err = E_OK;
 		break;
 		}
@@ -251,10 +251,11 @@ void main ()
 
 	// Default safe values
 
-	context.off = 0;
-	context.seg = 0xF000;
-	context.val = 0;
-	context.len = 1;
+	context.offset = 0;
+	context.segment = 0xF000;
+	context.value = 0;
+	context.count = 1;
+	context.done = 0;
 
 	reg_setup (&regs);
 
@@ -269,99 +270,113 @@ void main ()
 
 	// Startup banner
 
-	write_char ('M');
-	write_char ('O');
-	write_char ('N');
-	write_char ('8');
-	write_char ('6');
-	write_char ('.');
-	write_char ('0');
-	write_char (13);  // carriage return
-	write_char (10);  // line feed
+	send_char ('M');
+	send_char ('O');
+	send_char ('N');
+	send_char ('8');
+	send_char ('6');
+	send_char ('.');
+	send_char ('0');
+	send_char (13);  // carriage return
+	send_char (10);  // line feed
 
 	while (1)
 		{
-		err = read_context (&context);
-		if (err == E_OK && context.sub1)
+		err = recv_context (&context);
+		if (err == E_OK && context.length && ! context.done)
 			{
-			switch (context.sub1)
+			switch (context.token [0])
 				{
 				// Read from memory
 
 				case C_MEM_READ:
-					if (context.sub2)
+					if (context.length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
 					mem_read (&context);
-					write_word (context.val);
-					write_char (13);  // carriage return
-					write_char (10);  // line feed
+					send_word (context.value);
+
+					context.done = 1;
 					break;
 
 				// Write to memory
 
 				case C_MEM_WRITE:
-					if (context.sub2)
+					if (context.length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
 					mem_write (&context);
+					context.done = 1;
 					break;
 
 				// Read register
 
 				case C_REG_READ:
+					if (context.length != 2)
+						{
+						err = E_LENGTH;
+						break;
+						}
+
 					err = reg_read (&context, &regs);
 					if (err) break;
 
-					write_word (context.val);
-					write_char (13);  // carriage return
-					write_char (10);  // line feed
+					send_word (context.value);
+
+					context.done = 1;
 					break;
 
 				// Write register
 
 				case C_REG_WRITE:
-					err = reg_write (&context, &regs);
-					break;
+					if (context.length != 2)
+						{
+						err = E_LENGTH;
+						break;
+						}
 
+					err = reg_write (&context, &regs);
+					context.done = 1;
+					break;
 
 				// Call procedure
 
 				case C_PROC:
-					if (context.sub2)
+					if (context.length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
 					proc_call (&context, &regs);
+					context.done = 1;
 					break;
 
 				// Execute task
 
 				case C_TASK:
-					if (context.sub2)
+					if (context.length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
 					err = task_sub (&globals, &regs);
+					context.done = 1;
 					break;
-
-				default:
-					err = E_VALUE;
 
 				}
 			}
 
-		write_error (err);
+		if (err == E_OK && ! context.done) err = E_VALUE;
+
+		send_status (err);
 
 		if (err == E_END) break;
 		}

@@ -125,7 +125,7 @@ void word_to_hex (word_t val, char_t * str, byte_t * len)
 // Read functions
 //-----------------------------------------------------------------------------
 
-err_t read_token (char_t * str, byte_t * len)
+err_t recv_token (char_t * str, byte_t * len)
 	{
 	err_t err;
 
@@ -137,7 +137,7 @@ err_t read_token (char_t * str, byte_t * len)
 
 	while (1)
 		{
-		err = read_char (&c);
+		err = recv_char (&c);
 		if (err) break;
 
 		// Ignore heading spaces
@@ -164,39 +164,7 @@ err_t read_token (char_t * str, byte_t * len)
 	}
 
 
-err_t read_error ()
-	{
-	err_t err;
-
-	while (1)
-		{
-		byte_t len = 0;
-		byte_t token [TOKEN_LEN_MAX];
-
-		err = read_token (token, &len);
-		if (err) break;
-
-		if (len != 2)
-			{
-			err = E_LENGTH;
-			break;
-			}
-
-		if (token [0] != 'Z')
-			{
-			err = E_VALUE;
-			break;
-			}
-
-		err = (err_t) token [1];
-		break;
-		}
-
-	return err;
-	}
-
-
-err_t read_word (word_t * val)
+err_t recv_word (word_t * val)
 	{
 	err_t err;
 
@@ -207,7 +175,7 @@ err_t read_word (word_t * val)
 
 	while (1)
 		{
-		err = read_token (token, &len);
+		err = recv_token (token, &len);
 		if (err) break;
 
 		err = hex_to_word (token, len, val);
@@ -218,27 +186,58 @@ err_t read_word (word_t * val)
 	}
 
 
-err_t read_context (context_t * context)
+err_t recv_status ()
 	{
 	err_t err;
 
-	char_t token [TOKEN_LEN_MAX];
-	byte_t len;
+	while (1)
+		{
+		byte_t len = 0;
+		byte_t token [TOKEN_LEN_MAX];
+
+		err = recv_token (token, &len);
+		if (err) break;
+
+		if (len != 2)
+			{
+			perror ("status length");
+			err = E_LENGTH;
+			break;
+			}
+
+		if (token [0] != 'Z')
+			{
+			perror ("status prefix");
+			err = E_VALUE;
+			break;
+			}
+
+		err = (err_t) (token [1] - '0');
+		break;
+		}
+
+	return err;
+	}
+
+
+err_t recv_context (context_t * context)
+	{
+	err_t err;
 
 	char_t c;
 
 	while (1)
 		{
-		err = read_token (token, &len);
-		if (err == E_OK)
-			{
-			context->sub1 = 0;
-			if (!len) break;
+		context->done = 0;
 
-			c = token [0];
+		err = recv_token (context->token, &context->length);
+		if (err == E_OK && context->length)
+			{
+			c = context->token [0];
 			if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F'))
 				{
-				err = hex_to_word (token, len, &context->val);
+				err = hex_to_word (context->token, context->length, &context->value);
+				context->done = 1;
 				break;
 				}
 
@@ -247,48 +246,40 @@ err_t read_context (context_t * context)
 				// Set offset
 
 				case C_OFFSET:
-					if (len > 1)
+					if (context->length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
-					context->off = context->val;
+					context->offset = context->value;
+					context->done = 1;
 					break;
 
 				// Set segment
 
 				case C_SEGMENT:
-					if (len > 1)
+					if (context->length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
-					context->seg = context->val;
+					context->segment = context->value;
+					context->done = 1;
 					break;
 
 				// Set length
 
 				case C_LENGTH:
-					if (len > 1)
+					if (context->length != 1)
 						{
 						err = E_LENGTH;
 						break;
 						}
 
-					context->len = context->val;
-					break;
-
-				default:
-					if (len > 2)
-						{
-						err = E_LENGTH;
-						break;
-						}
-
-					context->sub1 = c;
-					context->sub2 = (len > 1) ? token [1] : 0;
+					context->count = context->value;
+					context->done = 1;
 					break;
 
 				}
@@ -305,18 +296,20 @@ err_t read_context (context_t * context)
 // Write functions
 //-----------------------------------------------------------------------------
 
-err_t write_word (word_t val)
+err_t send_word (word_t val)
 	{
-	byte_t str [4];
+	byte_t str [5];
 	byte_t len;
 
 	word_to_hex (val, str, &len);
 
-	return write_string (str, len);
+	str [len] = ' ';
+
+	return send_string (str, len + 1);
 	}
 
 
-err_t write_error (err_t err)
+err_t send_status (err_t err)
 	{
 	char_t str [4];
 
@@ -325,19 +318,78 @@ err_t write_error (err_t err)
 	str [2] = 13;  // carriage return
 	str [3] = 10;  // line feed
 
-	return write_string (str, 4);
+	return send_string (str, 4);
 	}
 
 
-err_t write_command (byte_t c1, byte_t c2)
+err_t send_context (context_t * context)
 	{
-	char_t str [3];
+	err_t err;
 
-	str [0] = c1;
-	str [1] = c2;
-	str [2] = 10;  // LF as separator
+	while (1)
+		{
+		err = send_word (context->offset);
+		if (err)
+			{
+			perror ("send offset value");
+			break;
+			}
 
-	return write_string (str, 3);
+		err = recv_status ();
+		if (err)
+			{
+			perror ("offset value status");
+			break;
+			}
+
+		err = send_string ("O ", 2);
+		if (err)
+			{
+			perror ("send offset command");
+			break;
+			}
+
+		err = recv_status ();
+		if (err)
+			{
+			perror ("offset command status");
+			break;
+			}
+
+		err = send_word (context->segment);
+		if (err)
+			{
+			perror ("send segment value");
+			break;
+			}
+
+		err = recv_status ();
+		if (err)
+			{
+			perror ("segment value status");
+			break;
+			}
+
+		err = send_string ("S ", 2);
+		if (err)
+			{
+			perror ("send segment command");
+			break;
+			}
+
+		err = recv_status ();
+		if (err)
+			{
+			perror ("segment command status");
+			break;
+			}
+
+		err = E_OK;
+		break;
+		}
+
+	return err;
 	}
+
 
 //-----------------------------------------------------------------------------

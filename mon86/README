@@ -12,8 +12,8 @@ target just after booting, and before loading / executing a more complex
 software like a native application or an operating system.
 
 It provides basic functions, such as read / write the registers, read / write
-the memory, and execute code. It optionally allows to execute code step by
-step, or to put breakpoints, when acting as a master task.
+the memory, and execute code. It also allows to trace instructions, or to use
+the break instruction, when acting as a master task.
 
 MON86 is either loaded into the target RAM by the bootloader from any suitable
 device, or burned into the EEPROM / Flash for direct execution.

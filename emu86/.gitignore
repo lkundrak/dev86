@@ -2,4 +2,6 @@ emu86
 pcat
 
 emu86.pts
+
+test-pt1-out.txt
 test-mon86-out.txt

@@ -7,8 +7,6 @@ typedef unsigned char byte_t;
 typedef unsigned short word_t;
 
 
-// TODO: v2: group common code with PT-TARGET
-
 static byte_t upcase (byte_t c)
 	{
 	if (c >= 'a' && c <= 'z')

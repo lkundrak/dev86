@@ -1,0 +1,9 @@
+#!/bin/bash
+
+./emu86 -w 0xf0000 -f ../mon86/pt1.bin -x 0xf000:0x0 &
+
+sleep 1
+
+./pcat `cat emu86.pts` <../mon86/test-pt1-in.txt >test-pt1-out.txt
+
+diff ../mon86/test-pt1-ref.txt test-pt1-out.txt
