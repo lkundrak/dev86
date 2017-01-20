@@ -164,38 +164,6 @@ err_t recv_token (char_t * str, byte_t * len)
 	}
 
 
-err_t recv_error ()
-	{
-	err_t err;
-
-	while (1)
-		{
-		byte_t len = 0;
-		byte_t token [TOKEN_LEN_MAX];
-
-		err = recv_token (token, &len);
-		if (err) break;
-
-		if (len != 2)
-			{
-			err = E_LENGTH;
-			break;
-			}
-
-		if (token [0] != 'Z')
-			{
-			err = E_VALUE;
-			break;
-			}
-
-		err = (err_t) token [1];
-		break;
-		}
-
-	return err;
-	}
-
-
 err_t recv_word (word_t * val)
 	{
 	err_t err;
@@ -211,6 +179,40 @@ err_t recv_word (word_t * val)
 		if (err) break;
 
 		err = hex_to_word (token, len, val);
+		break;
+		}
+
+	return err;
+	}
+
+
+err_t recv_status ()
+	{
+	err_t err;
+
+	while (1)
+		{
+		byte_t len = 0;
+		byte_t token [TOKEN_LEN_MAX];
+
+		err = recv_token (token, &len);
+		if (err) break;
+
+		if (len != 2)
+			{
+			perror ("status length");
+			err = E_LENGTH;
+			break;
+			}
+
+		if (token [0] != 'Z')
+			{
+			perror ("status prefix");
+			err = E_VALUE;
+			break;
+			}
+
+		err = (err_t) (token [1] - '0');
 		break;
 		}
 
@@ -296,16 +298,18 @@ err_t recv_context (context_t * context)
 
 err_t send_word (word_t val)
 	{
-	byte_t str [4];
+	byte_t str [5];
 	byte_t len;
 
 	word_to_hex (val, str, &len);
 
-	return send_string (str, len);
+	str [len] = ' ';
+
+	return send_string (str, len + 1);
 	}
 
 
-err_t send_error (err_t err)
+err_t send_status (err_t err)
 	{
 	char_t str [4];
 
@@ -318,37 +322,72 @@ err_t send_error (err_t err)
 	}
 
 
-err_t send_command (byte_t c1, byte_t c2)
-	{
-	int err = E_OK;
-
-	char_t str [3];
-
-	str [0] = c1;
-
-	if (c2)
-		{
-		str [1] = c2;
-		str [2] = 10;  // LF as separator
-
-		err = send_string (str, 3);
-		}
-	else
-		{
-		str [1] = 10;  // LF as separator
-
-		err = send_string (str, 3);
-		}
-
-	return err;
-	}
-
-
 err_t send_context (context_t * context)
 	{
 	err_t err;
 
-	err = -1;
+	while (1)
+		{
+		err = send_word (context->offset);
+		if (err)
+			{
+			perror ("send offset value");
+			break;
+			}
+
+		err = recv_status ();
+		if (err)
+			{
+			perror ("offset value status");
+			break;
+			}
+
+		err = send_string ("O ", 2);
+		if (err)
+			{
+			perror ("send offset command");
+			break;
+			}
+
+		err = recv_status ();
+		if (err)
+			{
+			perror ("offset command status");
+			break;
+			}
+
+		err = send_word (context->segment);
+		if (err)
+			{
+			perror ("send segment value");
+			break;
+			}
+
+		err = recv_status ();
+		if (err)
+			{
+			perror ("segment value status");
+			break;
+			}
+
+		err = send_string ("S ", 2);
+		if (err)
+			{
+			perror ("send segment command");
+			break;
+			}
+
+		err = recv_status ();
+		if (err)
+			{
+			perror ("segment command status");
+			break;
+			}
+
+		err = E_OK;
+		break;
+		}
+
 	return err;
 	}
 

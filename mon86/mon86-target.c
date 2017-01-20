@@ -298,8 +298,6 @@ void main ()
 
 					mem_read (&context);
 					send_word (context.value);
-					send_char (13);  // carriage return
-					send_char (10);  // line feed
 
 					context.done = 1;
 					break;
@@ -330,8 +328,6 @@ void main ()
 					if (err) break;
 
 					send_word (context.value);
-					send_char (13);  // carriage return
-					send_char (10);  // line feed
 
 					context.done = 1;
 					break;
@@ -380,7 +376,7 @@ void main ()
 
 		if (err == E_OK && ! context.done) err = E_VALUE;
 
-		send_error (err);
+		send_status (err);
 
 		if (err == E_END) break;
 		}

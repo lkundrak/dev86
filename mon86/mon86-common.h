@@ -59,12 +59,11 @@ void word_to_hex (word_t val, char_t * str, byte_t * len);
 // Tokens
 
 err_t recv_token (char_t * str, byte_t * len);
-err_t recv_error ();
 err_t recv_word (word_t * val);
+err_t recv_status ();
 
 err_t send_word (word_t val);
-err_t send_error (err_t err);
-err_t send_command (byte_t c1, byte_t c2);
+err_t send_status (err_t err);
 
 
 // Context

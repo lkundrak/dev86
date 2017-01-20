@@ -129,23 +129,27 @@ static int read_to_file ()
 		_context_fd = _serial_fd;
 
 		err = send_context (&_context);
-		if (err) break;
+		if (err)
+			{
+			perror ("send context");
+			break;
+			}
 
 		while (_context.count-- > 0)
 			{
-			err = send_command ('R', 0);  // read memory
+			err = send_string ("R ", 2);  // read memory
 			if (err) break;
 
 			word_t val;
 			err = recv_word (&val);
 			if (err) break;
 
-			err = recv_error ();
+			err = recv_status ();
 			if (err) break;
 
 			_context.offset++;
 
-			// Write raw to local file
+			// Write raw to file
 
 			int n = write (fd, &val, 1);
 			if (n != 1)
@@ -166,7 +170,50 @@ static int write_from_file ()
 	{
 	int err;
 
-	err = E_END;
+	while (1)
+		{
+		int fd = _file_fd;
+		if (fd < 0) fd = 0;  // default stdin
+
+		_context_fd = _serial_fd;
+
+		err = send_context (&_context);
+		if (err)
+			{
+			perror ("send context");
+			break;
+			}
+
+		while (1)
+			{
+			// Read raw from file
+
+			word_t val;
+			int n = read (fd, &val, 1);
+			if (n != 1)
+				{
+				err = E_END;
+				break;
+				}
+
+			err = send_word (val);
+			if (err) break;
+
+			err = recv_status ();
+			if (err) break;
+
+			err = send_string ("W ", 2);  // write memory
+			if (err) break;
+
+			err = recv_status ();
+			if (err) break;
+
+			_context.offset++;
+			}
+
+		break;
+		}
+
 	return err;
 	}
 
@@ -183,15 +230,13 @@ int main (int argc, char * argv [])
 		{
 		int err;
 
-		int interactive = 0;
-
 		// Command line processing
 
 		char opt;
 
 		while (1)
 			{
-			opt = getopt (argc, argv, "t:s:o:l:f:rwxi");
+			opt = getopt (argc, argv, "t:s:o:l:f:rwx");
 			if (opt < 0 || opt == '?') break;
 
 			switch (opt)
@@ -207,12 +252,11 @@ int main (int argc, char * argv [])
 				case 's':
 					if (sscanf (optarg, "%hx", &_context.segment) != 1)
 						{
-						puts ("error: bad segment");
+						perror ("bad segment");
 						err = -1;
 						break;
 						}
 
-					printf ("info: segment %.4Xh\n", _context.segment);
 					err = 0;
 					break;
 
@@ -221,12 +265,11 @@ int main (int argc, char * argv [])
 				case 'o':
 					if (sscanf (optarg, "%hx", &_context.offset) != 1)
 						{
-						puts ("error: bad offset");
+						perror ("bad offset");
 						err = -1;
 						break;
 						}
 
-					printf ("info: offset %.4Xh\n", _context.offset);
 					err = 0;
 					break;
 
@@ -235,12 +278,11 @@ int main (int argc, char * argv [])
 				case 'l':
 					if (sscanf (optarg, "%hx", &_context.count) != 1)
 						{
-						puts ("error: bad count");
+						perror ("bad count");
 						err = -1;
 						break;
 						}
 
-					printf ("info: count %.4Xh\n", _context.count);
 					err = 0;
 					break;
 
@@ -248,8 +290,6 @@ int main (int argc, char * argv [])
 
 				case 'f':
 					err = file_open (optarg);
-					if (err) break;
-					printf ("info: file path %s\n", optarg);
 					break;
 
 				// Read memory to file
@@ -268,13 +308,6 @@ int main (int argc, char * argv [])
 
 				case 'x':
 					//err = call_proc ();
-					break;
-
-				// Interactive mode
-
-				case 'i':
-					interactive = 1;
-					err = 0;
 					break;
 
 				}
@@ -296,62 +329,10 @@ int main (int argc, char * argv [])
 			puts ("  -f <path>     file path");
 			puts ("  -r            read memory to file");
 			puts ("  -w            write memory from file");
-			puts ("  -p            call procedure");
+			puts ("  -x            call procedure");
 
 			exit_code = 1;
 			break;
-			}
-
-		// Main loop
-
-		if (!interactive) break;
-
-		while (1)
-			{
-			// Print processor status
-
-			//print_regs ();
-			//print_char ('\n');
-
-			//memset (&context_op, 0, sizeof (context_t));
-			//context_op.segment = seg_get (SEG_CS);
-			//context_op.offset = reg16_get (REG_IP);
-
-			//memset (&op_desc, 0, sizeof (op_desc_t));
-
-			//err = op_decode (&context_op, &op_desc);
-			//if (err) break;
-
-			//print_op (&context_op, &op_desc);
-			//print_char ('\n');
-
-			// Get user command
-
-			putchar ('>');
-
-			_context_fd = 0; // stdin
-
-			err = recv_context (&_context);
-			if (err == E_OK && _context.length && ! _context.done)
-				{
-				switch (_context.token [0])
-					{
-					// Quit
-
-					case 'Q':
-						err = E_END;
-						break;
-
-					}
-				}
-
-			if (err == E_OK && ! _context.done) err = E_VALUE;
-
-			_context_fd = 2;  // stderr
-
-			send_error (err);
-
-			if (err == E_END) break;
 			}
 
 		break;
