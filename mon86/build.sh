@@ -2,12 +2,6 @@
 
 # Build binaries for target
 
-# First stage monitor
-
-bcc -ansi -0 -c pt1-target.c
-
-ld86 -0 -d -M -o pt1.bin pt1-target.o > pt1.map
-
 # Second stage monitor
 
 bcc -ansi -0 -c -o mon86-common-target.o mon86-common.c

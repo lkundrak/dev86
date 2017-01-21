@@ -3,17 +3,11 @@
 .PHONY : all
 
 all : \
-  pt1-stub pt1-read pt1-write pt1-exec \
-  mon86-stub mon86-host
+  mon86-stub \
+  mon86-host \
+  # end of list
 
 CFLAGS = -g -D HOST_STUB
-
-# First stage monitor
-
-pt1-stub.o : pt1-target.c
-	$(CC) $(CFLAGS) -o $@ -c $<
-
-pt1-stub : pt1-stub.o
 
 # Second stage monitor
 

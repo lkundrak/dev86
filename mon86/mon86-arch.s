@@ -2,22 +2,27 @@
 ; MON86 - Architecture specific routines for the Advantech SMNP-1000-B1 SBC
 ;------------------------------------------------------------------------------
 
+; Register offsets
+
+io_timer1_mode  EQU $FF5E
+io_port0_data   EQU $FF74
+
 
 ; Interrupt vectors
 
-vect_tick  EQU $1C
+vect_tick       EQU $1C
 
 
 ;------------------------------------------------------------------------------
 
 ; Tick interrupt
-; Called every second by the BIOS
+; Called by the BIOS @ 1 Hz
 ; Used to quiet the hardware watchdog
 
 int_tick:
 	push   ax
 	push   dx
-	mov    dx,#0xFF74                  ; I/O port 0
+	mov    dx,#io_port0_data
 	in     ax,dx
 	xor    ax,#1
 	out    dx,ax
@@ -35,6 +40,17 @@ _arch_setup:
 	MOV    BP,SP
 	PUSH   AX
 	PUSH   BX
+	push   dx
+
+	; disable timer @ 1000 Hz
+
+	mov     dx,#io_timer1_mode
+	in      ax,dx
+	and     ax,#$7FFF                  ; disable timer
+	or      ax,#$4000                  ; unlock enable bit
+	out     dx,ax
+
+	; insert tick handler @ 1 Hz
 
 	PUSH   DS
 	MOV    AX,#0
@@ -49,6 +65,7 @@ _arch_setup:
 
 	POP    DS
 
+	pop    dx
 	POP    BX
 	POP    AX
 	POP    BP

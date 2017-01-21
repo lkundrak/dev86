@@ -258,7 +258,9 @@ static int call_proc ()
 		err = recv_status ();
 		if (err)
 			{
-			perror ("call procedure status");
+			char str [128];
+			sprintf (str, "call procedure: err=%u\n", err);
+			write (2, str, strlen (str));
 			break;
 			}
 
