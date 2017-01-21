@@ -129,6 +129,11 @@ static void reg_setup (regs_t * regs)
 	{
 	}
 
+
+static void arch_setup ()
+	{
+	}
+
 #else // HOST_STUB
 
 extern void mem_write (context_t * context);
@@ -140,6 +145,8 @@ extern word_t task_exec (globals_t * globals, regs_t * regs, byte_t start);
 
 extern void int_setup (globals_t * globals);
 extern void reg_setup (regs_t * regs);
+
+extern void arch_setup ();
 
 #endif // HOST_STUB
 
@@ -248,6 +255,10 @@ void main ()
 	context_t context;
 	regs_t regs;
 	globals_t globals;
+
+	// Architecture setup
+
+	arch_setup ();
 
 	// Default safe values
 

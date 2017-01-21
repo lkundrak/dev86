@@ -11,7 +11,7 @@ vect_exit   EQU $FF
 
 
 ; Offsets in globals structure
-; Synchronize with mon86-main
+; Synchronize with mon86-target
 
 glob_magic  EQU $0
 master_sp   EQU $2
@@ -89,93 +89,6 @@ entry_2:
 	pop    cx
 	pop    ax
 	br     _main
-
-
-;------------------------------------------------------------------------------
-
-; Advantech specific
-; Toggle bit 0 of port
-; Probably a watchdog
-; Directly sourced from original ROM
-
-_toggle_0:
-	push   bp
-	mov    bp,sp
-	push   dx
-	push   ax
-	mov    dx,#0xFF74
-	in     ax,dx
-	mov    dx,ax
-	not    ax
-	and    ax,#1
-	and    dx,#0xFFFE
-	or     ax,dx
-	mov    dx,#0xFF74
-	out    dx,ax
-	pop    ax
-	pop    dx
-	pop    bp
-	ret
-
-
-; Read one character from serial
-; Using Advantech tweaked BIOS
-
-_recv_char:
-	push   bp
-	mov    bp,sp
-	push   bx
-	mov    bx,[bp+4]                   ; arg1 = char * c
-
-_read_loop:
-	call   _toggle_0                   ; quiet the watching thing
-	mov    ah,#$10                     ; get extended key
-	int    $16                         ; BIOS keyboard service
-	or     ah,ah
-	jz     _read_exit                  ; got a key
-
-	hlt                                ; idle until next interrupt
-	jmp    _read_loop
-
-_read_exit:
-	mov    [bx],al
-	pop    bx
-	xor    ax,ax
-	pop    bp
-	ret
-
-
-; Write one character to serial
-; Using Advantech tweaked BIOS
-
-_send_char:
-	push   bp
-	mov    bp,sp
-	mov    ax,[bp+4]                   ; BCC pushes char_t as word
-	mov    ah,#$0A                     ; write character
-	int    $10                         ; BIOS video service
-	xor    ax,ax
-	pop    bp
-	ret
-
-
-; Write string to serial
-; Using Advantech tweaked BIOS
-
-_send_string:
-	push   bp
-	mov    bp,sp
-	push   cx
-	mov    cx,[bp+6]                   ; arg2 = word_t : string length
-	push   bp
-	mov    bp,[bp+4]                   ; arg1 = char * : string pointer (ES already set)
-	mov    ah,#$13                     ; write string
-	int    $10                         ; BIOS video service
-	pop    bp
-	pop    cx
-	xor    ax,ax
-	pop    bp
-	ret
 
 
 ;------------------------------------------------------------------------------
@@ -749,11 +662,6 @@ _int_setup:
 
 ; Exported labels
 
-	EXPORT _recv_char
-	EXPORT _send_char
-
-	EXPORT _send_string
-
 	EXPORT _mem_read
 	EXPORT _mem_write
 
@@ -767,5 +675,6 @@ _int_setup:
 	ENTRY  _entry
 
 	END
+
 
 ;------------------------------------------------------------------------------

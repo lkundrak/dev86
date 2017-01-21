@@ -200,14 +200,12 @@ err_t recv_status ()
 
 		if (len != 2)
 			{
-			perror ("status length");
 			err = E_LENGTH;
 			break;
 			}
 
 		if (token [0] != 'Z')
 			{
-			perror ("status prefix");
 			err = E_VALUE;
 			break;
 			}
@@ -329,60 +327,28 @@ err_t send_context (context_t * context)
 	while (1)
 		{
 		err = send_word (context->offset);
-		if (err)
-			{
-			perror ("send offset value");
-			break;
-			}
+		if (err) break;
 
 		err = recv_status ();
-		if (err)
-			{
-			perror ("offset value status");
-			break;
-			}
+		if (err) break;
 
 		err = send_string ("O ", 2);
-		if (err)
-			{
-			perror ("send offset command");
-			break;
-			}
+		if (err) break;
 
 		err = recv_status ();
-		if (err)
-			{
-			perror ("offset command status");
-			break;
-			}
+		if (err) break;
 
 		err = send_word (context->segment);
-		if (err)
-			{
-			perror ("send segment value");
-			break;
-			}
+		if (err) break;
 
 		err = recv_status ();
-		if (err)
-			{
-			perror ("segment value status");
-			break;
-			}
+		if (err) break;
 
 		err = send_string ("S ", 2);
-		if (err)
-			{
-			perror ("send segment command");
-			break;
-			}
+		if (err) break;
 
 		err = recv_status ();
-		if (err)
-			{
-			perror ("segment command status");
-			break;
-			}
+		if (err) break;
 
 		err = E_OK;
 		break;

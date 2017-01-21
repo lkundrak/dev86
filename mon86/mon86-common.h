@@ -1,8 +1,6 @@
 #ifndef _MON86_COMMON
 #define _MON86_COMMON
 
-#include "mon86-config.h"
-
 
 // Constants
 
