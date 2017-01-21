@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <linux/limits.h>
+
 #include "mon86-common.h"
 
 
@@ -89,11 +91,12 @@ static int serial_open (char * path)
 //-----------------------------------------------------------------------------
 
 static int _file_fd = -1;
+static char _file_path [PATH_MAX] = { '\0' };
 
 
 // Open local file
 
-static int file_open (char * path)
+static int file_open (int flags)
 	{
 	int err;
 
@@ -101,7 +104,7 @@ static int file_open (char * path)
 		{
 		if (_file_fd >= 0) close (_file_fd);
 
-		_file_fd = open (path, O_RDWR);
+		_file_fd = open (_file_path, flags);
 		if (_file_fd < 0)
 			{
 			perror ("open file");
@@ -123,6 +126,12 @@ static int read_to_file ()
 
 	while (1)
 		{
+		if (_file_path [0] != '\0')
+			{
+			err = file_open (O_WRONLY | O_CREAT);
+			if (err) break;
+			}
+
 		int fd = _file_fd;
 		if (fd < 0) fd = 1;  // default stdout
 
@@ -172,6 +181,12 @@ static int write_from_file ()
 
 	while (1)
 		{
+		if (_file_path [0] != '\0')
+			{
+			err = file_open (O_RDONLY);
+			if (err) break;
+			}
+
 		int fd = _file_fd;
 		if (fd < 0) fd = 0;  // default stdin
 
@@ -219,6 +234,42 @@ static int write_from_file ()
 
 
 //-----------------------------------------------------------------------------
+// Other commands
+//-----------------------------------------------------------------------------
+
+static int call_proc ()
+	{
+	int err;
+
+	while (1)
+		{
+		_context_fd = _serial_fd;
+
+		err = send_context (&_context);
+		if (err)
+			{
+			perror ("send context");
+			break;
+			}
+
+		err = send_string ("P ", 2);  // call procedure
+		if (err) break;
+
+		err = recv_status ();
+		if (err)
+			{
+			perror ("call procedure status");
+			break;
+			}
+
+		break;
+		}
+
+	return err;
+	}
+
+
+//-----------------------------------------------------------------------------
 // Program main
 //-----------------------------------------------------------------------------
 
@@ -228,11 +279,13 @@ int main (int argc, char * argv [])
 
 	while (1)
 		{
-		int err;
+		int err = 0;
 
 		// Command line processing
 
-		char opt;
+		char opt = '?';
+
+		memset (&_context, 0, sizeof (context_t));
 
 		while (1)
 			{
@@ -254,10 +307,8 @@ int main (int argc, char * argv [])
 						{
 						perror ("bad segment");
 						err = -1;
-						break;
 						}
 
-					err = 0;
 					break;
 
 				// Offset
@@ -267,10 +318,8 @@ int main (int argc, char * argv [])
 						{
 						perror ("bad offset");
 						err = -1;
-						break;
 						}
 
-					err = 0;
 					break;
 
 				// Count
@@ -283,13 +332,12 @@ int main (int argc, char * argv [])
 						break;
 						}
 
-					err = 0;
 					break;
 
 				// File path
 
 				case 'f':
-					err = file_open (optarg);
+					strcpy (_file_path, optarg);
 					break;
 
 				// Read memory to file
@@ -307,7 +355,7 @@ int main (int argc, char * argv [])
 				// Call procedure
 
 				case 'x':
-					//err = call_proc ();
+					err = call_proc ();
 					break;
 
 				}
@@ -315,7 +363,11 @@ int main (int argc, char * argv [])
 			if (err) break;
 			}
 
-		if (err) break;
+		if (err)
+			{
+			exit_code = 1;
+			break;
+			}
 
 		// Check end of command line
 
