@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Write to the device memory
+
+# arg1: segment hexadecimal
+# arg2: offset in hexadecimal
+# arg3: file to read
+
+if [ $# != 3 ]
+	then
+	echo "usage: $0 segment offset (hex) file"
+	else
+	sudo ./mon86-host -t /dev/ttyUSB0 -s $1 -o $2 -w < $3
+	fi

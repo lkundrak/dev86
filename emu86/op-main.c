@@ -174,12 +174,13 @@ int main (int argc, char * argv [])
 		if (opt == '?' || optind != argc || !file_loaded)
 			{
 			printf ("usage: %s [options]\n\n", argv [0]);
-			puts ("  -w <address>         load address (mandatory)");
-			puts ("  -f <path>            file path (mandatory)");
+			puts ("  -w <address>         load address");
+			puts ("  -f <path>            file path");
 			puts ("  -x <segment:offset>  execute address");
 			puts ("  -b <address>         breakpoint address");
 			puts ("  -t                   trace mode");
 			puts ("  -i                   interactive mode");
+
 			exit_code = 1;
 			break;
 			}

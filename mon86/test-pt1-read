@@ -1,8 +1,0 @@
-#!/bin/bash
-
-# Read from the device memory
-
-# arg1: segment:offset in hexadecimal
-# arg2: count in hexadecimal
-
-sudo ./pt1-read /dev/ttyUSB0 $1 $2 | od -A x -t x1z

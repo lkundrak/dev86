@@ -1,7 +1,0 @@
-#!/bin/bash
-
-# Execute code on device
-
-# arg1: segment:offset in hexadecimal
-
-sudo ./pt1-exec /dev/ttyUSB0 $1

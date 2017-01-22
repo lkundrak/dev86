@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Read from the device memory
+
+# arg1: segment hexadecimal
+# arg2: offset in hexadecimal
+# arg3: count in hexadecimal
+
+if [ $# != 3 ]
+	then
+	echo "usage: $0 segment offset count (hex)"
+	else
+	sudo ./mon86-host -t /dev/ttyUSB0 -s $1 -o $2 -l $3 -r | od -A x -t x1z
+	fi

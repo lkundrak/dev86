@@ -1,16 +1,9 @@
-pt1-stub
-pt1-target
-pt1-read
-pt1-write
-pt1-exec
-
-pt1-target.map
+*.o
+*.bin
+*.map
 
 mon86-stub
+mon86-host
 
-mon86.bin
-mon86.map
-
-test-pt1-out.txt
 test-mon86-out.txt
 
