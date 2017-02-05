@@ -90,9 +90,6 @@ int main (int argc, char * argv [])
 		addr_t file_address = -1;
 		int file_loaded = 0;
 
-		op_code_seg = seg_get (SEG_CS);
-		op_code_off = reg16_get (REG_IP);
-
 		addr_t breakpoint = -1;
 
 		int flag_trace = 0;
@@ -102,7 +99,7 @@ int main (int argc, char * argv [])
 
 		while (1)
 			{
-			opt = getopt (argc, argv, "w:f:x:b:ti");
+			opt = getopt (argc, argv, "w:f:x:b:tip");
 			if (opt < 0 || opt == '?') break;
 
 			switch (opt)
@@ -124,6 +121,9 @@ int main (int argc, char * argv [])
 					printf ("info: load file %s\n", file_path);
 					break;
 
+				// Execution address:
+				// used to override the default CS:IP at reset
+
 				case 'x':  // execute address
 					if (sscanf (optarg, "%hx:%hx", &op_code_seg, &op_code_off) != 2)
 						{
@@ -132,6 +132,9 @@ int main (int argc, char * argv [])
 					else
 						{
 						printf ("info: execute address %.4hXh:%.4hXh\n", op_code_seg, op_code_off);
+
+						seg_set (SEG_CS, op_code_seg);
+						reg16_set (REG_IP, op_code_off);
 						}
 
 					break;
@@ -155,6 +158,16 @@ int main (int argc, char * argv [])
 				case 'i':  // interactive mode
 					flag_trace = 1;
 					flag_prompt = 1;
+					break;
+
+				// Program mode:
+				// used when running a stand-alone executable
+				// in the tiny memory model where CS=DS=ES=SS
+
+				case 'p':
+					seg_set (SEG_DS, seg_get (SEG_CS));
+					seg_set (SEG_ES, seg_get (SEG_CS));
+					seg_set (SEG_SS, seg_get (SEG_CS));
 					break;
 
 				}
@@ -190,9 +203,6 @@ int main (int argc, char * argv [])
 		serial_init ();
 
 		op_code_base = mem_get_addr (0);
-
-		seg_set (SEG_CS, op_code_seg);
-		reg16_set (REG_IP, op_code_off);
 
 		op_desc_t desc;
 
