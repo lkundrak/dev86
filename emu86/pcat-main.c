@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <termios.h>
+#include <unistd.h>
 
 #include "pcat-main.h"
 
@@ -74,7 +75,7 @@ int main (int argc, char * argv [])
 
 			// Slow down when sending from a test file
 
-			sleep (1);
+			//sleep (1);
 			}
 
 		close (f);

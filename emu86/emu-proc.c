@@ -6,7 +6,9 @@
 #include <assert.h>
 
 #include "op-class.h"
+
 #include "emu-proc.h"
+#include "emu-mem-io.h"
 
 
 struct proc_regs_s

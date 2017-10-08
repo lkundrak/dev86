@@ -50,7 +50,7 @@ void rep_reset ()
 
 static word_t off_get (const op_var_t * var)
 	{
-	assert (var->type == VT_IND);
+	assert (var->type == VT_MEM);
 
 	byte_t f = var->flags;
 	short s = 0;
@@ -124,6 +124,7 @@ static void val_get (const op_var_t * var1, op_var_t * var2)
 
 		case VT_REG:
 			var2->type = VT_IMM;
+
 			if (var1->w)
 				{
 				val2->w = reg16_get (val1->r);
@@ -147,7 +148,7 @@ static void val_get (const op_var_t * var1, op_var_t * var2)
 			var2->seg = var1->seg;
 			break;
 
-		case VT_IND:
+		case VT_MEM:
 
 			a = addr_get (var1);
 
@@ -210,7 +211,7 @@ static void val_set (op_var_t * var1, const op_var_t * var2)
 			seg_set (val1->r, val2->w);
 			break;
 
-		case VT_IND:
+		case VT_MEM:
 			assert (!var1->far);
 
 			a = addr_get (var1);
@@ -795,7 +796,7 @@ static void op_jump_call (op_desc_t * op_desc)
 	op_var_t * var = &(op_desc->var_to);
 
 	byte_t t = var->type;
-	assert (t == VT_REG || t == VT_LOC || t == VT_IND);
+	assert (t == VT_REG || t == VT_LOC || t == VT_MEM);
 
 	op_var_t temp;
 	memset (&temp, 0, sizeof (op_var_t));
@@ -823,9 +824,9 @@ static void op_jump_call (op_desc_t * op_desc)
 		{
 		assert (op == OP_JMP || op == OP_CALL);
 
-		if (t == VT_REG || t == VT_IND)
+		if (t == VT_REG || t == VT_MEM)
 			{
-			// Register or indirect are absolute
+			// Register or indirect is absolute
 
 			ip = temp.val.w;
 			}

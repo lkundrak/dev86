@@ -1,16 +1,18 @@
 
-#define _XOPEN_SOURCE  // for ptsname ()
+#define _XOPEN_SOURCE  // for ptsname()
+#define _GNU_SOURCE  // for getpt()
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "emu-serial.h"
 
 
-static _ptm = -1;
+static int _ptm = -1;
 
 
 void serial_send (byte_t c)

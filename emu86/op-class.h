@@ -37,13 +37,11 @@ extern word_t op_code_off;
 
 // Operand
 
-// TODO: change VT_IND to VT_???
-
 #define VT_REG   0  // operand is an ALU register
 #define VT_SEG   1  // operand is a MMU register
 #define VT_IMM   2  // operand is an immediate value
 #define VT_LOC   3  // operand is a memory location
-#define VT_IND   4  // operand is a memory content
+#define VT_MEM   4  // operand is a memory content
 
 union op_val_u
 	{
@@ -59,12 +57,11 @@ typedef union op_val_u op_val_t;
 
 struct op_var_s
 	{
-	// TODO: move size to word flag
-
 	byte_t type;     // operand type (VT_xxx)
-	byte_t flags;    // for relative address (AF_xxx)
+	byte_t flags;    // for address (AF_xxx)
 	byte_t w : 1;    // word flag
 	byte_t far : 1;  // far flag
+	byte_t s : 1;    // signed flag
 	op_val_t val;    // variable value
 	word_t seg;      // segment value
 	};
@@ -133,7 +130,7 @@ struct class_desc_s
 	byte_t mask;              // opcode mask
 	byte_t code;              // opcode value
 
-	byte_t len;               // opcode len
+	byte_t len;               // opcode length
 
 	class_desc_t * sub;       // sub-table
 
