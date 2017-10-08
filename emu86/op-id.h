@@ -11,25 +11,29 @@
 
 #define OP_NULL  0xFFFF
 
-#define OP_MOV   0x0001
-#define OP_LEA   0x0002
-#define OP_LDS   0x0003
+// LUT BEGIN
+
+#define OP_CALC2 0x0000  // base for 2 operands calculation
+#define OP_ADD   0x0000  // same order as in opcode
+#define OP_OR    0x0001
+#define OP_ADC   0x0002
+#define OP_SBB   0x0003
+#define OP_AND   0x0004
+#define OP_SUB   0x0005
+#define OP_XOR   0x0006
+#define OP_CMP   0x0007
+#define OP_TEST  0x0008
+
+// LUT END
 
 #define OP_XCHG  0x0100
 
 #define OP_IN    0x0200
 #define OP_OUT   0x0201
 
-#define OP_CALC2 0x0300  // base for 2 variables calculation
-#define OP_ADD   0x0300
-#define OP_OR    0x0301
-#define OP_ADC   0x0302
-#define OP_SBB   0x0303
-#define OP_AND   0x0304
-#define OP_SUB   0x0305
-#define OP_XOR   0x0306
-#define OP_CMP   0x0307
-#define OP_TEST  0x0308
+#define OP_MOV   0x0301
+#define OP_LEA   0x0302
+#define OP_LDS   0x0303
 
 #define OP_NOT   0x0400
 #define OP_NEG   0x0401
@@ -38,8 +42,9 @@
 #define OP_DIV   0x0404
 #define OP_IDIV  0x0405
 
-#define OP_INC   0x0500
-#define OP_DEC   0x0501
+#define OP_STEP1  0x0500  // base for step operations
+#define OP_INC    0x0500  // same order as in opcode
+#define OP_DEC    0x0501
 
 #define OP_ROL   0x0600
 #define OP_ROR   0x0601
@@ -50,12 +55,16 @@
 #define OP_SAL   0x0606
 #define OP_SAR   0x0607
 
-#define OP_PUSH  0x0700
-#define OP_POP   0x0701
-#define OP_PUSHF 0x0702
-#define OP_POPF  0x0703
-#define OP_PUSHA 0x0704
-#define OP_POPA  0x0705
+#define OP_STACK1 0x0700  // base for stack 1 operations
+#define OP_PUSH   0x0700  // same order as in opcode
+#define OP_POP    0x0701
+
+#define OP_PUSHF  0x0702
+#define OP_POPF   0x0703
+
+#define OP_STACK2 0x0710  // base for stack 2 operations
+#define OP_PUSHA  0x0710  // same order as in opcode
+#define OP_POPA   0x0711
 
 #define OP_JMP   0x0800
 #define OP_JMPF  0x0801
@@ -70,7 +79,8 @@
 #define OP_RETF  0x0A01
 #define OP_IRET  0x0A02
 
-#define OP_JO    0x0B00
+#define OP_JUMP1 0x0B00  // base for jump 1 operations
+#define OP_JO    0x0B00  // same order as in opcode
 #define OP_JNO   0x0B01
 #define OP_JB    0x0B02
 #define OP_JNB   0x0B03
@@ -101,10 +111,14 @@
 #define OP_SCASB 0x0C08
 #define OP_SCASW 0x0C09
 
-#define OP_AAA   0x0D00
-#define OP_AAD   0x0D01
-#define OP_AAM   0x0D02
-#define OP_AAS   0x0D03
+#define OP_ADJUST1 0x0D00  // base for adjust operations
+#define OP_DAA     0x0D00  // same order as in opcode
+#define OP_DAS     0x0D01
+#define OP_AAA     0x0D02
+#define OP_AAS     0x0D03
+
+#define OP_AAD    0x0D04
+#define OP_AAM    0x0D05
 
 #define OP_CBW   0x0E00
 #define OP_CWD   0x0E01
@@ -126,15 +140,13 @@
 #define OP_LOOPNZ 0x1201
 #define OP_LOOPZ  0x1202
 
-#define OP_SEG   0x1300
+#define OP_SEG    0x1300
 
 // TODO: finalize op id
 
 #define OP_WAIT   0xFF00
 #define OP_XLAT   0xFF01
 #define OP_ESC    0xFF02
-#define OP_DAA    0xFF03
-#define OP_DAS    0xFF04
 #define OP_JCXZ   0xFF05
 #define OP_LES    0xFF07
 #define OP_LOCK   0xFF08

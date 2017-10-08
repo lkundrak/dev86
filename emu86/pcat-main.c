@@ -69,13 +69,14 @@ int main (int argc, char * argv [])
 					}
 				}
 
-			// Both EOF
+			// Stop on any EOF
+			// TODO: clean chained stop from standard input EOF
 
-			if (ei && eo) break;
+			if (ei || eo) break;
 
 			// Slow down when sending from a test file
 
-			//sleep (1);
+			sleep (1);
 			}
 
 		close (f);

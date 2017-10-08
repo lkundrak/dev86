@@ -344,6 +344,10 @@ int main (int argc, char * argv [])
 		break;
 		}
 
+	// Output class counter
+
+	printf ("class iteration count= %i\n", class_iter_count);
+
 	// Cleanup
 
 	serial_term ();

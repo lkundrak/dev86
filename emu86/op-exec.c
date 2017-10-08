@@ -8,11 +8,13 @@
 
 #include "op-id.h"
 #include "op-id-name.h"
+
 #include "op-class.h"
 
 #include "emu-proc.h"
 #include "emu-mem-io.h"
 #include "emu-int.h"
+
 #include "op-exec.h"
 
 
@@ -236,7 +238,7 @@ static void val_set (op_var_t * var1, const op_var_t * var2)
 
 // Move & load
 
-static void op_move_load (op_desc_t * op_desc)
+static int op_move_load (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 2);
 	op_var_t * to   = &op_desc->var_to;
@@ -279,12 +281,14 @@ static void op_move_load (op_desc_t * op_desc)
 			assert (0);
 
 		}
+
+	return 0;
 	}
 
 
 // Swap
 
-static void op_swap (op_desc_t * op_desc)
+static int op_swap (op_desc_t * op_desc)
 	{
 	assert (op_desc->op_id == OP_XCHG);
 
@@ -307,12 +311,14 @@ static void op_swap (op_desc_t * op_desc)
 
 	assert (from->w == temp1.w);
 	val_set (from, &temp1);
+
+	return 0;
 	}
 
 
 // Input & output
 
-static void op_port (op_desc_t * op_desc)
+static int op_port (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 2);
 	op_var_t * to   = &op_desc->var_to;
@@ -365,12 +371,14 @@ static void op_port (op_desc_t * op_desc)
 			assert (0);
 
 		}
+
+	return 0;
 	}
 
 
 // Arithmetic & logic
 
-static void op_calc_1 (op_desc_t * op_desc)
+static int op_calc_1 (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
 	op_var_t * var = &op_desc->var_to;
@@ -461,6 +469,8 @@ static void op_calc_1 (op_desc_t * op_desc)
 		temp.val.w = v;
 		val_set (var, &temp);
 		}
+
+	return 0;
 	}
 
 
@@ -542,7 +552,7 @@ static word_t alu_calc_2 (word_t op, byte_t w, word_t a, word_t b)
 	}
 
 
-static void op_calc_2 (op_desc_t * op_desc)
+static int op_calc_2 (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 2);
 	op_var_t * to   = &op_desc->var_to;
@@ -571,12 +581,14 @@ static void op_calc_2 (op_desc_t * op_desc)
 		temp1.val.w = r;
 		val_set (to, &temp1);
 		}
+
+	return 0;
 	}
 
 
 // Increment & decrement
 
-static void op_inc_dec (op_desc_t * op_desc)
+static int op_inc_dec (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
 	op_var_t * var = &op_desc->var_to;
@@ -608,12 +620,14 @@ static void op_inc_dec (op_desc_t * op_desc)
 
 	temp.val.w = r;
 	val_set (var, &temp);
+
+	return 0;
 	}
 
 
 // Shift & rotate
 
-static void op_shift_rot (op_desc_t * op_desc)
+static int op_shift_rot (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 2);
 	op_var_t * to   = &op_desc->var_to;
@@ -706,12 +720,14 @@ static void op_shift_rot (op_desc_t * op_desc)
 
 	temp1.val.w = a;
 	val_set (to, &temp1);
+
+	return 0;
 	}
 
 
 // Push & pop
 
-static void op_push (op_desc_t * op_desc)
+static int op_push (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
 	op_var_t * var = &op_desc->var_to;
@@ -723,9 +739,11 @@ static void op_push (op_desc_t * op_desc)
 	val_get (var, &temp);
 	assert (temp.w);
 	stack_push (temp.val.w);
+
+	return 0;
 	}
 
-static void op_pop (op_desc_t * op_desc)
+static int op_pop (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
 	op_var_t * var = &op_desc->var_to;
@@ -738,25 +756,29 @@ static void op_pop (op_desc_t * op_desc)
 	temp.val.w = stack_pop ();
 
 	val_set (var, &temp);
+
+	return 0;
 	}
 
 
-static void op_pushf (op_desc_t * op_desc)
+static int op_pushf (op_desc_t * op_desc)
 	{
 	assert (!op_desc->var_count);
 	stack_push (reg16_get (REG_FL));
+	return 0;
 	}
 
-void op_popf (op_desc_t * op_desc)
+static int op_popf (op_desc_t * op_desc)
 	{
 	assert (!op_desc->var_count);
 	reg16_set (REG_FL, stack_pop ());
+	return 0;
 	}
 
 
 // 80186 / 80188 PUSHA / POPA
 
-static void op_pusha (op_desc_t * op_desc)
+static int op_pusha (op_desc_t * op_desc)
 	{
 	assert (!op_desc->var_count);
 	byte_t r;
@@ -764,9 +786,10 @@ static void op_pusha (op_desc_t * op_desc)
 	for (r = 0; r != 8; r++)
 		stack_push (reg16_get (r));
 
+	return 0;
 	}
 
-void op_popa (op_desc_t * op_desc)
+static int op_popa (op_desc_t * op_desc)
 	{
 	assert (!op_desc->var_count);
 	byte_t r;
@@ -782,12 +805,14 @@ void op_popa (op_desc_t * op_desc)
 			reg16_set (r, stack_pop ());
 			}
 		}
+
+	return 0;
 	}
 
 
 // Jump & call
 
-static void op_jump_call (op_desc_t * op_desc)
+static int op_jump_call (op_desc_t * op_desc)
 	{
 	word_t op = op_desc->op_id;
 	assert (op == OP_JMP || op == OP_CALL || op == OP_JMPF || op == OP_CALLF);
@@ -839,12 +864,14 @@ static void op_jump_call (op_desc_t * op_desc)
 		}
 
 	reg16_set (REG_IP, ip);
+
+	return 0;
 	}
 
 
 // Interrupt
 
-static void op_int (op_desc_t * op_desc)
+static int op_int (op_desc_t * op_desc)
 	{
 	byte_t i = 0;
 
@@ -869,9 +896,10 @@ static void op_int (op_desc_t * op_desc)
 		}
 
 	// Interrupt handling
+	// TODO: test interrupt vector and intercept if not set
 
 	int err = int_hand (i);
-	if (err)
+	if (err == 1)
 		{
 		// Not intercepted -> emulate
 
@@ -886,13 +914,17 @@ static void op_int (op_desc_t * op_desc)
 
 		flag_set (FLAG_TF, 0);
 		flag_set (FLAG_IF, 0);
+
+		err = 0;
 		}
+
+	return err;
 	}
 
 
 // Return
 
-static void op_return (op_desc_t * op_desc)
+static int op_return (op_desc_t * op_desc)
 	{
 	word_t op = op_desc->op_id;
 	assert (op == OP_RET || op == OP_RETF || op == OP_IRET);
@@ -912,6 +944,8 @@ static void op_return (op_desc_t * op_desc)
 		{
 		reg16_set (REG_FL, stack_pop ());
 		}
+
+	return 0;
 	}
 
 
@@ -919,7 +953,7 @@ static void op_return (op_desc_t * op_desc)
 
 // TODO: Optimize with LUT on mask & value
 
-static void op_jump_cond (op_desc_t * op_desc)
+static int op_jump_cond (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
 	op_var_t * var = &op_desc->var_to;
@@ -1003,12 +1037,14 @@ static void op_jump_cond (op_desc_t * op_desc)
 		word_t ip = (word_t) ((short) reg16_get (REG_IP) + var->val.s);
 		reg16_set (REG_IP, ip);
 		}
+
+	return 0;
 	}
 
 
 // Segment override with SEG prefix
 
-static void op_seg (op_desc_t * op_desc)
+static int op_seg (op_desc_t * op_desc)
 	{
 	assert (op_desc->op_id == OP_SEG);
 	assert (_seg_reg == 0xFF);
@@ -1020,12 +1056,14 @@ static void op_seg (op_desc_t * op_desc)
 	assert (var->val.r < SEG_MAX);
 	_seg_reg = var->val.r;
 	_seg_stat = 1;
+
+	return 0;
 	}
 
 
 // Strings
 
-static void op_repeat (op_desc_t * op_desc)
+static int op_repeat (op_desc_t * op_desc)
 	{
 	assert (_rep_op == OP_NULL);
 	assert (_rep_stat == 0);
@@ -1033,10 +1071,12 @@ static void op_repeat (op_desc_t * op_desc)
 	assert (id == OP_REPZ || id == OP_REPNZ);
 	_rep_op = id;
 	_rep_stat = 1;
+
+	return 0;
 	}
 
 
-static void op_string (op_desc_t * op_desc)
+static int op_string (op_desc_t * op_desc)
 	{
 	// TODO: simplify with W flag at operation level
 
@@ -1148,12 +1188,14 @@ static void op_string (op_desc_t * op_desc)
 
 		break;
 		}
+
+	return 0;
 	}
 
 
 // Conversion
 
-static void op_convert (op_desc_t * op_desc)
+static int op_convert (op_desc_t * op_desc)
 	{
 	byte_t ah;
 	word_t dx;
@@ -1174,11 +1216,13 @@ static void op_convert (op_desc_t * op_desc)
 			assert (0);
 
 		}
+
+	return 0;
 	}
 
 // Flags
 
-static void op_flag (op_desc_t * op_desc)
+static int op_flag (op_desc_t * op_desc)
 	{
 	switch (op_desc->op_id)
 		{
@@ -1214,12 +1258,14 @@ static void op_flag (op_desc_t * op_desc)
 			assert (0);
 
 		}
+
+	return 0;
 	}
 
 
 // Flags and accumulator
 
-static void op_flag_acc (op_desc_t * op_desc)
+static int op_flag_acc (op_desc_t * op_desc)
 	{
 	word_t fl;
 	byte_t ah;
@@ -1241,21 +1287,24 @@ static void op_flag_acc (op_desc_t * op_desc)
 			assert (0);
 
 		}
+
+	return 0;
 	}
 
 
 // Halt
 
-static void op_halt (op_desc_t * op_desc)
+static int op_halt (op_desc_t * op_desc)
 	{
 	assert (op_desc->op_id == OP_HLT);
 	assert (0);
+	return 0;
 	}
 
 
 // Loop
 
-static void op_loop (op_desc_t * op_desc)
+static int op_loop (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
 
@@ -1292,12 +1341,14 @@ static void op_loop (op_desc_t * op_desc)
 		word_t ip = (word_t) ((short) reg16_get (REG_IP) + var->val.s);
 		reg16_set (REG_IP, ip);
 		}
+
+	return 0;
 	}
 
 
 // Table of operation handlers
 
-typedef void (* op_hand_t) (op_desc_t * op_desc);
+typedef int (* op_hand_t) (op_desc_t * op_desc);
 
 struct op_id_hand_s
 	{
@@ -1497,7 +1548,8 @@ int op_exec (op_desc_t * op_desc)
 
 		if (hand1)
 			{
-			(*hand1) (op_desc);
+			err = (*hand1) (op_desc);
+			if (err) break;
 
 			// REP and SEG prefix states
 

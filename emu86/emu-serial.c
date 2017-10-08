@@ -72,7 +72,7 @@ void serial_init ()
 		char * path = ptsname (_ptm);
 		printf ("info: PTS for serial emulation: %s\n", path);
 
-		int f = open ("emu86.pts", O_WRONLY | O_CREAT | O_TRUNC);
+		int f = open ("emu86.pts", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 		write (f, path, strlen (path));
 		close (f);
 

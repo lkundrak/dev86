@@ -8,6 +8,7 @@
 
 #include "op-id.h"
 #include "op-id-name.h"
+
 #include "op-class.h"
 
 
@@ -744,59 +745,6 @@ static class_desc_t class_2_FEh [] = {
 // First byte code table
 
 static class_desc_t _class_1 [] = {
-	{ 0xFC, 0x00, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_ADD    },
-	{ 0xFC, 0x08, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_OR     },
-	{ 0xFC, 0x10, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_ADC    },
-	{ 0xFC, 0x18, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_SBB    },
-	{ 0xFC, 0x20, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_AND    },
-	{ 0xFC, 0x28, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_SUB    },
-	{ 0xFC, 0x30, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_XOR    },
-	{ 0xFC, 0x38, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_CMP    },
-
-	{ 0xFE, 0x04, 1, NULL,        class_w_imm,        0,     OP_ADD    },
-	{ 0xFE, 0x0C, 1, NULL,        class_w_imm,        0,     OP_OR     },
-	{ 0xFE, 0x14, 1, NULL,        class_w_imm,        0,     OP_ADC    },
-	{ 0xFE, 0x1C, 1, NULL,        class_w_imm,        0,     OP_SBB    },
-	{ 0xFE, 0x24, 1, NULL,        class_w_imm,        0,     OP_AND    },
-	{ 0xFE, 0x2C, 1, NULL,        class_w_imm,        0,     OP_SUB    },
-	{ 0xFE, 0x34, 1, NULL,        class_w_imm,        0,     OP_XOR    },
-	{ 0xFE, 0x3C, 1, NULL,        class_w_imm,        0,     OP_CMP    },
-
-	{ 0xE7, 0x06, 1, NULL,        class_seg,          0,     OP_PUSH   },
-	{ 0xE7, 0x07, 1, NULL,        class_seg,          0,     OP_POP    },
-
-	{ 0xE7, 0x26, 1, NULL,        class_seg,          0,     OP_SEG    },
-
-	{ 0xFF, 0x27, 1, NULL,        class_void,         0,     OP_DAA    },
-	{ 0xFF, 0x2F, 1, NULL,        class_void,         0,     OP_DAS    },
-	{ 0xFF, 0x37, 1, NULL,        class_void,         0,     OP_AAA    },
-	{ 0xFF, 0x3F, 1, NULL,        class_void,         0,     OP_AAS    },
-
-	{ 0xF8, 0x40, 1, NULL,        class_reg,          0,     OP_INC    },
-	{ 0xF8, 0x48, 1, NULL,        class_reg,          0,     OP_DEC    },
-
-	{ 0xF8, 0x50, 1, NULL,        class_reg,          0,     OP_PUSH   },
-	{ 0xF8, 0x58, 1, NULL,        class_reg,          0,     OP_POP    },
-
-	{ 0xFF, 0x60, 1, NULL,        class_void,         0,     OP_PUSHA  },
-	{ 0xFF, 0x61, 1, NULL,        class_void,         0,     OP_POPA   },
-
-	{ 0xFF, 0x70, 1, NULL,        class_off,         CF_1,  OP_JO     },
-	{ 0xFF, 0x71, 1, NULL,        class_off,         CF_1,  OP_JNO    },
-	{ 0xFF, 0x72, 1, NULL,        class_off,         CF_1,  OP_JB     },
-	{ 0xFF, 0x73, 1, NULL,        class_off,         CF_1,  OP_JNB    },
-	{ 0xFF, 0x74, 1, NULL,        class_off,         CF_1,  OP_JZ     },
-	{ 0xFF, 0x75, 1, NULL,        class_off,         CF_1,  OP_JNZ    },
-	{ 0xFF, 0x76, 1, NULL,        class_off,         CF_1,  OP_JNA    },
-	{ 0xFF, 0x77, 1, NULL,        class_off,         CF_1,  OP_JA     },
-	{ 0xFF, 0x78, 1, NULL,        class_off,         CF_1,  OP_JS     },
-	{ 0xFF, 0x79, 1, NULL,        class_off,         CF_1,  OP_JNS    },
-	{ 0xFF, 0x7A, 1, NULL,        class_off,         CF_1,  OP_JP     },
-	{ 0xFF, 0x7B, 1, NULL,        class_off,         CF_1,  OP_JNP    },
-	{ 0xFF, 0x7C, 1, NULL,        class_off,         CF_1,  OP_JL     },
-	{ 0xFF, 0x7D, 1, NULL,        class_off,         CF_1,  OP_JNL    },
-	{ 0xFF, 0x7E, 1, NULL,        class_off,         CF_1,  OP_JNG    },
-	{ 0xFF, 0x7F, 1, NULL,        class_off,         CF_1,  OP_JG     },
 
 	{ 0xFC, 0x80, 2, class_2_80h, NULL,               0,     0         },
 
@@ -898,6 +846,9 @@ static class_desc_t _class_1 [] = {
 	};
 
 
+// Iteration counter to measure decoding optimization
+int class_iter_count = 0;
+
 static class_desc_t * class_find (class_desc_t * tab, byte_t op)
 	{
 	class_desc_t * desc = tab;
@@ -912,9 +863,131 @@ static class_desc_t * class_find (class_desc_t * tab, byte_t op)
 
 		if ((op & desc->mask) == desc->code) break;
 		desc++;
+		class_iter_count++;
 		}
 
 	return desc;
+	}
+
+
+static byte_t fetch_code_1 (op_desc_t * op_desc)
+	{
+	byte_t code = fetch_byte ();
+
+	// Common bit fields
+
+	op_desc->seg1 = (code & 0x18) >> 3;
+	op_desc->v1   = (code & 0x08) >> 3;
+	op_desc->w1   = (code & 0x08) >> 3;
+	op_desc->reg1 =  code & 0x07;
+	op_desc->d    = (code & 0x02) >> 1;
+	op_desc->s    = (code & 0x02) >> 1;
+	op_desc->v2   = (code & 0x02) >> 1;
+	op_desc->w2   =  code & 0x01;
+
+	return code;
+	}
+
+static byte_t fetch_code_2 (op_desc_t * op_desc)
+	{
+	byte_t code = fetch_byte ();
+
+	// Common bit fields
+
+	op_desc->mod  = (code & 0xC0) >> 6;
+	op_desc->reg2 = (code & 0x38) >> 3;
+	op_desc->seg2 = (code & 0x18) >> 3;
+	op_desc->rm   =  code & 0x07;
+
+	return code;
+	}
+
+
+static int class_1_00h (byte_t code, op_desc_t * op_desc)
+	{
+	int err = -1;
+
+	while (1)
+		{
+		if ((code & 0x04) == 0)
+			{
+			op_desc->op_id = OP_CALC2 + ((code & 0x38) >> 3);
+			code = fetch_code_2 (op_desc);
+			err = class_w_mod_reg_rm (CF_D, op_desc);
+			break;
+			}
+
+		// code & 0x04 == 1
+		if ((code & 0x02) == 0)
+			{
+			op_desc->op_id = OP_CALC2 + ((code & 0x38) >> 3);
+			err = class_w_imm (0, op_desc);
+			break;
+			}
+
+		// code & 0x02 == 1
+		if ((code & 0x20) == 0)
+			{
+			op_desc->op_id = OP_STACK1 + (code & 0x01);
+			err = class_seg (0, op_desc);
+			break;
+			}
+
+		// code & 0x20 == 1
+		if ((code & 0x01) == 0)
+			{
+			op_desc->op_id = OP_SEG;
+			err = class_seg (0, op_desc);
+			break;
+			}
+
+		// code & 0x01 == 1
+		op_desc->op_id = OP_ADJUST1 + ((code & 0x18) >> 3);
+		err = class_void (0, op_desc);
+		break;
+		}
+
+	return err;
+	}
+
+
+static int class_1_40h (byte_t code, op_desc_t * op_desc)
+	{
+	int err = -1;
+
+	switch (code & 0x30)
+		{
+		case 0x00:
+			op_desc->op_id = OP_STEP1 + ((code & 0x08) >> 3);
+			err = class_reg (0, op_desc);
+			break;
+
+		case 0x10:
+			op_desc->op_id = OP_STACK1 + ((code & 0x08) >> 3);
+			err = class_reg (0, op_desc);
+			break;
+
+		case 0x20:
+			if (code & 0x0E)
+				{
+				// Unknown opcodes for 80x86
+				err = -1;
+				break;
+				}
+
+			// code & 0x0E = 0
+			op_desc->op_id = OP_STACK2 + (code & 0x01);
+			err = class_void (0, op_desc);  // TODO: remove class_void()
+			break;
+
+		case 0x30:
+			op_desc->op_id = OP_JUMP1 + (code & 0x0F);
+			err = class_off (CF_1, op_desc);
+			break;
+
+		}
+
+	return err;
 	}
 
 
@@ -927,32 +1000,32 @@ int op_decode (op_desc_t * op_desc)
 		memset (op_code_str, 0, sizeof op_code_str);
 		op_code_pos = 0;
 
-		byte_t code = fetch_byte ();
+		byte_t code = fetch_code_1 (op_desc);
 
-		// Common bit fields
+		// Optimized decoding
 
-		op_desc->seg1 = (code & 0x18) >> 3;
-		op_desc->v1   = (code & 0x08) >> 3;
-		op_desc->w1   = (code & 0x08) >> 3;
-		op_desc->reg1 =  code & 0x07;
-		op_desc->d    = (code & 0x02) >> 1;
-		op_desc->s    = (code & 0x02) >> 1;
-		op_desc->v2   = (code & 0x02) >> 1;
-		op_desc->w2   =  code & 0x01;
+		switch (code & 0xC0)
+			{
+			case 0x00:
+				err = class_1_00h (code, op_desc);
+				break;
+
+			case 0x40:
+				err = class_1_40h (code, op_desc);
+				break;
+
+			}
+
+		if (!err) break;
+
+		// Table decoding (non optimized)
 
 		class_desc_t * class_desc = class_find (_class_1, code);
 		if (!class_desc) break;  // unknown opcode
 
 		if (class_desc->len > 1)
 			{
-			byte_t code = fetch_byte ();
-
-			// Common bit fields
-
-			op_desc->mod  = (code & 0xC0) >> 6;
-			op_desc->reg2 = (code & 0x38) >> 3;
-			op_desc->seg2 = (code & 0x18) >> 3;
-			op_desc->rm   =  code & 0x07;
+			byte_t code = fetch_code_2 (op_desc);
 
 			class_desc_t * sub = class_desc->sub;
 			if (sub)

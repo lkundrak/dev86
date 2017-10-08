@@ -16,9 +16,10 @@
 
 // Dummy INT3 as we already run under emulator
 
-void int_03h ()
+static int int_03h ()
 	{
 	puts ("warning: INT3");
+	return 0;
 	}
 
 
@@ -31,7 +32,7 @@ static byte_t num_hex (byte_t n)
 	return h;
 	}
 
-void int_10h ()
+static int int_10h ()
 	{
 	byte_t ah = reg8_get (REG_AH);
 
@@ -125,43 +126,48 @@ void int_10h ()
 			printf ("fatal: INT 10h: AH=%hxh not implemented\n", ah);
 			assert (0);
 		}
+
+	return 0;
 	}
 
 
 // BIOS memory services
 
-void int_12h ()
+static int int_12h ()
 	{
 	// 512 KiB of low memory
 	// no extended memory
 
 	reg16_set (REG_AX, 512);
+	return 0;
 	}
 
 
 // BIOS misc services
 
-void int_15h ()
-  {
+static int int_15h ()
+	{
 	byte_t ah = reg8_get (REG_AH);
 	switch (ah)
-    {
+		{
+		// Return CF=1 for all non implemented functions
+		// as recommended by Alan Cox on the ELKS mailing list
 
-    // Return CF=1 for all non implemented functions
-    // as recommended by Alan Cox on the ELKS mailing list
+		default:
+		  flag_set (FLAG_CF, 1);
 
-    default:
-      flag_set (FLAG_CF, 1);
+		}
 
-    }
-  }
+	return 0;
+	}
 
 
 // BIOS keyboard services
 // WARNING: specific to ADVTECH SBC - not standard IBM BIOS
 
-void int_16h ()
+static int int_16h ()
 	{
+	int err = 0;
 	byte_t c = 0;
 
 	byte_t ah = reg8_get (REG_AH);
@@ -178,6 +184,12 @@ void int_16h ()
 
 		case 0x10:
 			c = serial_recv ();
+			if (c == 0xFF)  // error
+				{
+				err = -1;
+				break;
+				}
+
 			reg8_set (REG_AL, (byte_t) c);  // ASCII code
 			reg8_set (REG_AH, 0);           // No scan code
 			break;
@@ -185,13 +197,15 @@ void int_16h ()
 		default:
 			assert (0);
 		}
+
+	return err;
 	}
 
 
 // BIOS printer services
 // WARNING: specific to ADVTECH SBC - not standard IBM BIOS
 
-void int_17h ()
+static int int_17h ()
 	{
 	byte_t ah = reg8_get (REG_AH);
 	switch (ah)
@@ -204,13 +218,15 @@ void int_17h ()
 		default:
 			assert (0);
 		}
+
+	return 0;
 	}
 
 
 // BIOS time services
 // WARNING: specific to ADVTECH SBC - not standard IBM BIOS
 
-void int_1Ah ()
+static int int_1Ah ()
 	{
 	byte_t ah = reg8_get (REG_AH);
 	switch (ah)
@@ -226,13 +242,15 @@ void int_1Ah ()
 		default:
 			assert (0);
 		}
+
+	return 0;
 	}
 
 
 // BIOS ethernet services
 // WARNING: specific to ADVTECH SBC - not standard IBM BIOS
 
-void int_60h ()
+static int int_60h ()
 	{
 	byte_t ah = reg8_get (REG_AH);
 	switch (ah)
@@ -245,13 +263,15 @@ void int_60h ()
 		default:
 			assert (0);
 		}
+
+	return 0;
 	}
 
 
 // BIOS configuration services
 // WARNING: specific to ADVTECH SBC - not standard IBM BIOS
 
-void int_D0h ()
+static int int_D0h ()
 	{
 	byte_t ah = reg8_get (REG_AH);
 	switch (ah)
@@ -288,13 +308,15 @@ void int_D0h ()
 		default:
 			assert (0);
 		}
+
+	return 0;
 	}
 
 
 // BIOS misc services
 // WARNING: specific to ADVTECH SBC - not standard IBM BIOS
 
-void int_D2h ()
+static int int_D2h ()
 	{
 	byte_t ah = reg8_get (REG_AH);
 	switch (ah)
@@ -309,12 +331,14 @@ void int_D2h ()
 			assert (0);
 
 		}
+
+	return 0;
 	}
 
 
 // Interrupt handle table
 
-typedef void (* int_hand_t) ();
+typedef int (* int_hand_t) ();
 
 struct int_num_hand_s
 	{
@@ -341,7 +365,7 @@ int_num_hand_t _int_tab [] = {
 
 int int_hand (byte_t i)
 	{
-	int err = -1;
+	int err = 1;  // not intercepted
 
 	int_num_hand_t * desc = _int_tab;
 
@@ -354,8 +378,7 @@ int int_hand (byte_t i)
 
 		if (num == i)
 			{
-			(*hand) ();
-			err = 0;
+			err = (*hand) ();
 			break;
 			}
 

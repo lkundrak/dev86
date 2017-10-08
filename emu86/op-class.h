@@ -71,12 +71,6 @@ typedef struct op_var_s op_var_t;
 
 // Operation
 
-struct op_desc_s;  // forward declaration
-
-typedef struct op_desc_s op_desc_t;
-
-typedef void (* op_hand_t) (op_desc_t * op_desc);
-
 struct op_desc_s
 	{
 	word_t    op_id;    // operation identifier
@@ -104,6 +98,8 @@ struct op_desc_s
 	byte_t rm;          // register number or displacement mode
 
 	};
+
+typedef struct op_desc_s op_desc_t;
 
 void op_print (op_desc_t * op_desc);
 
@@ -140,5 +136,6 @@ struct class_desc_s
 	word_t op_id;             // operation identifier
 	};
 
+extern int class_iter_count;
 
 int op_decode (op_desc_t * op_desc);
