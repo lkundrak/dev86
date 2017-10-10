@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "emu-proc.h"
 #include "emu-mem-io.h"
+#include "emu-proc.h"
 #include "emu-serial.h"
 #include "emu-int.h"
 
@@ -349,23 +349,23 @@ struct int_num_hand_s
 typedef struct int_num_hand_s int_num_hand_t;
 
 int_num_hand_t _int_tab [] = {
-		{ 0x03, int_03h },
-		{ 0x10, int_10h },
-		{ 0x12, int_12h },
-		{ 0x15, int_15h },
-		{ 0x16, int_16h },
-		{ 0x17, int_17h },
-		{ 0x1A, int_1Ah },
-		{ 0x60, int_60h },
-		{ 0xD0, int_D0h },
-		{ 0xD2, int_D2h },
-		{ 0,    NULL    }
+	{ 0x03, int_03h },
+	{ 0x10, int_10h },
+	{ 0x12, int_12h },
+	{ 0x15, int_15h },
+	{ 0x16, int_16h },
+	{ 0x17, int_17h },
+	{ 0x1A, int_1Ah },
+	{ 0x60, int_60h },
+	{ 0xD0, int_D0h },
+	{ 0xD2, int_D2h },
+	{ 0,    NULL    }
 	};
 
 
 int int_hand (byte_t i)
 	{
-	int err = 1;  // not intercepted
+	int err = -1;
 
 	int_num_hand_t * desc = _int_tab;
 
@@ -374,7 +374,11 @@ int int_hand (byte_t i)
 		byte_t num = desc->num;
 		int_hand_t hand = desc->hand;
 
-		if (!num && !hand) break;
+		if (!num && !hand)
+			{
+			printf ("fatal: no handler for INT %hhXh\n", i);
+			break;
+			}
 
 		if (num == i)
 			{

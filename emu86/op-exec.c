@@ -11,8 +11,8 @@
 
 #include "op-class.h"
 
-#include "emu-proc.h"
 #include "emu-mem-io.h"
+#include "emu-proc.h"
 #include "emu-int.h"
 
 #include "op-exec.h"
@@ -873,6 +873,8 @@ static int op_jump_call (op_desc_t * op_desc)
 
 static int op_int (op_desc_t * op_desc)
 	{
+	int err = -1;
+
 	byte_t i = 0;
 
 	switch (op_desc->op_id)
@@ -895,27 +897,34 @@ static int op_int (op_desc_t * op_desc)
 
 		}
 
-	// Interrupt handling
-	// TODO: test interrupt vector and intercept if not set
+	// Check interrupt vector first
 
-	int err = int_hand (i);
-	if (err == 1)
+	addr_t vect = (addr_t) i << 2;
+	word_t ip = mem_read_word (vect);
+	word_t cs = mem_read_word (vect + 2);
+
+	if (ip != 0xFFFF && cs != 0xFFFF)
 		{
-		// Not intercepted -> emulate
+		// Emulate if vector initialized
 
 		stack_push (reg16_get (REG_FL));
 		stack_push (seg_get (SEG_CS));
 		stack_push (reg16_get (REG_IP));
 
-		addr_t vect = (addr_t) i << 2;
-
-		reg16_set (REG_IP, mem_read_word (vect));
-		seg_set (SEG_CS, mem_read_word (vect + 2));
+		reg16_set (REG_IP, ip);
+		seg_set (SEG_CS, cs);
 
 		flag_set (FLAG_TF, 0);
 		flag_set (FLAG_IF, 0);
 
 		err = 0;
+		}
+	else
+		{
+		// No vector initialized
+		// Use emulator default handler
+
+		err = int_hand (i);
 		}
 
 	return err;

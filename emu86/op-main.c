@@ -10,9 +10,11 @@
 #include <sys/types.h>
 
 #include "op-class.h"
+
 #include "emu-mem-io.h"
-#include "emu-serial.h"
 #include "emu-proc.h"
+#include "emu-serial.h"
+
 #include "op-exec.h"
 
 
