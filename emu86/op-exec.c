@@ -18,10 +18,19 @@
 #include "op-exec.h"
 
 
-// Prefixes
+// Segment prefix
+
+// 1: prefix found
+// 2: prefix ready
+// 3: prefix active
 
 static byte_t _seg_stat = 0;
 static byte_t _seg_reg = 0xFF;
+
+int seg_none ()
+	{
+	return (_seg_stat == 0);
+	}
 
 void seg_reset ()
 	{
@@ -33,10 +42,17 @@ void seg_reset ()
 	}
 
 
+// Repeat prefix
+
 static byte_t _rep_stat = 0;
 static word_t _rep_op = OP_NULL;
 
-int rep_stat ()
+int rep_none ()
+	{
+	return (_rep_stat == 0);
+	}
+
+int rep_active ()
 	{
 	return (_rep_stat == 3);
 	}
@@ -871,35 +887,13 @@ static int op_jump_call (op_desc_t * op_desc)
 
 // Interrupt
 
-static int op_int (op_desc_t * op_desc)
+int exec_int (byte_t i)
 	{
 	int err = -1;
 
-	byte_t i = 0;
-
-	switch (op_desc->op_id)
-		{
-		case OP_INT:
-			assert (op_desc->var_count == 1);
-			op_var_t * var = &op_desc->var_to;
-			assert (var->type == VT_IMM);
-			assert (!var->w);
-			i = var->val.b;
-			break;
-
-		case OP_INT3:
-			assert (op_desc->var_count == 0);
-			i = 0x03;
-			break;
-
-		default:
-			assert (0);
-
-		}
-
 	// Check interrupt vector first
 
-	addr_t vect = (addr_t) i << 2;
+	addr_t vect = ((addr_t) i) << 2;
 	word_t ip = mem_read_word (vect);
 	word_t cs = mem_read_word (vect + 2);
 
@@ -927,6 +921,37 @@ static int op_int (op_desc_t * op_desc)
 		err = int_hand (i);
 		}
 
+	return err;
+	}
+
+
+static int op_int (op_desc_t * op_desc)
+	{
+	int err = -1;
+
+	byte_t i = 0;
+
+	switch (op_desc->op_id)
+		{
+		case OP_INT:
+			assert (op_desc->var_count == 1);
+			op_var_t * var = &op_desc->var_to;
+			assert (var->type == VT_IMM);
+			assert (!var->w);
+			i = var->val.b;
+			break;
+
+		case OP_INT3:
+			assert (op_desc->var_count == 0);
+			i = 0x03;
+			break;
+
+		default:
+			assert (0);
+
+		}
+
+	err = exec_int (i);
 	return err;
 	}
 
@@ -1190,7 +1215,7 @@ static int op_string (op_desc_t * op_desc)
 
 				if ((_rep_op == OP_REPZ && !z) || (_rep_op == OP_REPNZ && z))
 					{
-					rep_reset ();;
+					rep_reset ();
 					}
 				}
 			}
@@ -1509,6 +1534,9 @@ static op_id_hand_t _id_hand_tab [] = {
 static word_t _last_id = 0;
 static op_hand_t _last_hand = NULL;
 
+// Iteration counter to measure execution optimization
+int exec_iter_count = 0;
+
 int op_exec (op_desc_t * op_desc)
 	{
 	int err = -1;
@@ -1552,6 +1580,8 @@ int op_exec (op_desc_t * op_desc)
 					}
 
 				desc++;
+
+				exec_iter_count++;
 				}
 			}
 
@@ -1571,7 +1601,7 @@ int op_exec (op_desc_t * op_desc)
 			if (_seg_stat == 2 && _rep_stat != 1)
 				{
 				assert (0);  // orphan SEG prefix
-				rep_reset ();
+				seg_reset ();
 				}
 
 			if (_rep_stat == 1) _rep_stat = 2;

@@ -322,17 +322,20 @@ int main (int argc, char * argv [])
 
 			if (flag_exec)
 				{
+				int trace_before = flag_get (FLAG_TF);
+
 				reg16_set (REG_IP, op_code_off);
 
 				err = op_exec (&desc);
 				if (err)
 					{
-					putchar ('\n');
 					puts ("fatal: execute operation");
 					break;
 					}
 
-				if (rep_stat ())
+				// Repeat the operation if prefixed
+
+				if (rep_active ())
 					{
 					reg16_set (REG_IP, last_off_0);
 					}
@@ -340,15 +343,29 @@ int main (int argc, char * argv [])
 					{
 					seg_reset ();
 					}
+
+				// Trace the operation if no prefix
+
+				if (rep_none () && seg_none () && trace_before && flag_get (FLAG_TF))
+					{
+					err = exec_int (0x01);  // trace interrupt
+					if (err)
+						{
+						puts ("fatal: trace interrupt");
+						break;
+						}
+					}
 				}
 			}
 
 		break;
 		}
 
-	// Output class counter
+	// Output performance counters
 
-	printf ("class iteration count= %i\n", class_iter_count);
+	puts ("iteration count:");
+	printf ("  class = %i\n", class_iter_count);
+	printf ("  exec  = %i\n", exec_iter_count);
 
 	// Cleanup
 

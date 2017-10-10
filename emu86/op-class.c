@@ -742,9 +742,9 @@ static class_desc_t class_2_FEh [] = {
 	};
 
 
-// First byte code table
+// First byte code tables
 
-static class_desc_t _class_1 [] = {
+static class_desc_t _class_1_80h [] = {
 
 	{ 0xFC, 0x80, 2, class_2_80h, NULL,               0,     0         },
 
@@ -788,6 +788,11 @@ static class_desc_t _class_1 [] = {
 	{ 0xFF, 0xAF, 1, NULL,        class_void,         0,     OP_SCASW  },
 
 	{ 0xF0, 0xB0, 1, NULL,        class_w_reg_imm,    0,     OP_MOV    },
+
+	{ 0x00, 0x00, 0, NULL,        NULL,               0,     0         }
+	};
+
+static class_desc_t _class_1_C0h [] = {
 
 	{ 0xFE, 0xC0, 2, class_2_C0h, NULL,               0,     0         },
 
@@ -863,6 +868,7 @@ static class_desc_t * class_find (class_desc_t * tab, byte_t op)
 
 		if ((op & desc->mask) == desc->code) break;
 		desc++;
+
 		class_iter_count++;
 		}
 
@@ -1004,6 +1010,8 @@ int op_decode (op_desc_t * op_desc)
 
 		// Optimized decoding
 
+		class_desc_t * class_desc = NULL;
+
 		switch (code & 0xC0)
 			{
 			case 0x00:
@@ -1014,16 +1022,21 @@ int op_decode (op_desc_t * op_desc)
 				err = class_1_40h (code, op_desc);
 				break;
 
+			case 0x80:
+				class_desc = class_find (_class_1_80h, code);
+				break;
+
+			case 0xC0:
+				class_desc = class_find (_class_1_C0h, code);
+				break;
+
 			}
 
-		if (!err) break;
+		if (!class_desc) break;  // unknown opcode
 
 		// Table decoding (non optimized)
 
-		class_desc_t * class_desc = class_find (_class_1, code);
-		if (!class_desc) break;  // unknown opcode
-
-		if (class_desc->len > 1)
+		if (class_desc->len >= 2)
 			{
 			byte_t code = fetch_code_2 (op_desc);
 
