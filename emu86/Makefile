@@ -22,11 +22,8 @@ $(EMU86_PROG): $(EMU86_OBJS)
 
 PCAT_PROG = pcat
 
-PCAT_HDRS = pcat-main.h
 PCAT_SRCS = pcat-main.c
 PCAT_OBJS = pcat-main.o
-
-$(PCAT_OBJS): $(PCAT_HDRS) 
 
 $(PCAT_PROG): $(PCAT_OBJS)
 	$(CC) -o $(PCAT_PROG) $(PCAT_OBJS)
