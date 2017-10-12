@@ -103,6 +103,8 @@ typedef struct op_desc_s op_desc_t;
 
 void op_print (op_desc_t * op_desc);
 
+#define OP_ID op_desc->op_id
+
 
 // Operation class
 

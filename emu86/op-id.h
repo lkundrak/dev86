@@ -22,7 +22,7 @@
 #define OP_SUB   0x0005
 #define OP_XOR   0x0006
 #define OP_CMP   0x0007
-#define OP_TEST  0x0008
+#define OP_TEST  0x0008  // TODO: move op id ?
 
 // LUT END
 
@@ -59,7 +59,8 @@
 #define OP_PUSH   0x0700  // same order as in opcode
 #define OP_POP    0x0701
 
-#define OP_PUSHF  0x0702
+#define OP_STACK3 0x0702  // base for stack 3 operations
+#define OP_PUSHF  0x0702  // same order as in opcode
 #define OP_POPF   0x0703
 
 #define OP_STACK2 0x0710  // base for stack 2 operations
@@ -100,16 +101,15 @@
 #define OP_REPNZ 0x0C10
 #define OP_REPZ  0x0C11
 
-#define OP_MOVSB 0x0C00
-#define OP_MOVSW 0x0C01
-#define OP_CMPSB 0x0C02
-#define OP_CMPSW 0x0C03
-#define OP_STOSB 0x0C04
-#define OP_STOSW 0x0C05
-#define OP_LODSB 0x0C06
-#define OP_LODSW 0x0C07
-#define OP_SCASB 0x0C08
-#define OP_SCASW 0x0C09
+#define OP_STRING1 0x0C00  // base for string operations
+#define OP_STR_0   0x0C00  // same order as opcode with holes
+#define OP_STR_1   0x0C01
+#define OP_MOVS    0x0C02
+#define OP_CMPS    0x0C03
+#define OP_STR_2   0x0C04
+#define OP_STOS    0x0C05
+#define OP_LODS    0x0C06
+#define OP_SCAS    0x0C07
 
 #define OP_ADJUST1 0x0D00  // base for adjust operations
 #define OP_DAA     0x0D00  // same order as in opcode
@@ -120,8 +120,9 @@
 #define OP_AAD    0x0D04
 #define OP_AAM    0x0D05
 
-#define OP_CBW   0x0E00
-#define OP_CWD   0x0E01
+#define OP_CONVERT1 0x0E00  // base for convert operations
+#define OP_CBW      0x0E00  // same order as in opcode
+#define OP_CWD      0x0E01
 
 #define OP_CLC   0x0F00
 #define OP_CLD   0x0F01
@@ -131,7 +132,8 @@
 #define OP_STD   0x0F05
 #define OP_STI   0x0F06
 
-#define OP_SAHF  0x1000
+#define OP_FLAG1 0x1000  // base for flag 1 operations
+#define OP_SAHF  0x1000  // same order as in opcode
 #define OP_LAHF  0x1001
 
 #define OP_HLT   0x1100
@@ -141,6 +143,8 @@
 #define OP_LOOPZ  0x1202
 
 #define OP_SEG    0x1300
+
+#define OP_NOP    0x1400
 
 // TODO: finalize op id
 

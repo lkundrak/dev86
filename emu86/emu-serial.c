@@ -22,7 +22,7 @@ void serial_send (byte_t c)
 		int n = write (_ptm, &c, 1);
 		if (n != 1)
 			{
-			perror ("warning: cannot write to PTM:");
+			perror ("warning: cannot write to PTM:");  // TODO: propagate error
 			}
 		}
 	}
@@ -37,7 +37,7 @@ byte_t serial_recv ()
 		int n = read (_ptm, &c, 1);
 		if (n != 1)
 			{
-			perror ("warning: cannot read from PTM:");
+			perror ("warning: cannot read from PTM:");  // TODO: propagate error
 			}
 		}
 

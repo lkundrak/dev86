@@ -264,7 +264,7 @@ static int op_move_load (op_desc_t * op_desc)
 	op_var_t temp;
 	memset (&temp, 0, sizeof (op_var_t));
 
-	switch (op_desc->op_id)
+	switch (OP_ID)
 		{
 		case OP_MOV:
 			val_get (from, &temp);
@@ -306,7 +306,7 @@ static int op_move_load (op_desc_t * op_desc)
 
 static int op_swap (op_desc_t * op_desc)
 	{
-	assert (op_desc->op_id == OP_XCHG);
+	assert (OP_ID == OP_XCHG);
 
 	assert (op_desc->var_count == 2);
 	op_var_t * to   = &op_desc->var_to;
@@ -345,7 +345,7 @@ static int op_port (op_desc_t * op_desc)
 	memset (&port, 0, sizeof (op_var_t));
 	memset (&data, 0, sizeof (op_var_t));
 
-	switch (op_desc->op_id)
+	switch (OP_ID)
 		{
 		case OP_IN:
 			val_get (from, &port);
@@ -406,7 +406,7 @@ static int op_calc_1 (op_desc_t * op_desc)
 	assert (temp.type == VT_IMM);
 	word_t v = temp.val.w;
 
-	word_t id = op_desc->op_id;
+	word_t id = OP_ID;
 	switch (id)
 		{
 		case OP_NOT:
@@ -586,7 +586,7 @@ static int op_calc_2 (op_desc_t * op_desc)
 	assert (temp2.type == VT_IMM);
 	assert (temp1.w == temp2.w);
 
-	word_t op = op_desc->op_id;
+	word_t op = OP_ID;
 
 	word_t a = temp1.val.w;
 	word_t b = temp2.val.w;
@@ -616,7 +616,7 @@ static int op_inc_dec (op_desc_t * op_desc)
 	assert (temp.type == VT_IMM);
 	word_t r = temp.val.w;
 
-	switch (op_desc->op_id)
+	switch (OP_ID)
 		{
 		case OP_INC:
 			r++;
@@ -670,7 +670,7 @@ static int op_shift_rot (op_desc_t * op_desc)
 	word_t c = flag_get (FLAG_CF);  // carry
 	word_t q;
 
-	word_t id = op_desc->op_id;
+	word_t id = OP_ID;
 	switch (id)
 		{
 		case OP_RCL:
@@ -830,7 +830,7 @@ static int op_popa (op_desc_t * op_desc)
 
 static int op_jump_call (op_desc_t * op_desc)
 	{
-	word_t op = op_desc->op_id;
+	word_t op = OP_ID;
 	assert (op == OP_JMP || op == OP_CALL || op == OP_JMPF || op == OP_CALLF);
 
 	assert (op_desc->var_count == 1);
@@ -931,7 +931,7 @@ static int op_int (op_desc_t * op_desc)
 
 	byte_t i = 0;
 
-	switch (op_desc->op_id)
+	switch (OP_ID)
 		{
 		case OP_INT:
 			assert (op_desc->var_count == 1);
@@ -960,7 +960,7 @@ static int op_int (op_desc_t * op_desc)
 
 static int op_return (op_desc_t * op_desc)
 	{
-	word_t op = op_desc->op_id;
+	word_t op = OP_ID;
 	assert (op == OP_RET || op == OP_RETF || op == OP_IRET);
 
 	// TODO: implement stack unwind
@@ -996,7 +996,7 @@ static int op_jump_cond (op_desc_t * op_desc)
 
 	byte_t f;
 
-	switch (op_desc->op_id)
+	switch (OP_ID)
 		{
 		case OP_JO:
 			f = flag_get (FLAG_OF);
@@ -1080,7 +1080,7 @@ static int op_jump_cond (op_desc_t * op_desc)
 
 static int op_seg (op_desc_t * op_desc)
 	{
-	assert (op_desc->op_id == OP_SEG);
+	assert (OP_ID == OP_SEG);
 	assert (_seg_reg == 0xFF);
 	assert (_seg_stat == 0);
 
@@ -1101,7 +1101,7 @@ static int op_repeat (op_desc_t * op_desc)
 	{
 	assert (_rep_op == OP_NULL);
 	assert (_rep_stat == 0);
-	word_t id = op_desc->op_id;
+	word_t id = OP_ID;
 	assert (id == OP_REPZ || id == OP_REPNZ);
 	_rep_op = id;
 	_rep_stat = 1;
@@ -1137,8 +1137,8 @@ static int op_string (op_desc_t * op_desc)
 			reg16_set (REG_CX, --cx);
 			}
 
-		word_t id = op_desc->op_id;
-		byte_t w = (id == OP_LODSW || id == OP_STOSW || id == OP_MOVSW || id == OP_CMPSW) ? 1 : 0;
+		word_t id = OP_ID;
+		byte_t w = op_desc->w2;
 
 		word_t d = flag_get (FLAG_DF) ? -1 : 1;
 		d <<= w;
@@ -1148,8 +1148,7 @@ static int op_string (op_desc_t * op_desc)
 		word_t a;
 		word_t b;
 
-		if (id == OP_LODSB || id == OP_LODSW || id == OP_MOVSB || id == OP_MOVSW
-			|| id == OP_CMPSB || id == OP_CMPSW)
+		if (id == OP_LODS || id == OP_MOVS || id == OP_CMPS)
 			{
 			seg = seg_over_get (NULL);
 			si = reg16_get (REG_SI);
@@ -1157,38 +1156,37 @@ static int op_string (op_desc_t * op_desc)
 			if (w)
 				{
 				a = mem_read_word (addr_seg_off (seg, si));
-				if (id == OP_LODSB || id == OP_LODSW) reg16_set (REG_AX, a);
+				if (id == OP_LODS) reg16_set (REG_AX, a);
 				}
 			else
 				{
 				a = (word_t) mem_read_byte (addr_seg_off (seg, si));
-				if (id == OP_LODSB || id == OP_LODSW) reg8_set (REG_AL, (byte_t) a);
+				if (id == OP_LODS) reg8_set (REG_AL, (byte_t) a);
 				}
 
 			reg16_set (REG_SI, si + d);
 			}
 
-		if (id == OP_STOSB || id == OP_STOSW || id == OP_MOVSB || id == OP_MOVSW
-			|| id == OP_CMPSB || id == OP_CMPSW)
+		if (id == OP_STOS || id == OP_MOVS || id == OP_CMPS)
 			{
 			seg = seg_get (SEG_ES);
 			di = reg16_get (REG_DI);
 
-			if (id == OP_STOSB || id == OP_STOSW || id == OP_MOVSB || id == OP_MOVSW)
+			if (id == OP_STOS || id == OP_MOVS)
 				{
 				if (w)
 					{
-					if (id == OP_STOSB || id == OP_STOSW) a = reg16_get (REG_AX);
+					if (id == OP_STOS) a = reg16_get (REG_AX);
 					mem_write_word (addr_seg_off (seg, di), a);
 					}
 				else
 					{
-					if (id == OP_STOSB || id == OP_STOSW) a = (word_t) reg8_get (REG_AL);
+					if (id == OP_STOS) a = (word_t) reg8_get (REG_AL);
 					mem_write_byte (addr_seg_off (seg, di), (byte_t) a);
 					}
 				}
 
-			if (id == OP_CMPSB || id == OP_CMPSW)
+			if (id == OP_CMPS)
 				{
 				if (w)
 					{
@@ -1203,7 +1201,7 @@ static int op_string (op_desc_t * op_desc)
 			reg16_set (REG_DI, di + d);
 			}
 
-		if (id == OP_CMPSB || id == OP_CMPSW)
+		if (id == OP_CMPS)
 			{
 			alu_calc_2 (OP_CMP, w, a, b);  // forget result - just for flags
 
@@ -1234,7 +1232,7 @@ static int op_convert (op_desc_t * op_desc)
 	byte_t ah;
 	word_t dx;
 
-	switch (op_desc->op_id)
+	switch (OP_ID)
 		{
 		case OP_CBW:
 			ah = (reg8_get (REG_AL) & 0x80) ? 0xFF : 0;
@@ -1258,7 +1256,7 @@ static int op_convert (op_desc_t * op_desc)
 
 static int op_flag (op_desc_t * op_desc)
 	{
-	switch (op_desc->op_id)
+	switch (OP_ID)
 		{
 		case OP_CLC:
 			flag_set (FLAG_CF, 0);
@@ -1304,7 +1302,7 @@ static int op_flag_acc (op_desc_t * op_desc)
 	word_t fl;
 	byte_t ah;
 
-	switch (op_desc->op_id)
+	switch (OP_ID)
 		{
 		case OP_LAHF:
 			ah = (byte_t) (reg16_get (REG_FL) & 0x00FF);
@@ -1330,8 +1328,16 @@ static int op_flag_acc (op_desc_t * op_desc)
 
 static int op_halt (op_desc_t * op_desc)
 	{
-	assert (op_desc->op_id == OP_HLT);
+	assert (OP_ID == OP_HLT);
 	assert (0);
+	return 0;
+	}
+
+// No operation
+
+static int op_nop (op_desc_t * op_desc)
+	{
+	assert (OP_ID == OP_NOP);
 	return 0;
 	}
 
@@ -1351,7 +1357,7 @@ static int op_loop (op_desc_t * op_desc)
 
 	byte_t j = 0;  // jump flag
 
-	word_t id = op_desc->op_id;
+	word_t id = OP_ID;
 	switch (id)
 		{
 		case OP_LOOP:
@@ -1472,16 +1478,11 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_REPNZ, op_repeat },
 	{ OP_REPZ,  op_repeat },
 
-	{ OP_MOVSB, op_string },
-	{ OP_MOVSW, op_string },
-	{ OP_CMPSB, op_string },
-	{ OP_CMPSW, op_string },
-	{ OP_STOSB, op_string },
-	{ OP_STOSW, op_string },
-	{ OP_LODSB, op_string },
-	{ OP_LODSW, op_string },
-	{ OP_SCASB, op_string },
-	{ OP_SCASW, op_string },
+	{ OP_MOVS, op_string },
+	{ OP_CMPS, op_string },
+	{ OP_STOS, op_string },
+	{ OP_LODS, op_string },
+	{ OP_SCAS, op_string },
 
 /*
 #define OP_AAA   0x0D00
@@ -1510,6 +1511,8 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_LOOPZ,  op_loop },
 
 	{ OP_SEG, op_seg },
+
+	{ OP_NOP, op_nop },
 
 // TODO: allocate op id
 
@@ -1541,7 +1544,7 @@ int op_exec (op_desc_t * op_desc)
 	{
 	int err = -1;
 
-	word_t id1 = op_desc->op_id;
+	word_t id1 = OP_ID;
 
 	while (1)
 		{

@@ -230,7 +230,7 @@ static void print_var (op_var_t * var)
 
 void op_print (op_desc_t * op_desc)
 	{
-	char *name = op_id_to_name (op_desc->op_id);
+	char *name = op_id_to_name (OP_ID);
 	if (!name) name = "???";
 	print_column (name, OPNAME_MAX + 2);
 
@@ -465,7 +465,7 @@ static int class_d_w_addr (byte_t flags, op_desc_t * op)
 	}
 
 
-static int class_w_reg_imm (byte_t flags, op_desc_t * op)
+static int class_w_reg_imm (op_desc_t * op)
 	{
 	op->var_count = 2;
 
@@ -683,18 +683,6 @@ static int class_mod_seg_rm (byte_t flags, op_desc_t * op)
 // TODO: reduce table size with operation bit field (0x38 mask)
 // TODO: reduce code with MOD-RM as new table field
 
-static class_desc_t class_2_80h [] = {
-	{ 0x38, 0x00, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_ADD   },
-	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_OR    },  // S not compliant with Intel doc
-	{ 0x38, 0x10, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_ADC   },
-	{ 0x38, 0x18, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_SBB   },
-	{ 0x38, 0x20, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_AND   },  // S not compliant with Intel doc
-	{ 0x38, 0x28, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_SUB   },
-	{ 0x38, 0x30, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_XOR   },  // S not compliant with Intel doc
-	{ 0x38, 0x38, 1, NULL, class_w_mod_rm_imm, CF_S,  OP_CMP   },
-	{ 0x00, 0x00, 0, NULL, NULL,               0,     0        }
-	};
-
 static class_desc_t class_2_C0h [] = {
 	{ 0x38, 0x00, 1, NULL, class_w_mod_rm_count,     0,  OP_ROL   },
 	{ 0x38, 0x08, 1, NULL, class_w_mod_rm_count,     0,  OP_ROR   },
@@ -744,54 +732,6 @@ static class_desc_t class_2_FEh [] = {
 
 // First byte code tables
 
-static class_desc_t _class_1_80h [] = {
-
-	{ 0xFC, 0x80, 2, class_2_80h, NULL,               0,     0         },
-
-	{ 0xFE, 0x84, 2, NULL,        class_w_mod_reg_rm, 0,     OP_TEST   },
-	{ 0xFE, 0x86, 2, NULL,        class_w_mod_reg_rm, 0,     OP_XCHG   },
-
-	{ 0xFC, 0x88, 2, NULL,        class_w_mod_reg_rm, CF_D,  OP_MOV    },
-
-	{ 0xFD, 0x8C, 2, NULL,        class_mod_seg_rm,   CF_D,  OP_MOV    },
-	{ 0xFF, 0x8D, 2, NULL,        class_mod_reg_rm,   0,     OP_LEA    },
-	{ 0xFF, 0x8F, 2, NULL,        class_mod_rm,       0,     OP_POP    },  // TODO: class_w_mod_rm & w=1 ?
-
-	{ 0xF8, 0x90, 1, NULL,        class_reg,          CF_A,  OP_XCHG   },
-
-	{ 0xFF, 0x98, 1, NULL,        class_void,         0,     OP_CBW    },
-	{ 0xFF, 0x99, 1, NULL,        class_void,         0,     OP_CWD    },
-	{ 0xFF, 0x9B, 1, NULL,        class_void,         0,     OP_WAIT   },
-
-	{ 0xFF, 0x9C, 1, NULL,        class_void,         0,     OP_PUSHF  },
-	{ 0xFF, 0x9D, 1, NULL,        class_void,         0,     OP_POPF   },
-
-	{ 0xFF, 0x9E, 1, NULL,        class_void,         0,     OP_SAHF   },
-	{ 0xFF, 0x9F, 1, NULL,        class_void,         0,     OP_LAHF   },
-
-	{ 0xFF, 0x9A, 1, NULL,        class_off_seg,      0,     OP_CALLF  },
-	{ 0xFF, 0xEA, 1, NULL,        class_off_seg,      0,     OP_JMPF   },
-
-	{ 0xFC, 0xA0, 1, NULL,        class_d_w_addr,     0,     OP_MOV    },
-
-	{ 0xFE, 0xA8, 1, NULL,        class_w_imm,        0,     OP_TEST   },
-
-	{ 0xFF, 0xA4, 1, NULL,        class_void,         0,     OP_MOVSB  },  // TODO: flag W at operation level
-	{ 0xFF, 0xA5, 1, NULL,        class_void,         0,     OP_MOVSW  },
-	{ 0xFF, 0xA6, 1, NULL,        class_void,         0,     OP_CMPSB  },
-	{ 0xFF, 0xA7, 1, NULL,        class_void,         0,     OP_CMPSW  },
-	{ 0xFF, 0xAA, 1, NULL,        class_void,         0,     OP_STOSB  },
-	{ 0xFF, 0xAB, 1, NULL,        class_void,         0,     OP_STOSW  },
-	{ 0xFF, 0xAC, 1, NULL,        class_void,         0,     OP_LODSB  },
-	{ 0xFF, 0xAD, 1, NULL,        class_void,         0,     OP_LODSW  },
-	{ 0xFF, 0xAE, 1, NULL,        class_void,         0,     OP_SCASB  },
-	{ 0xFF, 0xAF, 1, NULL,        class_void,         0,     OP_SCASW  },
-
-	{ 0xF0, 0xB0, 1, NULL,        class_w_reg_imm,    0,     OP_MOV    },
-
-	{ 0x00, 0x00, 0, NULL,        NULL,               0,     0         }
-	};
-
 static class_desc_t _class_1_C0h [] = {
 
 	{ 0xFE, 0xC0, 2, class_2_C0h, NULL,               0,     0         },
@@ -829,6 +769,7 @@ static class_desc_t _class_1_C0h [] = {
 
 	{ 0xFF, 0xE8, 1, NULL,        class_off,         CF_2,  OP_CALL   },
 	{ 0xFF, 0xE9, 1, NULL,        class_off,         CF_2,  OP_JMP    },
+	{ 0xFF, 0xEA, 1, NULL,        class_off_seg,      0,     OP_JMPF   },
 	{ 0xFF, 0xEB, 1, NULL,        class_off,         CF_1,  OP_JMP    },
 
 	{ 0xFF, 0xF0, 1, NULL,        class_void,         0,     OP_LOCK   },
@@ -915,40 +856,36 @@ static int class_1_00h (byte_t code, op_desc_t * op_desc)
 
 	while (1)
 		{
-		if ((code & 0x04) == 0)
+		if (!(code & 0x04))
 			{
-			op_desc->op_id = OP_CALC2 + ((code & 0x38) >> 3);
+			OP_ID = OP_CALC2 + ((code & 0x38) >> 3);
 			code = fetch_code_2 (op_desc);
 			err = class_w_mod_reg_rm (CF_D, op_desc);
 			break;
 			}
 
-		// code & 0x04 == 1
-		if ((code & 0x02) == 0)
+		if (!(code & 0x02))
 			{
-			op_desc->op_id = OP_CALC2 + ((code & 0x38) >> 3);
+			OP_ID = OP_CALC2 + ((code & 0x38) >> 3);
 			err = class_w_imm (0, op_desc);
 			break;
 			}
 
-		// code & 0x02 == 1
-		if ((code & 0x20) == 0)
+		if (!(code & 0x20))
 			{
-			op_desc->op_id = OP_STACK1 + (code & 0x01);
+			OP_ID = OP_STACK1 + (code & 0x01);
 			err = class_seg (0, op_desc);
 			break;
 			}
 
-		// code & 0x20 == 1
-		if ((code & 0x01) == 0)
+		if (!(code & 0x01))
 			{
-			op_desc->op_id = OP_SEG;
+			OP_ID = OP_SEG;
 			err = class_seg (0, op_desc);
 			break;
 			}
 
-		// code & 0x01 == 1
-		op_desc->op_id = OP_ADJUST1 + ((code & 0x18) >> 3);
+		OP_ID = OP_ADJUST1 + ((code & 0x18) >> 3);
 		err = class_void (0, op_desc);
 		break;
 		}
@@ -964,12 +901,12 @@ static int class_1_40h (byte_t code, op_desc_t * op_desc)
 	switch (code & 0x30)
 		{
 		case 0x00:
-			op_desc->op_id = OP_STEP1 + ((code & 0x08) >> 3);
+			OP_ID = OP_STEP1 + ((code & 0x08) >> 3);
 			err = class_reg (0, op_desc);
 			break;
 
 		case 0x10:
-			op_desc->op_id = OP_STACK1 + ((code & 0x08) >> 3);
+			OP_ID = OP_STACK1 + ((code & 0x08) >> 3);
 			err = class_reg (0, op_desc);
 			break;
 
@@ -981,14 +918,149 @@ static int class_1_40h (byte_t code, op_desc_t * op_desc)
 				break;
 				}
 
-			// code & 0x0E = 0
-			op_desc->op_id = OP_STACK2 + (code & 0x01);
+			OP_ID = OP_STACK2 + (code & 0x01);
 			err = class_void (0, op_desc);  // TODO: remove class_void()
 			break;
 
 		case 0x30:
-			op_desc->op_id = OP_JUMP1 + (code & 0x0F);
+			OP_ID = OP_JUMP1 + (code & 0x0F);
 			err = class_off (CF_1, op_desc);
+			break;
+
+		}
+
+	return err;
+	}
+
+
+static int class_1_80h (byte_t code, op_desc_t * op_desc)
+	{
+	int err = -1;
+
+	byte_t code_2 = 0;
+
+	switch (code & 0x30)
+		{
+		case 0x00:
+			code_2 = fetch_code_2 (op_desc);
+
+			if (!(code & 0x04))
+				{
+				if (!(code & 0x08))
+					{
+					OP_ID = OP_CALC2 + ((code_2 & 0x38) >> 3);
+					err = class_w_mod_rm_imm (CF_S, op_desc);  // TODO: S not compliant for all operations
+					break;
+					}
+
+				OP_ID = OP_MOV;
+				err = class_w_mod_reg_rm (CF_D, op_desc);
+				break;
+				}
+
+			if (!(code & 0x08))
+				{
+				if (!(code & 0x02))
+					{
+					OP_ID = OP_TEST;
+					err = class_w_mod_reg_rm (0, op_desc);
+					break;
+					}
+
+				OP_ID = OP_XCHG;
+				err = class_w_mod_reg_rm (0, op_desc);
+				break;
+				}
+
+			if (!(code & 0x01))
+				{
+				OP_ID = OP_MOV;
+				err = class_mod_seg_rm (CF_D, op_desc);
+				break;
+				}
+
+			if (!(code & 0x02))
+				{
+				OP_ID = OP_LEA;
+				err = class_mod_reg_rm (0, op_desc);
+				break;
+				}
+
+			OP_ID = OP_POP;
+			err = class_mod_rm (0, op_desc);  // TODO: class_w_mod_rm & w=1 ?
+			break;
+
+		case 0x10:
+			if (!(code & 0x08))
+				{
+				if (code == 0x90)
+					{
+					OP_ID = OP_NOP;
+					err = 0;
+					break;
+					}
+
+				OP_ID = OP_XCHG;
+				err = class_reg (CF_A, op_desc);
+				break;
+				}
+
+			switch (code & 0x07)
+				{
+				case 0x00:
+				case 0x01:
+					OP_ID = OP_CONVERT1 + (code & 0x01);
+					err = class_void (0, op_desc);
+					break;
+
+				case 0x02:
+					OP_ID = OP_CALLF;
+					err = class_off_seg (0, op_desc);
+					break;
+
+				case 0x03:
+					OP_ID = OP_WAIT;
+					err = class_void (0, op_desc);
+					break;
+
+				case 0x04:
+				case 0x05:
+					OP_ID = OP_STACK3 + (code & 0x01);
+					err = class_void (0, op_desc);
+					break;
+
+				case 0x06:
+				case 0x07:
+					OP_ID = OP_FLAG1 + (code & 0x01);
+					err = class_void (0, op_desc);
+					break;
+
+				}
+
+			break;
+
+		case 0x20:
+			if ((code & 0x0C) == 0x00)
+				{
+				OP_ID = OP_MOV;
+				err = class_d_w_addr (0, op_desc);
+				break;
+				}
+
+			if ((code & 0x0E) == 0x08)
+				{
+				OP_ID = OP_TEST;
+				err = class_w_imm (0, op_desc);
+				break;
+				}
+
+			OP_ID = OP_STRING1 + ((code & 0x0E) >> 1);
+			err = class_void (0, op_desc);
+			break;
+
+		case 0x30:
+			OP_ID = OP_MOV;
+			err = class_w_reg_imm (op_desc);
 			break;
 
 		}
@@ -1023,7 +1095,7 @@ int op_decode (op_desc_t * op_desc)
 				break;
 
 			case 0x80:
-				class_desc = class_find (_class_1_80h, code);
+				err = class_1_80h (code, op_desc);
 				break;
 
 			case 0xC0:
@@ -1048,7 +1120,7 @@ int op_decode (op_desc_t * op_desc)
 				}
 			}
 
-		op_desc->op_id = class_desc->op_id;
+		OP_ID = class_desc->op_id;
 
 		class_hand_t hand = class_desc->class_hand;
 		assert (hand);
