@@ -228,13 +228,23 @@ static void print_var (op_var_t * var)
 
 // Operation classes
 
-void op_print (op_desc_t * op_desc)
+void print_op (op_desc_t * op_desc)
 	{
 	char *name = op_id_to_name (OP_ID);
 	if (!name) name = "???";
 	print_column (name, OPNAME_MAX + 2);
 
 	byte_t count = op_desc->var_count;
+
+	// Special case for string operations
+
+	if (!count && (OP_ID >= OP_STRING1) && (OP_ID < OP_STRING1 + 8))
+		{
+		printf (op_desc->w2 ? "WORD" : "BYTE");
+		}
+
+	// Common cases
+
 	if (count >= 1)
 		{
 		print_var (&(op_desc->var_to));

@@ -269,7 +269,7 @@ int main (int argc, char * argv [])
 
 				printf ("%.4hX:%.4hX  ", seg_get (SEG_CS), reg16_get (REG_IP));
 				print_column (op_code_str, 3 * OPCODE_MAX + 1);
-				op_print (&desc);
+				print_op (&desc);
 				puts ("\n");
 				}
 

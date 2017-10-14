@@ -66,6 +66,7 @@ static op_id_name_t id_name_tab [] = {
 	{ OP_MOVS,  "MOVS" },
 	{ OP_MUL,   "MUL"   },
 	{ OP_NEG,   "NEG"   },
+	{ OP_NOP,   "NOP"   },
 	{ OP_NOT,   "NOT"   },
 	{ OP_OR,    "OR"    },
 	{ OP_OUT,   "OUT"   },
