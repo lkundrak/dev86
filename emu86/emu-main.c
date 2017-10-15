@@ -86,8 +86,6 @@ int main (int argc, char * argv [])
 		mem_io_reset ();
 		proc_reset ();
 
-		// Command line processing
-
 		char * file_path = NULL;
 		addr_t file_address = -1;
 		int file_loaded = 0;
@@ -96,6 +94,18 @@ int main (int argc, char * argv [])
 
 		int flag_trace = 0;
 		int flag_prompt = 0;
+
+		// Auto check
+
+		int err = check_exec ();
+		if (err)
+			{
+			puts ("fatal: auto check");
+			exit_code = -1;
+			break;
+			}
+
+		// Process command line
 
 		char opt;
 
@@ -230,7 +240,6 @@ int main (int argc, char * argv [])
 				flag_prompt = 1;
 				}
 
-			int err;
 			int flag_exec = 1;
 
 			// Optimize: no twice decoding of the same instruction
@@ -361,11 +370,6 @@ int main (int argc, char * argv [])
 
 		break;
 		}
-
-	// Output performance counters
-
-	puts ("iteration count:");
-	printf ("  exec  = %i\n", exec_iter_count);
 
 	// Cleanup
 

@@ -238,7 +238,7 @@ void print_op (op_desc_t * op_desc)
 
 	// Special case for string operations
 
-	if (!count && (OP_ID >= OP_STRING) && (OP_ID < OP_STRING + 8))
+	if (!count && (OP_ID >= OP_STRING0) && (OP_ID < OP_STRING0 + 8))
 		{
 		printf (op_desc->w2 ? "WORD" : "BYTE");
 		}
@@ -255,12 +255,6 @@ void print_op (op_desc_t * op_desc)
 		putchar (',');
 		print_var (&(op_desc->var_from));
 		}
-	}
-
-
-static int class_void (byte_t flags, op_desc_t * op)
-	{
-	return 0;
 	}
 
 
@@ -758,8 +752,8 @@ static int class_1_00h (byte_t code, op_desc_t * op_desc)
 			break;
 			}
 
-		OP_ID = OP_ADJUST1 + ((code & 0x18) >> 3);
-		err = class_void (0, op_desc);
+		OP_ID = OP_ADJUST1 + op_desc->seg1;
+		err = 0;
 		break;
 		}
 
@@ -792,12 +786,12 @@ static int class_1_40h (byte_t code, op_desc_t * op_desc)
 				break;
 				}
 
-			OP_ID = OP_STACK2 + (code & 0x01);
-			err = class_void (0, op_desc);  // TODO: remove class_void()
+			OP_ID = OP_STACK2 + op_desc->w2;
+			err = 0;
 			break;
 
 		case 0x30:
-			OP_ID = OP_JUMP1 + (code & 0x0F);
+			OP_ID = OP_JUMP + (code & 0x0F);
 			err = class_off (CF_1, op_desc);
 			break;
 
@@ -879,12 +873,12 @@ static int class_1_80h (byte_t code, op_desc_t * op_desc)
 				break;
 				}
 
-			switch (code & 0x07)
+			switch (op_desc->reg1)
 				{
 				case 0x00:
 				case 0x01:
-					OP_ID = OP_CONVERT1 + (code & 0x01);
-					err = class_void (0, op_desc);
+					OP_ID = OP_CONVERT1 + op_desc->w2;
+					err = 0;
 					break;
 
 				case 0x02:
@@ -894,19 +888,19 @@ static int class_1_80h (byte_t code, op_desc_t * op_desc)
 
 				case 0x03:
 					OP_ID = OP_WAIT;
-					err = class_void (0, op_desc);
+					err = 0;
 					break;
 
 				case 0x04:
 				case 0x05:
-					OP_ID = OP_STACK3 + (code & 0x01);
-					err = class_void (0, op_desc);
+					OP_ID = OP_STACK3 + op_desc->w2;
+					err = 0;
 					break;
 
 				case 0x06:
 				case 0x07:
-					OP_ID = OP_FLAGS1 + (code & 0x01);
-					err = class_void (0, op_desc);
+					OP_ID = OP_FLAGS1 + op_desc->w2;
+					err = 0;
 					break;
 
 				}
@@ -928,8 +922,8 @@ static int class_1_80h (byte_t code, op_desc_t * op_desc)
 				break;
 				}
 
-			OP_ID = OP_STRING + ((code & 0x0E) >> 1);
-			err = class_void (0, op_desc);
+			OP_ID = OP_STRING0 + ((code & 0x0E) >> 1);
+			err = 0;
 			break;
 
 		case 0x30:
@@ -959,7 +953,7 @@ static int class_1_C0h (byte_t code, op_desc_t * op_desc)
 					if (!(code & 0x02))
 						{
 						code_2 = fetch_code_2 (op_desc);
-						OP_ID = OP_BIT1 + op_desc->reg2;
+						OP_ID = OP_BITS + op_desc->reg2;
 						err = class_w_mod_rm_count (0, op_desc);
 						break;
 						}
@@ -971,7 +965,7 @@ static int class_1_C0h (byte_t code, op_desc_t * op_desc)
 						break;
 						}
 
-					err = class_void (0, op_desc);
+					err = 0;
 					break;
 					}
 
@@ -1006,18 +1000,18 @@ static int class_1_C0h (byte_t code, op_desc_t * op_desc)
 					break;
 					}
 
-				err = class_void (0, op_desc);
+				err = 0;
 				break;
 				}
 
-			OP_ID = OP_INT3 + (code & 0x03);
+			OP_ID = OP_INTS + (code & 0x03);
 			if ((code & 0x03) == 0x01)
 				{
 				err = class_imm (CF_1, op_desc);
 				break;
 				}
 
-			err = class_void (0, op_desc);
+			err = 0;
 			break;
 
 		case 0x10:
@@ -1026,7 +1020,7 @@ static int class_1_C0h (byte_t code, op_desc_t * op_desc)
 				if (!(code & 0x04))
 					{
 					code_2 = fetch_code_2 (op_desc);
-					OP_ID = OP_BIT1 + op_desc->reg2;
+					OP_ID = OP_BITS + op_desc->reg2;
 					err = class_w_mod_rm (CF_V, op_desc);
 					break;
 					}
@@ -1034,12 +1028,12 @@ static int class_1_C0h (byte_t code, op_desc_t * op_desc)
 				if (!(code & 0x02))
 					{
 					OP_ID = OP_ADJUST2 + op_desc->w2;
-					err = class_void (0, op_desc);
+					err = 0;
 					break;
 					}
 
 				OP_ID = OP_MISC1 + op_desc->w2;
-				err = class_void (0, op_desc);
+				err = 0;
 				break;
 				}
 
@@ -1093,8 +1087,8 @@ static int class_1_C0h (byte_t code, op_desc_t * op_desc)
 						break;
 						}
 
-					OP_ID = OP_PREFIX1 + (code & 0x07);
-					err = class_void (0, op_desc);
+					OP_ID = OP_PREFIX + op_desc->reg1;
+					err = 0;
 					break;
 					}
 
@@ -1114,7 +1108,7 @@ static int class_1_C0h (byte_t code, op_desc_t * op_desc)
 			if ((code & 0x06) < 0x06)
 				{
 				OP_ID = OP_FLAGS2 + op_desc->reg1;
-				err = class_void (0, op_desc);
+				err = 0;
 				break;
 				}
 

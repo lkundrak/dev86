@@ -1398,199 +1398,228 @@ struct op_id_hand_s
 
 typedef struct op_id_hand_s op_id_hand_t;
 
+// This table must have the same order as OP_ID
+// and is checked by check_exec()
+
+// LUT BEGIN
 
 static op_id_hand_t _id_hand_tab [] = {
-	{ OP_MOV, op_move_load },
-	{ OP_LEA, op_move_load },
-	{ OP_LDS, op_move_load },
+	{ OP_JO,       op_jump_cond },
+	{ OP_JNO,      op_jump_cond },
+	{ OP_JB,       op_jump_cond },
+	{ OP_JNB,      op_jump_cond },
+	{ OP_JZ,       op_jump_cond },
+	{ OP_JNZ,      op_jump_cond },
+	{ OP_JNA,      op_jump_cond },
+	{ OP_JA,       op_jump_cond },
+	{ OP_JS,       op_jump_cond },
+	{ OP_JNS,      op_jump_cond },
+	{ OP_JP,       op_jump_cond },
+	{ OP_JNP,      op_jump_cond },
+	{ OP_JL,       op_jump_cond },
+	{ OP_JNL,      op_jump_cond },
+	{ OP_JNG,      op_jump_cond },
+	{ OP_JG,       op_jump_cond },
 
-	{ OP_XCHG, op_swap },
+	{ OP_TEST,     op_calc_2    },
+	{ OP_CALC11,   NULL         },  // hole for TEST
+	{ OP_NOT,      op_calc_1    },
+	{ OP_NEG,      op_calc_1    },
+	{ OP_MUL,      op_calc_1    },
+	{ OP_IMUL,     op_calc_1    },
+	{ OP_DIV,      op_calc_1    },
+	{ OP_IDIV,     op_calc_1    },
 
-	{ OP_IN,  op_port },
-	{ OP_OUT, op_port },
+	{ OP_ADD,      op_calc_2    },
+	{ OP_OR,       op_calc_2    },
+	{ OP_ADC,      op_calc_2    },
+	{ OP_SBB,      op_calc_2    },
+	{ OP_AND,      op_calc_2    },
+	{ OP_SUB,      op_calc_2    },
+	{ OP_XOR,      op_calc_2    },
+	{ OP_CMP,      op_calc_2    },
 
-	{ OP_ADD,  op_calc_2 },
-	{ OP_OR,   op_calc_2 },
-	{ OP_ADC,  op_calc_2 },
-	{ OP_SBB,  op_calc_2 },
-	{ OP_AND,  op_calc_2 },
-	{ OP_SUB,  op_calc_2 },
-	{ OP_XOR,  op_calc_2 },
-	{ OP_CMP,  op_calc_2 },
-	{ OP_TEST, op_calc_2 },
+	{ OP_ROL,      op_shift_rot },
+	{ OP_ROR,      op_shift_rot },
+	{ OP_RCL,      op_shift_rot },
+	{ OP_RCR,      op_shift_rot },
+	{ OP_SHL,      op_shift_rot },
+	{ OP_SHR,      op_shift_rot },
+	{ OP_SAL,      op_shift_rot },
+	{ OP_SAR,      op_shift_rot },
 
-	{ OP_NOT,  op_calc_1 },
-	{ OP_NEG,  op_calc_1 },
-	{ OP_MUL,  op_calc_1 },
-	{ OP_IMUL, op_calc_1 },
-	{ OP_DIV,  op_calc_1 },
-	{ OP_IDIV, op_calc_1 },
+	{ OP_STRING0,  NULL         },  // hole for MOV d=0
+	{ OP_STRING1,  NULL         },  // hole for MOV d=1
+	{ OP_MOVS,     op_string    },
+	{ OP_CMPS,     op_string    },
+	{ OP_STRING3,  NULL         },  // hole for TEST
+	{ OP_STOS,     op_string    },
+	{ OP_LODS,     op_string    },
+	{ OP_SCAS,     op_string    },
 
-	{ OP_INC, op_inc_dec },
-	{ OP_DEC, op_inc_dec },
+	{ OP_CLC,      op_flag      },
+	{ OP_STC,      op_flag      },
+	{ OP_CLI,      op_flag      },
+	{ OP_STI,      op_flag      },
+	{ OP_CLD,      op_flag      },
+	{ OP_STD,      op_flag      },
+	{ OP_FLAGS26,  NULL         },  // hole
+	{ OP_FLAGS27,  NULL         },  // hole
 
-	{ OP_ROL, op_shift_rot },
-	{ OP_ROR, op_shift_rot },
-	{ OP_RCL, op_shift_rot },
-	{ OP_RCR, op_shift_rot },
-	{ OP_SHL, op_shift_rot },
-	{ OP_SHR, op_shift_rot },
-	{ OP_SAL, op_shift_rot },
-	{ OP_SAR, op_shift_rot },
+	{ OP_LOCK,     NULL         },
+	{ OP_INT1,     NULL         },
+	{ OP_REPNZ,    op_repeat    },
+	{ OP_REPZ,     op_repeat    },
+	{ OP_HLT,      op_halt      },
+	{ OP_CMC,      op_flag      },
+	{ OP_PREFIX6,  NULL         },  // hole
+	{ OP_PREFIX7,  NULL         },  // hole
 
-	{ OP_PUSH,  op_push  },
-	{ OP_POP,   op_pop   },
-	{ OP_PUSHF, op_pushf },
-	{ OP_POPF,  op_popf  },
-	{ OP_PUSHA, op_pusha },
-	{ OP_POPA,  op_popa  },
+	{ OP_DAA,      NULL         },
+	{ OP_DAS,      NULL         },
+	{ OP_AAA,      NULL         },
+	{ OP_AAS,      NULL         },
 
-	{ OP_JMP,   op_jump_call },
-	{ OP_JMPF,  op_jump_call },
-	{ OP_CALL,  op_jump_call },
-	{ OP_CALLF, op_jump_call },
+	{ OP_INT3,     op_int       },
+	{ OP_INT,      op_int       },
+	{ OP_INTO,     op_int       },
+	{ OP_IRET,     op_return    },
 
-	{ OP_INT,  op_int },
-	{ OP_INT3, op_int },
-	{ OP_INTO, op_int },
+	{ OP_LOOPNZ,   op_loop      },
+	{ OP_LOOPZ,    op_loop      },
+	{ OP_LOOP,     op_loop      },
+	{ OP_JCXZ,     NULL         },
 
-	{ OP_RET,  op_return },
-	{ OP_RETF, op_return },
-	{ OP_IRET, op_return },
+	{ OP_AAM,      NULL         },
+	{ OP_AAD,      NULL         },
 
-	{ OP_JO,  op_jump_cond },
-	{ OP_JNO, op_jump_cond },
-	{ OP_JB,  op_jump_cond },
-	{ OP_JNB, op_jump_cond },
-	{ OP_JZ,  op_jump_cond },
-	{ OP_JNZ, op_jump_cond },
-	{ OP_JNA, op_jump_cond },
-	{ OP_JA,  op_jump_cond },
-	{ OP_JS,  op_jump_cond },
-	{ OP_JNS, op_jump_cond },
-	{ OP_JP,  op_jump_cond },
-	{ OP_JNP, op_jump_cond },
-	{ OP_JL,  op_jump_cond },
-	{ OP_JNL, op_jump_cond },
-	{ OP_JNG, op_jump_cond },
-	{ OP_JG,  op_jump_cond },
+	{ OP_CBW,      op_convert   },
+	{ OP_CWD,      op_convert   },
 
-	{ OP_REPNZ, op_repeat },
-	{ OP_REPZ,  op_repeat },
+	{ OP_INC,      op_inc_dec   },
+	{ OP_DEC,      op_inc_dec   },
 
-	{ OP_MOVS, op_string },
-	{ OP_CMPS, op_string },
-	{ OP_STOS, op_string },
-	{ OP_LODS, op_string },
-	{ OP_SCAS, op_string },
+	{ OP_CALL,     op_jump_call },
+	{ OP_JMP,      op_jump_call },
 
-/*
-#define OP_AAA   0x0D00
-#define OP_AAD   0x0D01
-#define OP_AAM   0x0D02
-#define OP_AAS   0x0D03
-*/
-	{ OP_CBW, op_convert },
-	{ OP_CWD, op_convert },
+	{ OP_PUSH,     op_push      },
+	{ OP_POP,      op_pop       },
 
-	{ OP_CLC, op_flag },
-	{ OP_CLD, op_flag },
-	{ OP_CLI, op_flag },
-	{ OP_CMC, op_flag },
-	{ OP_STC, op_flag },
-	{ OP_STD, op_flag },
-	{ OP_STI, op_flag },
+	{ OP_PUSHF,    op_pushf     },
+	{ OP_POPF,     op_popf      },
 
-	{ OP_SAHF, op_flag_acc },
-	{ OP_LAHF, op_flag_acc },
+	{ OP_PUSHA,    op_pusha     },
+	{ OP_POPA,     op_popa      },
 
-	{ OP_HLT, op_halt },
+	{ OP_CALLF,    op_jump_call },
+	{ OP_JMPF,     op_jump_call },
 
-	{ OP_LOOP,   op_loop },
-	{ OP_LOOPNZ, op_loop },
-	{ OP_LOOPZ,  op_loop },
+	{ OP_RET,      op_return    },
+	{ OP_RETF,     op_return    },
 
-	{ OP_SEG, op_seg },
+	{ OP_IN,       op_port      },
+	{ OP_OUT,      op_port      },
 
-	{ OP_NOP, op_nop },
+	{ OP_LES,      NULL         },
+	{ OP_LDS,      op_move_load },
 
-// TODO: allocate op id
+	{ OP_SAHF,     op_flag_acc  },
+	{ OP_LAHF,     op_flag_acc  },
 
-/*
-#define OP_WAIT   0xFFFF
-#define OP_XLAT   0xFFFF
-#define OP_ESC    0xFFFF
-#define OP_DAA    0xFFFF
-#define OP_DAS    0xFFFF
-#define OP_JCXZ   0xFFFF
-#define OP_LDS    0xFFFF
-#define OP_LES    0xFFFF
-#define OP_LOCK   0xFFFF
-*/
+	{ OP_SALC,     NULL         },
+	{ OP_XLAT,     NULL         },
 
-	{ 0, NULL }
+	{ OP_MOV,      op_move_load },
+	{ OP_LEA,      op_move_load },
+
+	{ OP_NOP,      op_nop       },
+	{ OP_XCHG,     op_swap      },
+
+	{ OP_SEG,      op_seg       },
+
+	{ OP_WAIT,     NULL         },
+	{ OP_ESC,      NULL         },
+
+	{ OP_NULL,     NULL         }  // end of table
 	};
+
+// LUT END
+
+// Check execute table
+
+int check_exec ()
+	{
+	int err = -1;
+
+	word_t id1 = OP_NULL;
+	op_id_hand_t * desc = _id_hand_tab;
+
+	while (1)
+		{
+		word_t id2 = desc->id;
+		if (id2 == OP_NULL)
+			{
+			err = 0;
+			break;
+			}
+
+		if (id1 != OP_NULL && id2 != (id1 + 1))
+			{
+			printf ("error: bad order in execute table for op %hxh\n", id2);
+			err = -1;
+			break;
+			}
+
+		id1 = id2;
+		desc++;
+		}
+
+	return err;
+	}
 
 
 // Execute operation
 
-static word_t _last_id = 0;
+static word_t _last_id = OP_NULL;
 static op_hand_t _last_hand = NULL;
-
-// Iteration counter to measure execution optimization
-int exec_iter_count = 0;
 
 int op_exec (op_desc_t * op_desc)
 	{
 	int err = -1;
 
-	word_t id1 = OP_ID;
-
 	while (1)
 		{
-		op_hand_t hand1 = NULL;
+		word_t id = OP_ID;
+		op_hand_t hand = NULL;
 
 		// Optimization for repeated instruction
 
-		if (id1 == _last_id && _last_hand)
+		if (id == _last_id)
 			{
-			hand1 = _last_hand;
+			hand = _last_hand;
 			}
 		else
 			{
 			// Table lookup
 
-			op_id_hand_t * desc = _id_hand_tab;
+			op_id_hand_t * desc = _id_hand_tab + id;
 
-			while (1)
+			if (id != desc->id)
 				{
-				word_t id2 = desc->id;
-				op_hand_t hand2 = desc->hand;
-				if (!id2 && !hand2)
-					{
-					printf ("fatal: no handler for op %hxh\n", id1);
-					assert (0);
-					break;
-					}
-
-				if (id2 == id1)
-					{
-					_last_id = id2;
-					_last_hand = hand2;
-
-					hand1 = hand2;
-					break;
-					}
-
-				desc++;
-
-				exec_iter_count++;
+				printf ("fatal: id mismatch for op %hxh\n", id);
+				assert (0);
+				break;
 				}
+
+			hand = desc->hand;
+
+			_last_id = id;
+			_last_hand = hand;
 			}
 
-		if (hand1)
+		if (hand)
 			{
-			err = (*hand1) (op_desc);
+			err = (*hand) (op_desc);
 			if (err) break;
 
 			// REP and SEG prefix states

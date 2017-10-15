@@ -16,6 +16,6 @@ int rep_none ();
 int rep_active ();
 void rep_reset ();
 
-extern int exec_iter_count;
+int check_exec ();
 
 int op_exec (op_desc_t * op_desc);
