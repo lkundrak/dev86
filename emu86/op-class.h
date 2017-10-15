@@ -117,27 +117,4 @@ void print_op (op_desc_t * op_desc);
 #define CF_W 0x40  // word bit
 #define CF_F 0x80  // far bit
 
-typedef int (* class_hand_t) (byte_t flags, op_desc_t * op_desc);
-
-struct class_desc_s;  // forward declaration
-
-typedef struct class_desc_s class_desc_t;
-
-struct class_desc_s
-	{
-	byte_t mask;              // opcode mask
-	byte_t code;              // opcode value
-
-	byte_t len;               // opcode length
-
-	class_desc_t * sub;       // sub-table
-
-	class_hand_t class_hand;  // class handle
-	byte_t class_flags;       // class flags
-
-	word_t op_id;             // operation identifier
-	};
-
-extern int class_iter_count;
-
 int op_decode (op_desc_t * op_desc);

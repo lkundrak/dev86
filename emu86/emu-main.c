@@ -282,7 +282,8 @@ int main (int argc, char * argv [])
 
 				char com [8];
 				putchar ('>');
-				gets (com);
+				char * res = fgets (com, 8, stdin);
+				if (!res) break;
 
 				switch (com [0])
 					{
@@ -364,7 +365,6 @@ int main (int argc, char * argv [])
 	// Output performance counters
 
 	puts ("iteration count:");
-	printf ("  class = %i\n", class_iter_count);
 	printf ("  exec  = %i\n", exec_iter_count);
 
 	// Cleanup
