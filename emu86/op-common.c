@@ -1,4 +1,6 @@
 
+#include <stdio.h>
+
 #include "op-common.h"
 
 
@@ -40,3 +42,20 @@ void print_column (char * s, byte_t w)
 		}
 	}
 
+
+// Print a relative number with optional sign prefix
+
+void print_rel (byte_t prefix, short rel)
+	{
+	if (rel >= 0)
+		{
+		if (prefix) putchar ('+');
+		}
+	else
+		{
+		putchar ('-');
+		rel = -rel;
+		}
+
+	printf ("%hXh", (word_t) rel);
+	}

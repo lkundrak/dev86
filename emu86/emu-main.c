@@ -10,9 +10,11 @@
 #include <sys/types.h>
 
 #include "op-class.h"
+
 #include "emu-mem-io.h"
-#include "emu-serial.h"
 #include "emu-proc.h"
+#include "emu-serial.h"
+
 #include "op-exec.h"
 
 
@@ -84,8 +86,6 @@ int main (int argc, char * argv [])
 		mem_io_reset ();
 		proc_reset ();
 
-		// Command line processing
-
 		char * file_path = NULL;
 		addr_t file_address = -1;
 		int file_loaded = 0;
@@ -94,6 +94,18 @@ int main (int argc, char * argv [])
 
 		int flag_trace = 0;
 		int flag_prompt = 0;
+
+		// Auto check
+
+		int err = check_exec ();
+		if (err)
+			{
+			puts ("fatal: auto check");
+			exit_code = -1;
+			break;
+			}
+
+		// Process command line
 
 		char opt;
 
@@ -228,7 +240,6 @@ int main (int argc, char * argv [])
 				flag_prompt = 1;
 				}
 
-			int err;
 			int flag_exec = 1;
 
 			// Optimize: no twice decoding of the same instruction
@@ -267,7 +278,7 @@ int main (int argc, char * argv [])
 
 				printf ("%.4hX:%.4hX  ", seg_get (SEG_CS), reg16_get (REG_IP));
 				print_column (op_code_str, 3 * OPCODE_MAX + 1);
-				op_print (&desc);
+				print_op (&desc);
 				puts ("\n");
 				}
 
@@ -280,7 +291,8 @@ int main (int argc, char * argv [])
 
 				char com [8];
 				putchar ('>');
-				gets (com);
+				char * res = fgets (com, 8, stdin);
+				if (!res) break;
 
 				switch (com [0])
 					{
@@ -320,23 +332,38 @@ int main (int argc, char * argv [])
 
 			if (flag_exec)
 				{
+				int trace_before = flag_get (FLAG_TF);
+
 				reg16_set (REG_IP, op_code_off);
 
 				err = op_exec (&desc);
 				if (err)
 					{
-					putchar ('\n');
 					puts ("fatal: execute operation");
 					break;
 					}
 
-				if (rep_stat ())
+				// Repeat the operation if prefixed
+
+				if (rep_active ())
 					{
 					reg16_set (REG_IP, last_off_0);
 					}
 				else
 					{
 					seg_reset ();
+					}
+
+				// Trace the operation if no prefix
+
+				if (rep_none () && seg_none () && trace_before && flag_get (FLAG_TF))
+					{
+					err = exec_int (0x01);  // trace interrupt
+					if (err)
+						{
+						puts ("fatal: trace interrupt");
+						break;
+						}
 					}
 				}
 			}

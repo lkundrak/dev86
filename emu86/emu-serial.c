@@ -1,16 +1,18 @@
 
-#define _XOPEN_SOURCE  // for ptsname ()
+#define _XOPEN_SOURCE  // for ptsname()
+#define _GNU_SOURCE  // for getpt()
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "emu-serial.h"
 
 
-static _ptm = -1;
+static int _ptm = -1;
 
 
 void serial_send (byte_t c)
@@ -20,7 +22,7 @@ void serial_send (byte_t c)
 		int n = write (_ptm, &c, 1);
 		if (n != 1)
 			{
-			perror ("warning: cannot write to PTM:");
+			perror ("warning: cannot write to PTM:");  // TODO: propagate error
 			}
 		}
 	}
@@ -35,7 +37,7 @@ byte_t serial_recv ()
 		int n = read (_ptm, &c, 1);
 		if (n != 1)
 			{
-			perror ("warning: cannot read from PTM:");
+			perror ("warning: cannot read from PTM:");  // TODO: propagate error
 			}
 		}
 
@@ -70,7 +72,7 @@ void serial_init ()
 		char * path = ptsname (_ptm);
 		printf ("info: PTS for serial emulation: %s\n", path);
 
-		int f = open ("emu86.pts", O_WRONLY | O_CREAT | O_TRUNC);
+		int f = open ("emu86.pts", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 		write (f, path, strlen (path));
 		close (f);
 

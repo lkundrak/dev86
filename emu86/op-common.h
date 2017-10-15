@@ -16,3 +16,5 @@ typedef unsigned long  dword_t;
 
 void print_string (char * s);  // faster than formatted print
 void print_column (char * s, byte_t w);
+
+void print_rel (byte_t prefix, short rel);

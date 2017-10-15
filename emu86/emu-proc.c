@@ -6,6 +6,8 @@
 #include <assert.h>
 
 #include "op-class.h"
+
+#include "emu-mem-io.h"
 #include "emu-proc.h"
 
 

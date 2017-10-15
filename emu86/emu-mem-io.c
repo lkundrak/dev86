@@ -107,6 +107,9 @@ void io_write_byte (word_t p, byte_t b)
 
 void mem_io_reset ()
 	{
+	// No or uninitialized memory: all bits to 1
+	// Used to check interrupt vector initialized in op_int()
+
 	memset (mem_stat, 0xFF, sizeof mem_stat);
 	memset (io_stat, 0xFF, sizeof io_stat);
 	}

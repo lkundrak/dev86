@@ -37,13 +37,11 @@ extern word_t op_code_off;
 
 // Operand
 
-// TODO: change VT_IND to VT_???
-
 #define VT_REG   0  // operand is an ALU register
 #define VT_SEG   1  // operand is a MMU register
 #define VT_IMM   2  // operand is an immediate value
 #define VT_LOC   3  // operand is a memory location
-#define VT_IND   4  // operand is a memory content
+#define VT_MEM   4  // operand is a memory content
 
 union op_val_u
 	{
@@ -59,12 +57,11 @@ typedef union op_val_u op_val_t;
 
 struct op_var_s
 	{
-	// TODO: move size to word flag
-
 	byte_t type;     // operand type (VT_xxx)
-	byte_t flags;    // for relative address (AF_xxx)
+	byte_t flags;    // for address (AF_xxx)
 	byte_t w : 1;    // word flag
 	byte_t far : 1;  // far flag
+	byte_t s : 1;    // signed flag
 	op_val_t val;    // variable value
 	word_t seg;      // segment value
 	};
@@ -73,12 +70,6 @@ typedef struct op_var_s op_var_t;
 
 
 // Operation
-
-struct op_desc_s;  // forward declaration
-
-typedef struct op_desc_s op_desc_t;
-
-typedef void (* op_hand_t) (op_desc_t * op_desc);
 
 struct op_desc_s
 	{
@@ -108,7 +99,11 @@ struct op_desc_s
 
 	};
 
-void op_print (op_desc_t * op_desc);
+typedef struct op_desc_s op_desc_t;
+
+void print_op (op_desc_t * op_desc);
+
+#define OP_ID op_desc->op_id
 
 
 // Operation class
@@ -121,27 +116,5 @@ void op_print (op_desc_t * op_desc);
 #define CF_A 0x20  // implicit accumulator
 #define CF_W 0x40  // word bit
 #define CF_F 0x80  // far bit
-
-typedef int (* class_hand_t) (byte_t flags, op_desc_t * op_desc);
-
-struct class_desc_s;  // forward declaration
-
-typedef struct class_desc_s class_desc_t;
-
-struct class_desc_s
-	{
-	byte_t mask;              // opcode mask
-	byte_t code;              // opcode value
-
-	byte_t len;               // opcode len
-
-	class_desc_t * sub;       // sub-table
-
-	class_hand_t class_hand;  // class handle
-	byte_t class_flags;       // class flags
-
-	word_t op_id;             // operation identifier
-	};
-
 
 int op_decode (op_desc_t * op_desc);
