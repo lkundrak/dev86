@@ -252,6 +252,14 @@ static void val_set (op_var_t * var1, const op_var_t * var2)
 	}
 
 
+// Null operation
+
+static int op_null (op_desc_t * op_desc)
+	{
+	return 0;
+	}
+
+
 // Move & load
 
 static int op_move_load (op_desc_t * op_desc)
@@ -280,6 +288,7 @@ static int op_move_load (op_desc_t * op_desc)
 			val_set (to, &temp);
 			break;
 
+		case OP_LES:
 		case OP_LDS:
 			assert (from->far);
 			val_get (from, &temp);
@@ -290,7 +299,7 @@ static int op_move_load (op_desc_t * op_desc)
 			temp.w = 1;
 			val_set (to, &temp);
 
-			seg_set (SEG_DS, temp.seg);
+			seg_set ((OP_ID == OP_LES) ? SEG_ES : SEG_DS, temp.seg);
 			break;
 
 		default:
@@ -413,22 +422,25 @@ static int op_calc_1 (op_desc_t * op_desc)
 			v = ~v;
 			break;
 
+		case OP_NEG:
+			v = (word_t) (0 - ((short) v));
+			break;
+
 		case OP_MUL:
 			if (temp.w)
 				{
-				assert (0);  // not implemented
-				/*
 				word_t ax = reg16_get (REG_AX);
 				word_t dx = reg16_get (REG_DX);
-				addr_t t = ((addr_t) dx) * 0x10000 + (addr_t) ax;
-				reg16_set (REG_AX, (word_t) (t / (addr_t) v));
-				reg16_set (REG_DX, (word_t) (t % (addr_t) v));
-				*/
+				dword_t t = (((dword_t) dx) << 16) | (dword_t) ax;
+				t *= v;
+				reg16_set (REG_AX, (word_t) (t & 0xFFFF));
+				reg16_set (REG_DX, (word_t) (t >> 16));
 				}
 			else
 				{
 				byte_t al = reg8_get (REG_AL);
-				reg16_set (REG_AX, ((word_t) al) * v);
+				word_t t = ((word_t) al) * v;
+				reg16_set (REG_AX, t);
 				}
 
 			break;
@@ -439,8 +451,9 @@ static int op_calc_1 (op_desc_t * op_desc)
 				word_t ax = reg16_get (REG_AX);
 				word_t dx = reg16_get (REG_DX);
 				long t = ((long) (short) dx) * (long) 0x10000 + (long) (short) ax;
-				reg16_set (REG_AX, (word_t) (t / (long) (short) v));
-				reg16_set (REG_DX, (word_t) (t % (long) (short) v));
+				t *= (long) (short) v;
+				reg16_set (REG_AX, (word_t) (((dword_t) t) & 0xFFFF));
+				reg16_set (REG_DX, (word_t) (((dword_t) t) >> 16));
 				}
 			else
 				{
@@ -459,7 +472,7 @@ static int op_calc_1 (op_desc_t * op_desc)
 				{
 				word_t ax = reg16_get (REG_AX);
 				word_t dx = reg16_get (REG_DX);
-				dword_t t = ((dword_t) dx) * 0x10000 + (dword_t) ax;
+				dword_t t = ((dword_t) dx) << 16 | (dword_t) ax;
 				reg16_set (REG_AX, (word_t) (t / (dword_t) v));
 				reg16_set (REG_DX, (word_t) (t % (dword_t) v));
 				}
@@ -480,7 +493,7 @@ static int op_calc_1 (op_desc_t * op_desc)
 
 	// TODO: set flags
 
-	if (id == OP_NOT)
+	if (id == OP_NOT || id == OP_NEG)
 		{
 		temp.val.w = v;
 		val_set (var, &temp);
@@ -863,7 +876,8 @@ static int op_jump_call (op_desc_t * op_desc)
 		}
 	else
 		{
-		assert (op == OP_JMP || op == OP_CALL);
+		//assert (op == OP_JMP || op == OP_CALL);
+		if (op != OP_JMP && op != OP_CALL) return -1;
 
 		if (t == VT_REG || t == VT_MEM)
 			{
@@ -1112,8 +1126,6 @@ static int op_repeat (op_desc_t * op_desc)
 
 static int op_string (op_desc_t * op_desc)
 	{
-	// TODO: simplify with W flag at operation level
-
 	while (1)
 		{
 		// Repeat prefix
@@ -1167,7 +1179,12 @@ static int op_string (op_desc_t * op_desc)
 			reg16_set (REG_SI, si + d);
 			}
 
-		if (id == OP_STOS || id == OP_MOVS || id == OP_CMPS)
+		if (id == OP_SCAS)
+			{
+			a = w ? reg16_get (REG_AX) : reg8_get (REG_AL);
+			}
+
+		if (id == OP_STOS || id == OP_MOVS || id == OP_CMPS || id == OP_SCAS)
 			{
 			seg = seg_get (SEG_ES);
 			di = reg16_get (REG_DI);
@@ -1186,7 +1203,7 @@ static int op_string (op_desc_t * op_desc)
 					}
 				}
 
-			if (id == OP_CMPS)
+			if (id == OP_CMPS || id == OP_SCAS)
 				{
 				if (w)
 					{
@@ -1201,7 +1218,7 @@ static int op_string (op_desc_t * op_desc)
 			reg16_set (REG_DI, di + d);
 			}
 
-		if (id == OP_CMPS)
+		if (id == OP_CMPS || id == OP_SCAS)
 			{
 			alu_calc_2 (OP_CMP, w, a, b);  // forget result - just for flags
 
@@ -1348,18 +1365,23 @@ static int op_loop (op_desc_t * op_desc)
 	{
 	assert (op_desc->var_count == 1);
 
+	word_t id = OP_ID;
+
 	op_var_t * var = &op_desc->var_to;
 	assert (var->type == VT_LOC);
 	assert (!var->far);
 
 	word_t cx = reg16_get (REG_CX);
-	reg16_set (REG_CX, --cx);
+	if (id != OP_JCXZ) reg16_set (REG_CX, --cx);
 
 	byte_t j = 0;  // jump flag
 
-	word_t id = OP_ID;
 	switch (id)
 		{
+		case OP_JCXZ:
+			j = (cx == 0);
+			break;
+
 		case OP_LOOP:
 			j = (cx != 0);
 			break;
@@ -1466,7 +1488,7 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_FLAGS26,  NULL         },  // hole
 	{ OP_FLAGS27,  NULL         },  // hole
 
-	{ OP_LOCK,     NULL         },
+	{ OP_LOCK,     op_null      },
 	{ OP_INT1,     NULL         },
 	{ OP_REPNZ,    op_repeat    },
 	{ OP_REPZ,     op_repeat    },
@@ -1488,7 +1510,7 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_LOOPNZ,   op_loop      },
 	{ OP_LOOPZ,    op_loop      },
 	{ OP_LOOP,     op_loop      },
-	{ OP_JCXZ,     NULL         },
+	{ OP_JCXZ,     op_loop      },
 
 	{ OP_AAM,      NULL         },
 	{ OP_AAD,      NULL         },
@@ -1520,7 +1542,7 @@ static op_id_hand_t _id_hand_tab [] = {
 	{ OP_IN,       op_port      },
 	{ OP_OUT,      op_port      },
 
-	{ OP_LES,      NULL         },
+	{ OP_LES,      op_move_load },
 	{ OP_LDS,      op_move_load },
 
 	{ OP_SAHF,     op_flag_acc  },
@@ -1606,8 +1628,7 @@ int op_exec (op_desc_t * op_desc)
 
 			if (id != desc->id)
 				{
-				printf ("fatal: id mismatch for op %hxh\n", id);
-				assert (0);
+				printf ("error: id mismatch for op %hxh\n", id);
 				break;
 				}
 
@@ -1617,31 +1638,33 @@ int op_exec (op_desc_t * op_desc)
 			_last_hand = hand;
 			}
 
-		if (hand)
+		if (!hand)
 			{
-			err = (*hand) (op_desc);
-			if (err) break;
-
-			// REP and SEG prefix states
-
-			if (_rep_stat == 2 && _seg_stat != 1)
-				{
-				assert (0);  // orphan REP prefix
-				rep_reset ();
-				}
-
-			if (_seg_stat == 2 && _rep_stat != 1)
-				{
-				assert (0);  // orphan SEG prefix
-				seg_reset ();
-				}
-
-			if (_rep_stat == 1) _rep_stat = 2;
-			if (_seg_stat == 1) _seg_stat = 2;
-
-			err = 0;
+			printf ("error: no handler for op %hxh\n", id);
+			break;
 			}
 
+		err = (*hand) (op_desc);
+		if (err) break;
+
+		// REP and SEG prefix states
+
+		if (_rep_stat == 2 && _seg_stat != 1)
+			{
+			assert (0);  // orphan REP prefix
+			rep_reset ();
+			}
+
+		if (_seg_stat == 2 && _rep_stat != 1)
+			{
+			assert (0);  // orphan SEG prefix
+			seg_reset ();
+			}
+
+		if (_rep_stat == 1) _rep_stat = 2;
+		if (_seg_stat == 1) _seg_stat = 2;
+
+		err = 0;
 		break;
 		}
 
