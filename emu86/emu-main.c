@@ -339,30 +339,34 @@ int main (int argc, char * argv [])
 				err = op_exec (&desc);
 				if (err)
 					{
-					puts ("fatal: execute operation");
-					break;
-					}
-
-				// Repeat the operation if prefixed
-
-				if (rep_active ())
-					{
+					puts ("error: execute operation");
+					flag_trace = 1;
+					flag_prompt = 1;
 					reg16_set (REG_IP, last_off_0);
 					}
 				else
 					{
-					seg_reset ();
-					}
+					// Repeat the operation if prefixed
 
-				// Trace the operation if no prefix
-
-				if (rep_none () && seg_none () && trace_before && flag_get (FLAG_TF))
-					{
-					err = exec_int (0x01);  // trace interrupt
-					if (err)
+					if (rep_active ())
 						{
-						puts ("fatal: trace interrupt");
-						break;
+						reg16_set (REG_IP, last_off_0);
+						}
+					else
+						{
+						seg_reset ();
+						}
+
+					// Trace the operation if no prefix
+
+					if (rep_none () && seg_none () && trace_before && flag_get (FLAG_TF))
+						{
+						err = exec_int (0x01);  // trace interrupt
+						if (err)
+							{
+							puts ("fatal: trace interrupt");
+							break;
+							}
 						}
 					}
 				}
