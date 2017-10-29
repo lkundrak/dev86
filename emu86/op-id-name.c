@@ -20,6 +20,7 @@ static op_id_name_t id_name_tab [] = {
 	{ OP_AND,   "AND"   },
 	{ OP_CALL,  "CALL"  },
 	{ OP_CALLF, "CALLF" },
+	{ OP_CBW,   "CBW"   },
 	{ OP_CLC,   "CLC"   },
 	{ OP_CLD,   "CLD"   },
 	{ OP_CLI,   "CLI"   },

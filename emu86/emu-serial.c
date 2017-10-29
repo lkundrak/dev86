@@ -8,6 +8,7 @@
 #include <termios.h>
 #include <string.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "emu-serial.h"
 
@@ -42,6 +43,19 @@ byte_t serial_recv ()
 		}
 
 	return c;
+	}
+
+
+byte_t serial_poll ()
+	{
+	fd_set fdsr;
+	FD_ZERO (&fdsr);
+	FD_SET (_ptm, &fdsr);
+	struct timeval tv = { 0L, 0L };  // immediate
+	int s = select (_ptm + 1, &fdsr, NULL, NULL, &tv);
+	assert (s >= 0);
+	if (FD_ISSET (_ptm, &fdsr)) return 1;
+	return 0;
 	}
 
 

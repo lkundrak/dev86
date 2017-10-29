@@ -234,7 +234,7 @@ void stack_push (word_t val)
 	{
 	word_t ss = seg_get (SEG_SS);
 	word_t sp = reg16_get (REG_SP) - 2;
-	mem_write_word (addr_seg_off (ss, sp), val);
+	mem_write_word (addr_seg_off (ss, sp), val, 0);
 	reg16_set (REG_SP, sp);
 	}
 

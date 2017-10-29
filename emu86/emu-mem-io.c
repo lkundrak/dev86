@@ -33,36 +33,36 @@ word_t mem_read_word (addr_t a)
 	}
 
 
-void mem_write_byte (addr_t a, byte_t b)
+void mem_write_byte (addr_t a, byte_t b, byte_t init)
 	{
 	assert (a < MEM_MAX);
 
 	// Protect ROM
 
-	if (a < ROM_BASE)
-		{
-		mem_stat [a] = b;
-		}
-	else
+	if (a >= ROM_BASE && !init)
 		{
 		printf ("warning: writing byte into ROM @ %lxh\n", a);
 		}
+	else
+		{
+		mem_stat [a] = b;
+		}
 	}
 
-void mem_write_word (addr_t a, word_t w)
+void mem_write_word (addr_t a, word_t w, byte_t init)
 	{
 	assert (a < MEM_MAX - 1);
 
 	// Protect ROM
 
-	if (a < ROM_BASE - 1)
+	if (a >= (ROM_BASE - 1) && !init)
 		{
-		word_t * p = (word_t *) mem_get_addr (a);
-		*p = w;
+		printf ("warning: writing word into ROM @ %lxh\n", a);
 		}
 	else
 		{
-		printf ("warning: writing word into ROM @ %lxh\n", a);
+		word_t * p = (word_t *) mem_get_addr (a);
+		*p = w;
 		}
 	}
 

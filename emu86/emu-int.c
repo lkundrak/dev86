@@ -165,6 +165,8 @@ static int int_15h ()
 // BIOS keyboard services
 // WARNING: specific to ADVTECH SBC - not standard IBM BIOS
 
+static byte_t key_prev = 0;
+
 static int int_16h ()
 	{
 	int err = 0;
@@ -175,8 +177,50 @@ static int int_16h ()
 		{
 		// Normal keyboard read
 		// ADVTECH: keyboard init
+		// TODO: separate PC and ADVTECH code
 
 		case 0x00:
+			if (key_prev)
+				{
+				reg8_set (REG_AL, key_prev);
+				key_prev = 0;
+				}
+			else
+				{
+				c = serial_recv ();
+				if (c == 0xFF)  // error
+					{
+					err = -1;
+					break;
+					}
+
+				reg8_set (REG_AL, (byte_t) c);  // ASCII code
+				}
+
+			reg8_set (REG_AH, 0);  // No scan code
+			break;
+
+		// Peek character
+
+		case 0x01:
+			if (serial_poll ())
+				{
+				flag_set (FLAG_ZF, 0);
+				key_prev = serial_recv ();
+				if (key_prev == 0xFF)  // error
+					{
+					err = -1;
+					break;
+					}
+
+				reg8_set (REG_AL, key_prev);
+				reg8_set (REG_AH, 0);
+				}
+			else
+				{
+				flag_set (FLAG_ZF, 1);  // no character in buffer
+				}
+
 			break;
 
 		// Extended keyboard read
@@ -391,3 +435,15 @@ int int_hand (byte_t i)
 
 	return err;
 	}
+
+
+void int_init ()
+	{
+	// ELKS saves and calls initial INT8 (timer)
+	// So implement a stub for INT8 at startup
+
+	mem_write_byte (0xFFFF0, 0xCF, 1);  // IRET @ FFFF:0h
+	mem_write_word (0x00020, 0x0000, 1);
+	mem_write_word (0x00022, 0xFFFF, 1);
+	}
+
