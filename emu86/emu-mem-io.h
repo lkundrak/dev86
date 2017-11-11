@@ -17,8 +17,8 @@ byte_t * mem_get_addr (addr_t a);
 byte_t mem_read_byte (addr_t a);
 word_t mem_read_word (addr_t a);
 
-void mem_write_byte (addr_t a, byte_t b);
-void mem_write_word (addr_t a, word_t w);
+void mem_write_byte (addr_t a, byte_t b, byte_t init);
+void mem_write_word (addr_t a, word_t w, byte_t init);
 
 
 byte_t io_read_byte (word_t p);

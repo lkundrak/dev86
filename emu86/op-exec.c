@@ -236,11 +236,11 @@ static void val_set (op_var_t * var1, const op_var_t * var2)
 
 			if (var1->w)
 				{
-				mem_write_word (a, val2->w);
+				mem_write_word (a, val2->w, 0);
 				}
 			else
 				{
-				mem_write_byte (a, val2->b);
+				mem_write_byte (a, val2->b, 0);
 				}
 
 			break;
@@ -423,7 +423,7 @@ static int op_calc_1 (op_desc_t * op_desc)
 			break;
 
 		case OP_NEG:
-			v = (word_t) (0 - ((short) v));
+			v = (word_t) (0 - (short) v);
 			break;
 
 		case OP_MUL:
@@ -450,16 +450,16 @@ static int op_calc_1 (op_desc_t * op_desc)
 				{
 				word_t ax = reg16_get (REG_AX);
 				word_t dx = reg16_get (REG_DX);
-				long t = ((long) (short) dx) * (long) 0x10000 + (long) (short) ax;
-				t *= (long) (short) v;
-				reg16_set (REG_AX, (word_t) (((dword_t) t) & 0xFFFF));
-				reg16_set (REG_DX, (word_t) (((dword_t) t) >> 16));
+				dword_t t = (((dword_t) dx) << 16) | (dword_t) ax;
+				t = (dword_t) (((long) t) * (long) (short) v);
+				reg16_set (REG_AX, (word_t) (t & 0xFFFF));
+				reg16_set (REG_DX, (word_t) (t >> 16));
 				}
 			else
 				{
 				byte_t al = reg8_get (REG_AL);
-				short s = ((short) (char) al) * (short) v;
-				reg16_set (REG_AX, (word_t) s);
+				word_t t = (word_t) (((short) (char) al) * (short) v);
+				reg16_set (REG_AX, t);
 				}
 
 			break;
@@ -485,8 +485,28 @@ static int op_calc_1 (op_desc_t * op_desc)
 
 			break;
 
+		case OP_IDIV:
+			assert (v > 0);
+
+			if (temp.w)
+				{
+				word_t ax = reg16_get (REG_AX);
+				word_t dx = reg16_get (REG_DX);
+				dword_t t = ((dword_t) dx) << 16 | (dword_t) ax;
+				reg16_set (REG_AX, (word_t) (((long) t) / (long) (dword_t) v));
+				reg16_set (REG_DX, (word_t) (((long) t) % (long) (dword_t) v));
+				}
+			else
+				{
+				word_t ax = reg16_get (REG_AX);
+				reg8_set (REG_AL, (byte_t) (((short) ax) / (short) v));
+				reg8_set (REG_AH, (byte_t) (((short) ax) % (short) v));
+				}
+
+			break;
+
 		default:
-			printf ("fatal: unknown op %x\n", id);
+			printf ("fatal: unknown op %xh\n", id);
 			assert (0);
 
 		}
@@ -647,6 +667,9 @@ static int op_inc_dec (op_desc_t * op_desc)
 
 	flag_set (FLAG_ZF, r ? 0 : 1);
 
+	word_t s = temp.w ? r & 0x8000 : r & 0x80;
+	flag_set (FLAG_SF, s ? 1 : 0);
+
 	temp.val.w = r;
 	val_set (var, &temp);
 
@@ -658,6 +681,8 @@ static int op_inc_dec (op_desc_t * op_desc)
 
 static int op_shift_rot (op_desc_t * op_desc)
 	{
+	int err = 0;
+
 	assert (op_desc->var_count == 2);
 	op_var_t * to   = &op_desc->var_to;
 	op_var_t * from = &op_desc->var_from;
@@ -743,14 +768,14 @@ static int op_shift_rot (op_desc_t * op_desc)
 			break;
 
 		default:
-			assert (0);
+			err = -1;
 
 		}
 
 	temp1.val.w = a;
 	val_set (to, &temp1);
 
-	return 0;
+	return err;
 	}
 
 
@@ -1194,12 +1219,12 @@ static int op_string (op_desc_t * op_desc)
 				if (w)
 					{
 					if (id == OP_STOS) a = reg16_get (REG_AX);
-					mem_write_word (addr_seg_off (seg, di), a);
+					mem_write_word (addr_seg_off (seg, di), a, 0);
 					}
 				else
 					{
 					if (id == OP_STOS) a = (word_t) reg8_get (REG_AL);
-					mem_write_byte (addr_seg_off (seg, di), (byte_t) a);
+					mem_write_byte (addr_seg_off (seg, di), (byte_t) a, 0);
 					}
 				}
 
@@ -1288,7 +1313,7 @@ static int op_flag (op_desc_t * op_desc)
 			break;
 
 		case OP_CMC:
-			flag_set (FLAG_CF, ~flag_get (FLAG_CF));
+			flag_set (FLAG_CF, flag_get (FLAG_CF) ? 0 : 1);
 			break;
 
 		case OP_STC:
@@ -1346,7 +1371,7 @@ static int op_flag_acc (op_desc_t * op_desc)
 static int op_halt (op_desc_t * op_desc)
 	{
 	assert (OP_ID == OP_HLT);
-	assert (0);
+	exec_int (8);  // TEMP HACK
 	return 0;
 	}
 
@@ -1645,7 +1670,7 @@ int op_exec (op_desc_t * op_desc)
 			}
 
 		err = (*hand) (op_desc);
-		if (err) break;
+		if (err < 0) break;
 
 		// REP and SEG prefix states
 
@@ -1664,7 +1689,6 @@ int op_exec (op_desc_t * op_desc)
 		if (_rep_stat == 1) _rep_stat = 2;
 		if (_seg_stat == 1) _seg_stat = 2;
 
-		err = 0;
 		break;
 		}
 

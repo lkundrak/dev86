@@ -14,6 +14,7 @@
 #include "emu-mem-io.h"
 #include "emu-proc.h"
 #include "emu-serial.h"
+#include "emu-int.h"
 
 #include "op-exec.h"
 
@@ -212,6 +213,7 @@ int main (int argc, char * argv [])
 
 		// Main loop
 
+		int_init ();
 		serial_init ();
 
 		op_code_base = mem_get_addr (0);
@@ -325,6 +327,15 @@ int main (int argc, char * argv [])
 						flag_exec = 0;
 						flag_exit = 1;
 						break;
+
+					// Interrupt (only timer for now)
+
+					case 'i':
+						flag_exec = 0;
+						err = exec_int (0x08);  // timer 0 interrupt
+						if (err) puts ("error: timer interrupt");
+						break;
+
 					}
 				}
 
@@ -339,10 +350,10 @@ int main (int argc, char * argv [])
 				err = op_exec (&desc);
 				if (err)
 					{
-					puts ("error: execute operation");
+					puts (err < 0 ? "error: execute operation" : "warning: paused (HLT)");
 					flag_trace = 1;
 					flag_prompt = 1;
-					reg16_set (REG_IP, last_off_0);
+					if (err < 0) reg16_set (REG_IP, last_off_0);
 					}
 				else
 					{
