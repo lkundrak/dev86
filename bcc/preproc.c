@@ -1020,6 +1020,7 @@ PUBLIC void skipcomment()
 	    {
 		skipeol();
 		if (eofile)
+		    error(" comment past EOF");
 		    break;
 	    }
 	    else if (ch != '*')

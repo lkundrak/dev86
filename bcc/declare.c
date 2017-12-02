@@ -834,7 +834,7 @@ PRIVATE void idecllist()
 		gvarsymptr->flags = DIRECTPAGE;
 #endif
 	    if (gvarsc == EXTERNDECL)
-		gvarsymptr->flags |= EXTERNAL;
+	    	gvarsymptr->flags |= EXTERNAL;
 	}
 	else
 	{

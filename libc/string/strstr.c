@@ -1,54 +1,57 @@
-/* Copyright (C) 1995,1996 Robert de Bath <rdebath@cix.compulink.co.uk>
- * This file is part of the Linux-8086 C library and is distributed
- * under the GNU Library General Public License.
+/*
+ * Jody Bruchon's two-way strstr() function
+ *
+ * This implementation attempts to exclude substrings faster by scanning
+ * them from both directions at once. It is faster than naive one-by-one
+ * comparison implementations but slower than larger, more complex ones
+ * seen in C libraries such as glibc and musl. The big advantage over the
+ * faster versions is that resource usage is very low, making it more
+ * suitable for embedded, low-memory, or small-cache systems.
+ *
+ * Copyright (C) 2014-2015 by Jody Bruchon <jody@jodybruchon.com>
+ * Released under the terms of the GNU GPL version 2
+ *
+ * K&R-ified for bcc compiler in Dev86
  */
 
+#include <stdio.h>
 #include <string.h>
-
-#if 1
-/* We've now got a nice fast strchr and memcmp use them */
 
 char *
 strstr(s1, s2)
-char *s1; char *s2;
+const char *s1; const char *s2;
 {
-   register int l = strlen(s2);
-   register char * p = s1;
+	register const char *haystack = s1;
+	register const char *needle = s2;
+	int pos = 0;
+	register int cnt;
+	size_t hay_len;
+	size_t n_len;
 
-   if( l==0 ) return p;
+	if (!*needle) return (char *) s1;
+	n_len = strlen(needle);
+	hay_len = strlen(haystack);
 
-   while (p = strchr(p, *s2))
-   {
-      if( memcmp(p, s2, l) == 0 )
-         return p;
-      p++;
-   }
-   return (char *) 0;
+	cnt = n_len;
+	do {
+		/* Give up if needle is longer than remaining haystack */
+		if ((pos + n_len - 1) > hay_len) return NULL;
+
+		/* Scan for match in both directions */
+		while (*needle == *haystack) {
+			cnt--;
+			if (!cnt) return (char *) (s1 + pos);
+			if (*(needle + cnt) == *(haystack + cnt)) {
+				cnt--;
+				if (!cnt) return (char *) (s1 + pos);
+			} else break;
+			needle++;
+			haystack++;
+		}
+		pos++;
+		haystack = s1 + pos;
+		needle = s2;
+		cnt = n_len;
+	} while (1);
+
 }
-
-#else
-/* This is a nice simple self contained strstr,
-   now go and work out why the GNU one is faster :-) */
-
-char *strstr(str1, str2)
-char *str1, *str2;
-{
-    register char *Sptr, *Tptr;
-    int	len = strlen(str1) -strlen(str2) + 1;
-
-    if (*str2)
-	for (; len > 0;	len--, str1++){
-	    if (*str1 != *str2)
-		continue;
-
-	    for	(Sptr =	str1, Tptr = str2; *Tptr != '\0'; Sptr++, Tptr++)
-		if (*Sptr != *Tptr)
-		    break;
-
-	    if (*Tptr == '\0')
-		return (char*) str1;
-	}
-
-    return (char*)0;
-}
-#endif

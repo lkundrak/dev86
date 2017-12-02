@@ -45,7 +45,7 @@ ARCH=-3
 endif
 
 CC=bcc $(ARCH)
-CCFLAGS=-O -I -I$(TOP)/libc/include
+CCFLAGS=-O -I -I$(TOP)/libc/include -I$(TOP)/libc/kinclude
 LKFLAGS=-L -L$(TOP)/ -s
 
 else # ifeq ($(PLATFORM),i386-Linux)

@@ -1,0 +1,9 @@
+*.o
+*.bin
+*.map
+
+mon86-stub
+mon86-host
+
+test-mon86-out.txt
+

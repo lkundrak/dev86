@@ -15,8 +15,9 @@ typedef __u32 speed_t;
 typedef __u32 tcflag_t;
 typedef __u8  cc_t;
 
+typedef unsigned int size_t;
+typedef int   ssize_t;
 typedef int   ptrdiff_t;
-typedef int size_t;
 
 #endif
 

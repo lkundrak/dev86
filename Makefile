@@ -20,6 +20,7 @@ ASLDDIR= $(BINDIR)
 MANDIR=	 $(PREFIX)/man
 CFLAGS=  -O
 IFDEFNAME= ifdef
+WD=$(shell pwd)
 
 # Some makes take the last of a list as the default ...
 all: make.fil
@@ -33,18 +34,22 @@ $(TARGETS):
 ld: ld86
 as: as86
 
+distclean: realclean
+
 realclean:
 	-[ ! -f make.fil ] || $(MAKE) -f make.fil VERSION=$(VERSION) TOPDIR=`pwd` $@
 	-rm -f make.fil ifdef ifdefg
+	-find -name '*~' -delete
+	-for X in */; do cd $$X && make clean; cd $(WD); done
 
 make.fil: $(IFDEFNAME) makefile.in
 	./$(IFDEFNAME) -MU $(IFDEFOPTS) makefile.in >tmp.mak
 	echo > tmp.sed
 	[ "$(BINDIR)" != "//bin" ] || echo >> tmp.sed "s:%BINDIR%:/bin:"
-	[ "$(LIBDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%LIBDIR%:/lib:"
-	[ "$(INCLDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%INCLDIR%:/usr:"
+	[ "$(LIBDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%LIBDIR%:/lib/bcc:"
+	[ "$(INCLDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%INCLDIR%:/lib/bcc:"
 	[ "$(ASLDDIR)" != "//bin" ] || echo >> tmp.sed "s:%ASLDDIR%:/bin:"
-	[ "$(MANDIR)" != "//man" ] || echo >> tmp.sed "s:%MANDIR%:/usr/man:"
+	[ "$(MANDIR)" != "//man" ] || echo >> tmp.sed "s:%MANDIR%:/man:"
 	echo >> tmp.sed "s:%PREFIX%:$(PREFIX):"
 	echo >> tmp.sed "s:%BINDIR%:$(BINDIR):"
 	echo >> tmp.sed "s:%INCLDIR%:$(INCLDIR):"

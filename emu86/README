@@ -1,0 +1,67 @@
+*** WORK IN PROGRESS ***
+
+
+EMU86 is yet another 8086/8088/80186/80188 emulator.
+
+That old 16-bits processor architecture is still used today in some devices
+(micro-controllers, SBC, SoC, etc) that reuse the huge hardware and code
+base from the legacy PC/XT/AT platform.
+
+This emulator is intended to help the related embedded software development,
+at the stage of testing / debugging the code on the development system before
+burning it into EEPROM / Flash on the device.
+
+The goal is NOT to reinvent the wheel for PC / end-user emulation, as others
+projects like QEMU, DOSEMU, etc, already do that job very well. Therefore
+some features like the 80286 protected mode and the 32/64 bits modes are out
+of this project scope.
+
+The emulator has a modular design with:
+- an instruction decoder and printer (common part with DIS86 disassembler)
+- a processor context and instruction executor (core emulator part)
+- a memory & I/O access handler for peripheral stubbing
+- an interrupt handler for firmware (BIOS) stubbing
+- some debugger features
+
+Debugger features: initial breakpoint, trace mode, interactive mode, registers
+dump, trace in, trace over, stack dump.
+
+Serial port is emulated through a pseudo-terminal (/dev/pts), with a
+bidirectional cat utility (pcat) to be able to redirect serial I/O from / to
+file and thus easing test automation (see test-mon86 script as an example).
+
+
+CURRENT STATUS:
+
+The emulator is now able to execute the MON86 code, targetting the Advantech
+SNMP-1000 SBC with its specific INT 10h / 16h minimally stubbed.
+
+It also executes partially the original ROM code of the same SBC, enough to
+reach the user prompt and to run some basic commands of the embedded
+diagnostics program.
+
+Current work is focusing on running ELKS in a minimal configuration:
+see below for the goal description about legacy platform.
+
+
+TODO:
+
+* Core:
+- full 8086 instruction set : WIP
+
+* Embedded systems:
+- add 80186 instruction set : WIP
+- add 80186 integrated peripherals (timer, serial)
+- add EEPROM / Flash emulation
+
+The goal is to provide the minimum set of features needed to run a standalone
+version of MON86 targetting any 80186/80188 based system.
+
+* Legacy platform:
+- more support of BIOS interrupts
+
+The goal is to provide the minimum set of features needed to run ELKS in a
+ROM-loaded configuration, headless and diskless, but with a ROM-disk and a
+serial console.
+
+A good reference is the "8086tiny" project.
