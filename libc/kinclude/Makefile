@@ -6,9 +6,5 @@ all:
 	@:
 
 transfer:
-	-@rm -f ../include/linuxmt ../include/arch
-	ln -s ../kinclude/linuxmt ../include
-	ln -s ../kinclude/arch ../include
 
 clean:
-	-rm -f ../include/linuxmt ../include/arch

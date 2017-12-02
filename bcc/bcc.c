@@ -223,12 +223,12 @@ char ** argv;
 #endif
       } else {
 	 /* Relative paths to a build dir "-M-" */
-	 build_prefix("/lib", libdir_suffix, "");
-	 build_prefix("/lib", "", "");
+	 build_prefix("/lib/bcc", libdir_suffix, "");
+	 build_prefix("/lib/bcc", "", "");
 
 	 default_include = build_libpath("-I", "/include", "");
 	 default_libdir  = build_libpath("-L", "/lib", libdir_suffix);
-	 optim_rules     = build_libpath("-d", "/lib", libdir_suffix);
+	 optim_rules     = build_libpath("-d", "/lib/bcc", libdir_suffix);
       }
 
    } else {
@@ -440,7 +440,7 @@ struct file_list * file;
    switch(opt_arch) {
    case 0: command_opt("rules.86"); break;
    case 1: 
-   case 2: command_opt("rules.i386"); break;
+   case 2: command_opt("rules.386"); break;
    case 4: command_opt("rules.6809"); break;
    default:command_opt("rules.mid"); break;
    }

@@ -114,7 +114,7 @@ install install-all: check_config install-bcc install-man
 
 ##############################################################################
 
-LIBARGS= CC=ncc "CCFLAGS=-O" AR=$(AR) ARFLAGS=$(ARFLAGS)
+LIBARGS= CC=ncc AR=$(AR) ARFLAGS=$(ARFLAGS)
 LIB3ARGS= CC=ncc AR=$(AR) ARFLAGS=$(ARFLAGS)
 
 # Season in the top makefile
@@ -143,41 +143,36 @@ CLEANLIST= bcc as ar ld cpp unproto copt libc elksemu libbsd $(OTHERS)
 ##############################################################################
 
 bindir: $(MAKEX)
-	@mkdir -p bin lib lib/i386
+	@mkdir -p bin lib lib/i386 lib/bcc lib/bcc/i386
 	@rm -f include
 	@ln -s libc/include include 2>/dev/null || true
-#ifndef GNUMAKE
-	@rm -f include/linuxmt include/arch || true
-	@ln -s ../kinclude/linuxmt include/linuxmt 2>/dev/null || true
-	@ln -s ../kinclude/arch    include/arch    2>/dev/null || true
-#endif
 
 bcc86: bindir versions
 	$(MAKEC) bcc $(MAKEARG) BCCARCH='$(BCCARCH)' bcc ncc bcc-cc1
-	cp -p bcc/bcc$(EXE) bin/Bcc$(EXE)
+	cp -p bcc/bcc$(EXE) bin/bcc$(EXE)
 	cp -p bcc/ncc$(EXE) bin/ncc$(EXE)
-	cp -p bcc/bcc-cc1$(EXE) lib/bcc-cc1$(EXE)
+	cp -p bcc/bcc-cc1$(EXE) lib/bcc/bcc-cc1$(EXE)
 
 cpp:  bindir
 	$(MAKEC) cpp $(MAKEARG) bcc-cpp
-	cp -p cpp/bcc-cpp$(EXE) lib/bcc-cpp$(EXE)
+	cp -p cpp/bcc-cpp$(EXE) lib/bcc/bcc-cpp$(EXE)
 
 unproto:  bindir
 	$(MAKEC) unproto $(MAKEARG) unproto
-	cp -p unproto/unproto$(EXE) lib/unproto$(EXE)
+	cp -p unproto/unproto$(EXE) lib/bcc/unproto$(EXE)
 
 copt:  bindir
 	$(MAKEC) copt $(MAKEARG) copt
-	cp -p copt/copt$(EXE) lib/copt$(EXE)
-	cp -p copt/rules.* lib/.
-	cp -p copt/rules.start lib/i386/.
-	cp -p copt/rules.386 lib/i386/.
-	cp -p copt/rules.end lib/i386/.
+	cp -p copt/copt$(EXE) lib/bcc/copt$(EXE)
+	cp -p copt/rules.* lib/bcc/.
+	cp -p copt/rules.start lib/bcc/i386/.
+	cp -p copt/rules.386 lib/bcc/i386/.
+	cp -p copt/rules.end lib/bcc/i386/.
 
 as86: bindir versions
 	$(MAKEC) as $(MAKEARG) all
 	cp -p as/as86$(EXE) bin/as86$(EXE)
-	cp -p as/as86_encap bin/as86_encap
+	cp -p as/as86_encap lib/bcc/as86_encap
 
 ar86: bindir
 	$(MAKEC) ar $(MAKEARG) all
@@ -209,21 +204,21 @@ try_elksemu: bindir
 
 install-bcc: bcc86 cpp unproto copt as86 ar86 ld86 objdump86
 	install -d $(DISTBIN) $(DISTLIB)
-	install $(INEXE) bin/Bcc$(EXE) 		$(DISTBIN)/bcc$(EXE)
+	install $(INEXE) bin/bcc$(EXE) 		$(DISTBIN)/bcc$(EXE)
 	install $(INEXE) bin/as86$(EXE) 	$(DISTASLD)/as86$(EXE)
 	install $(INEXE) bin/ld86$(EXE) 	$(DISTASLD)/ld86$(EXE)
 	install $(INEXE) bin/ar86$(EXE) 	$(DISTBIN)/ar86$(EXE)
 	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/objdump86$(EXE)
 	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/nm86$(EXE)
 	install $(INEXE) bin/objdump86$(EXE) 	$(DISTBIN)/size86$(EXE)
-	install $(INSCR) bin/as86_encap		$(DISTLIB)/as86_encap
-	install $(INEXE) lib/bcc-cc1$(EXE) 	$(DISTLIB)/bcc-cc1$(EXE)
-	install $(INEXE) lib/bcc-cpp$(EXE) 	$(DISTLIB)/bcc-cpp$(EXE)
-	install $(INEXE) lib/unproto$(EXE) 	$(DISTLIB)/unproto$(EXE)
-	install $(INEXE) lib/copt$(EXE) 	$(DISTLIB)/copt$(EXE)
-	install $(INDAT) lib/rules.* 		$(DISTLIB)
+	install $(INSCR) lib/bcc/as86_encap		$(DISTLIB)/as86_encap
+	install $(INEXE) lib/bcc/bcc-cc1$(EXE) 	$(DISTLIB)/bcc-cc1$(EXE)
+	install $(INEXE) lib/bcc/bcc-cpp$(EXE) 	$(DISTLIB)/bcc-cpp$(EXE)
+	install $(INEXE) lib/bcc/unproto$(EXE) 	$(DISTLIB)/unproto$(EXE)
+	install $(INEXE) lib/bcc/copt$(EXE) 	$(DISTLIB)/copt$(EXE)
+	install $(INDAT) lib/bcc/rules.*		$(DISTLIB)
 	install -d $(DISTLIB)/i386
-	install $(INDAT) lib/i386/rules.* 	$(DISTLIB)/i386
+	install $(INDAT) lib/bcc/i386/rules.* 	$(DISTLIB)/i386
 
 # NB: This doesn't install as a suid root, that's ok though.
 install-emu: elksemu

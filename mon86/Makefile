@@ -20,3 +20,6 @@ mon86-stub.o : mon86-target.c
 mon86-stub : mon86-common-host.o mon86-stub.o
 
 mon86-host : mon86-common-host.o mon86-host.o
+
+clean:
+	-rm *.o mon86-stub mon86-host

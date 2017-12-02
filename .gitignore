@@ -126,6 +126,9 @@ copt/copt
 cpp/bcc-cpp
 
 ifdefg
+
+include
+
 ld/ar.h
 ld/ld86
 ld/objdump86
@@ -134,8 +137,6 @@ lib/
 libc/error/error_list.h
 libc/i386sys/syscall.c
 libc/i386sys/syscall.mak
-libc/include/arch
-libc/include/linuxmt
 libc/include/malloc.h
 libc/include/regexp.h
 libc/include/regmagic.h
