@@ -46,10 +46,10 @@ make.fil: $(IFDEFNAME) makefile.in
 	./$(IFDEFNAME) -MU $(IFDEFOPTS) makefile.in >tmp.mak
 	echo > tmp.sed
 	[ "$(BINDIR)" != "//bin" ] || echo >> tmp.sed "s:%BINDIR%:/bin:"
-	[ "$(LIBDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%LIBDIR%:/lib:"
-	[ "$(INCLDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%INCLDIR%:/usr:"
+	[ "$(LIBDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%LIBDIR%:/lib/bcc:"
+	[ "$(INCLDIR)" != "//lib/bcc" ] || echo >> tmp.sed "s:%INCLDIR%:/lib/bcc:"
 	[ "$(ASLDDIR)" != "//bin" ] || echo >> tmp.sed "s:%ASLDDIR%:/bin:"
-	[ "$(MANDIR)" != "//man" ] || echo >> tmp.sed "s:%MANDIR%:/usr/man:"
+	[ "$(MANDIR)" != "//man" ] || echo >> tmp.sed "s:%MANDIR%:/man:"
 	echo >> tmp.sed "s:%PREFIX%:$(PREFIX):"
 	echo >> tmp.sed "s:%BINDIR%:$(BINDIR):"
 	echo >> tmp.sed "s:%INCLDIR%:$(INCLDIR):"

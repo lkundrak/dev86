@@ -11,7 +11,7 @@ endif
 
 LIBBCC=$(TOP)/libbcc.a
 CC=bcc
-CCFLAGS=-I -I$(TOP)/include
+CCFLAGS=-O -I -I$(TOP)/include -I$(TOP)/kinclude
 DEFS=-D__LIBC__
 
 include Make.defs
@@ -62,10 +62,6 @@ transfer: .config.dir
 	@for i in `cat .config.dir`; do \
 	   grep -s '^transfer' $$i/Makefile && $(MAKE) -s -C $$i $@ ; \
 	done ; echo -n
-	@[ -d include/linuxmt/. ] || \
-	  ln -s $(ELKSSRC)/include/linuxmt include
-	@[ -d include/arch/. ] || \
-	  ln -s $(ELKSSRC)/include/arch include
 
 ############################################################################
 
@@ -81,7 +77,6 @@ clean:
 
 install_incl: transfer
 	install -d $(DISTINCL)/include
-	rm -f $(DISTINCL)/include/linuxmt $(DISTINCL)/include/arch ||:
 	cp -LpR include/* $(DISTINCL)/include
 	-chown -R $(USERID):$(GROUPID) $(DISTINCL)/include
 	-chmod -R ugo-x,u=rwX,og=rX $(DISTINCL)/include
