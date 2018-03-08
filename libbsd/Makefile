@@ -29,7 +29,7 @@ install: all
 	install -m 644 $(LIBBSD) $(LIBDIR)/i86
 
 tests: dummy
-	make -C tests
+	$(MAKE) -C tests
 
 $(LIBBSD): $(OBJS)
 	$(AR) rc $(LIBBSD) $(OBJS)
