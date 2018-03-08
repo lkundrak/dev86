@@ -326,7 +326,7 @@ config: ;
 #endif
 
 makec:
-	echo 'cd $$1 ; shift ; make "$$@"' > makec
+	echo 'cd $$1 ; shift ; $(MAKE) "$$@"' > makec
 	chmod +x makec
 
 versions: bcc/version.h

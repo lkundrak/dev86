@@ -55,31 +55,31 @@ fs_min.o: minix.h
 
 bootfile.sys: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DDOSFLOPPY' monitor.out
+	$(MAKE) 'CFLAGS=$(CFLAGS) -DDOSFLOPPY' monitor.out
 	mv monitor.out bootfile.sys
 	@rm -f $(MOBJ)
 
 boottar.sys: $(MSRC) $(MINC) tarboot.bin
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DTARFLOPPY' monitor.out
+	$(MAKE) 'CFLAGS=$(CFLAGS) -DTARFLOPPY' monitor.out
 	mv monitor.out boottar.sys
 	@rm -f $(MOBJ)
 
 bootminix.sys: $(MSRC) $(MINC) minix.bin
 	@rm -f $(MOBJ)
-	make 'CFLAGS=$(CFLAGS) -DMINFLOPPY' monitor.out
+	$(MAKE) 'CFLAGS=$(CFLAGS) -DMINFLOPPY' monitor.out
 	mv monitor.out bootminix.sys
 	@rm -f $(MOBJ)
 
 monitor.sys: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make monitor.out
+	$(MAKE) monitor.out
 	mv monitor.out monitor.sys
 	@rm -f $(MOBJ)
 
 monitor: $(MSRC) $(MINC)
 	@rm -f $(MOBJ)
-	make 'CFLAGS=-ansi $(DEFS)' monitor.out
+	$(MAKE) 'CFLAGS=-ansi $(DEFS)' monitor.out
 	mv monitor.out monitor
 	@rm -f $(MOBJ)
 
