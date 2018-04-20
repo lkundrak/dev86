@@ -1,0 +1,22 @@
+# https://travis-ci.org/
+language: c
+
+# Select Trusty
+dist: trusty
+sudo: false
+
+addons:
+  apt:
+    packages:
+    - fakeroot
+
+os:
+  - linux
+  - osx
+
+compiler:
+  - clang
+  - gcc
+
+script:
+  - CC="$CC -Wno-error=return-type" sh ./Mk_dist $(sed -n 's/^VERSION=\(.*\)/\1/p' Makefile )
