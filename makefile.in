@@ -342,12 +342,12 @@ bcc/version.h: Makefile
 
 install-other: other
 	@for i in $(OTHERS) ; do \
-		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) install || exit 1 ; \
+		$(MAKEC) $$i BCC=ncc DIST="$(DIST)" PREFIX="$(PREFIX)" install || exit 1 ; \
 	done
 
 other: versions
 	@for i in $(OTHERS) ; do \
-		$(MAKEC) $$i BCC=ncc DIST=$(DIST) PREFIX=$(PREFIX) || exit 1; \
+		$(MAKEC) $$i BCC=ncc HOSTCC="$(CC)" DIST="$(DIST)" PREFIX="$(PREFIX)" || exit 1; \
 	done
 
 ##############################################################################
