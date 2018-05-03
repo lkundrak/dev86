@@ -18,6 +18,7 @@ extern byte_t * op_code_base;
 extern word_t op_code_seg;
 extern word_t op_code_off;
 
+extern byte_t op_code_null;
 
 // Register
 

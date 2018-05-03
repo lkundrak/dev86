@@ -9,12 +9,22 @@
 static byte_t mem_stat [MEM_MAX];
 static byte_t io_stat  [IO_MAX];
 
+byte_t _break_data_flag = 0;
+addr_t _break_data_addr = 0x100000;
+
 
 // Memory access
 
 byte_t * mem_get_addr (addr_t a)
 	{
 	assert (a < MEM_MAX);
+
+	// Data breakpoint test
+	// Will break the main execution loop later
+
+	if (a == _break_data_addr)
+		_break_data_flag = 1;
+
 	return (mem_stat + a);
 	}
 
@@ -22,7 +32,8 @@ byte_t * mem_get_addr (addr_t a)
 byte_t mem_read_byte (addr_t a)
 	{
 	assert (a < MEM_MAX);
-	return mem_stat [a];
+	byte_t * p = mem_get_addr (a);
+	return *p;
 	}
 
 word_t mem_read_word (addr_t a)
@@ -45,7 +56,8 @@ void mem_write_byte (addr_t a, byte_t b, byte_t init)
 		}
 	else
 		{
-		mem_stat [a] = b;
+		byte_t * p = mem_get_addr (a);
+		*p = b;
 		}
 	}
 

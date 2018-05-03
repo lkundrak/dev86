@@ -223,6 +223,11 @@ static int int_16h ()
 
 			break;
 
+		// Set typematic rate - ignore
+
+		case 0x03:
+			break;
+
 		// Extended keyboard read
 		// ADVTECH: read next char (blocking)
 
@@ -239,6 +244,7 @@ static int int_16h ()
 			break;
 
 		default:
+			printf ("INT 16h: AH=%hXh\n", ah);
 			assert (0);
 		}
 
