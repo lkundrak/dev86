@@ -91,7 +91,7 @@ int main (int argc, char * argv [])
 		addr_t file_address = -1;
 		int file_loaded = 0;
 
-		addr_t breakpoint = -1;
+		addr_t break_code_addr = -1;
 
 		int flag_trace = 0;
 		int flag_prompt = 0;
@@ -112,7 +112,7 @@ int main (int argc, char * argv [])
 
 		while (1)
 			{
-			opt = getopt (argc, argv, "w:f:x:b:tip");
+			opt = getopt (argc, argv, "w:f:x:c:d:tip");
 			if (opt < 0 || opt == '?') break;
 
 			switch (opt)
@@ -152,14 +152,26 @@ int main (int argc, char * argv [])
 
 					break;
 
-				case 'b':  // breakpoint address
-					if (sscanf (optarg, "%lx", &breakpoint) != 1)
+				case 'c':  // code breakpoint address
+					if (sscanf (optarg, "%lx", &break_code_addr) != 1)
 						{
-						puts ("error: bad breakpoint address");
+						puts ("error: bad code breakpoint address");
 						}
 					else
 						{
-						printf ("info: breakpoint address %.5lXh\n", breakpoint);
+						printf ("info: code breakpoint address %.5lXh\n", break_code_addr);
+						}
+
+					break;
+
+				case 'd':  // data breakpoint address
+					if (sscanf (optarg, "%lx", &_break_data_addr) != 1)
+						{
+						puts ("error: bad data breakpoint address");
+						}
+					else
+						{
+						printf ("info: data breakpoint address %.5lXh\n", _break_data_addr);
 						}
 
 					break;
@@ -203,7 +215,8 @@ int main (int argc, char * argv [])
 			puts ("  -w <address>         load address");
 			puts ("  -f <path>            file path");
 			puts ("  -x <segment:offset>  execute address");
-			puts ("  -b <address>         breakpoint address");
+			puts ("  -c <address>         code breakpoint address");
+			puts ("  -d <address>         data breakpoint address");
 			puts ("  -t                   trace mode");
 			puts ("  -i                   interactive mode");
 
@@ -233,11 +246,11 @@ int main (int argc, char * argv [])
 			op_code_seg = seg_get (SEG_CS);
 			op_code_off = reg16_get (REG_IP);
 
-			// Breakpoint test
+			// Code breakpoint test
 
-			if (addr_seg_off (op_code_seg, op_code_off) == breakpoint)
+			if (addr_seg_off (op_code_seg, op_code_off) == break_code_addr)
 				{
-				puts ("info: breakpoint hit");
+				puts ("info: code breakpoint hit");
 				flag_trace = 1;
 				flag_prompt = 1;
 				}
@@ -258,6 +271,18 @@ int main (int argc, char * argv [])
 				if (err)
 					{
 					puts ("\nerror: unknown opcode");
+					flag_trace = 1;
+					flag_prompt = 1;
+					flag_exec = 0;
+					}
+
+				// Suspicious operation on null opcodes
+
+				if (op_code_null)
+					{
+					puts ("\nerror: suspicious null opcodes");
+
+					op_code_null = 0;
 					flag_trace = 1;
 					flag_prompt = 1;
 					flag_exec = 0;
@@ -309,12 +334,12 @@ int main (int argc, char * argv [])
 					// Step over
 
 					case 'p':
-						breakpoint = addr_seg_off (op_code_seg, op_code_off);
+						break_code_addr = addr_seg_off (op_code_seg, op_code_off);
 						flag_trace = 0;
 						flag_prompt = 0;
 						break;
 
-					// Go (keep breakpoint)
+					// Go (keep breakpoints)
 
 					case 'g':
 						flag_trace = 0;
@@ -380,6 +405,16 @@ int main (int argc, char * argv [])
 							}
 						}
 					}
+				}
+
+			// Data breakpoint test
+
+			if (_break_data_flag)
+				{
+				puts ("info: data breakpoint hit");
+				_break_data_flag = 0;
+				flag_trace = 1;
+				flag_prompt = 1;
 				}
 			}
 

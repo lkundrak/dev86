@@ -18,6 +18,8 @@ byte_t * op_code_base;
 word_t op_code_seg;
 word_t op_code_off;
 
+byte_t op_code_null = 0;
+
 char op_code_str [3 * OPCODE_MAX + 2];
 byte_t op_code_pos;
 
@@ -25,8 +27,10 @@ byte_t op_code_pos;
 static byte_t fetch_byte ()
 	{
 	byte_t b = *(op_code_base + (op_code_seg << 4) + op_code_off++);
+
 	sprintf (op_code_str + op_code_pos, "%.2X ", b);
 	op_code_pos += 3;
+
 	return b;
 	}
 
@@ -728,6 +732,10 @@ static int class_1_00h (byte_t code, op_desc_t * op_desc)
 			OP_ID = OP_CALC2 + ((code & 0x38) >> 3);
 			code = fetch_code_2 (op_desc);
 			err = class_w_mod_reg_rm (CF_D, op_desc);
+
+			// Suspicious null opcodes (ADD [BX+SI],AL)
+
+			op_code_null = (OP_ID == OP_ADD && !code) ? 1 : 0;
 			break;
 			}
 

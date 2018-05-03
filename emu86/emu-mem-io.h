@@ -10,6 +10,12 @@
 #define ROM_BASE 0x80000
 
 
+// Memory breakpoint
+
+extern byte_t _break_data_flag;
+extern addr_t _break_data_addr;
+
+
 // Memory & IO operations
 
 byte_t * mem_get_addr (addr_t a);
