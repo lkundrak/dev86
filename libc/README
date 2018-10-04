@@ -17,7 +17,7 @@ broken!
 
 Main Subdirectories.
 
-bcc		Lots of BCC helper functions
+bcc         Lots of BCC helper functions
 bios		Minimal 'system' calls for standalone executables.
 error		The C error functions.
 getent		Routines for /etc/group, /etc/passwd and /etc/utmp
