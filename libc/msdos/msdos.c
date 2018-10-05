@@ -261,10 +261,22 @@ int __argc;
 char ** __argv;
 char ** __envp;
 {
-    /* FIXME !!!
-     * 
-     * Note must write to __envp argument but not touch __argv or __argc
+    /* Note: must write to __envp argument but not touch __argv or __argc */
+
+    /* Note <stecdose@gmail.com>: we could copy array of strings to single
+     * segment's space - this could take half of a segment.
+     * as there are no far pointers in bcc we skip that space-wasting.
+     * rather than this we walk along env pointed to in psp with "getenv".
+     * If you're aware of another solution please let me know.
      */
+    /*
+    int save_es;
+
+    save_es = __get_es();
+    __set_es(__envseg);
+
+    __set_es(save_es);
+    */
 }
 #endif
 
