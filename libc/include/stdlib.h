@@ -48,4 +48,10 @@ typedef struct
 extern char *getenv __P ((__const char *__name));
 extern char *mktemp __P ((char *__template));
 
+/* system() and getenv() implementations for DOS target */
+#ifdef __MSDOS__
+extern int system(char *string);
+extern char *getenv(const char *varname);
+#endif /* __MSDOS__ */
+
 #endif /* __STDLIB_H */
