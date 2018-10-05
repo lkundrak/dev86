@@ -15,7 +15,7 @@ BOBJ= __seg_regs.o __peek_es.o __poke_es.o __deek_es.o __doke_es.o	\
 
 ifeq ($(LIB_CPU),i86)
 ifeq ($(LIB_OS),DOS)
-OBJ=$(AOBJ) $(BOBJ) time.o sound.o
+OBJ=$(AOBJ) $(BOBJ) time.o sound.o system.o getenv.o
 else
 OBJ=$(BOBJ)
 endif
