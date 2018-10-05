@@ -1,4 +1,3 @@
-
 #include <bios.h>
 
 static int port_val = -1;
