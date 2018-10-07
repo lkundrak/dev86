@@ -1,4 +1,3 @@
-
 #ifndef __STRING_H
 #define __STRING_H
 #include <features.h>
@@ -33,11 +32,18 @@ extern void * memmove __P ((void*, void*, size_t));
 #define strcoll strcmp
 #define strxfrm strncp
 
-#define	bzero(s, size)			memset((s), 0, (size))
-
 /* BSDisms */
-#define index strchr
-#define rindex strrchr
+#define index           strchr
+#define rindex          strrchr
+#define bzero(s, size)  memset((s), 0, (size))
+
+void swab __P ((const void*, void*, unsigned int));
+char *strrev __P ((char *));
+char *strnset __P((char *, char, unsigned int));
+char *strset __P((char *, char));
+char *strlwr __P((char *));
+char *strupr __P((char *));
+
 
 /* Other common BSD functions */
 extern int strcasecmp __P ((char*, char*));
