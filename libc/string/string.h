@@ -30,7 +30,7 @@ extern void * memmove __P ((void*, void*, size_t));
 
 /* Minimal (very!) locale support */
 #define strcoll strcmp
-#define strxfrm strncp
+#define strxfrm strncpy
 
 /* BSDisms */
 #define index           strchr
