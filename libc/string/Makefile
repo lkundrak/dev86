@@ -9,7 +9,7 @@ SOBJ=strlen.o strcat.o strcpy.o strcmp.o strncat.o strncpy.o strncmp.o	\
 
 OBJ=$(SOBJ) strpbrk.o strsep.o strstr.o strtok.o strcspn.o	\
     strspn.o strcasecmp.o strncasecmp.o strlwr.o strupr.o swab.o \
-    strset.o strnset.o strrev.o strlcat.o strlcpy.o
+    strset.o strnset.o strrev.o strlcat.o strlcpy.o tsbcmp.o tsmemcmp.o
 
 CFLAGS=$(ARCH) $(CCFLAGS) $(DEFS)
 

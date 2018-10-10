@@ -41,6 +41,9 @@ extern void * memmove __P ((void*, void*, size_t));
 size_t strlcpy(char *dst, const char *src, size_t dsize);
 size_t strlcat(char *dst, const char *src, size_t siz);
 
+/* timingsafe variants of memcmp and bcmp, comes from OpenBSD */
+int timingsafe_bcmp(const void *s1, const void *s2, size_t n);
+int timingsafe_memcmp(const void *s1, const void *s2, size_t n);
 
 /* */
 void swab __P ((const void*, void*, unsigned int));
