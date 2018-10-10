@@ -37,13 +37,18 @@ extern void * memmove __P ((void*, void*, size_t));
 #define rindex          strrchr
 #define bzero(s, size)  memset((s), 0, (size))
 
+/* (almost) secure string copy functions, comes from BSD */
+size_t strlcpy(char *dst, const char *src, size_t dsize);
+size_t strlcat(char *dst, const char *src, size_t siz);
+
+
+/* */
 void swab __P ((const void*, void*, unsigned int));
 char *strrev __P ((char *));
 char *strnset __P((char *, char, unsigned int));
 char *strset __P((char *, char));
 char *strlwr __P((char *));
 char *strupr __P((char *));
-
 
 /* Other common BSD functions */
 extern int strcasecmp __P ((char*, char*));
