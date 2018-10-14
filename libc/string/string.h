@@ -38,12 +38,12 @@ extern void * memmove __P ((void*, void*, size_t));
 #define bzero(s, size)  memset((s), 0, (size))
 
 /* (almost) secure string copy functions, comes from BSD */
-size_t strlcpy(char *dst, const char *src, size_t dsize);
-size_t strlcat(char *dst, const char *src, size_t siz);
+size_t strlcpy __P ((char *, const char *, size_t));
+size_t strlcat __P ((char *, const char *, size_t));
 
 /* timingsafe variants of memcmp and bcmp, comes from OpenBSD */
-int timingsafe_bcmp(const void *s1, const void *s2, size_t n);
-int timingsafe_memcmp(const void *s1, const void *s2, size_t n);
+int timingsafe_bcmp __P ((const void *, const void *, size_t));
+int timingsafe_memcmp __P ((const void *, const void *, size_t));
 
 /* */
 void swab __P ((const void*, void*, unsigned int));
