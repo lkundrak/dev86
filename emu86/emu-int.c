@@ -25,6 +25,8 @@ static int int_03h ()
 
 // BIOS video services
 
+static byte_t col_prev = 0;
+
 static byte_t num_hex (byte_t n)
 	{
 	byte_t h = n + '0';
@@ -48,14 +50,17 @@ static int int_10h ()
 	switch (ah)
 		{
 		// Set cursor position
+		// Detect new line as return to first column
 
 		case 0x02:
-			if (reg8_get (REG_DL) == 0)
+			c = reg8_get (REG_DL); // column
+			if (c == 0 && col_prev != 0)
 				{
-				serial_send (13);  // CR
+				//serial_send (13);  // CR
 				serial_send (10);  // LF
 				}
 
+			col_prev = c;
 			break;
 
 		// Get cursor position
