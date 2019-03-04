@@ -1,9 +1,0 @@
-#!/bin/bash
-
-# Test MON86 on real target connected to USB serial #0
-
-# Slow down PCAT with -d & -t options
-
-../emu86/pcat -d 1000 -t 1000 /dev/ttyUSB0 < test-mon86-in.txt > test-mon86-out.txt
-
-diff -y test-mon86-ref.txt test-mon86-out.txt
