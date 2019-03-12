@@ -1,7 +1,0 @@
-#!/bin/bash
-
-# Test MON86 on real target
-
-../emu86/pcat /dev/ttyUSB0 < test-mon86-in.txt > test-mon86-out.txt
-
-diff test-mon86-ref.txt test-mon86-out.txt
