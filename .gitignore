@@ -165,3 +165,7 @@ unproto/unproto
 core
 .gdb_history
 .gdbinit
+
+
+# libc tests msdos target
+tests/MSDOS/BIN/*.com

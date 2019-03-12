@@ -19,3 +19,9 @@ grab.c	Grabs _all_ available memory (3GB+ on Linux-i386) then frees
 rand.c	Generates random numbers and pipes them to 'hd'
 
 -Robert
+
+--------------------------------------------------------------------------------
+
+In subfolder MSDOS you will find libc-tests for MSDOS target
+
+-Nils <stecdose@gmail.com>

@@ -1,4 +1,3 @@
-
 #ifndef __STRING_H
 #define __STRING_H
 #include <features.h>
@@ -34,8 +33,25 @@ extern void * memmove __P ((void*, void*, size_t));
 #define strxfrm strncpy
 
 /* BSDisms */
-#define index strchr
-#define rindex strrchr
+#define index           strchr
+#define rindex          strrchr
+#define bzero(s, size)  memset((s), 0, (size))
+
+/* (almost) secure string copy functions, comes from BSD */
+size_t strlcpy __P ((char *, const char *, size_t));
+size_t strlcat __P ((char *, const char *, size_t));
+
+/* timingsafe variants of memcmp and bcmp, comes from OpenBSD */
+int timingsafe_bcmp __P ((const void *, const void *, size_t));
+int timingsafe_memcmp __P ((const void *, const void *, size_t));
+
+/* */
+void swab __P ((const void*, void*, unsigned int));
+char *strrev __P ((char *));
+char *strnset __P((char *, char, unsigned int));
+char *strset __P((char *, char));
+char *strlwr __P((char *));
+char *strupr __P((char *));
 
 /* Other common BSD functions */
 extern int strcasecmp __P ((char*, char*));
