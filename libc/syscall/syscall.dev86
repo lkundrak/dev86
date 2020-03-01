@@ -5,14 +5,17 @@
 # all three of those packages.
 #
 #	'.' = Ok, with comment
-#	'*' = Needs libc code (Prefix __)
+#	'*' = Needs libc code (Prefix _ or __)
 #	'-' = Obsolete/not required
 #	'@' = May be required later
 #	'=' = Depends on stated config variable
+#	'!' = Last argument is optional in libc routine (i.e. variadic routine)
 #
 #	An initial plus on the call number specifies that this call is
 #	implemented in the kernel.
 #
+# Package versions are matched.
+# Elks version          - 0.3.0
 #
 # Name		No	Args	Flag, comment
 #
@@ -20,7 +23,7 @@ exit		+1	1	* c exit does stdio, _exit in crt0
 fork		+2	0	 
 read		+3	3	 
 write		+4	3	 
-open		+5	3	 
+open		+5	3	!
 close		+6	1	 
 wait4		+7	4
 creat		8	0	- Not needed alias for open
@@ -57,7 +60,7 @@ rename		+38	2
 mkdir		+39	2	 
 rmdir		+40	1	 
 dup		+41	1	. There is a fcntl lib function too.
-pipe		+42	1	 
+pipe		+42	1	= CONFIG_PIPE
 times		43	2	* 2nd arg is pointer for long ret val.
 profil		44	4	@
 dup2		+45	2
@@ -65,11 +68,11 @@ setgid		+46	1
 getgid		47	1	* this gets both gid and egid
 signal		+48	2	* have put the despatch table in user space.
 getinfo		49	1	@ possible? gets pid,ppid,uid,euid etc
-fcntl		+50	3	 
+fcntl		+50	3	!
 acct		51	1	@ Accounting to named file (off if null)
 phys		52	3	- Replaced by mmap()
 lock		53	1	@ Prevent swapping for this proc if flg!=0
-ioctl		+54	3	. make this and fcntl the same ?
+ioctl		+54	3	! make this and fcntl the same ?
 reboot		+55	3	. the magic number is 0xfee1,0xdead,...
 mpx		56	2	- Replaced by fifos and select.
 lstat		+57	2
@@ -78,18 +81,22 @@ readlink	+59	3
 umask		+60	1	 
 settimeofday	+61	2
 gettimeofday	+62	2
-select          +63     5	. 5 paramaters is possible
+select		+63	5	. 5 paramaters is possible
 readdir		+64	3	*
 insmod		65	1	- Removed support for modules
 fchown		+66	3
-dlload		+67	2
+dlload		+67	2	- Removed support for dynamic libraries
 setsid		+68	0
-socket		+69	3
-bind		+70	3
-listen		+71	2
-accept		+72	3
-connect		+73	3
-knlvsn          +74     1	= CONFIG_SYS_VERSION
+sbrk        +69 2	* Legacy number from Linux
+knlvsn		+74	1	= CONFIG_SYS_VERSION
+#
+# From /usr/include/asm-generic/unistd.h
+#
+socket		+198	3	= CONFIG_SOCKET
+bind		+200	3	= CONFIG_SOCKET
+listen		+201	2	= CONFIG_SOCKET
+accept		+202	3	= CONFIG_SOCKET
+connect		+203	3	= CONFIG_SOCKET
 #
 # Name			No	Args	Flag&comment
 #
