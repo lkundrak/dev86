@@ -7,7 +7,7 @@
 
 typedef __sighandler_t Sig;
 
-extern int __signal __P((int, __sighandler_t));
+extern int __signal __P((int, __sighandler_t, unsigned));
 static Sig system_signal();
 
 Sig __sigtable[_NSIG-1];
@@ -42,9 +42,9 @@ Sig pointer;
    if( number < 1 || number >= _NSIG ) { errno=EINVAL; return SIG_ERR; }
 
    if( pointer == SIG_DFL || pointer == SIG_IGN )
-      rv = __signal(number, pointer);
+      rv = __signal(number, pointer, 0);
    else
-      rv = __signal(number, (__sighandler_t) system_signal);
+      rv = __signal(number, (__sighandler_t) system_signal, __get_cs());
 
    if( rv < 0 ) return SIG_ERR;
 
@@ -63,16 +63,16 @@ Sig pointer;
   .text
 _system_signal:		! When this is called by the kernel the stack contains
   pushf			! in order:
-  push	ax		! 
-  push	bx		!    The signal number,			(NOS)
+  push	ax		!    The signal number,			(3OS)
+  push	bx		!    The callee CS,			(NOS)
   push	cx		!    The program counter,		(TOS)
   push	dx		!
-  push	si		! It does NOT contain the CS register or the flags.
-  push	di		! This means it cannot be unraveled by an iret.
+  push	si		! It does NOT contain the flags.  This means it
+  push	di		! cannot be unraveled by an iret.
   push	bp
   push	es		! Note also only ES segment register is saved.
   mov	bx,sp		! Unlike minix the rv from a system call is in AX.
-  mov	bx,[bx+20]
+  mov	bx,[bx+22]
 #if __FIRST_ARG_IN_AX__
   mov	ax,bx
 #else
@@ -81,8 +81,10 @@ _system_signal:		! When this is called by the kernel the stack contains
   add	bx,bx
   mov	bx,[bx+___sigtable-2]	! Offset by 2 cause no entry for signal 0
   call	bx		! Do we want to check BX for 0 or 1 ?
+#if !__FIRST_ARG_IN_AX__
   inc	sp
   inc	sp
+#endif
   pop	es
   pop	bp
   pop	di
@@ -92,7 +94,7 @@ _system_signal:		! When this is called by the kernel the stack contains
   pop	bx
   pop	ax
   popf
-  ret	#2		! Get rid of the signum too.
+  retf	#2		! Get rid of the signum too.
 #endasm
 
 #endif /* __AS386_16__ */
