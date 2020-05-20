@@ -77,7 +77,7 @@ clean:
 
 install_incl: transfer
 	install -d $(DISTINCL)/include
-	cp -LpR include/* $(DISTINCL)/include
+	cp -LpR include/* kinclude/* $(DISTINCL)/include
 	-chown -R $(USERID):$(GROUPID) $(DISTINCL)/include
 	-chmod -R ugo-x,u=rwX,og=rX $(DISTINCL)/include
 
