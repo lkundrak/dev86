@@ -22,6 +22,11 @@ CFLAGS=  -O
 IFDEFNAME= ifdef
 WD=$(shell pwd)
 
+# These are used to compile binaries run on the build machine, only relevant if cross-compiling dev86.
+BUILD_CC ?= $(CC)
+BUILD_CFLAGS ?= $(CFLAGS)
+BUILD_LDFLAGS ?= $(LDFLAGS)
+
 # Some makes take the last of a list as the default ...
 all: make.fil
 	PATH="`pwd`/bin:$$PATH" $(MAKE) -f make.fil VERSION=$(VERSION) TOPDIR=`pwd` $@
@@ -65,7 +70,7 @@ make.fil: $(IFDEFNAME) makefile.in
 	@rm -f tmp.mak tmp.sed
 
 $(IFDEFNAME): ifdef.c
-	$(CC) $(IFDEFARCH) $(CFLAGS) $(IFDEFFLAGS) $(LDFLAGS) -o $(IFDEFNAME) ifdef.c
+	$(BUILD_CC) $(IFDEFARCH) $(BUILD_CFLAGS) $(IFDEFFLAGS) $(BUILD_LDFLAGS) -o $(IFDEFNAME) ifdef.c
 
 uninstall:
 	@echo 'Sorry, no go; it was just wrong.'
