@@ -20,9 +20,7 @@ token1.o: token1.h
 token2.o: token2.h
 
 token1.h: token1.tok
-	gperf -aptTc -N is_ctok -H hash1 token1.tok > tmp.h
-	mv tmp.h token1.h
+	gperf -aptTc -N is_ctok -H hash1 --output-file $@ $<
 
 token2.h: token2.tok
-	gperf -aptTc -k1,3 -N is_ckey -H hash2 token2.tok > tmp.h
-	mv tmp.h token2.h
+	gperf -aptTc -k1,3 -N is_ckey -H hash2 --output-file $@ $<
