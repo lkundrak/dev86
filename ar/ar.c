@@ -1099,11 +1099,11 @@ header_from_map (header, mapelt)
   }
 #endif
 
-  sprintf (header->ar_date, "%ld", mapelt->info.date);
-  sprintf (header->ar_size, "%d", mapelt->info.size);
-  sprintf (header->ar_uid, "%d", mapelt->info.uid);
-  sprintf (header->ar_gid, "%d", mapelt->info.gid);
-  sprintf (header->ar_mode, "%o", mapelt->info.mode);
+  snprintf (header->ar_date, 12, "%ld", mapelt->info.date);
+  snprintf (header->ar_size, 10, "%d", mapelt->info.size);
+  snprintf (header->ar_uid, 6, "%d", mapelt->info.uid);
+  snprintf (header->ar_gid, 6, "%d", mapelt->info.gid);
+  snprintf (header->ar_mode, 8, "%o", mapelt->info.mode);
   strncpy (header->ar_fmag, ARFMAG, sizeof (header->ar_fmag));
 
   /* Change all remaining nulls in the header into spaces.  */
