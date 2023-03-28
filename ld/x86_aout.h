@@ -12,6 +12,9 @@
 #if defined(i386) || defined(__BCC__) || defined(MSDOS)
 typedef long Long;
 #define __OUT_OK 1
+#elif defined(__x86_64__) || (defined(__riscv) && __riscv_xlen == 64)
+typedef int Long;
+#define __OUT_OK 1
 #else
 /* Beware: this will probably allow some BE hosts to generate broken files. */
 #ifdef INT32_MAX
