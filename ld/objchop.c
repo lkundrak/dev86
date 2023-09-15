@@ -16,12 +16,13 @@ main()
 
 #else
 
+void fatal(char* str);
+void write_file(char *fname, long bsize);
+
 FILE * ifd;
 struct exec header;
 
-main(argc, argv)
-int argc;
-char ** argv;
+int main(int argc, char** argv)
 {
    FILE * ofd;
    if( argc != 5 ) fatal("Usage: objchop a.out text.bin data.bin sizes.asm");
@@ -56,9 +57,8 @@ char ** argv;
    exit(0);
 }
 
-write_file(fname, bsize)
-char * fname;
-long bsize;
+void
+write_file(char *fname, long bsize)
 {
    char buffer[1024];
    int ssize;
@@ -81,8 +81,8 @@ long bsize;
    fclose(ofd);
 }
 
-fatal(str)
-char * str;
+void
+fatal(char* str)
 {
    fprintf(stderr, "objchop: %s\n", str);
    exit(2);
