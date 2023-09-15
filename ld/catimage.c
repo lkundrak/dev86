@@ -24,6 +24,7 @@
 #ifdef __STDC__
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #endif
 #include "x86_aout.h"
 
@@ -39,9 +40,14 @@ FILE * ofd;
 FILE * ifd = 0;
 struct exec header;
 
-main(argc, argv)
-int argc;
-char ** argv;
+void open_obj(char * fname);
+void copy_segment(long out_offset,long in_offset,long length);
+void patch_bin(long file_off, int value);
+void read_symtable(void);
+void fatal(char * str);
+
+int
+main(int argc, char ** argv)
 {
    long image_offset, text_off;
    int  image_id;
@@ -100,8 +106,8 @@ char ** argv;
    exit(0);
 }
 
-open_obj(fname)
-char * fname;
+void
+open_obj(char * fname)
 {
    input_file = fname;
 
@@ -117,8 +123,8 @@ char * fname;
       fatal("Input file has bad magic number");
 }
 
-copy_segment(out_offset, in_offset, length)
-long out_offset, in_offset, length;
+void
+copy_segment(long out_offset,long in_offset,long length)
 {
    char buffer[1024];
    int ssize;
@@ -143,9 +149,8 @@ long out_offset, in_offset, length;
    }
 }
 
-patch_bin(file_off, value)
-long file_off;
-int value;
+void
+patch_bin(long file_off, int value)
 {
    char wbuf[4];
    if( file_off > 0 )
@@ -163,7 +168,8 @@ int value;
    }
 }
 
-read_symtable()
+void
+read_symtable(void)
 {
    struct nlist item;
    int nitems;
@@ -234,8 +240,8 @@ read_symtable()
    }
 }
 
-fatal(str)
-char * str;
+void
+fatal(char * str)
 {
    fprintf(stderr, "catimage:%s: %s\n", input_file, str);
    exit(2);
